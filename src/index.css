@@ -17,30 +17,30 @@ All colors MUST be HSL.
     --popover: 0 0% 100%;
     --popover-foreground: 215 25% 15%;
 
-    --primary: 190 75% 40%;
+    --primary: 350 70% 45%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 200 20% 92%;
+    --secondary: 350 20% 92%;
     --secondary-foreground: 215 25% 15%;
 
-    --muted: 200 20% 92%;
+    --muted: 0 0% 92%;
     --muted-foreground: 215 15% 45%;
 
-    --accent: 15 85% 60%;
+    --accent: 40 85% 55%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 72% 55%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 200 20% 88%;
-    --input: 200 20% 88%;
-    --ring: 190 75% 40%;
+    --border: 0 0% 88%;
+    --input: 0 0% 88%;
+    --ring: 350 70% 45%;
 
     --radius: 0.75rem;
     
-    --shadow-soft: 0 2px 8px -2px hsl(190 75% 40% / 0.08);
-    --shadow-medium: 0 4px 16px -4px hsl(190 75% 40% / 0.12);
-    --shadow-strong: 0 8px 32px -8px hsl(190 75% 40% / 0.16);
+    --shadow-soft: 0 2px 8px -2px hsl(350 70% 45% / 0.08);
+    --shadow-medium: 0 4px 16px -4px hsl(350 70% 45% / 0.12);
+    --shadow-strong: 0 8px 32px -8px hsl(350 70% 45% / 0.16);
 
     --sidebar-background: 0 0% 98%;
 
@@ -69,24 +69,24 @@ All colors MUST be HSL.
     --popover: 215 25% 12%;
     --popover-foreground: 210 20% 95%;
 
-    --primary: 190 75% 50%;
-    --primary-foreground: 215 30% 8%;
+    --primary: 350 70% 50%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 215 20% 18%;
+    --secondary: 350 20% 18%;
     --secondary-foreground: 210 20% 95%;
 
-    --muted: 215 20% 18%;
+    --muted: 215 10% 20%;
     --muted-foreground: 215 15% 60%;
 
-    --accent: 15 85% 60%;
+    --accent: 40 85% 55%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 72% 55%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 215 20% 22%;
-    --input: 215 20% 22%;
-    --ring: 190 75% 50%;
+    --border: 215 10% 25%;
+    --input: 215 10% 25%;
+    --ring: 350 70% 50%;
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
     --sidebar-primary: 224.3 76.3% 48%;
