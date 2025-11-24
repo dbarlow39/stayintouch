@@ -32,6 +32,7 @@ const ClientsTab = () => {
     phone: "",
     notes: "",
   });
+  const fileInputRef = useState<HTMLInputElement | null>(null)[0];
 
   const { data: clients = [], isLoading } = useQuery({
     queryKey: ["clients"],
@@ -126,6 +127,51 @@ const ClientsTab = () => {
     setOpen(true);
   };
 
+  const handleCSVImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      try {
+        const text = event.target?.result as string;
+        const rows = text.split('\n').filter(row => row.trim());
+        
+        // Parse CSV header
+        const headers = rows[0].split(',').map(h => h.trim().toLowerCase());
+        
+        // Parse data rows
+        const clientsToImport = rows.slice(1).map(row => {
+          const values = row.split(',').map(v => v.trim());
+          const client: any = { agent_id: user!.id };
+          
+          headers.forEach((header, index) => {
+            if (header === 'first_name' || header === 'firstname') client.first_name = values[index];
+            if (header === 'last_name' || header === 'lastname') client.last_name = values[index];
+            if (header === 'email') client.email = values[index];
+            if (header === 'phone') client.phone = values[index];
+            if (header === 'notes') client.notes = values[index];
+          });
+          
+          return client;
+        }).filter(c => c.first_name && c.last_name && c.email);
+
+        // Import to database
+        const { error } = await supabase.from("clients").insert(clientsToImport);
+        
+        if (error) throw error;
+        
+        queryClient.invalidateQueries({ queryKey: ["clients"] });
+        toast.success(`Successfully imported ${clientsToImport.length} clients`);
+      } catch (error) {
+        toast.error("Failed to import CSV. Please check the file format.");
+      }
+    };
+    
+    reader.readAsText(file);
+    e.target.value = ''; // Reset input
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
@@ -134,7 +180,18 @@ const ClientsTab = () => {
           <p className="text-sm text-muted-foreground">Add and manage your client contacts</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm">
+          <input
+            ref={(el) => (fileInputRef as any) = el}
+            type="file"
+            accept=".csv"
+            onChange={handleCSVImport}
+            className="hidden"
+          />
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => fileInputRef?.click()}
+          >
             <Upload className="w-4 h-4 mr-2" />
             Import CSV
           </Button>
