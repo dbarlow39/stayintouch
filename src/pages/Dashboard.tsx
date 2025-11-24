@@ -4,13 +4,14 @@ import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Building2, Users, Mail, TrendingUp, LogOut, UserPlus, Briefcase, CheckSquare, MessageSquare } from "lucide-react";
+import { Building2, Users, Mail, TrendingUp, LogOut, UserPlus, Briefcase, CheckSquare, MessageSquare, Sparkles } from "lucide-react";
 import ClientsTab from "@/components/dashboard/ClientsTab";
 import AnalyticsTab from "@/components/dashboard/AnalyticsTab";
 import LeadsTab from "@/components/dashboard/LeadsTab";
 import DealsTab from "@/components/dashboard/DealsTab";
 import TasksTab from "@/components/dashboard/TasksTab";
 import SMSTab from "@/components/dashboard/SMSTab";
+import SmartAssistantTab from "@/components/dashboard/SmartAssistantTab";
 
 const Dashboard = () => {
   const { user, loading, signOut } = useAuth();
@@ -100,6 +101,10 @@ const Dashboard = () => {
           <Tabs defaultValue="clients" className="w-full">
             <CardHeader>
               <TabsList className="w-full justify-start grid grid-cols-3 lg:flex">
+                <TabsTrigger value="assistant">
+                  <Sparkles className="w-4 h-4 mr-2" />
+                  AI Assistant
+                </TabsTrigger>
                 <TabsTrigger value="clients">
                   <Users className="w-4 h-4 mr-2" />
                   Clients
@@ -127,6 +132,9 @@ const Dashboard = () => {
               </TabsList>
             </CardHeader>
             <CardContent>
+              <TabsContent value="assistant">
+                <SmartAssistantTab />
+              </TabsContent>
               <TabsContent value="clients">
                 <ClientsTab />
               </TabsContent>

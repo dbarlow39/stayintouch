@@ -1,1 +1,16 @@
 project_id = "ujhohggsvijjqoatvwnl"
+
+[functions.ai-recommendations]
+verify_jwt = true
+
+[functions.ai-lead-scoring]
+verify_jwt = true
+
+[functions.ai-deal-priority]
+verify_jwt = true
+
+[functions.ai-personalize-message]
+verify_jwt = true
+
+[functions.ai-predictive-analytics]
+verify_jwt = true
