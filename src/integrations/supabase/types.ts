@@ -88,6 +88,69 @@ export type Database = {
         }
         Relationships: []
       }
+      deals: {
+        Row: {
+          agent_id: string
+          client_id: string | null
+          close_date: string | null
+          created_at: string | null
+          id: string
+          lead_id: string | null
+          notes: string | null
+          property_address: string | null
+          property_details: Json | null
+          stage: Database["public"]["Enums"]["deal_stage"]
+          title: string
+          updated_at: string | null
+          value: number | null
+        }
+        Insert: {
+          agent_id: string
+          client_id?: string | null
+          close_date?: string | null
+          created_at?: string | null
+          id?: string
+          lead_id?: string | null
+          notes?: string | null
+          property_address?: string | null
+          property_details?: Json | null
+          stage?: Database["public"]["Enums"]["deal_stage"]
+          title: string
+          updated_at?: string | null
+          value?: number | null
+        }
+        Update: {
+          agent_id?: string
+          client_id?: string | null
+          close_date?: string | null
+          created_at?: string | null
+          id?: string
+          lead_id?: string | null
+          notes?: string | null
+          property_address?: string | null
+          property_details?: Json | null
+          stage?: Database["public"]["Enums"]["deal_stage"]
+          title?: string
+          updated_at?: string | null
+          value?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deals_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deals_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_logs: {
         Row: {
           agent_id: string
@@ -156,6 +219,111 @@ export type Database = {
         }
         Relationships: []
       }
+      leads: {
+        Row: {
+          agent_id: string
+          created_at: string | null
+          email: string | null
+          first_name: string
+          id: string
+          last_name: string
+          notes: string | null
+          phone: string | null
+          preferences: Json | null
+          source: string | null
+          status: Database["public"]["Enums"]["lead_status"]
+          updated_at: string | null
+        }
+        Insert: {
+          agent_id: string
+          created_at?: string | null
+          email?: string | null
+          first_name: string
+          id?: string
+          last_name: string
+          notes?: string | null
+          phone?: string | null
+          preferences?: Json | null
+          source?: string | null
+          status?: Database["public"]["Enums"]["lead_status"]
+          updated_at?: string | null
+        }
+        Update: {
+          agent_id?: string
+          created_at?: string | null
+          email?: string | null
+          first_name?: string
+          id?: string
+          last_name?: string
+          notes?: string | null
+          phone?: string | null
+          preferences?: Json | null
+          source?: string | null
+          status?: Database["public"]["Enums"]["lead_status"]
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      mls_properties: {
+        Row: {
+          address: string
+          bathrooms: number | null
+          bedrooms: number | null
+          city: string | null
+          created_at: string | null
+          details: Json | null
+          id: string
+          images: Json | null
+          last_synced_at: string | null
+          listing_date: string | null
+          mls_id: string
+          price: number | null
+          property_type: string | null
+          square_feet: number | null
+          state: string | null
+          status: string | null
+          zip: string | null
+        }
+        Insert: {
+          address: string
+          bathrooms?: number | null
+          bedrooms?: number | null
+          city?: string | null
+          created_at?: string | null
+          details?: Json | null
+          id?: string
+          images?: Json | null
+          last_synced_at?: string | null
+          listing_date?: string | null
+          mls_id: string
+          price?: number | null
+          property_type?: string | null
+          square_feet?: number | null
+          state?: string | null
+          status?: string | null
+          zip?: string | null
+        }
+        Update: {
+          address?: string
+          bathrooms?: number | null
+          bedrooms?: number | null
+          city?: string | null
+          created_at?: string | null
+          details?: Json | null
+          id?: string
+          images?: Json | null
+          last_synced_at?: string | null
+          listing_date?: string | null
+          mls_id?: string
+          price?: number | null
+          property_type?: string | null
+          square_feet?: number | null
+          state?: string | null
+          status?: string | null
+          zip?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string | null
@@ -179,6 +347,205 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      property_views: {
+        Row: {
+          agent_id: string
+          client_id: string | null
+          id: string
+          property_id: string | null
+          source: string | null
+          viewed_at: string | null
+        }
+        Insert: {
+          agent_id: string
+          client_id?: string | null
+          id?: string
+          property_id?: string | null
+          source?: string | null
+          viewed_at?: string | null
+        }
+        Update: {
+          agent_id?: string
+          client_id?: string | null
+          id?: string
+          property_id?: string | null
+          source?: string | null
+          viewed_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "property_views_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "property_views_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "mls_properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sms_campaigns: {
+        Row: {
+          agent_id: string
+          created_at: string | null
+          id: string
+          message_template: string
+          name: string
+          scheduled_for: string | null
+          status: string
+          target_filters: Json | null
+          updated_at: string | null
+        }
+        Insert: {
+          agent_id: string
+          created_at?: string | null
+          id?: string
+          message_template: string
+          name: string
+          scheduled_for?: string | null
+          status?: string
+          target_filters?: Json | null
+          updated_at?: string | null
+        }
+        Update: {
+          agent_id?: string
+          created_at?: string | null
+          id?: string
+          message_template?: string
+          name?: string
+          scheduled_for?: string | null
+          status?: string
+          target_filters?: Json | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      sms_logs: {
+        Row: {
+          agent_id: string
+          client_id: string | null
+          id: string
+          lead_id: string | null
+          message: string
+          metadata: Json | null
+          phone: string
+          sent_at: string | null
+          status: string
+        }
+        Insert: {
+          agent_id: string
+          client_id?: string | null
+          id?: string
+          lead_id?: string | null
+          message: string
+          metadata?: Json | null
+          phone: string
+          sent_at?: string | null
+          status?: string
+        }
+        Update: {
+          agent_id?: string
+          client_id?: string | null
+          id?: string
+          lead_id?: string | null
+          message?: string
+          metadata?: Json | null
+          phone?: string
+          sent_at?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sms_logs_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sms_logs_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tasks: {
+        Row: {
+          agent_id: string
+          client_id: string | null
+          completed_at: string | null
+          created_at: string | null
+          deal_id: string | null
+          description: string | null
+          due_date: string | null
+          id: string
+          lead_id: string | null
+          priority: Database["public"]["Enums"]["task_priority"]
+          status: Database["public"]["Enums"]["task_status"]
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          agent_id: string
+          client_id?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          deal_id?: string | null
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          lead_id?: string | null
+          priority?: Database["public"]["Enums"]["task_priority"]
+          status?: Database["public"]["Enums"]["task_status"]
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          agent_id?: string
+          client_id?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          deal_id?: string | null
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          lead_id?: string | null
+          priority?: Database["public"]["Enums"]["task_priority"]
+          status?: Database["public"]["Enums"]["task_status"]
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tasks_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
@@ -216,6 +583,21 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "agent"
+      deal_stage:
+        | "lead"
+        | "qualified"
+        | "proposal"
+        | "negotiation"
+        | "closed_won"
+        | "closed_lost"
+      lead_status:
+        | "new"
+        | "contacted"
+        | "qualified"
+        | "unqualified"
+        | "nurturing"
+      task_priority: "low" | "medium" | "high" | "urgent"
+      task_status: "pending" | "in_progress" | "completed" | "cancelled"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -344,6 +726,23 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "agent"],
+      deal_stage: [
+        "lead",
+        "qualified",
+        "proposal",
+        "negotiation",
+        "closed_won",
+        "closed_lost",
+      ],
+      lead_status: [
+        "new",
+        "contacted",
+        "qualified",
+        "unqualified",
+        "nurturing",
+      ],
+      task_priority: ["low", "medium", "high", "urgent"],
+      task_status: ["pending", "in_progress", "completed", "cancelled"],
     },
   },
 } as const

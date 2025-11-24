@@ -4,9 +4,13 @@ import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Building2, Users, Mail, TrendingUp, LogOut } from "lucide-react";
+import { Building2, Users, Mail, TrendingUp, LogOut, UserPlus, Briefcase, CheckSquare, MessageSquare } from "lucide-react";
 import ClientsTab from "@/components/dashboard/ClientsTab";
 import AnalyticsTab from "@/components/dashboard/AnalyticsTab";
+import LeadsTab from "@/components/dashboard/LeadsTab";
+import DealsTab from "@/components/dashboard/DealsTab";
+import TasksTab from "@/components/dashboard/TasksTab";
+import SMSTab from "@/components/dashboard/SMSTab";
 
 const Dashboard = () => {
   const { user, loading, signOut } = useAuth();
@@ -95,10 +99,26 @@ const Dashboard = () => {
         <Card className="shadow-medium animate-fade-in">
           <Tabs defaultValue="clients" className="w-full">
             <CardHeader>
-              <TabsList className="w-full justify-start">
+              <TabsList className="w-full justify-start grid grid-cols-3 lg:flex">
                 <TabsTrigger value="clients">
                   <Users className="w-4 h-4 mr-2" />
                   Clients
+                </TabsTrigger>
+                <TabsTrigger value="leads">
+                  <UserPlus className="w-4 h-4 mr-2" />
+                  Leads
+                </TabsTrigger>
+                <TabsTrigger value="deals">
+                  <Briefcase className="w-4 h-4 mr-2" />
+                  Deals
+                </TabsTrigger>
+                <TabsTrigger value="tasks">
+                  <CheckSquare className="w-4 h-4 mr-2" />
+                  Tasks
+                </TabsTrigger>
+                <TabsTrigger value="sms">
+                  <MessageSquare className="w-4 h-4 mr-2" />
+                  SMS
                 </TabsTrigger>
                 <TabsTrigger value="analytics">
                   <TrendingUp className="w-4 h-4 mr-2" />
@@ -109,6 +129,18 @@ const Dashboard = () => {
             <CardContent>
               <TabsContent value="clients">
                 <ClientsTab />
+              </TabsContent>
+              <TabsContent value="leads">
+                <LeadsTab />
+              </TabsContent>
+              <TabsContent value="deals">
+                <DealsTab />
+              </TabsContent>
+              <TabsContent value="tasks">
+                <TasksTab />
+              </TabsContent>
+              <TabsContent value="sms">
+                <SMSTab />
               </TabsContent>
               <TabsContent value="analytics">
                 <AnalyticsTab />
