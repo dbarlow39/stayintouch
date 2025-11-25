@@ -179,6 +179,16 @@ const ClientsTab = () => {
         // Parse CSV header from first row
         const headers = parseCSVLine(rows[0]).map(h => h.trim().toLowerCase());
         
+        // Validate required headers
+        const hasFirstName = headers.some(h => h === 'first_name' || h === 'firstname');
+        const hasLastName = headers.some(h => h === 'last_name' || h === 'lastname');
+        const hasEmail = headers.includes('email');
+
+        if (!hasFirstName || !hasLastName || !hasEmail) {
+          toast.error(`Missing required columns. Found: ${headers.join(', ')}. Need: first_name, last_name, email`);
+          return;
+        }
+
         // Validate and parse data rows
         const validClients: any[] = [];
         const errors: string[] = [];
@@ -192,8 +202,8 @@ const ClientsTab = () => {
             if (header === 'first_name' || header === 'firstname') rawClient.first_name = value;
             if (header === 'last_name' || header === 'lastname') rawClient.last_name = value;
             if (header === 'email') rawClient.email = value;
-            if (header === 'phone') rawClient.phone = value;
-            if (header === 'notes') rawClient.notes = value;
+            if (header === 'phone') rawClient.phone = value || "";
+            if (header === 'notes') rawClient.notes = value || "";
           });
 
           // Validate with zod schema
@@ -201,12 +211,15 @@ const ClientsTab = () => {
           if (validation.success) {
             validClients.push({ ...validation.data, agent_id: user!.id });
           } else {
-            errors.push(`Row ${i + 1}: ${validation.error.errors[0].message}`);
+            const errorField = validation.error.errors[0].path[0];
+            const errorMsg = validation.error.errors[0].message;
+            errors.push(`Row ${i + 1} - ${errorField}: ${errorMsg} (value: "${rawClient[errorField] || 'empty'}")`);
           }
         }
 
         if (validClients.length === 0) {
-          toast.error("No valid clients found in CSV. " + errors[0]);
+          toast.error(`No valid clients found. Check your CSV format. ${errors.slice(0, 3).join('; ')}`);
+          console.error("CSV Import Errors:", errors);
           return;
         }
 
