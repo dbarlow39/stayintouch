@@ -40,7 +40,7 @@ interface Client {
 }
 
 const clientSchema = z.object({
-  first_name: z.string().trim().min(1, "First name is required").max(100, "First name too long"),
+  first_name: z.string().trim().max(100).optional().or(z.literal("")).or(z.null()),
   last_name: z.string().trim().max(100).optional().or(z.literal("")).or(z.null()),
   email: z.string().trim().max(500).optional().or(z.literal("")).or(z.null()),
   phone: z.string().trim().max(100).optional().or(z.literal("")).or(z.null()),
@@ -290,9 +290,10 @@ const ClientsTab = () => {
           }
         });
 
-        // Skip rows that don't have required fields
-        if (!rawClient.first_name || rawClient.first_name.trim() === '') {
-          console.log(`Row ${index + 2} skipped - no first name`);
+        // Skip completely empty rows
+        const hasAnyData = Object.values(rawClient).some(v => v && String(v).trim() !== '');
+        if (!hasAnyData) {
+          console.log(`Row ${index + 2} skipped - completely empty`);
           return;
         }
 
