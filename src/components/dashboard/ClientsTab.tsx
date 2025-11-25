@@ -42,7 +42,7 @@ interface Client {
 const clientSchema = z.object({
   first_name: z.string().trim().min(1, "First name is required").max(100, "First name too long"),
   last_name: z.string().trim().min(1, "Last name is required").max(100, "Last name too long"),
-  email: z.string().trim().email("Invalid email").max(255, "Email too long"),
+  email: z.string().trim().email("Invalid email").max(255, "Email too long").optional().or(z.literal("")),
   phone: z.string().trim().max(20, "Phone too long").optional().or(z.literal("")),
   notes: z.string().trim().max(1000, "Notes too long").optional().or(z.literal("")),
   status: z.string().trim().max(50).optional().or(z.literal("")),
@@ -52,7 +52,7 @@ const clientSchema = z.object({
   city: z.string().trim().max(100).optional().or(z.literal("")),
   state: z.string().trim().max(50).optional().or(z.literal("")),
   zip: z.string().trim().max(20).optional().or(z.literal("")),
-  price: z.coerce.number().positive().optional().or(z.literal("")),
+  price: z.string().trim().optional().or(z.literal("")),
   home_phone: z.string().trim().max(20).optional().or(z.literal("")),
   cell_phone: z.string().trim().max(20).optional().or(z.literal("")),
   listing_date: z.string().trim().optional().or(z.literal("")),
@@ -275,13 +275,24 @@ const ClientsTab = () => {
         csvHeaders.forEach((header, colIndex) => {
           const dbField = columnMapping[header];
           if (dbField && row[colIndex]) {
-            rawClient[dbField] = row[colIndex].replace(/^["']|["']$/g, '').trim();
+            let value = row[colIndex].replace(/^["']|["']$/g, '').trim();
+            
+            // Handle price conversion
+            if (dbField === 'price' && value) {
+              // Remove currency symbols and commas
+              value = value.replace(/[$,]/g, '');
+              // Convert to number if valid
+              const numValue = parseFloat(value);
+              rawClient[dbField] = !isNaN(numValue) ? numValue : null;
+            } else {
+              rawClient[dbField] = value || null;
+            }
           }
         });
 
         // Skip rows that don't have required fields
-        if (!rawClient.first_name && !rawClient.last_name && !rawClient.email) {
-          console.log(`Row ${index + 2} skipped - no required fields`);
+        if (!rawClient.first_name && !rawClient.last_name) {
+          console.log(`Row ${index + 2} skipped - no name fields`);
           return;
         }
 
@@ -292,7 +303,7 @@ const ClientsTab = () => {
         } else {
           const allErrors = validation.error.errors.map(e => `${e.path[0]}: ${e.message}`).join(', ');
           errors.push(`Row ${index + 2} - ${allErrors}`);
-          console.log(`Row ${index + 2} validation failed:`, allErrors);
+          console.log(`Row ${index + 2} validation failed:`, allErrors, 'Data:', rawClient);
         }
       });
 
