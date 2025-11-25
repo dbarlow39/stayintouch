@@ -550,6 +550,7 @@ const ClientsTab = () => {
                 <TableHead>Street Name</TableHead>
                 <TableHead>City</TableHead>
                 <TableHead>Price</TableHead>
+                <TableHead>Phone</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead>Home #</TableHead>
                 <TableHead>Cell #</TableHead>
@@ -606,6 +607,7 @@ const ClientsTab = () => {
                   <TableCell>{client.street_name || "—"}</TableCell>
                   <TableCell>{client.city || "—"}</TableCell>
                   <TableCell>{client.price ? `$${client.price}` : "—"}</TableCell>
+                  <TableCell>{client.cell_phone || client.home_phone || "—"}</TableCell>
                   <TableCell>
                     {client.email ? (
                       <a 
