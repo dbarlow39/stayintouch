@@ -607,7 +607,7 @@ const ClientsTab = () => {
                   <TableCell>{client.street_name || "—"}</TableCell>
                   <TableCell>{client.city || "—"}</TableCell>
                   <TableCell>{client.price ? `$${client.price}` : "—"}</TableCell>
-                  <TableCell>{client.cell_phone || client.home_phone || "—"}</TableCell>
+                  <TableCell>{client.cell_phone || "—"}</TableCell>
                   <TableCell>
                     {client.email ? (
                       <a 
