@@ -76,7 +76,7 @@ const ClientsTab = () => {
   const [csvHeaders, setCsvHeaders] = useState<string[]>([]);
   const [csvData, setCsvData] = useState<string[][]>([]);
   const [columnMapping, setColumnMapping] = useState<Record<string, string>>({});
-  const [showAllClients, setShowAllClients] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<string>("A");
   const [formData, setFormData] = useState({
     first_name: "",
     last_name: "",
@@ -87,14 +87,14 @@ const ClientsTab = () => {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const { data: clients = [], isLoading } = useQuery({
-    queryKey: ["clients", showAllClients ? "all" : "status-a"],
+    queryKey: ["clients", statusFilter],
     queryFn: async () => {
       let query = supabase
         .from("clients")
         .select("*");
       
-      if (!showAllClients) {
-        query = query.ilike("status", "A");
+      if (statusFilter !== "all") {
+        query = query.ilike("status", statusFilter);
       }
       
       query = query.order("street_name", { ascending: true, nullsFirst: false });
@@ -370,14 +370,18 @@ const ClientsTab = () => {
           <p className="text-sm text-muted-foreground">Add and manage your client contacts</p>
         </div>
         <div className="flex gap-2">
-          <Select value={showAllClients ? "all" : "active"} onValueChange={(value) => setShowAllClients(value === "all")}>
-            <SelectTrigger className="w-[140px]">
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-[180px]">
               <Filter className="w-4 h-4 mr-2" />
               <SelectValue />
             </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="active">Active Only</SelectItem>
+            <SelectContent className="bg-background z-50">
               <SelectItem value="all">All Clients</SelectItem>
+              <SelectItem value="A">Active</SelectItem>
+              <SelectItem value="C">Closed</SelectItem>
+              <SelectItem value="E">Expired</SelectItem>
+              <SelectItem value="W">Withdrawn</SelectItem>
+              <SelectItem value="T">Temp Off Market</SelectItem>
             </SelectContent>
           </Select>
           <input
