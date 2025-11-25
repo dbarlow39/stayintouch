@@ -610,7 +610,17 @@ const ClientsTab = () => {
                   <TableCell>{client.state || "—"}</TableCell>
                   <TableCell>{client.zip || "—"}</TableCell>
                   <TableCell>{client.price ? `$${client.price}` : "—"}</TableCell>
-                  <TableCell>{client.email || "—"}</TableCell>
+                  <TableCell>
+                    {client.email ? (
+                      <a 
+                        href={`mailto:${client.email}`}
+                        onClick={(e) => e.stopPropagation()}
+                        className="text-primary hover:underline"
+                      >
+                        {client.email}
+                      </a>
+                    ) : "—"}
+                  </TableCell>
                   <TableCell>{client.home_phone || "—"}</TableCell>
                   <TableCell>{client.cell_phone || "—"}</TableCell>
                   <TableCell>{client.listing_date || "—"}</TableCell>
@@ -682,7 +692,16 @@ const ClientsTab = () => {
                   </div>
                   <div>
                     <Label className="text-sm font-semibold text-muted-foreground">Email</Label>
-                    <p className="text-base break-all">{viewingClient.email || "—"}</p>
+                    {viewingClient.email ? (
+                      <a 
+                        href={`mailto:${viewingClient.email}`}
+                        className="text-base text-primary hover:underline break-all block"
+                      >
+                        {viewingClient.email}
+                      </a>
+                    ) : (
+                      <p className="text-base">—</p>
+                    )}
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
