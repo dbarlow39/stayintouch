@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/lib/auth";
 import { z } from "zod";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import logo from "@/assets/logo.jpg";
 
 interface Client {
   id: string;
@@ -737,7 +738,10 @@ const ClientsTab = () => {
       <Dialog open={!!viewingClient} onOpenChange={() => setViewingClient(null)}>
         <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Client Details</DialogTitle>
+            <div className="flex items-center space-x-3 mb-2">
+              <img src={logo} alt="Sell for 1 Percent" className="h-10 w-auto" />
+              <DialogTitle>Client Details</DialogTitle>
+            </div>
           </DialogHeader>
           {viewingClient && (
             <div className="space-y-4">
