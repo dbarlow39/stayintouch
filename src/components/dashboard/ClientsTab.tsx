@@ -607,7 +607,16 @@ const ClientsTab = () => {
                   <TableCell>{client.street_name || "—"}</TableCell>
                   <TableCell>{client.city || "—"}</TableCell>
                   <TableCell>{client.price ? `$${client.price}` : "—"}</TableCell>
-                  <TableCell>{client.cell_phone || "—"}</TableCell>
+                  <TableCell>
+                    {client.cell_phone ? (
+                      <a 
+                        href={`tel:${client.cell_phone}`}
+                        className="text-primary hover:underline"
+                      >
+                        {client.cell_phone}
+                      </a>
+                    ) : "—"}
+                  </TableCell>
                   <TableCell>
                     {client.email ? (
                       <a 
@@ -704,11 +713,29 @@ const ClientsTab = () => {
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <Label className="text-sm font-semibold text-muted-foreground">Home Phone</Label>
-                      <p className="text-base">{viewingClient.home_phone || "—"}</p>
+                      {viewingClient.home_phone ? (
+                        <a 
+                          href={`tel:${viewingClient.home_phone}`}
+                          className="text-base text-primary hover:underline block"
+                        >
+                          {viewingClient.home_phone}
+                        </a>
+                      ) : (
+                        <p className="text-base">—</p>
+                      )}
                     </div>
                     <div>
                       <Label className="text-sm font-semibold text-muted-foreground">Cell Phone</Label>
-                      <p className="text-base">{viewingClient.cell_phone || "—"}</p>
+                      {viewingClient.cell_phone ? (
+                        <a 
+                          href={`tel:${viewingClient.cell_phone}`}
+                          className="text-base text-primary hover:underline block"
+                        >
+                          {viewingClient.cell_phone}
+                        </a>
+                      ) : (
+                        <p className="text-base">—</p>
+                      )}
                     </div>
                   </div>
                 </div>
