@@ -569,9 +569,9 @@ const ClientsTab = () => {
           <p className="text-sm text-muted-foreground">Add your first client to get started</p>
         </div>
       ) : (
-        <div className="border border-border rounded-lg overflow-hidden overflow-x-auto">
+        <div className="border border-border rounded-lg overflow-auto max-h-[600px]">
           <Table>
-            <TableHeader>
+            <TableHeader className="sticky top-0 bg-background z-10">
               <TableRow>
                 <TableHead className="w-20">Status</TableHead>
                 <TableHead>First Name</TableHead>
