@@ -30,7 +30,8 @@ const Dashboard = () => {
     queryFn: async () => {
       const { count, error } = await supabase
         .from("clients")
-        .select("*", { count: "exact", head: true });
+        .select("*", { count: "exact", head: true })
+        .eq("agent_id", user!.id);
       
       if (error) throw error;
       return count || 0;
