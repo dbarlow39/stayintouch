@@ -267,6 +267,8 @@ const ClientsTab = () => {
       const validClients: any[] = [];
       const errors: string[] = [];
 
+      console.log('Starting CSV import, total rows:', csvData.length);
+
       csvData.forEach((row, index) => {
         const rawClient: any = {};
         
@@ -277,37 +279,59 @@ const ClientsTab = () => {
           }
         });
 
+        // Skip rows that don't have required fields
+        if (!rawClient.first_name && !rawClient.last_name && !rawClient.email) {
+          console.log(`Row ${index + 2} skipped - no required fields`);
+          return;
+        }
+
         // Validate with zod schema
         const validation = clientSchema.safeParse(rawClient);
         if (validation.success) {
           validClients.push({ ...validation.data, agent_id: user!.id });
         } else {
-          const errorField = validation.error.errors[0].path[0];
-          const errorMsg = validation.error.errors[0].message;
-          errors.push(`Row ${index + 2} - ${errorField}: ${errorMsg}`);
+          const allErrors = validation.error.errors.map(e => `${e.path[0]}: ${e.message}`).join(', ');
+          errors.push(`Row ${index + 2} - ${allErrors}`);
+          console.log(`Row ${index + 2} validation failed:`, allErrors);
         }
       });
 
+      console.log('Valid clients:', validClients.length, 'Errors:', errors.length);
+
       if (validClients.length === 0) {
-        toast.error(`No valid clients found. ${errors.slice(0, 2).join('; ')}`);
+        const errorSummary = errors.slice(0, 5).join('\n');
+        toast.error(`No valid clients found. First errors:\n${errorSummary}`, { duration: 10000 });
+        console.log('All errors:', errors);
         return;
       }
 
-      // Import to database
-      const { error } = await supabase.from("clients").insert(validClients);
+      // Import to database in batches to avoid timeout
+      const batchSize = 100;
+      let imported = 0;
       
-      if (error) throw error;
+      for (let i = 0; i < validClients.length; i += batchSize) {
+        const batch = validClients.slice(i, i + batchSize);
+        const { error } = await supabase.from("clients").insert(batch);
+        if (error) {
+          console.error('Batch import error:', error);
+          throw error;
+        }
+        imported += batch.length;
+        console.log(`Imported batch ${i / batchSize + 1}, total: ${imported}/${validClients.length}`);
+      }
       
       queryClient.invalidateQueries({ queryKey: ["clients"] });
       setCsvMappingOpen(false);
       
       if (errors.length > 0) {
-        toast.success(`Imported ${validClients.length} clients. ${errors.length} rows had errors.`);
+        toast.success(`Imported ${validClients.length} clients. ${errors.length} rows had validation errors.`, { duration: 8000 });
+        console.log('Import complete with errors:', errors);
       } else {
-        toast.success(`Successfully imported ${validClients.length} clients`);
+        toast.success(`Successfully imported ${validClients.length} clients!`);
       }
     } catch (error) {
-      toast.error("Failed to import clients.");
+      console.error('Import failed:', error);
+      toast.error(`Failed to import clients: ${error}`);
     }
   };
 
