@@ -609,12 +609,16 @@ const ClientsTab = () => {
                   <TableCell>{client.price ? `$${client.price}` : "—"}</TableCell>
                   <TableCell>
                     {client.cell_phone ? (
-                      <a 
-                        href={`tel:${client.cell_phone}`}
-                        className="text-primary hover:underline"
-                      >
-                        {client.cell_phone}
-                      </a>
+                      /\d{3,}/.test(client.cell_phone) ? (
+                        <a 
+                          href={`tel:${client.cell_phone}`}
+                          className="text-primary hover:underline"
+                        >
+                          {client.cell_phone}
+                        </a>
+                      ) : (
+                        <span>{client.cell_phone}</span>
+                      )
                     ) : "—"}
                   </TableCell>
                   <TableCell>
@@ -714,12 +718,16 @@ const ClientsTab = () => {
                     <div>
                       <Label className="text-sm font-semibold text-muted-foreground">Home Phone</Label>
                       {viewingClient.home_phone ? (
-                        <a 
-                          href={`tel:${viewingClient.home_phone}`}
-                          className="text-base text-primary hover:underline block"
-                        >
-                          {viewingClient.home_phone}
-                        </a>
+                        /\d{3,}/.test(viewingClient.home_phone) ? (
+                          <a 
+                            href={`tel:${viewingClient.home_phone}`}
+                            className="text-base text-primary hover:underline block"
+                          >
+                            {viewingClient.home_phone}
+                          </a>
+                        ) : (
+                          <p className="text-base">{viewingClient.home_phone}</p>
+                        )
                       ) : (
                         <p className="text-base">—</p>
                       )}
@@ -727,12 +735,16 @@ const ClientsTab = () => {
                     <div>
                       <Label className="text-sm font-semibold text-muted-foreground">Cell Phone</Label>
                       {viewingClient.cell_phone ? (
-                        <a 
-                          href={`tel:${viewingClient.cell_phone}`}
-                          className="text-base text-primary hover:underline block"
-                        >
-                          {viewingClient.cell_phone}
-                        </a>
+                        /\d{3,}/.test(viewingClient.cell_phone) ? (
+                          <a 
+                            href={`tel:${viewingClient.cell_phone}`}
+                            className="text-base text-primary hover:underline block"
+                          >
+                            {viewingClient.cell_phone}
+                          </a>
+                        ) : (
+                          <p className="text-base">{viewingClient.cell_phone}</p>
+                        )
                       ) : (
                         <p className="text-base">—</p>
                       )}
