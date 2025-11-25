@@ -573,7 +573,6 @@ const ClientsTab = () => {
             <TableHeader>
               <TableRow>
                 <TableHead>Status</TableHead>
-                <TableHead>MLS ID</TableHead>
                 <TableHead>First Name</TableHead>
                 <TableHead>Last Name</TableHead>
                 <TableHead>Street #</TableHead>
@@ -582,6 +581,7 @@ const ClientsTab = () => {
                 <TableHead>Price</TableHead>
                 <TableHead>Phone</TableHead>
                 <TableHead>Email</TableHead>
+                <TableHead>MLS ID</TableHead>
                 <TableHead>Home #</TableHead>
                 <TableHead>Cell #</TableHead>
                 <TableHead>Listing Date</TableHead>
@@ -632,7 +632,6 @@ const ClientsTab = () => {
                       <option value="T" className="bg-white dark:bg-gray-800 text-foreground">T</option>
                     </select>
                   </TableCell>
-                  <TableCell>{client.mls_id || "—"}</TableCell>
                   <TableCell>{client.first_name || "—"}</TableCell>
                   <TableCell>{client.last_name || "—"}</TableCell>
                   <TableCell>{client.street_number || "—"}</TableCell>
@@ -690,6 +689,7 @@ const ClientsTab = () => {
                       </a>
                     ) : "—"}
                   </TableCell>
+                  <TableCell>{client.mls_id || "—"}</TableCell>
                   <TableCell>{client.home_phone || "—"}</TableCell>
                   <TableCell>{client.cell_phone || "—"}</TableCell>
                   <TableCell>{client.listing_date || "—"}</TableCell>
