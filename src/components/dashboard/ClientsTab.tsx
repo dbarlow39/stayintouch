@@ -7,10 +7,11 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Upload, Pencil, Trash2 } from "lucide-react";
+import { Plus, Upload, Pencil, Trash2, Filter } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth";
 import { z } from "zod";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface Client {
   id: string;
@@ -75,6 +76,7 @@ const ClientsTab = () => {
   const [csvHeaders, setCsvHeaders] = useState<string[]>([]);
   const [csvData, setCsvData] = useState<string[][]>([]);
   const [columnMapping, setColumnMapping] = useState<Record<string, string>>({});
+  const [showAllClients, setShowAllClients] = useState(false);
   const [formData, setFormData] = useState({
     first_name: "",
     last_name: "",
@@ -85,13 +87,19 @@ const ClientsTab = () => {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const { data: clients = [], isLoading } = useQuery({
-    queryKey: ["clients", "status-a"],
+    queryKey: ["clients", showAllClients ? "all" : "status-a"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("clients")
-        .select("*")
-        .ilike("status", "A")
-        .order("street_name", { ascending: true, nullsFirst: false });
+        .select("*");
+      
+      if (!showAllClients) {
+        query = query.ilike("status", "A");
+      }
+      
+      query = query.order("street_name", { ascending: true, nullsFirst: false });
+      
+      const { data, error } = await query;
       if (error) throw error;
       return data as Client[];
     },
@@ -358,6 +366,16 @@ const ClientsTab = () => {
           <p className="text-sm text-muted-foreground">Add and manage your client contacts</p>
         </div>
         <div className="flex gap-2">
+          <Select value={showAllClients ? "all" : "active"} onValueChange={(value) => setShowAllClients(value === "all")}>
+            <SelectTrigger className="w-[140px]">
+              <Filter className="w-4 h-4 mr-2" />
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="active">Active Only</SelectItem>
+              <SelectItem value="all">All Clients</SelectItem>
+            </SelectContent>
+          </Select>
           <input
             ref={fileInputRef}
             type="file"
