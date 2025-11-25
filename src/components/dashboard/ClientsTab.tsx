@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -41,7 +41,7 @@ const ClientsTab = () => {
     phone: "",
     notes: "",
   });
-  const fileInputRef = useState<HTMLInputElement | null>(null)[0];
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const { data: clients = [], isLoading } = useQuery({
     queryKey: ["clients"],
@@ -240,7 +240,7 @@ const ClientsTab = () => {
         </div>
         <div className="flex gap-2">
           <input
-            ref={(el) => (fileInputRef as any) = el}
+            ref={fileInputRef}
             type="file"
             accept=".csv"
             onChange={handleCSVImport}
@@ -249,7 +249,7 @@ const ClientsTab = () => {
           <Button 
             variant="outline" 
             size="sm"
-            onClick={() => fileInputRef?.click()}
+            onClick={() => fileInputRef.current?.click()}
           >
             <Upload className="w-4 h-4 mr-2" />
             Import CSV
