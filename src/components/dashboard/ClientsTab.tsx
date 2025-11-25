@@ -39,6 +39,7 @@ interface Client {
   location?: string;
   special_instructions?: string;
   agent?: string;
+  zillow_link?: string;
 }
 
 const clientSchema = z.object({
@@ -65,6 +66,7 @@ const clientSchema = z.object({
   location: z.string().trim().max(500).optional().or(z.literal("")).or(z.null()),
   special_instructions: z.string().trim().max(1000).optional().or(z.literal("")).or(z.null()),
   agent: z.string().trim().max(100).optional().or(z.literal("")).or(z.null()),
+  zillow_link: z.string().trim().max(500).optional().or(z.literal("")).or(z.null()),
 });
 
 const ClientsTab = () => {
@@ -102,6 +104,7 @@ const ClientsTab = () => {
     location: "",
     special_instructions: "",
     agent: "",
+    zillow_link: "",
   });
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -218,6 +221,7 @@ const ClientsTab = () => {
       location: "",
       special_instructions: "",
       agent: "",
+      zillow_link: "",
     });
     setEditingClient(null);
   };
@@ -257,6 +261,7 @@ const ClientsTab = () => {
       location: client.location || "",
       special_instructions: client.special_instructions || "",
       agent: client.agent || "",
+      zillow_link: client.zillow_link || "",
     });
     setOpen(true);
   };
@@ -648,6 +653,16 @@ const ClientsTab = () => {
                         id="cbs"
                         value={formData.cbs}
                         onChange={(e) => setFormData({ ...formData, cbs: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4 mt-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="zillow_link">Zillow Link</Label>
+                      <Input
+                        id="zillow_link"
+                        value={formData.zillow_link}
+                        onChange={(e) => setFormData({ ...formData, zillow_link: e.target.value })}
                       />
                     </div>
                   </div>
