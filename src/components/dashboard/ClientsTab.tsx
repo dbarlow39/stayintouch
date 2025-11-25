@@ -10,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Plus, Upload, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth";
+import { z } from "zod";
 
 interface Client {
   id: string;
@@ -19,6 +20,14 @@ interface Client {
   phone?: string;
   notes?: string;
 }
+
+const clientSchema = z.object({
+  first_name: z.string().trim().min(1, "First name is required").max(100, "First name too long"),
+  last_name: z.string().trim().min(1, "Last name is required").max(100, "Last name too long"),
+  email: z.string().trim().email("Invalid email").max(255, "Email too long"),
+  phone: z.string().trim().max(20, "Phone too long").optional().or(z.literal("")),
+  notes: z.string().trim().max(1000, "Notes too long").optional().or(z.literal("")),
+});
 
 const ClientsTab = () => {
   const { user } = useAuth();
@@ -127,9 +136,34 @@ const ClientsTab = () => {
     setOpen(true);
   };
 
+  const parseCSVLine = (line: string): string[] => {
+    const result: string[] = [];
+    let current = "";
+    let inQuotes = false;
+
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i];
+      if (char === '"') {
+        inQuotes = !inQuotes;
+      } else if (char === ',' && !inQuotes) {
+        result.push(current.trim());
+        current = "";
+      } else {
+        current += char;
+      }
+    }
+    result.push(current.trim());
+    return result;
+  };
+
   const handleCSVImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("File too large. Maximum size is 5MB.");
+      return;
+    }
 
     const reader = new FileReader();
     reader.onload = async (event) => {
@@ -137,39 +171,64 @@ const ClientsTab = () => {
         const text = event.target?.result as string;
         const rows = text.split('\n').filter(row => row.trim());
         
-        // Parse CSV header
-        const headers = rows[0].split(',').map(h => h.trim().toLowerCase());
+        if (rows.length < 2) {
+          toast.error("CSV file must have at least a header row and one data row.");
+          return;
+        }
+
+        // Parse CSV header from first row
+        const headers = parseCSVLine(rows[0]).map(h => h.trim().toLowerCase());
         
-        // Parse data rows
-        const clientsToImport = rows.slice(1).map(row => {
-          const values = row.split(',').map(v => v.trim());
-          const client: any = { agent_id: user!.id };
+        // Validate and parse data rows
+        const validClients: any[] = [];
+        const errors: string[] = [];
+
+        for (let i = 1; i < rows.length; i++) {
+          const values = parseCSVLine(rows[i]);
+          const rawClient: any = {};
           
           headers.forEach((header, index) => {
-            if (header === 'first_name' || header === 'firstname') client.first_name = values[index];
-            if (header === 'last_name' || header === 'lastname') client.last_name = values[index];
-            if (header === 'email') client.email = values[index];
-            if (header === 'phone') client.phone = values[index];
-            if (header === 'notes') client.notes = values[index];
+            const value = values[index]?.replace(/^["']|["']$/g, '').trim() || "";
+            if (header === 'first_name' || header === 'firstname') rawClient.first_name = value;
+            if (header === 'last_name' || header === 'lastname') rawClient.last_name = value;
+            if (header === 'email') rawClient.email = value;
+            if (header === 'phone') rawClient.phone = value;
+            if (header === 'notes') rawClient.notes = value;
           });
-          
-          return client;
-        }).filter(c => c.first_name && c.last_name && c.email);
+
+          // Validate with zod schema
+          const validation = clientSchema.safeParse(rawClient);
+          if (validation.success) {
+            validClients.push({ ...validation.data, agent_id: user!.id });
+          } else {
+            errors.push(`Row ${i + 1}: ${validation.error.errors[0].message}`);
+          }
+        }
+
+        if (validClients.length === 0) {
+          toast.error("No valid clients found in CSV. " + errors[0]);
+          return;
+        }
 
         // Import to database
-        const { error } = await supabase.from("clients").insert(clientsToImport);
+        const { error } = await supabase.from("clients").insert(validClients);
         
         if (error) throw error;
         
         queryClient.invalidateQueries({ queryKey: ["clients"] });
-        toast.success(`Successfully imported ${clientsToImport.length} clients`);
+        
+        if (errors.length > 0) {
+          toast.success(`Imported ${validClients.length} clients. ${errors.length} rows had errors.`);
+        } else {
+          toast.success(`Successfully imported ${validClients.length} clients`);
+        }
       } catch (error) {
         toast.error("Failed to import CSV. Please check the file format.");
       }
     };
     
     reader.readAsText(file);
-    e.target.value = ''; // Reset input
+    e.target.value = '';
   };
 
   return (
