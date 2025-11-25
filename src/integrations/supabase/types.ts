@@ -58,7 +58,7 @@ export type Database = {
           city: string | null
           combo: string | null
           created_at: string | null
-          email: string
+          email: string | null
           first_name: string
           home_phone: string | null
           id: string
@@ -88,7 +88,7 @@ export type Database = {
           city?: string | null
           combo?: string | null
           created_at?: string | null
-          email: string
+          email?: string | null
           first_name: string
           home_phone?: string | null
           id?: string
@@ -118,7 +118,7 @@ export type Database = {
           city?: string | null
           combo?: string | null
           created_at?: string | null
-          email?: string
+          email?: string | null
           first_name?: string
           home_phone?: string | null
           id?: string
