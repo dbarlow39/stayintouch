@@ -572,7 +572,7 @@ const ClientsTab = () => {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Status</TableHead>
+                <TableHead className="w-20">Status</TableHead>
                 <TableHead>First Name</TableHead>
                 <TableHead>Last Name</TableHead>
                 <TableHead>Street #</TableHead>
