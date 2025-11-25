@@ -59,10 +59,10 @@ export type Database = {
           combo: string | null
           created_at: string | null
           email: string | null
-          first_name: string
+          first_name: string | null
           home_phone: string | null
           id: string
-          last_name: string
+          last_name: string | null
           listing_date: string | null
           location: string | null
           lock_box: string | null
@@ -89,10 +89,10 @@ export type Database = {
           combo?: string | null
           created_at?: string | null
           email?: string | null
-          first_name: string
+          first_name?: string | null
           home_phone?: string | null
           id?: string
-          last_name: string
+          last_name?: string | null
           listing_date?: string | null
           location?: string | null
           lock_box?: string | null
@@ -119,10 +119,10 @@ export type Database = {
           combo?: string | null
           created_at?: string | null
           email?: string | null
-          first_name?: string
+          first_name?: string | null
           home_phone?: string | null
           id?: string
-          last_name?: string
+          last_name?: string | null
           listing_date?: string | null
           location?: string | null
           lock_box?: string | null
