@@ -19,6 +19,24 @@ interface Client {
   email: string;
   phone?: string;
   notes?: string;
+  status?: string;
+  mls_id?: string;
+  street_number?: string;
+  street_name?: string;
+  city?: string;
+  state?: string;
+  zip?: string;
+  price?: number;
+  home_phone?: string;
+  cell_phone?: string;
+  listing_date?: string;
+  cbs?: string;
+  showing_type?: string;
+  lock_box?: string;
+  combo?: string;
+  location?: string;
+  special_instructions?: string;
+  agent?: string;
 }
 
 const clientSchema = z.object({
@@ -27,6 +45,24 @@ const clientSchema = z.object({
   email: z.string().trim().email("Invalid email").max(255, "Email too long"),
   phone: z.string().trim().max(20, "Phone too long").optional().or(z.literal("")),
   notes: z.string().trim().max(1000, "Notes too long").optional().or(z.literal("")),
+  status: z.string().trim().max(50).optional().or(z.literal("")),
+  mls_id: z.string().trim().max(100).optional().or(z.literal("")),
+  street_number: z.string().trim().max(50).optional().or(z.literal("")),
+  street_name: z.string().trim().max(200).optional().or(z.literal("")),
+  city: z.string().trim().max(100).optional().or(z.literal("")),
+  state: z.string().trim().max(50).optional().or(z.literal("")),
+  zip: z.string().trim().max(20).optional().or(z.literal("")),
+  price: z.coerce.number().positive().optional().or(z.literal("")),
+  home_phone: z.string().trim().max(20).optional().or(z.literal("")),
+  cell_phone: z.string().trim().max(20).optional().or(z.literal("")),
+  listing_date: z.string().trim().optional().or(z.literal("")),
+  cbs: z.string().trim().max(100).optional().or(z.literal("")),
+  showing_type: z.string().trim().max(100).optional().or(z.literal("")),
+  lock_box: z.string().trim().max(100).optional().or(z.literal("")),
+  combo: z.string().trim().max(100).optional().or(z.literal("")),
+  location: z.string().trim().max(500).optional().or(z.literal("")),
+  special_instructions: z.string().trim().max(1000).optional().or(z.literal("")),
+  agent: z.string().trim().max(100).optional().or(z.literal("")),
 });
 
 const ClientsTab = () => {
@@ -191,25 +227,28 @@ const ClientsTab = () => {
         const autoMapping: Record<string, string> = {};
         headers.forEach(header => {
           const trimmed = header.trim();
-          // Map First Name
-          if (trimmed === 'First Name' || trimmed.toLowerCase() === 'firstname' || trimmed.toLowerCase() === 'first_name') {
-            autoMapping[header] = 'first_name';
-          }
-          // Map Last Name
-          else if (trimmed === 'Last Name' || trimmed.toLowerCase() === 'lastname' || trimmed.toLowerCase() === 'last_name') {
-            autoMapping[header] = 'last_name';
-          }
-          // Map Email
-          else if (trimmed.toLowerCase() === 'email') {
-            autoMapping[header] = 'email';
-          }
-          // Map Phone (prioritize Cell # over Home #)
-          else if (trimmed === 'Cell #' || trimmed.toLowerCase() === 'cell' || trimmed.toLowerCase() === 'phone') {
-            autoMapping[header] = 'phone';
-          }
-          else if (trimmed === 'Home #' && !headers.some(h => h === 'Cell #')) {
-            autoMapping[header] = 'phone';
-          }
+          // Map exact CSV headers to database columns
+          if (trimmed === 'status') autoMapping[header] = 'status';
+          else if (trimmed === 'mls id') autoMapping[header] = 'mls_id';
+          else if (trimmed === 'First Name') autoMapping[header] = 'first_name';
+          else if (trimmed === 'Last Name') autoMapping[header] = 'last_name';
+          else if (trimmed === 'Street #') autoMapping[header] = 'street_number';
+          else if (trimmed === 'Street Name') autoMapping[header] = 'street_name';
+          else if (trimmed === 'City') autoMapping[header] = 'city';
+          else if (trimmed === 'State') autoMapping[header] = 'state';
+          else if (trimmed === 'Zip') autoMapping[header] = 'zip';
+          else if (trimmed === 'Price') autoMapping[header] = 'price';
+          else if (trimmed === 'email') autoMapping[header] = 'email';
+          else if (trimmed === 'Home #') autoMapping[header] = 'home_phone';
+          else if (trimmed === 'Cell #') autoMapping[header] = 'cell_phone';
+          else if (trimmed === 'Listing Date') autoMapping[header] = 'listing_date';
+          else if (trimmed === 'cbs') autoMapping[header] = 'cbs';
+          else if (trimmed === 'showing type') autoMapping[header] = 'showing_type';
+          else if (trimmed === 'lock box') autoMapping[header] = 'lock_box';
+          else if (trimmed === 'combo') autoMapping[header] = 'combo';
+          else if (trimmed === 'location') autoMapping[header] = 'location';
+          else if (trimmed === 'special instructions') autoMapping[header] = 'special_instructions';
+          else if (trimmed === 'agent') autoMapping[header] = 'agent';
         });
         
         setColumnMapping(autoMapping);
@@ -393,6 +432,24 @@ const ClientsTab = () => {
                     <option value="email">Email</option>
                     <option value="phone">Phone</option>
                     <option value="notes">Notes</option>
+                    <option value="status">Status</option>
+                    <option value="mls_id">MLS ID</option>
+                    <option value="street_number">Street #</option>
+                    <option value="street_name">Street Name</option>
+                    <option value="city">City</option>
+                    <option value="state">State</option>
+                    <option value="zip">Zip</option>
+                    <option value="price">Price</option>
+                    <option value="home_phone">Home Phone</option>
+                    <option value="cell_phone">Cell Phone</option>
+                    <option value="listing_date">Listing Date</option>
+                    <option value="cbs">CBS</option>
+                    <option value="showing_type">Showing Type</option>
+                    <option value="lock_box">Lock Box</option>
+                    <option value="combo">Combo</option>
+                    <option value="location">Location</option>
+                    <option value="special_instructions">Special Instructions</option>
+                    <option value="agent">Agent</option>
                   </select>
                 </div>
               ))}
@@ -447,8 +504,11 @@ const ClientsTab = () => {
             <TableHeader>
               <TableRow>
                 <TableHead>Name</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Property</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead>Phone</TableHead>
+                <TableHead>MLS ID</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -458,8 +518,18 @@ const ClientsTab = () => {
                   <TableCell className="font-medium">
                     {client.first_name} {client.last_name}
                   </TableCell>
+                  <TableCell>{client.status || "—"}</TableCell>
+                  <TableCell>
+                    {client.street_number || client.street_name || client.city ? (
+                      <div className="text-sm">
+                        {client.street_number} {client.street_name}
+                        {client.city && <div className="text-muted-foreground">{client.city}, {client.state}</div>}
+                      </div>
+                    ) : "—"}
+                  </TableCell>
                   <TableCell>{client.email}</TableCell>
-                  <TableCell>{client.phone || "—"}</TableCell>
+                  <TableCell>{client.cell_phone || client.phone || client.home_phone || "—"}</TableCell>
+                  <TableCell>{client.mls_id || "—"}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
                       <Button variant="ghost" size="sm" onClick={() => handleEdit(client)}>

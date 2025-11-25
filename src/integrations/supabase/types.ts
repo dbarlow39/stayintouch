@@ -51,40 +51,94 @@ export type Database = {
       }
       clients: {
         Row: {
+          agent: string | null
           agent_id: string
+          cbs: string | null
+          cell_phone: string | null
+          city: string | null
+          combo: string | null
           created_at: string | null
           email: string
           first_name: string
+          home_phone: string | null
           id: string
           last_name: string
+          listing_date: string | null
+          location: string | null
+          lock_box: string | null
+          mls_id: string | null
           notes: string | null
           phone: string | null
           preferences: Json | null
+          price: number | null
+          showing_type: string | null
+          special_instructions: string | null
+          state: string | null
+          status: string | null
+          street_name: string | null
+          street_number: string | null
           updated_at: string | null
+          zip: string | null
         }
         Insert: {
+          agent?: string | null
           agent_id: string
+          cbs?: string | null
+          cell_phone?: string | null
+          city?: string | null
+          combo?: string | null
           created_at?: string | null
           email: string
           first_name: string
+          home_phone?: string | null
           id?: string
           last_name: string
+          listing_date?: string | null
+          location?: string | null
+          lock_box?: string | null
+          mls_id?: string | null
           notes?: string | null
           phone?: string | null
           preferences?: Json | null
+          price?: number | null
+          showing_type?: string | null
+          special_instructions?: string | null
+          state?: string | null
+          status?: string | null
+          street_name?: string | null
+          street_number?: string | null
           updated_at?: string | null
+          zip?: string | null
         }
         Update: {
+          agent?: string | null
           agent_id?: string
+          cbs?: string | null
+          cell_phone?: string | null
+          city?: string | null
+          combo?: string | null
           created_at?: string | null
           email?: string
           first_name?: string
+          home_phone?: string | null
           id?: string
           last_name?: string
+          listing_date?: string | null
+          location?: string | null
+          lock_box?: string | null
+          mls_id?: string | null
           notes?: string | null
           phone?: string | null
           preferences?: Json | null
+          price?: number | null
+          showing_type?: string | null
+          special_instructions?: string | null
+          state?: string | null
+          status?: string | null
+          street_name?: string | null
+          street_number?: string | null
           updated_at?: string | null
+          zip?: string | null
         }
         Relationships: []
       }
