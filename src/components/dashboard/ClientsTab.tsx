@@ -520,9 +520,10 @@ const ClientsTab = () => {
                   </TableCell>
                   <TableCell>
                     <select
-                      value={client.status || ""}
+                      value={(client.status || "").toUpperCase()}
                       onChange={async (e) => {
                         const newStatus = e.target.value;
+                        console.log('Updating status from', client.status, 'to', newStatus, 'for client', client.id);
                         try {
                           const { error } = await supabase
                             .from("clients")
@@ -530,12 +531,13 @@ const ClientsTab = () => {
                             .eq("id", client.id);
                           if (error) throw error;
                           queryClient.invalidateQueries({ queryKey: ["clients"] });
-                          toast.success("Status updated");
+                          toast.success(`Status updated to ${newStatus}`);
                         } catch (error) {
+                          console.error('Status update error:', error);
                           toast.error("Failed to update status");
                         }
                       }}
-                      className="h-8 rounded-md border border-input bg-white dark:bg-gray-800 px-2 py-1 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer"
+                      className="h-8 w-20 rounded-md border border-input bg-white dark:bg-gray-800 px-2 py-1 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer"
                     >
                       <option value="" className="bg-white dark:bg-gray-800 text-foreground">—</option>
                       <option value="A" className="bg-white dark:bg-gray-800 text-foreground">A</option>
