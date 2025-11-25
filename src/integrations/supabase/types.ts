@@ -78,6 +78,7 @@ export type Database = {
           street_name: string | null
           street_number: string | null
           updated_at: string | null
+          zillow_link: string | null
           zip: string | null
         }
         Insert: {
@@ -108,6 +109,7 @@ export type Database = {
           street_name?: string | null
           street_number?: string | null
           updated_at?: string | null
+          zillow_link?: string | null
           zip?: string | null
         }
         Update: {
@@ -138,6 +140,7 @@ export type Database = {
           street_name?: string | null
           street_number?: string | null
           updated_at?: string | null
+          zillow_link?: string | null
           zip?: string | null
         }
         Relationships: []
