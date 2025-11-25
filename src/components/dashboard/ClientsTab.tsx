@@ -658,16 +658,6 @@ const ClientsTab = () => {
                   </div>
                   <div className="grid grid-cols-2 gap-4 mt-4">
                     <div className="space-y-2">
-                      <Label htmlFor="zillow_link">Zillow Link</Label>
-                      <Input
-                        id="zillow_link"
-                        value={formData.zillow_link}
-                        onChange={(e) => setFormData({ ...formData, zillow_link: e.target.value })}
-                      />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4 mt-4">
-                    <div className="space-y-2">
                       <Label htmlFor="lock_box">Lock Box</Label>
                       <Input
                         id="lock_box"
@@ -690,6 +680,14 @@ const ClientsTab = () => {
                       id="location"
                       value={formData.location}
                       onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2 mt-4">
+                    <Label htmlFor="zillow_link">Zillow Link</Label>
+                    <Input
+                      id="zillow_link"
+                      value={formData.zillow_link}
+                      onChange={(e) => setFormData({ ...formData, zillow_link: e.target.value })}
                     />
                   </div>
                 </div>
