@@ -523,31 +523,42 @@ const ClientsTab = () => {
           <p className="text-sm text-muted-foreground">Add your first client to get started</p>
         </div>
       ) : (
-        <div className="border border-border rounded-lg overflow-hidden">
+        <div className="border border-border rounded-lg overflow-hidden overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Name</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Property</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Phone</TableHead>
                 <TableHead>MLS ID</TableHead>
+                <TableHead>First Name</TableHead>
+                <TableHead>Last Name</TableHead>
+                <TableHead>Street #</TableHead>
+                <TableHead>Street Name</TableHead>
+                <TableHead>City</TableHead>
+                <TableHead>State</TableHead>
+                <TableHead>Zip</TableHead>
+                <TableHead>Price</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>Home #</TableHead>
+                <TableHead>Cell #</TableHead>
+                <TableHead>Listing Date</TableHead>
+                <TableHead>CBS</TableHead>
+                <TableHead>Showing Type</TableHead>
+                <TableHead>Lock Box</TableHead>
+                <TableHead>Combo</TableHead>
+                <TableHead>Location</TableHead>
+                <TableHead>Special Instructions</TableHead>
+                <TableHead>Agent</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {clients.map((client) => (
                 <TableRow key={client.id}>
-                  <TableCell className="font-medium">
-                    {client.first_name} {client.last_name}
-                  </TableCell>
                   <TableCell>
                     <select
                       value={(client.status || "").toUpperCase()}
                       onChange={async (e) => {
                         const newStatus = e.target.value;
-                        console.log('Updating status from', client.status, 'to', newStatus, 'for client', client.id);
                         try {
                           const { error } = await supabase
                             .from("clients")
@@ -561,7 +572,7 @@ const ClientsTab = () => {
                           toast.error("Failed to update status");
                         }
                       }}
-                      className="h-8 w-20 rounded-md border border-input bg-white dark:bg-gray-800 px-2 py-1 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer"
+                      className="h-8 w-16 rounded-md border border-input bg-white dark:bg-gray-800 px-2 py-1 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer"
                     >
                       <option value="" className="bg-white dark:bg-gray-800 text-foreground">—</option>
                       <option value="A" className="bg-white dark:bg-gray-800 text-foreground">A</option>
@@ -571,17 +582,26 @@ const ClientsTab = () => {
                       <option value="T" className="bg-white dark:bg-gray-800 text-foreground">T</option>
                     </select>
                   </TableCell>
-                  <TableCell>
-                    {client.street_number || client.street_name || client.city ? (
-                      <div className="text-sm">
-                        {client.street_number} {client.street_name}
-                        {client.city && <div className="text-muted-foreground">{client.city}, {client.state}</div>}
-                      </div>
-                    ) : "—"}
-                  </TableCell>
-                  <TableCell>{client.email}</TableCell>
-                  <TableCell>{client.cell_phone || client.phone || client.home_phone || "—"}</TableCell>
                   <TableCell>{client.mls_id || "—"}</TableCell>
+                  <TableCell>{client.first_name || "—"}</TableCell>
+                  <TableCell>{client.last_name || "—"}</TableCell>
+                  <TableCell>{client.street_number || "—"}</TableCell>
+                  <TableCell>{client.street_name || "—"}</TableCell>
+                  <TableCell>{client.city || "—"}</TableCell>
+                  <TableCell>{client.state || "—"}</TableCell>
+                  <TableCell>{client.zip || "—"}</TableCell>
+                  <TableCell>{client.price ? `$${client.price}` : "—"}</TableCell>
+                  <TableCell>{client.email || "—"}</TableCell>
+                  <TableCell>{client.home_phone || "—"}</TableCell>
+                  <TableCell>{client.cell_phone || "—"}</TableCell>
+                  <TableCell>{client.listing_date || "—"}</TableCell>
+                  <TableCell>{client.cbs || "—"}</TableCell>
+                  <TableCell>{client.showing_type || "—"}</TableCell>
+                  <TableCell>{client.lock_box || "—"}</TableCell>
+                  <TableCell>{client.combo || "—"}</TableCell>
+                  <TableCell>{client.location || "—"}</TableCell>
+                  <TableCell className="max-w-xs truncate">{client.special_instructions || "—"}</TableCell>
+                  <TableCell>{client.agent || "—"}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
                       <Button variant="ghost" size="sm" onClick={() => handleEdit(client)}>
