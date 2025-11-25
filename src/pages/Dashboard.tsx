@@ -30,8 +30,7 @@ const Dashboard = () => {
     queryFn: async () => {
       const { count, error } = await supabase
         .from("clients")
-        .select("*", { count: "exact", head: true })
-        .ilike("status", "A");
+        .select("*", { count: "exact", head: true });
       
       if (error) throw error;
       return count || 0;
