@@ -578,21 +578,11 @@ const ClientsTab = () => {
                 <TableHead>Last Name</TableHead>
                 <TableHead>Street #</TableHead>
                 <TableHead>Street Name</TableHead>
-                <TableHead>City</TableHead>
                 <TableHead>Price</TableHead>
                 <TableHead>Phone</TableHead>
                 <TableHead>Email</TableHead>
-                <TableHead>MLS ID</TableHead>
-                <TableHead>Home #</TableHead>
                 <TableHead>Cell #</TableHead>
-                <TableHead>Listing Date</TableHead>
-                <TableHead>CBS</TableHead>
-                <TableHead>Showing Type</TableHead>
-                <TableHead>Lock Box</TableHead>
-                <TableHead>Combo</TableHead>
                 <TableHead>Location</TableHead>
-                <TableHead>Special Instructions</TableHead>
-                <TableHead>Agent</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -637,7 +627,6 @@ const ClientsTab = () => {
                   <TableCell>{client.last_name || "—"}</TableCell>
                   <TableCell>{client.street_number || "—"}</TableCell>
                   <TableCell>{client.street_name || "—"}</TableCell>
-                  <TableCell>{client.city || "—"}</TableCell>
                   <TableCell>{client.price ? `$${client.price}` : "—"}</TableCell>
                   <TableCell>
                     {client.cell_phone ? (
@@ -690,17 +679,8 @@ const ClientsTab = () => {
                       </a>
                     ) : "—"}
                   </TableCell>
-                  <TableCell>{client.mls_id || "—"}</TableCell>
-                  <TableCell>{client.home_phone || "—"}</TableCell>
                   <TableCell>{client.cell_phone || "—"}</TableCell>
-                  <TableCell>{client.listing_date || "—"}</TableCell>
-                  <TableCell>{client.cbs || "—"}</TableCell>
-                  <TableCell>{client.showing_type || "—"}</TableCell>
-                  <TableCell>{client.lock_box || "—"}</TableCell>
-                  <TableCell>{client.combo || "—"}</TableCell>
                   <TableCell>{client.location || "—"}</TableCell>
-                  <TableCell className="max-w-xs truncate">{client.special_instructions || "—"}</TableCell>
-                  <TableCell>{client.agent || "—"}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
                       <Button 
