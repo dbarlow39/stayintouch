@@ -609,16 +609,42 @@ const ClientsTab = () => {
                   <TableCell>{client.price ? `$${client.price}` : "—"}</TableCell>
                   <TableCell>
                     {client.cell_phone ? (
-                      !/[a-zA-Z]/.test(client.cell_phone) && /\d/.test(client.cell_phone) ? (
-                        <a 
-                          href={`tel:${client.cell_phone}`}
-                          className="text-primary hover:underline"
-                        >
-                          {client.cell_phone}
-                        </a>
-                      ) : (
-                        <span>{client.cell_phone}</span>
-                      )
+                      (() => {
+                        const phoneMatch = client.cell_phone.match(/[\d\s\-\(\)\.]+/);
+                        const hasLetters = /[a-zA-Z]/.test(client.cell_phone);
+                        const hasDigits = /\d/.test(client.cell_phone);
+                        
+                        if (hasDigits && phoneMatch) {
+                          const phoneNumber = phoneMatch[0].trim();
+                          if (hasLetters) {
+                            // Has both name and number - split them
+                            const parts = client.cell_phone.split(phoneNumber);
+                            return (
+                              <span>
+                                {parts[0]}
+                                <a 
+                                  href={`tel:${phoneNumber}`}
+                                  className="text-primary hover:underline"
+                                >
+                                  {phoneNumber}
+                                </a>
+                                {parts[1]}
+                              </span>
+                            );
+                          } else {
+                            // Only number - make it all clickable
+                            return (
+                              <a 
+                                href={`tel:${phoneNumber}`}
+                                className="text-primary hover:underline"
+                              >
+                                {client.cell_phone}
+                              </a>
+                            );
+                          }
+                        }
+                        return <span>{client.cell_phone}</span>;
+                      })()
                     ) : "—"}
                   </TableCell>
                   <TableCell>
@@ -718,16 +744,40 @@ const ClientsTab = () => {
                     <div>
                       <Label className="text-sm font-semibold text-muted-foreground">Home Phone</Label>
                       {viewingClient.home_phone ? (
-                        !/[a-zA-Z]/.test(viewingClient.home_phone) && /\d/.test(viewingClient.home_phone) ? (
-                          <a 
-                            href={`tel:${viewingClient.home_phone}`}
-                            className="text-base text-primary hover:underline block"
-                          >
-                            {viewingClient.home_phone}
-                          </a>
-                        ) : (
-                          <p className="text-base">{viewingClient.home_phone}</p>
-                        )
+                        (() => {
+                          const phoneMatch = viewingClient.home_phone.match(/[\d\s\-\(\)\.]+/);
+                          const hasLetters = /[a-zA-Z]/.test(viewingClient.home_phone);
+                          const hasDigits = /\d/.test(viewingClient.home_phone);
+                          
+                          if (hasDigits && phoneMatch) {
+                            const phoneNumber = phoneMatch[0].trim();
+                            if (hasLetters) {
+                              const parts = viewingClient.home_phone.split(phoneNumber);
+                              return (
+                                <p className="text-base">
+                                  {parts[0]}
+                                  <a 
+                                    href={`tel:${phoneNumber}`}
+                                    className="text-primary hover:underline"
+                                  >
+                                    {phoneNumber}
+                                  </a>
+                                  {parts[1]}
+                                </p>
+                              );
+                            } else {
+                              return (
+                                <a 
+                                  href={`tel:${phoneNumber}`}
+                                  className="text-base text-primary hover:underline block"
+                                >
+                                  {viewingClient.home_phone}
+                                </a>
+                              );
+                            }
+                          }
+                          return <p className="text-base">{viewingClient.home_phone}</p>;
+                        })()
                       ) : (
                         <p className="text-base">—</p>
                       )}
@@ -735,16 +785,40 @@ const ClientsTab = () => {
                     <div>
                       <Label className="text-sm font-semibold text-muted-foreground">Cell Phone</Label>
                       {viewingClient.cell_phone ? (
-                        !/[a-zA-Z]/.test(viewingClient.cell_phone) && /\d/.test(viewingClient.cell_phone) ? (
-                          <a 
-                            href={`tel:${viewingClient.cell_phone}`}
-                            className="text-base text-primary hover:underline block"
-                          >
-                            {viewingClient.cell_phone}
-                          </a>
-                        ) : (
-                          <p className="text-base">{viewingClient.cell_phone}</p>
-                        )
+                        (() => {
+                          const phoneMatch = viewingClient.cell_phone.match(/[\d\s\-\(\)\.]+/);
+                          const hasLetters = /[a-zA-Z]/.test(viewingClient.cell_phone);
+                          const hasDigits = /\d/.test(viewingClient.cell_phone);
+                          
+                          if (hasDigits && phoneMatch) {
+                            const phoneNumber = phoneMatch[0].trim();
+                            if (hasLetters) {
+                              const parts = viewingClient.cell_phone.split(phoneNumber);
+                              return (
+                                <p className="text-base">
+                                  {parts[0]}
+                                  <a 
+                                    href={`tel:${phoneNumber}`}
+                                    className="text-primary hover:underline"
+                                  >
+                                    {phoneNumber}
+                                  </a>
+                                  {parts[1]}
+                                </p>
+                              );
+                            } else {
+                              return (
+                                <a 
+                                  href={`tel:${phoneNumber}`}
+                                  className="text-base text-primary hover:underline block"
+                                >
+                                  {viewingClient.cell_phone}
+                                </a>
+                              );
+                            }
+                          }
+                          return <p className="text-base">{viewingClient.cell_phone}</p>;
+                        })()
                       ) : (
                         <p className="text-base">—</p>
                       )}
