@@ -187,15 +187,29 @@ const ClientsTab = () => {
         setCsvHeaders(headers);
         setCsvData(dataRows);
         
-        // Auto-map common column names
+        // Auto-map your specific column names
         const autoMapping: Record<string, string> = {};
         headers.forEach(header => {
-          const lower = header.toLowerCase();
-          if (lower === 'first_name' || lower === 'firstname') autoMapping[header] = 'first_name';
-          else if (lower === 'last_name' || lower === 'lastname') autoMapping[header] = 'last_name';
-          else if (lower === 'email') autoMapping[header] = 'email';
-          else if (lower === 'phone') autoMapping[header] = 'phone';
-          else if (lower === 'notes') autoMapping[header] = 'notes';
+          const trimmed = header.trim();
+          // Map First Name
+          if (trimmed === 'First Name' || trimmed.toLowerCase() === 'firstname' || trimmed.toLowerCase() === 'first_name') {
+            autoMapping[header] = 'first_name';
+          }
+          // Map Last Name
+          else if (trimmed === 'Last Name' || trimmed.toLowerCase() === 'lastname' || trimmed.toLowerCase() === 'last_name') {
+            autoMapping[header] = 'last_name';
+          }
+          // Map Email
+          else if (trimmed.toLowerCase() === 'email') {
+            autoMapping[header] = 'email';
+          }
+          // Map Phone (prioritize Cell # over Home #)
+          else if (trimmed === 'Cell #' || trimmed.toLowerCase() === 'cell' || trimmed.toLowerCase() === 'phone') {
+            autoMapping[header] = 'phone';
+          }
+          else if (trimmed === 'Home #' && !headers.some(h => h === 'Cell #')) {
+            autoMapping[header] = 'phone';
+          }
         });
         
         setColumnMapping(autoMapping);
