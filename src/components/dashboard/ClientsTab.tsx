@@ -1120,6 +1120,21 @@ const ClientsTab = () => {
                     <Label className="text-sm font-semibold text-muted-foreground">CBS</Label>
                     <p className="text-base">{viewingClient.cbs || "—"}</p>
                   </div>
+                  <div>
+                    <Label className="text-sm font-semibold text-muted-foreground">Zillow Link</Label>
+                    {viewingClient.zillow_link ? (
+                      <a 
+                        href={viewingClient.zillow_link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-base text-primary hover:underline break-all block"
+                      >
+                        {viewingClient.zillow_link}
+                      </a>
+                    ) : (
+                      <p className="text-base">—</p>
+                    )}
+                  </div>
                 </div>
               </div>
 
