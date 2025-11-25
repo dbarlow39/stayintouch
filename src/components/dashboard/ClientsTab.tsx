@@ -89,6 +89,7 @@ const ClientsTab = () => {
       const { data, error } = await supabase
         .from("clients")
         .select("*")
+        .ilike("status", "A")
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data as Client[];
