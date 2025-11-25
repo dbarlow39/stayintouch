@@ -343,7 +343,8 @@ const ClientsTab = () => {
       }
     } catch (error) {
       console.error('Import failed:', error);
-      toast.error(`Failed to import clients: ${error}`);
+      const errorMessage = error instanceof Error ? error.message : JSON.stringify(error);
+      toast.error(`Failed to import clients: ${errorMessage}`, { duration: 10000 });
     }
   };
 
