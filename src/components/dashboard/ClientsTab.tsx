@@ -537,12 +537,12 @@ const ClientsTab = () => {
                       }}
                       className="h-8 rounded-md border border-input bg-white dark:bg-gray-800 px-2 py-1 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer"
                     >
-                      <option value="">—</option>
-                      <option value="A">A</option>
-                      <option value="C">C</option>
-                      <option value="E">E</option>
-                      <option value="W">W</option>
-                      <option value="T">T</option>
+                      <option value="" className="bg-white dark:bg-gray-800 text-foreground">—</option>
+                      <option value="A" className="bg-white dark:bg-gray-800 text-foreground">A</option>
+                      <option value="C" className="bg-white dark:bg-gray-800 text-foreground">C</option>
+                      <option value="E" className="bg-white dark:bg-gray-800 text-foreground">E</option>
+                      <option value="W" className="bg-white dark:bg-gray-800 text-foreground">W</option>
+                      <option value="T" className="bg-white dark:bg-gray-800 text-foreground">T</option>
                     </select>
                   </TableCell>
                   <TableCell>
