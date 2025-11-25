@@ -70,6 +70,7 @@ const ClientsTab = () => {
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
+  const [viewingClient, setViewingClient] = useState<Client | null>(null);
   const [csvMappingOpen, setCsvMappingOpen] = useState(false);
   const [csvHeaders, setCsvHeaders] = useState<string[]>([]);
   const [csvData, setCsvData] = useState<string[][]>([]);
@@ -567,7 +568,11 @@ const ClientsTab = () => {
             </TableHeader>
             <TableBody>
               {clients.map((client) => (
-                <TableRow key={client.id}>
+                <TableRow 
+                  key={client.id}
+                  onClick={() => setViewingClient(client)}
+                  className="cursor-pointer hover:bg-muted/50"
+                >
                   <TableCell>
                     <select
                       value={(client.status || "").toUpperCase()}
@@ -618,13 +623,21 @@ const ClientsTab = () => {
                   <TableCell>{client.agent || "—"}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
-                      <Button variant="ghost" size="sm" onClick={() => handleEdit(client)}>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleEdit(client);
+                        }}
+                      >
                         <Pencil className="w-4 h-4" />
                       </Button>
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => {
+                        onClick={(e) => {
+                          e.stopPropagation();
                           if (confirm("Are you sure you want to delete this client?")) {
                             deleteMutation.mutate(client.id);
                           }
@@ -640,6 +653,135 @@ const ClientsTab = () => {
           </Table>
         </div>
       )}
+
+      {/* Client Detail View Dialog */}
+      <Dialog open={!!viewingClient} onOpenChange={() => setViewingClient(null)}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Client Details</DialogTitle>
+          </DialogHeader>
+          {viewingClient && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-sm font-semibold text-muted-foreground">Status</Label>
+                  <p className="text-base">{viewingClient.status?.toUpperCase() || "—"}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-semibold text-muted-foreground">MLS ID</Label>
+                  <p className="text-base">{viewingClient.mls_id || "—"}</p>
+                </div>
+              </div>
+
+              <div className="border-t pt-4">
+                <h3 className="font-semibold mb-3">Contact Information</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-sm font-semibold text-muted-foreground">First Name</Label>
+                    <p className="text-base">{viewingClient.first_name || "—"}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-semibold text-muted-foreground">Last Name</Label>
+                    <p className="text-base">{viewingClient.last_name || "—"}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-semibold text-muted-foreground">Email</Label>
+                    <p className="text-base break-all">{viewingClient.email || "—"}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-semibold text-muted-foreground">Home Phone</Label>
+                    <p className="text-base">{viewingClient.home_phone || "—"}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-semibold text-muted-foreground">Cell Phone</Label>
+                    <p className="text-base">{viewingClient.cell_phone || "—"}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="border-t pt-4">
+                <h3 className="font-semibold mb-3">Property Information</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-sm font-semibold text-muted-foreground">Street Number</Label>
+                    <p className="text-base">{viewingClient.street_number || "—"}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-semibold text-muted-foreground">Street Name</Label>
+                    <p className="text-base">{viewingClient.street_name || "—"}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-semibold text-muted-foreground">City</Label>
+                    <p className="text-base">{viewingClient.city || "—"}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-semibold text-muted-foreground">State</Label>
+                    <p className="text-base">{viewingClient.state || "—"}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-semibold text-muted-foreground">Zip</Label>
+                    <p className="text-base">{viewingClient.zip || "—"}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-semibold text-muted-foreground">Price</Label>
+                    <p className="text-base">{viewingClient.price ? `$${viewingClient.price}` : "—"}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-semibold text-muted-foreground">Listing Date</Label>
+                    <p className="text-base">{viewingClient.listing_date || "—"}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-semibold text-muted-foreground">CBS</Label>
+                    <p className="text-base">{viewingClient.cbs || "—"}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="border-t pt-4">
+                <h3 className="font-semibold mb-3">Showing Details</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-sm font-semibold text-muted-foreground">Showing Type</Label>
+                    <p className="text-base">{viewingClient.showing_type || "—"}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-semibold text-muted-foreground">Lock Box</Label>
+                    <p className="text-base">{viewingClient.lock_box || "—"}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-semibold text-muted-foreground">Combo</Label>
+                    <p className="text-base">{viewingClient.combo || "—"}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-semibold text-muted-foreground">Location</Label>
+                    <p className="text-base">{viewingClient.location || "—"}</p>
+                  </div>
+                  <div className="col-span-2">
+                    <Label className="text-sm font-semibold text-muted-foreground">Special Instructions</Label>
+                    <p className="text-base">{viewingClient.special_instructions || "—"}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-semibold text-muted-foreground">Agent</Label>
+                    <p className="text-base">{viewingClient.agent || "—"}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 border-t pt-4">
+                <Button variant="outline" onClick={() => setViewingClient(null)}>
+                  Close
+                </Button>
+                <Button onClick={() => {
+                  setViewingClient(null);
+                  handleEdit(viewingClient);
+                }}>
+                  Edit Client
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
