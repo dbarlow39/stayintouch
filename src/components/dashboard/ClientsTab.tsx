@@ -426,30 +426,30 @@ const ClientsTab = () => {
                     onChange={(e) => setColumnMapping({ ...columnMapping, [header]: e.target.value })}
                     className="col-span-2 flex h-10 w-full rounded-md border border-input bg-white dark:bg-gray-800 px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer z-50"
                   >
-                    <option value="">-- Don't Import --</option>
-                    <option value="first_name">First Name</option>
-                    <option value="last_name">Last Name</option>
-                    <option value="email">Email</option>
-                    <option value="phone">Phone</option>
-                    <option value="notes">Notes</option>
-                    <option value="status">Status</option>
-                    <option value="mls_id">MLS ID</option>
-                    <option value="street_number">Street #</option>
-                    <option value="street_name">Street Name</option>
-                    <option value="city">City</option>
-                    <option value="state">State</option>
-                    <option value="zip">Zip</option>
-                    <option value="price">Price</option>
-                    <option value="home_phone">Home Phone</option>
-                    <option value="cell_phone">Cell Phone</option>
-                    <option value="listing_date">Listing Date</option>
-                    <option value="cbs">CBS</option>
-                    <option value="showing_type">Showing Type</option>
-                    <option value="lock_box">Lock Box</option>
-                    <option value="combo">Combo</option>
-                    <option value="location">Location</option>
-                    <option value="special_instructions">Special Instructions</option>
-                    <option value="agent">Agent</option>
+                    <option value="" className="bg-white dark:bg-gray-800 text-foreground">-- Don't Import --</option>
+                    <option value="first_name" className="bg-white dark:bg-gray-800 text-foreground">First Name</option>
+                    <option value="last_name" className="bg-white dark:bg-gray-800 text-foreground">Last Name</option>
+                    <option value="email" className="bg-white dark:bg-gray-800 text-foreground">Email</option>
+                    <option value="phone" className="bg-white dark:bg-gray-800 text-foreground">Phone</option>
+                    <option value="notes" className="bg-white dark:bg-gray-800 text-foreground">Notes</option>
+                    <option value="status" className="bg-white dark:bg-gray-800 text-foreground">Status</option>
+                    <option value="mls_id" className="bg-white dark:bg-gray-800 text-foreground">MLS ID</option>
+                    <option value="street_number" className="bg-white dark:bg-gray-800 text-foreground">Street #</option>
+                    <option value="street_name" className="bg-white dark:bg-gray-800 text-foreground">Street Name</option>
+                    <option value="city" className="bg-white dark:bg-gray-800 text-foreground">City</option>
+                    <option value="state" className="bg-white dark:bg-gray-800 text-foreground">State</option>
+                    <option value="zip" className="bg-white dark:bg-gray-800 text-foreground">Zip</option>
+                    <option value="price" className="bg-white dark:bg-gray-800 text-foreground">Price</option>
+                    <option value="home_phone" className="bg-white dark:bg-gray-800 text-foreground">Home Phone</option>
+                    <option value="cell_phone" className="bg-white dark:bg-gray-800 text-foreground">Cell Phone</option>
+                    <option value="listing_date" className="bg-white dark:bg-gray-800 text-foreground">Listing Date</option>
+                    <option value="cbs" className="bg-white dark:bg-gray-800 text-foreground">CBS</option>
+                    <option value="showing_type" className="bg-white dark:bg-gray-800 text-foreground">Showing Type</option>
+                    <option value="lock_box" className="bg-white dark:bg-gray-800 text-foreground">Lock Box</option>
+                    <option value="combo" className="bg-white dark:bg-gray-800 text-foreground">Combo</option>
+                    <option value="location" className="bg-white dark:bg-gray-800 text-foreground">Location</option>
+                    <option value="special_instructions" className="bg-white dark:bg-gray-800 text-foreground">Special Instructions</option>
+                    <option value="agent" className="bg-white dark:bg-gray-800 text-foreground">Agent</option>
                   </select>
                 </div>
               ))}
