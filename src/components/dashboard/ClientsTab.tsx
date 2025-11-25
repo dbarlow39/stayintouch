@@ -675,60 +675,48 @@ const ClientsTab = () => {
 
               <div className="border-t pt-4">
                 <h3 className="font-semibold mb-3">Contact Information</h3>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-3">
                   <div>
-                    <Label className="text-sm font-semibold text-muted-foreground">First Name</Label>
-                    <p className="text-base">{viewingClient.first_name || "—"}</p>
-                  </div>
-                  <div>
-                    <Label className="text-sm font-semibold text-muted-foreground">Last Name</Label>
-                    <p className="text-base">{viewingClient.last_name || "—"}</p>
+                    <Label className="text-sm font-semibold text-muted-foreground">Name</Label>
+                    <p className="text-base">{[viewingClient.first_name, viewingClient.last_name].filter(Boolean).join(' ') || "—"}</p>
                   </div>
                   <div>
                     <Label className="text-sm font-semibold text-muted-foreground">Email</Label>
                     <p className="text-base break-all">{viewingClient.email || "—"}</p>
                   </div>
-                  <div>
-                    <Label className="text-sm font-semibold text-muted-foreground">Home Phone</Label>
-                    <p className="text-base">{viewingClient.home_phone || "—"}</p>
-                  </div>
-                  <div>
-                    <Label className="text-sm font-semibold text-muted-foreground">Cell Phone</Label>
-                    <p className="text-base">{viewingClient.cell_phone || "—"}</p>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-sm font-semibold text-muted-foreground">Home Phone</Label>
+                      <p className="text-base">{viewingClient.home_phone || "—"}</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-semibold text-muted-foreground">Cell Phone</Label>
+                      <p className="text-base">{viewingClient.cell_phone || "—"}</p>
+                    </div>
                   </div>
                 </div>
               </div>
 
               <div className="border-t pt-4">
                 <h3 className="font-semibold mb-3">Property Information</h3>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-3">
                   <div>
-                    <Label className="text-sm font-semibold text-muted-foreground">Street Number</Label>
-                    <p className="text-base">{viewingClient.street_number || "—"}</p>
+                    <Label className="text-sm font-semibold text-muted-foreground">Address</Label>
+                    <p className="text-base">{[viewingClient.street_number, viewingClient.street_name].filter(Boolean).join(' ') || "—"}</p>
                   </div>
                   <div>
-                    <Label className="text-sm font-semibold text-muted-foreground">Street Name</Label>
-                    <p className="text-base">{viewingClient.street_name || "—"}</p>
+                    <Label className="text-sm font-semibold text-muted-foreground">City, State Zip</Label>
+                    <p className="text-base">{[viewingClient.city, [viewingClient.state, viewingClient.zip].filter(Boolean).join(' ')].filter(Boolean).join(', ') || "—"}</p>
                   </div>
-                  <div>
-                    <Label className="text-sm font-semibold text-muted-foreground">City</Label>
-                    <p className="text-base">{viewingClient.city || "—"}</p>
-                  </div>
-                  <div>
-                    <Label className="text-sm font-semibold text-muted-foreground">State</Label>
-                    <p className="text-base">{viewingClient.state || "—"}</p>
-                  </div>
-                  <div>
-                    <Label className="text-sm font-semibold text-muted-foreground">Zip</Label>
-                    <p className="text-base">{viewingClient.zip || "—"}</p>
-                  </div>
-                  <div>
-                    <Label className="text-sm font-semibold text-muted-foreground">Price</Label>
-                    <p className="text-base">{viewingClient.price ? `$${viewingClient.price}` : "—"}</p>
-                  </div>
-                  <div>
-                    <Label className="text-sm font-semibold text-muted-foreground">Listing Date</Label>
-                    <p className="text-base">{viewingClient.listing_date || "—"}</p>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-sm font-semibold text-muted-foreground">Price</Label>
+                      <p className="text-base">{viewingClient.price ? `$${viewingClient.price}` : "—"}</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-semibold text-muted-foreground">Listing Date</Label>
+                      <p className="text-base">{viewingClient.listing_date || "—"}</p>
+                    </div>
                   </div>
                   <div>
                     <Label className="text-sm font-semibold text-muted-foreground">CBS</Label>
