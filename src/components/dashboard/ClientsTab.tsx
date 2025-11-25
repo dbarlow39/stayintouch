@@ -34,6 +34,10 @@ const ClientsTab = () => {
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
+  const [csvMappingOpen, setCsvMappingOpen] = useState(false);
+  const [csvHeaders, setCsvHeaders] = useState<string[]>([]);
+  const [csvData, setCsvData] = useState<string[][]>([]);
+  const [columnMapping, setColumnMapping] = useState<Record<string, string>>({});
   const [formData, setFormData] = useState({
     first_name: "",
     last_name: "",
@@ -166,7 +170,7 @@ const ClientsTab = () => {
     }
 
     const reader = new FileReader();
-    reader.onload = async (event) => {
+    reader.onload = (event) => {
       try {
         const text = event.target?.result as string;
         const rows = text.split('\n').filter(row => row.trim());
@@ -176,72 +180,82 @@ const ClientsTab = () => {
           return;
         }
 
-        // Parse CSV header from first row
-        const headers = parseCSVLine(rows[0]).map(h => h.trim().toLowerCase());
+        // Parse headers and data
+        const headers = parseCSVLine(rows[0]).map(h => h.trim());
+        const dataRows = rows.slice(1).map(row => parseCSVLine(row));
         
-        // Validate required headers
-        const hasFirstName = headers.some(h => h === 'first_name' || h === 'firstname');
-        const hasLastName = headers.some(h => h === 'last_name' || h === 'lastname');
-        const hasEmail = headers.includes('email');
-
-        if (!hasFirstName || !hasLastName || !hasEmail) {
-          toast.error(`Missing required columns. Found: ${headers.join(', ')}. Need: first_name, last_name, email`);
-          return;
-        }
-
-        // Validate and parse data rows
-        const validClients: any[] = [];
-        const errors: string[] = [];
-
-        for (let i = 1; i < rows.length; i++) {
-          const values = parseCSVLine(rows[i]);
-          const rawClient: any = {};
-          
-          headers.forEach((header, index) => {
-            const value = values[index]?.replace(/^["']|["']$/g, '').trim() || "";
-            if (header === 'first_name' || header === 'firstname') rawClient.first_name = value;
-            if (header === 'last_name' || header === 'lastname') rawClient.last_name = value;
-            if (header === 'email') rawClient.email = value;
-            if (header === 'phone') rawClient.phone = value || "";
-            if (header === 'notes') rawClient.notes = value || "";
-          });
-
-          // Validate with zod schema
-          const validation = clientSchema.safeParse(rawClient);
-          if (validation.success) {
-            validClients.push({ ...validation.data, agent_id: user!.id });
-          } else {
-            const errorField = validation.error.errors[0].path[0];
-            const errorMsg = validation.error.errors[0].message;
-            errors.push(`Row ${i + 1} - ${errorField}: ${errorMsg} (value: "${rawClient[errorField] || 'empty'}")`);
-          }
-        }
-
-        if (validClients.length === 0) {
-          toast.error(`No valid clients found. Check your CSV format. ${errors.slice(0, 3).join('; ')}`);
-          console.error("CSV Import Errors:", errors);
-          return;
-        }
-
-        // Import to database
-        const { error } = await supabase.from("clients").insert(validClients);
+        setCsvHeaders(headers);
+        setCsvData(dataRows);
         
-        if (error) throw error;
+        // Auto-map common column names
+        const autoMapping: Record<string, string> = {};
+        headers.forEach(header => {
+          const lower = header.toLowerCase();
+          if (lower === 'first_name' || lower === 'firstname') autoMapping[header] = 'first_name';
+          else if (lower === 'last_name' || lower === 'lastname') autoMapping[header] = 'last_name';
+          else if (lower === 'email') autoMapping[header] = 'email';
+          else if (lower === 'phone') autoMapping[header] = 'phone';
+          else if (lower === 'notes') autoMapping[header] = 'notes';
+        });
         
-        queryClient.invalidateQueries({ queryKey: ["clients"] });
-        
-        if (errors.length > 0) {
-          toast.success(`Imported ${validClients.length} clients. ${errors.length} rows had errors.`);
-        } else {
-          toast.success(`Successfully imported ${validClients.length} clients`);
-        }
+        setColumnMapping(autoMapping);
+        setCsvMappingOpen(true);
       } catch (error) {
-        toast.error("Failed to import CSV. Please check the file format.");
+        toast.error("Failed to parse CSV file.");
       }
     };
     
     reader.readAsText(file);
     e.target.value = '';
+  };
+
+  const handleConfirmImport = async () => {
+    try {
+      const validClients: any[] = [];
+      const errors: string[] = [];
+
+      csvData.forEach((row, index) => {
+        const rawClient: any = {};
+        
+        csvHeaders.forEach((header, colIndex) => {
+          const dbField = columnMapping[header];
+          if (dbField && row[colIndex]) {
+            rawClient[dbField] = row[colIndex].replace(/^["']|["']$/g, '').trim();
+          }
+        });
+
+        // Validate with zod schema
+        const validation = clientSchema.safeParse(rawClient);
+        if (validation.success) {
+          validClients.push({ ...validation.data, agent_id: user!.id });
+        } else {
+          const errorField = validation.error.errors[0].path[0];
+          const errorMsg = validation.error.errors[0].message;
+          errors.push(`Row ${index + 2} - ${errorField}: ${errorMsg}`);
+        }
+      });
+
+      if (validClients.length === 0) {
+        toast.error(`No valid clients found. ${errors.slice(0, 2).join('; ')}`);
+        return;
+      }
+
+      // Import to database
+      const { error } = await supabase.from("clients").insert(validClients);
+      
+      if (error) throw error;
+      
+      queryClient.invalidateQueries({ queryKey: ["clients"] });
+      setCsvMappingOpen(false);
+      
+      if (errors.length > 0) {
+        toast.success(`Imported ${validClients.length} clients. ${errors.length} rows had errors.`);
+      } else {
+        toast.success(`Successfully imported ${validClients.length} clients`);
+      }
+    } catch (error) {
+      toast.error("Failed to import clients.");
+    }
   };
 
   return (
@@ -338,6 +352,73 @@ const ClientsTab = () => {
           </Dialog>
         </div>
       </div>
+
+      {/* CSV Mapping Dialog */}
+      <Dialog open={csvMappingOpen} onOpenChange={setCsvMappingOpen}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Map CSV Columns to Database Fields</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Match your CSV columns to the database fields. Required fields: First Name, Last Name, Email
+            </p>
+            
+            <div className="space-y-3">
+              {csvHeaders.map((header) => (
+                <div key={header} className="grid grid-cols-3 gap-4 items-center">
+                  <Label className="font-medium">{header}</Label>
+                  <select
+                    value={columnMapping[header] || ""}
+                    onChange={(e) => setColumnMapping({ ...columnMapping, [header]: e.target.value })}
+                    className="col-span-2 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  >
+                    <option value="">-- Don't Import --</option>
+                    <option value="first_name">First Name</option>
+                    <option value="last_name">Last Name</option>
+                    <option value="email">Email</option>
+                    <option value="phone">Phone</option>
+                    <option value="notes">Notes</option>
+                  </select>
+                </div>
+              ))}
+            </div>
+
+            <div className="border rounded-lg p-4 bg-muted/50">
+              <h4 className="font-medium mb-2">Preview (first 3 rows):</h4>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      {csvHeaders.map(header => (
+                        <TableHead key={header}>{header}</TableHead>
+                      ))}
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {csvData.slice(0, 3).map((row, idx) => (
+                      <TableRow key={idx}>
+                        {row.map((cell, cellIdx) => (
+                          <TableCell key={cellIdx}>{cell}</TableCell>
+                        ))}
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setCsvMappingOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleConfirmImport}>
+                Import {csvData.length} Clients
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {isLoading ? (
         <div className="text-center py-8 text-muted-foreground">Loading clients...</div>
