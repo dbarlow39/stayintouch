@@ -39,6 +39,21 @@ const Dashboard = () => {
     enabled: !!user,
   });
 
+  const { data: activeClientsCount = 0 } = useQuery({
+    queryKey: ["active-clients-count", user?.id],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from("clients")
+        .select("*", { count: "exact", head: true })
+        .eq("agent_id", user!.id)
+        .ilike("status", "A");
+      
+      if (error) throw error;
+      return count || 0;
+    },
+    enabled: !!user,
+  });
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -85,9 +100,9 @@ const Dashboard = () => {
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{clientsCount}</div>
+              <div className="text-2xl font-bold">{activeClientsCount}</div>
               <p className="text-xs text-muted-foreground mt-1">
-                {clientsCount === 0 ? "Start adding clients" : "Active clients"}
+                Active clients • {clientsCount} total
               </p>
             </CardContent>
           </Card>

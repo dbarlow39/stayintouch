@@ -116,6 +116,7 @@ const ClientsTab = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["clients"] });
       queryClient.invalidateQueries({ queryKey: ["clients-count"] });
+      queryClient.invalidateQueries({ queryKey: ["active-clients-count"] });
       toast.success("Client added successfully");
       setOpen(false);
       resetForm();
@@ -133,6 +134,7 @@ const ClientsTab = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["clients"] });
       queryClient.invalidateQueries({ queryKey: ["clients-count"] });
+      queryClient.invalidateQueries({ queryKey: ["active-clients-count"] });
       toast.success("Client updated successfully");
       setOpen(false);
       resetForm();
@@ -150,6 +152,7 @@ const ClientsTab = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["clients"] });
       queryClient.invalidateQueries({ queryKey: ["clients-count"] });
+      queryClient.invalidateQueries({ queryKey: ["active-clients-count"] });
       toast.success("Client deleted successfully");
     },
     onError: () => {
@@ -347,6 +350,7 @@ const ClientsTab = () => {
       
       queryClient.invalidateQueries({ queryKey: ["clients"] });
       queryClient.invalidateQueries({ queryKey: ["clients-count"] });
+      queryClient.invalidateQueries({ queryKey: ["active-clients-count"] });
       setCsvMappingOpen(false);
       
       if (errors.length > 0) {
@@ -611,6 +615,7 @@ const ClientsTab = () => {
                           if (error) throw error;
                           queryClient.invalidateQueries({ queryKey: ["clients"] });
                           queryClient.invalidateQueries({ queryKey: ["clients-count"] });
+                          queryClient.invalidateQueries({ queryKey: ["active-clients-count"] });
                           toast.success(`Status updated to ${newStatus}`);
                         } catch (error) {
                           console.error('Status update error:', error);
