@@ -518,7 +518,33 @@ const ClientsTab = () => {
                   <TableCell className="font-medium">
                     {client.first_name} {client.last_name}
                   </TableCell>
-                  <TableCell>{client.status || "—"}</TableCell>
+                  <TableCell>
+                    <select
+                      value={client.status || ""}
+                      onChange={async (e) => {
+                        const newStatus = e.target.value;
+                        try {
+                          const { error } = await supabase
+                            .from("clients")
+                            .update({ status: newStatus })
+                            .eq("id", client.id);
+                          if (error) throw error;
+                          queryClient.invalidateQueries({ queryKey: ["clients"] });
+                          toast.success("Status updated");
+                        } catch (error) {
+                          toast.error("Failed to update status");
+                        }
+                      }}
+                      className="h-8 rounded-md border border-input bg-white dark:bg-gray-800 px-2 py-1 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer"
+                    >
+                      <option value="">—</option>
+                      <option value="A">A</option>
+                      <option value="C">C</option>
+                      <option value="E">E</option>
+                      <option value="W">W</option>
+                      <option value="T">T</option>
+                    </select>
+                  </TableCell>
                   <TableCell>
                     {client.street_number || client.street_name || client.city ? (
                       <div className="text-sm">
