@@ -2,7 +2,8 @@ import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
-import { Building2, Users, Mail, TrendingUp, Shield, Clock } from "lucide-react";
+import { Users, Mail, TrendingUp, Shield, Clock } from "lucide-react";
+import logo from "@/assets/logo.jpg";
 
 const Index = () => {
   const { user, loading } = useAuth();
@@ -19,9 +20,7 @@ const Index = () => {
       <header className="container mx-auto px-4 py-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-              <Building2 className="w-7 h-7 text-primary" />
-            </div>
+            <img src={logo} alt="Sell for 1 Percent" className="h-14 w-auto" />
             <div>
               <h1 className="text-2xl font-bold">Stay in Touch</h1>
               <p className="text-sm text-muted-foreground">Real Estate CRM</p>

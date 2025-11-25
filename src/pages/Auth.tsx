@@ -5,7 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Building2, Mail, Lock, User } from "lucide-react";
+import { Mail, Lock, User } from "lucide-react";
+import logo from "@/assets/logo.jpg";
 
 const Auth = () => {
   const { signIn, signUp } = useAuth();
@@ -32,8 +33,8 @@ const Auth = () => {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-secondary/20 to-primary/5 p-4">
       <div className="w-full max-w-md animate-fade-in">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10 mb-4">
-            <Building2 className="w-8 h-8 text-primary" />
+          <div className="inline-flex items-center justify-center mb-4">
+            <img src={logo} alt="Sell for 1 Percent" className="h-16 w-auto" />
           </div>
           <h1 className="text-3xl font-bold text-foreground mb-2">Stay in Touch</h1>
           <p className="text-muted-foreground">Real Estate CRM for Agents</p>

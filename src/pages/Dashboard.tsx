@@ -4,7 +4,7 @@ import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Building2, Users, Mail, TrendingUp, LogOut, UserPlus, Briefcase, CheckSquare, MessageSquare, Sparkles } from "lucide-react";
+import { Users, Mail, TrendingUp, LogOut, UserPlus, Briefcase, CheckSquare, MessageSquare, Sparkles } from "lucide-react";
 import ClientsTab from "@/components/dashboard/ClientsTab";
 import AnalyticsTab from "@/components/dashboard/AnalyticsTab";
 import LeadsTab from "@/components/dashboard/LeadsTab";
@@ -14,6 +14,7 @@ import SMSTab from "@/components/dashboard/SMSTab";
 import SmartAssistantTab from "@/components/dashboard/SmartAssistantTab";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import logo from "@/assets/logo.jpg";
 
 const Dashboard = () => {
   const { user, loading, signOut } = useAuth();
@@ -72,9 +73,7 @@ const Dashboard = () => {
       <header className="border-b border-border/50 bg-card/50 backdrop-blur-sm sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-              <Building2 className="w-6 h-6 text-primary" />
-            </div>
+            <img src={logo} alt="Sell for 1 Percent" className="h-12 w-auto" />
             <div>
               <h1 className="text-xl font-bold">Stay in Touch</h1>
               <p className="text-xs text-muted-foreground">Real Estate CRM</p>
