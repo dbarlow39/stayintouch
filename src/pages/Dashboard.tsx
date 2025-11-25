@@ -12,6 +12,8 @@ import DealsTab from "@/components/dashboard/DealsTab";
 import TasksTab from "@/components/dashboard/TasksTab";
 import SMSTab from "@/components/dashboard/SMSTab";
 import SmartAssistantTab from "@/components/dashboard/SmartAssistantTab";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 const Dashboard = () => {
   const { user, loading, signOut } = useAuth();
@@ -22,6 +24,20 @@ const Dashboard = () => {
       navigate("/auth");
     }
   }, [user, loading, navigate]);
+
+  const { data: clientsCount = 0 } = useQuery({
+    queryKey: ["clients-count", user?.id],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from("clients")
+        .select("*", { count: "exact", head: true })
+        .ilike("status", "A");
+      
+      if (error) throw error;
+      return count || 0;
+    },
+    enabled: !!user,
+  });
 
   if (loading) {
     return (
@@ -69,8 +85,10 @@ const Dashboard = () => {
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">0</div>
-              <p className="text-xs text-muted-foreground mt-1">Start adding clients</p>
+              <div className="text-2xl font-bold">{clientsCount}</div>
+              <p className="text-xs text-muted-foreground mt-1">
+                {clientsCount === 0 ? "Start adding clients" : "Active clients"}
+              </p>
             </CardContent>
           </Card>
 
