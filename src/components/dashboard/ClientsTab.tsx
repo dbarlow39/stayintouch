@@ -84,6 +84,24 @@ const ClientsTab = () => {
     email: "",
     phone: "",
     notes: "",
+    status: "",
+    street_number: "",
+    street_name: "",
+    city: "",
+    state: "",
+    zip: "",
+    price: "",
+    cell_phone: "",
+    home_phone: "",
+    mls_id: "",
+    listing_date: "",
+    cbs: "",
+    showing_type: "",
+    lock_box: "",
+    combo: "",
+    location: "",
+    special_instructions: "",
+    agent: "",
   });
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -108,10 +126,17 @@ const ClientsTab = () => {
 
   const createMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
-      const { error } = await supabase.from("clients").insert({
+      const submitData: any = {
         ...data,
         agent_id: user!.id,
-      });
+      };
+      
+      // Convert price to number if it exists
+      if (submitData.price) {
+        submitData.price = parseFloat(submitData.price);
+      }
+      
+      const { error } = await supabase.from("clients").insert(submitData);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -129,7 +154,14 @@ const ClientsTab = () => {
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: typeof formData }) => {
-      const { error } = await supabase.from("clients").update(data).eq("id", id);
+      const submitData: any = { ...data };
+      
+      // Convert price to number if it exists
+      if (submitData.price) {
+        submitData.price = parseFloat(submitData.price);
+      }
+      
+      const { error } = await supabase.from("clients").update(submitData).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -168,6 +200,24 @@ const ClientsTab = () => {
       email: "",
       phone: "",
       notes: "",
+      status: "",
+      street_number: "",
+      street_name: "",
+      city: "",
+      state: "",
+      zip: "",
+      price: "",
+      cell_phone: "",
+      home_phone: "",
+      mls_id: "",
+      listing_date: "",
+      cbs: "",
+      showing_type: "",
+      lock_box: "",
+      combo: "",
+      location: "",
+      special_instructions: "",
+      agent: "",
     });
     setEditingClient(null);
   };
@@ -189,6 +239,24 @@ const ClientsTab = () => {
       email: client.email,
       phone: client.phone || "",
       notes: client.notes || "",
+      status: client.status || "",
+      street_number: client.street_number || "",
+      street_name: client.street_name || "",
+      city: client.city || "",
+      state: client.state || "",
+      zip: client.zip || "",
+      price: client.price?.toString() || "",
+      cell_phone: client.cell_phone || "",
+      home_phone: client.home_phone || "",
+      mls_id: client.mls_id || "",
+      listing_date: client.listing_date || "",
+      cbs: client.cbs || "",
+      showing_type: client.showing_type || "",
+      lock_box: client.lock_box || "",
+      combo: client.combo || "",
+      location: client.location || "",
+      special_instructions: client.special_instructions || "",
+      agent: client.agent || "",
     });
     setOpen(true);
   };
@@ -414,59 +482,232 @@ const ClientsTab = () => {
                 Add Client
               </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>{editingClient ? "Edit Client" : "Add New Client"}</DialogTitle>
               </DialogHeader>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="first_name">First Name</Label>
-                    <Input
-                      id="first_name"
-                      value={formData.first_name}
-                      onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
-                      required
-                    />
+                    <Label htmlFor="status">Status</Label>
+                    <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value })}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select status" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-background z-50">
+                        <SelectItem value="A">Active (A)</SelectItem>
+                        <SelectItem value="C">Closed (C)</SelectItem>
+                        <SelectItem value="E">Expired (E)</SelectItem>
+                        <SelectItem value="W">Withdrawn (W)</SelectItem>
+                        <SelectItem value="T">Temp Off Market (T)</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="last_name">Last Name</Label>
+                    <Label htmlFor="mls_id">MLS ID</Label>
                     <Input
-                      id="last_name"
-                      value={formData.last_name}
-                      onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
-                      required
+                      id="mls_id"
+                      value={formData.mls_id}
+                      onChange={(e) => setFormData({ ...formData, mls_id: e.target.value })}
                     />
                   </div>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    required
-                  />
+                
+                <div className="border-t pt-4">
+                  <h3 className="font-semibold mb-3">Contact Information</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="first_name">First Name</Label>
+                      <Input
+                        id="first_name"
+                        value={formData.first_name}
+                        onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="last_name">Last Name</Label>
+                      <Input
+                        id="last_name"
+                        value={formData.last_name}
+                        onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2 mt-4">
+                    <Label htmlFor="email">Email</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={formData.email}
+                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4 mt-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="home_phone">Home Phone</Label>
+                      <Input
+                        id="home_phone"
+                        type="tel"
+                        value={formData.home_phone}
+                        onChange={(e) => setFormData({ ...formData, home_phone: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="cell_phone">Cell Phone</Label>
+                      <Input
+                        id="cell_phone"
+                        type="tel"
+                        value={formData.cell_phone}
+                        onChange={(e) => setFormData({ ...formData, cell_phone: e.target.value })}
+                      />
+                    </div>
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="phone">Phone (Optional)</Label>
-                  <Input
-                    id="phone"
-                    type="tel"
-                    value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  />
+
+                <div className="border-t pt-4">
+                  <h3 className="font-semibold mb-3">Property Information</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="street_number">Street #</Label>
+                      <Input
+                        id="street_number"
+                        value={formData.street_number}
+                        onChange={(e) => setFormData({ ...formData, street_number: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="street_name">Street Name</Label>
+                      <Input
+                        id="street_name"
+                        value={formData.street_name}
+                        onChange={(e) => setFormData({ ...formData, street_name: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-3 gap-4 mt-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="city">City</Label>
+                      <Input
+                        id="city"
+                        value={formData.city}
+                        onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="state">State</Label>
+                      <Input
+                        id="state"
+                        value={formData.state}
+                        onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="zip">Zip</Label>
+                      <Input
+                        id="zip"
+                        value={formData.zip}
+                        onChange={(e) => setFormData({ ...formData, zip: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4 mt-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="price">Price</Label>
+                      <Input
+                        id="price"
+                        type="number"
+                        value={formData.price}
+                        onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="listing_date">Listing Date</Label>
+                      <Input
+                        id="listing_date"
+                        value={formData.listing_date}
+                        onChange={(e) => setFormData({ ...formData, listing_date: e.target.value })}
+                      />
+                    </div>
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="notes">Notes (Optional)</Label>
-                  <Textarea
-                    id="notes"
-                    value={formData.notes}
-                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                    rows={3}
-                  />
+
+                <div className="border-t pt-4">
+                  <h3 className="font-semibold mb-3">Showing Details</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="showing_type">Showing Type</Label>
+                      <Input
+                        id="showing_type"
+                        value={formData.showing_type}
+                        onChange={(e) => setFormData({ ...formData, showing_type: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="cbs">CBS</Label>
+                      <Input
+                        id="cbs"
+                        value={formData.cbs}
+                        onChange={(e) => setFormData({ ...formData, cbs: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4 mt-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="lock_box">Lock Box</Label>
+                      <Input
+                        id="lock_box"
+                        value={formData.lock_box}
+                        onChange={(e) => setFormData({ ...formData, lock_box: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="combo">Combo</Label>
+                      <Input
+                        id="combo"
+                        value={formData.combo}
+                        onChange={(e) => setFormData({ ...formData, combo: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2 mt-4">
+                    <Label htmlFor="location">Location</Label>
+                    <Input
+                      id="location"
+                      value={formData.location}
+                      onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                    />
+                  </div>
                 </div>
+
+                <div className="border-t pt-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="agent">Agent</Label>
+                    <Input
+                      id="agent"
+                      value={formData.agent}
+                      onChange={(e) => setFormData({ ...formData, agent: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2 mt-4">
+                    <Label htmlFor="special_instructions">Special Instructions</Label>
+                    <Textarea
+                      id="special_instructions"
+                      value={formData.special_instructions}
+                      onChange={(e) => setFormData({ ...formData, special_instructions: e.target.value })}
+                      rows={3}
+                    />
+                  </div>
+                  <div className="space-y-2 mt-4">
+                    <Label htmlFor="notes">Notes</Label>
+                    <Textarea
+                      id="notes"
+                      value={formData.notes}
+                      onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                      rows={3}
+                    />
+                  </div>
+                </div>
+
                 <Button type="submit" className="w-full" disabled={createMutation.isPending || updateMutation.isPending}>
                   {editingClient ? "Update Client" : "Add Client"}
                 </Button>
