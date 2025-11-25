@@ -84,13 +84,13 @@ const ClientsTab = () => {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const { data: clients = [], isLoading } = useQuery({
-    queryKey: ["clients"],
+    queryKey: ["clients", "status-a"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("clients")
         .select("*")
         .ilike("status", "A")
-        .order("street_name", { ascending: true });
+        .order("street_name", { ascending: true, nullsFirst: false });
       if (error) throw error;
       return data as Client[];
     },
