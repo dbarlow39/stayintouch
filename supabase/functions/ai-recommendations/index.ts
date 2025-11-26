@@ -12,16 +12,30 @@ serve(async (req) => {
   }
 
   try {
+    // Get the authorization header
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      throw new Error('Unauthorized: Missing authorization header');
+    }
+
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      { global: { headers: { Authorization: req.headers.get('Authorization')! } } }
+      { 
+        global: { 
+          headers: { Authorization: authHeader } 
+        } 
+      }
     );
 
-    const { data: { user } } = await supabaseClient.auth.getUser();
-    if (!user) {
-      throw new Error('Unauthorized');
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+    
+    if (authError || !user) {
+      console.error('Authentication error:', authError);
+      throw new Error('Unauthorized: Invalid token');
     }
+    
+    console.log('User authenticated:', user.id);
 
     // Fetch agent's data
     const [
