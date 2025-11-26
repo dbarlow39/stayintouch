@@ -683,7 +683,7 @@ const ClientsTab = () => {
                     />
                   </div>
                   <div className="space-y-2 mt-4">
-                    <Label htmlFor="zillow_link">Zillow Link for Address</Label>
+                    <Label htmlFor="zillow_link">Zillow Link</Label>
                     <Input
                       id="zillow_link"
                       value={formData.zillow_link}
@@ -1121,7 +1121,7 @@ const ClientsTab = () => {
                     <p className="text-base">{viewingClient.cbs || "—"}</p>
                   </div>
                   <div>
-                    <Label className="text-sm font-semibold text-muted-foreground">Zillow Link for Address</Label>
+                    <Label className="text-sm font-semibold text-muted-foreground">Zillow Link</Label>
                     {viewingClient.zillow_link ? (
                       <a 
                         href={viewingClient.zillow_link}
