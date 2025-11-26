@@ -542,9 +542,10 @@ const ClientsTab = () => {
                     <Label htmlFor="email">Email</Label>
                     <Input
                       id="email"
-                      type="email"
+                      type="text"
                       value={formData.email}
                       onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      placeholder="email@example.com or email1@example.com, email2@example.com"
                     />
                   </div>
                   <div className="grid grid-cols-2 gap-4 mt-4">
