@@ -664,11 +664,19 @@ const ClientsTab = () => {
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="showing_type">Showing Type</Label>
-                      <Input
-                        id="showing_type"
+                      <Select
                         value={formData.showing_type}
-                        onChange={(e) => setFormData({ ...formData, showing_type: e.target.value })}
-                      />
+                        onValueChange={(value) => setFormData({ ...formData, showing_type: value })}
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Select showing type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Go and Show">Go and Show</SelectItem>
+                          <SelectItem value="Courtesy Call">Courtesy Call</SelectItem>
+                          <SelectItem value="Confirmation Needed">Confirmation Needed</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="cbs">CBS</Label>
