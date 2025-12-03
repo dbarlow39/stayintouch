@@ -689,12 +689,19 @@ const ClientsTab = () => {
                   </div>
                   <div className="grid grid-cols-2 gap-4 mt-4">
                     <div className="space-y-2">
-                      <Label htmlFor="lock_box">Lock Box</Label>
-                      <Input
-                        id="lock_box"
+                      <Label htmlFor="lock_box">Lock Box Type</Label>
+                      <Select
                         value={formData.lock_box}
-                        onChange={(e) => setFormData({ ...formData, lock_box: e.target.value })}
-                      />
+                        onValueChange={(value) => setFormData({ ...formData, lock_box: value })}
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Select lock box type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Supra">Supra</SelectItem>
+                          <SelectItem value="Combination">Combination</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="combo">Combo</Label>
