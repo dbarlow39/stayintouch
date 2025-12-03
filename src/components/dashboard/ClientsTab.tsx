@@ -733,11 +733,19 @@ const ClientsTab = () => {
                 <div className="border-t pt-4">
                   <div className="space-y-2">
                     <Label htmlFor="agent">Agent</Label>
-                    <Input
-                      id="agent"
+                    <Select
                       value={formData.agent}
-                      onChange={(e) => setFormData({ ...formData, agent: e.target.value })}
-                    />
+                      onValueChange={(value) => setFormData({ ...formData, agent: value })}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select agent" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Dave Barlow">Dave Barlow</SelectItem>
+                        <SelectItem value="Jaysen Barlow">Jaysen Barlow</SelectItem>
+                        <SelectItem value="Jaime Barlow">Jaime Barlow</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div className="space-y-2 mt-4">
                     <Label htmlFor="special_instructions">Special Instructions</Label>
