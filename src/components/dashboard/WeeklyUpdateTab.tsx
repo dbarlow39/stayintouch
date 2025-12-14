@@ -156,6 +156,21 @@ const WeeklyUpdateTab = () => {
   const [isTemplateOpen, setIsTemplateOpen] = useState(false);
   const [templateInitialized, setTemplateInitialized] = useState(false);
 
+  // Fetch agent profile for preferred email
+  const { data: agentProfile } = useQuery({
+    queryKey: ["agent-profile", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("first_name, last_name, cell_phone, preferred_email, website, bio")
+        .eq("id", user!.id)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user,
+  });
+
   // Fetch most recent market data to pre-populate form
   const { data: savedMarketData } = useQuery({
     queryKey: ["saved-market-data", user?.id],
@@ -493,8 +508,10 @@ const WeeklyUpdateTab = () => {
   };
 
   const handleSendTestEmail = async () => {
-    if (!user?.email) {
-      toast({ title: "No email found", description: "Could not find your email address", variant: "destructive" });
+    const testEmail = agentProfile?.preferred_email || user?.email;
+    
+    if (!testEmail) {
+      toast({ title: "No email found", description: "Please set your preferred email in Account settings", variant: "destructive" });
       return;
     }
 
@@ -546,10 +563,10 @@ const WeeklyUpdateTab = () => {
 
       const emailData = response.data;
 
-      // Send the test email
+      // Send the test email to preferred email
       const sendResponse = await supabase.functions.invoke('send-weekly-email', {
         body: {
-          to: user.email,
+          to: testEmail,
           subject: `[TEST] ${emailData.subject}`,
           body: emailData.body,
         },
@@ -557,7 +574,7 @@ const WeeklyUpdateTab = () => {
 
       if (sendResponse.error) throw sendResponse.error;
 
-      toast({ title: "Test email sent", description: `Sent to ${user.email}` });
+      toast({ title: "Test email sent", description: `Sent to ${testEmail}` });
     } catch (error) {
       console.error('Error sending test email:', error);
       toast({ title: "Error sending test email", description: error instanceof Error ? error.message : 'Unknown error', variant: "destructive" });
@@ -734,9 +751,9 @@ const WeeklyUpdateTab = () => {
                       </>
                     )}
                   </Button>
-                  {user?.email && (
+                  {(agentProfile?.preferred_email || user?.email) && (
                     <span className="text-sm text-muted-foreground">
-                      to {user.email}
+                      to {agentProfile?.preferred_email || user?.email}
                     </span>
                   )}
                 </div>

@@ -4,7 +4,7 @@ import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Users, Mail, LogOut, Calendar, Briefcase, CheckSquare, MessageSquare, Sparkles } from "lucide-react";
+import { Users, Mail, LogOut, Calendar, Briefcase, CheckSquare, MessageSquare, Sparkles, Settings } from "lucide-react";
 import ClientsTab from "@/components/dashboard/ClientsTab";
 import WeeklyUpdateTab from "@/components/dashboard/WeeklyUpdateTab";
 import DealsTab from "@/components/dashboard/DealsTab";
@@ -78,10 +78,16 @@ const Dashboard = () => {
               <p className="text-xs text-muted-foreground">Real Estate CRM</p>
             </div>
           </div>
-          <Button variant="outline" size="sm" onClick={signOut}>
-            <LogOut className="w-4 h-4 mr-2" />
-            Sign Out
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="sm" onClick={() => navigate("/account")}>
+              <Settings className="w-4 h-4 mr-2" />
+              Account
+            </Button>
+            <Button variant="outline" size="sm" onClick={signOut}>
+              <LogOut className="w-4 h-4 mr-2" />
+              Sign Out
+            </Button>
+          </div>
         </div>
       </header>
 
