@@ -530,7 +530,7 @@ const WeeklyUpdateTab = () => {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <FileText className="w-4 h-4 text-primary" />
-                  <CardTitle className="text-base">Email Template</CardTitle>
+                  <CardTitle className="text-base">Sample Email Template</CardTitle>
                 </div>
                 <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${isTemplateOpen ? 'rotate-180' : ''}`} />
               </div>
