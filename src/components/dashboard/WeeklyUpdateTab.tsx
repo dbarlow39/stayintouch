@@ -548,7 +548,7 @@ const WeeklyUpdateTab = () => {
           </div>
           <div className="mt-4 flex justify-end">
             <Button
-              variant="outline"
+              variant="destructive"
               size="sm"
               onClick={() => {
                 const firstClient = clients?.[0] || null;
