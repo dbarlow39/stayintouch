@@ -77,10 +77,11 @@ serve(async (req) => {
       .map((paragraph: string) => `<p style="margin-bottom: 16px; line-height: 1.6;">${paragraph.replace(/\n/g, '<br>')}</p>`)
       .join('');
 
-    // Use agent's name in the from field (via Stay in Touch)
-    const fromEmail = `${agentName} via Stay in Touch <onboarding@resend.dev>`; // Change to your verified domain
-
-    const emailResponse = await resend.emails.send({
+    // Use agent's name in the from field with verified subdomain
+    const fromEmail = `${agentName} via Stay in Touch <updates@resend.sellfor1percent.com>`;
+    
+    // Build email options with reply-to for agent responses
+    const emailOptions: any = {
       from: fromEmail,
       to: [client_email],
       subject: subject,
@@ -96,7 +97,14 @@ serve(async (req) => {
         </body>
         </html>
       `,
-    });
+    };
+
+    // Add reply-to if agent has a preferred email
+    if (profile?.preferred_email) {
+      emailOptions.reply_to = profile.preferred_email;
+    }
+
+    const emailResponse = await resend.emails.send(emailOptions);
 
     console.log('Email sent successfully:', emailResponse);
 
