@@ -586,14 +586,6 @@ const WeeklyUpdateTab = () => {
                 placeholder="e.g., 150"
               />
             </div>
-            {marketData.active_homes_last_week !== null && (
-              <div className="space-y-2">
-                <Label>Last Week's Active</Label>
-                <div className="h-10 px-3 py-2 border rounded-md bg-muted/50 text-muted-foreground flex items-center">
-                  {marketData.active_homes_last_week}
-                </div>
-              </div>
-            )}
             {marketData.inventory_change !== null && (
               <div className="space-y-2">
                 <Label>Inventory Change</Label>
