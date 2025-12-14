@@ -716,23 +716,30 @@ const WeeklyUpdateTab = () => {
                   className="min-h-[400px] font-mono text-sm"
                   placeholder="Email template prompt..."
                 />
-                <Button 
-                  onClick={handleSendTestEmail}
-                  disabled={isSendingTest}
-                  size="sm"
-                >
-                  {isSendingTest ? (
-                    <>
-                      <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                      Sending...
-                    </>
-                  ) : (
-                    <>
-                      <Send className="w-4 h-4 mr-2" />
-                      Send Test Email
-                    </>
+                <div className="flex items-center gap-3">
+                  <Button 
+                    onClick={handleSendTestEmail}
+                    disabled={isSendingTest}
+                    size="sm"
+                  >
+                    {isSendingTest ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                        Sending...
+                      </>
+                    ) : (
+                      <>
+                        <Send className="w-4 h-4 mr-2" />
+                        Send Test Email
+                      </>
+                    )}
+                  </Button>
+                  {user?.email && (
+                    <span className="text-sm text-muted-foreground">
+                      to {user.email}
+                    </span>
                   )}
-                </Button>
+                </div>
               </div>
             </CardContent>
           </CollapsibleContent>
