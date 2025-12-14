@@ -14,3 +14,12 @@ verify_jwt = true
 
 [functions.ai-predictive-analytics]
 verify_jwt = true
+
+[functions.parse-zillow]
+verify_jwt = false
+
+[functions.generate-weekly-email]
+verify_jwt = false
+
+[functions.send-weekly-email]
+verify_jwt = true

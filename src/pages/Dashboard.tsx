@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Users, Mail, TrendingUp, LogOut, Calendar, Briefcase, CheckSquare, MessageSquare, Sparkles } from "lucide-react";
 import ClientsTab from "@/components/dashboard/ClientsTab";
 import AnalyticsTab from "@/components/dashboard/AnalyticsTab";
-import LeadsTab from "@/components/dashboard/LeadsTab";
+import WeeklyUpdateTab from "@/components/dashboard/WeeklyUpdateTab";
 import DealsTab from "@/components/dashboard/DealsTab";
 import TasksTab from "@/components/dashboard/TasksTab";
 import SMSTab from "@/components/dashboard/SMSTab";
@@ -171,7 +171,7 @@ const Dashboard = () => {
                 <ClientsTab />
               </TabsContent>
               <TabsContent value="leads">
-                <LeadsTab />
+                <WeeklyUpdateTab />
               </TabsContent>
               <TabsContent value="deals">
                 <DealsTab />
