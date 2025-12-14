@@ -248,10 +248,10 @@ const Account = () => {
                 <Label htmlFor="website">Website</Label>
                 <Input
                   id="website"
-                  type="url"
+                  type="text"
                   value={formData.website}
                   onChange={(e) => handleChange("website", e.target.value)}
-                  placeholder="https://www.Sellfor1Percent.com"
+                  placeholder="www.Sellfor1Percent.com"
                 />
               </div>
 
