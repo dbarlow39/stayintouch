@@ -18,7 +18,10 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth";
 import { format } from "date-fns";
 
-const generateSampleEmail = (client: { first_name: string | null; last_name: string | null; street_number: string | null; street_name: string | null; city: string | null; state: string | null; zip: string | null } | null) => {
+const generateSampleEmail = (
+  client: { first_name: string | null; last_name: string | null; street_number: string | null; street_name: string | null; city: string | null; state: string | null; zip: string | null } | null,
+  marketData?: { week_of: string; active_homes: number; active_homes_last_week: number | null; inventory_change: number | null; market_avg_dom: number; price_trend: string; price_reductions: number }
+) => {
   const firstName = client?.first_name || 'John';
   const lastName = client?.last_name || 'Smith';
   const streetNumber = client?.street_number || '123';
@@ -27,21 +30,35 @@ const generateSampleEmail = (client: { first_name: string | null; last_name: str
   const state = client?.state || 'OH';
   const zip = client?.zip || '43215';
   const propertyAddress = `${streetNumber} ${streetName}, ${city}, ${state} ${zip}`;
-  const weekOf = format(new Date(), 'MMMM d, yyyy');
+  
+  // Use market data if provided, otherwise use defaults
+  const weekOf = marketData?.week_of ? format(new Date(marketData.week_of), 'MMMM d, yyyy') : format(new Date(), 'MMMM d, yyyy');
+  const activeHomes = marketData?.active_homes || 2450;
+  const activeHomesLastWeek = marketData?.active_homes_last_week || 2425;
+  const inventoryChange = marketData?.inventory_change ?? (activeHomes - activeHomesLastWeek);
+  const avgDom = marketData?.market_avg_dom || 42;
+  const priceTrend = marketData?.price_trend || 'stable';
+  const priceReductions = marketData?.price_reductions || 145;
+  
+  const inventoryChangeText = inventoryChange > 0 
+    ? `a modest increase of ${inventoryChange} listings` 
+    : inventoryChange < 0 
+    ? `a decrease of ${Math.abs(inventoryChange)} listings` 
+    : 'no change in listings';
 
-  return `Subject: Weekly Christmas Season Market Update – ${propertyAddress}
+  return `Subject: Weekly Market Update – ${propertyAddress}
 
 Dear ${firstName},
 
-I hope this message finds you well as we move through the holiday season. As your listing agent, I wanted to provide you with this week's market update and share how your property at ${streetNumber} ${streetName} is performing.
+I hope this message finds you well. As your listing agent, I wanted to provide you with this week's market update and share how your property at ${streetNumber} ${streetName} is performing.
 
 **Columbus Market Snapshot – Week of ${weekOf}**
 
-This week, the Columbus metro area has 2,450 active homes on the market, compared to 2,425 last week—a modest increase of 25 listings. The market average days on market currently stands at 42 days, and pricing trends remain stable. Approximately 145 homes have undergone price reductions this week.
+This week, the Columbus metro area has ${activeHomes.toLocaleString()} active homes on the market, compared to ${activeHomesLastWeek.toLocaleString()} last week—${inventoryChangeText}. The market average days on market currently stands at ${avgDom} days, and pricing trends remain ${priceTrend}. Approximately ${priceReductions} homes have undergone price reductions this week.
 
 **What This Means for Sellers**
 
-These numbers reflect typical seasonal patterns we see during the holiday period. Buyer activity remains selective, as many families focus on holiday commitments. However, serious buyers continue to search, and inventory levels are holding steady within normal seasonal ranges.
+These numbers reflect typical seasonal patterns. Buyer activity remains selective, and inventory levels are holding steady within normal ranges.
 
 **Your Property Performance**
 
@@ -63,7 +80,7 @@ We have generated 1,250 online views which means we should have between 12 and 2
 
 **Weekly Outlook**
 
-As we head into the week before Christmas, we anticipate buyer activity to remain measured. Serious buyers who are actively searching during this period tend to be highly motivated. We will continue monitoring showing requests and feedback closely.
+We anticipate buyer activity to remain measured. Serious buyers who are actively searching tend to be highly motivated. We will continue monitoring showing requests and feedback closely.
 
 Please do not hesitate to reach out if you have any questions or would like to discuss your listing strategy.
 
@@ -528,6 +545,20 @@ const WeeklyUpdateTab = () => {
                 </div>
               </div>
             )}
+          </div>
+          <div className="mt-4 flex justify-end">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                const firstClient = clients?.[0] || null;
+                setEmailTemplate(generateSampleEmail(firstClient, marketData));
+                setIsTemplateOpen(true);
+              }}
+            >
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Update Template
+            </Button>
           </div>
         </CardContent>
       </Card>
