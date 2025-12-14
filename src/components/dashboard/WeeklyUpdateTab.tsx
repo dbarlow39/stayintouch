@@ -546,7 +546,7 @@ const WeeklyUpdateTab = () => {
               </div>
             )}
           </div>
-          <div className="mt-4 flex justify-end">
+          <div className="mt-4 flex justify-start">
             <Button
               variant="destructive"
               size="sm"
