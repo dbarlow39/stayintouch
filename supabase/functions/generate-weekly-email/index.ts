@@ -35,6 +35,9 @@ serve(async (req) => {
 
   try {
     const requestBody = await req.json();
+    console.log('Request body keys:', Object.keys(requestBody));
+    console.log('Template received:', requestBody.template ? `${requestBody.template.substring(0, 100)}...` : 'NO TEMPLATE');
+    
     // Support both camelCase and snake_case parameter names
     const market_data: MarketData = requestBody.market_data || requestBody.marketData;
     const client_data: ClientData = requestBody.client_data || requestBody.clientData;
