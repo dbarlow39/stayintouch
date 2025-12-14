@@ -387,6 +387,7 @@ export type Database = {
           cell_phone: string | null
           created_at: string | null
           email: string
+          email_template: string | null
           first_name: string | null
           full_name: string | null
           id: string
@@ -401,6 +402,7 @@ export type Database = {
           cell_phone?: string | null
           created_at?: string | null
           email: string
+          email_template?: string | null
           first_name?: string | null
           full_name?: string | null
           id: string
@@ -415,6 +417,7 @@ export type Database = {
           cell_phone?: string | null
           created_at?: string | null
           email?: string
+          email_template?: string | null
           first_name?: string | null
           full_name?: string | null
           id?: string
