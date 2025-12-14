@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
-import { Users, Mail, TrendingUp, Shield, Clock } from "lucide-react";
+import { Users, Mail, Shield, Clock } from "lucide-react";
 import logo from "@/assets/logo.jpg";
 
 const Index = () => {
@@ -43,7 +43,7 @@ const Index = () => {
           </Button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto mb-20">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto mb-20">
           <div className="p-6 rounded-2xl bg-card shadow-soft animate-fade-in border border-border/50">
             <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4">
               <Users className="w-6 h-6 text-primary" />
@@ -64,15 +64,6 @@ const Index = () => {
             </p>
           </div>
 
-          <div className="p-6 rounded-2xl bg-card shadow-soft animate-fade-in border border-border/50" style={{ animationDelay: "0.2s" }}>
-            <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4">
-              <TrendingUp className="w-6 h-6 text-primary" />
-            </div>
-            <h3 className="text-xl font-semibold mb-2">Analytics Dashboard</h3>
-            <p className="text-muted-foreground">
-              Visualize property views, showings, and market data with admin controls
-            </p>
-          </div>
         </div>
 
         <div className="max-w-3xl mx-auto bg-card rounded-2xl p-8 shadow-medium animate-fade-in border border-border/50">
@@ -97,13 +88,6 @@ const Index = () => {
               <div>
                 <h4 className="font-semibold mb-1">Automated Scheduling</h4>
                 <p className="text-sm text-muted-foreground">Set and forget with Thursday email automation</p>
-              </div>
-            </div>
-            <div className="flex items-start space-x-3">
-              <TrendingUp className="w-5 h-5 text-primary mt-1 flex-shrink-0" />
-              <div>
-                <h4 className="font-semibold mb-1">Real-Time Insights</h4>
-                <p className="text-sm text-muted-foreground">Track engagement and performance metrics</p>
               </div>
             </div>
           </div>

@@ -4,9 +4,8 @@ import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Users, Mail, TrendingUp, LogOut, Calendar, Briefcase, CheckSquare, MessageSquare, Sparkles } from "lucide-react";
+import { Users, Mail, LogOut, Calendar, Briefcase, CheckSquare, MessageSquare, Sparkles } from "lucide-react";
 import ClientsTab from "@/components/dashboard/ClientsTab";
-import AnalyticsTab from "@/components/dashboard/AnalyticsTab";
 import WeeklyUpdateTab from "@/components/dashboard/WeeklyUpdateTab";
 import DealsTab from "@/components/dashboard/DealsTab";
 import TasksTab from "@/components/dashboard/TasksTab";
@@ -92,7 +91,7 @@ const Dashboard = () => {
           <p className="text-muted-foreground">Manage your clients and track your performance</p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 animate-fade-in">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 animate-fade-in">
           <Card className="shadow-soft">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium">Total Clients</CardTitle>
@@ -114,17 +113,6 @@ const Dashboard = () => {
             <CardContent>
               <div className="text-2xl font-bold">0</div>
               <p className="text-xs text-muted-foreground mt-1">This month</p>
-            </CardContent>
-          </Card>
-
-          <Card className="shadow-soft">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Engagement Rate</CardTitle>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">--</div>
-              <p className="text-xs text-muted-foreground mt-1">No data yet</p>
             </CardContent>
           </Card>
         </div>
@@ -157,10 +145,6 @@ const Dashboard = () => {
                   <MessageSquare className="w-4 h-4 mr-2" />
                   SMS
                 </TabsTrigger>
-                <TabsTrigger value="analytics">
-                  <TrendingUp className="w-4 h-4 mr-2" />
-                  Analytics
-                </TabsTrigger>
               </TabsList>
             </CardHeader>
             <CardContent>
@@ -181,9 +165,6 @@ const Dashboard = () => {
               </TabsContent>
               <TabsContent value="sms">
                 <SMSTab />
-              </TabsContent>
-              <TabsContent value="analytics">
-                <AnalyticsTab />
               </TabsContent>
             </CardContent>
           </Tabs>
