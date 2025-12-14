@@ -53,7 +53,23 @@ serve(async (req) => {
       throw new Error('Client email is required');
     }
 
-    console.log('Sending email to:', client_email);
+    // Fetch agent's profile to get their name for the "from" field
+    const { data: profile, error: profileError } = await supabaseClient
+      .from('profiles')
+      .select('first_name, last_name, preferred_email')
+      .eq('id', user.id)
+      .maybeSingle();
+
+    if (profileError) {
+      console.error('Error fetching agent profile:', profileError);
+    }
+
+    // Build the "from" name using agent's profile
+    const agentName = profile?.first_name && profile?.last_name 
+      ? `${profile.first_name} ${profile.last_name}`
+      : profile?.first_name || 'Stay in Touch';
+
+    console.log('Sending email to:', client_email, 'from:', agentName);
 
     // Convert plain text body to HTML with proper formatting
     const htmlBody = body
@@ -61,8 +77,11 @@ serve(async (req) => {
       .map((paragraph: string) => `<p style="margin-bottom: 16px; line-height: 1.6;">${paragraph.replace(/\n/g, '<br>')}</p>`)
       .join('');
 
+    // Use agent's name in the from field (via Stay in Touch)
+    const fromEmail = `${agentName} via Stay in Touch <onboarding@resend.dev>`; // Change to your verified domain
+
     const emailResponse = await resend.emails.send({
-      from: "Dave Barlow <onboarding@resend.dev>", // Change to your verified domain
+      from: fromEmail,
       to: [client_email],
       subject: subject,
       html: `
