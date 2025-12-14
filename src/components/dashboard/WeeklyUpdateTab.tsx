@@ -381,7 +381,7 @@ const WeeklyUpdateTab = () => {
     return await response.json();
   };
 
-  const handleGenerateEmails = async () => {
+  const handleSendEmails = async () => {
     if (selectedClients.size === 0) {
       toast({ title: "No clients selected", description: "Please select at least one client", variant: "destructive" });
       return;
@@ -393,15 +393,18 @@ const WeeklyUpdateTab = () => {
     }
 
     setIsGenerating(true);
-    const newGeneratedEmails = new Map<string, GeneratedEmail>();
+    setIsSending(true);
+    let sentCount = 0;
 
     try {
       // Save market data first
       await saveMarketDataMutation.mutateAsync(marketData);
 
+      const { data: session } = await supabase.auth.getSession();
+
       for (const clientId of selectedClients) {
         const client = clients?.find(c => c.id === clientId);
-        if (!client) continue;
+        if (!client?.email) continue;
 
         setFetchingZillow(clientId);
 
@@ -411,41 +414,7 @@ const WeeklyUpdateTab = () => {
         // Generate email
         const emailData = await generateEmailForClient(client, zillowStats);
 
-        newGeneratedEmails.set(clientId, {
-          clientId,
-          subject: emailData.subject,
-          body: emailData.body,
-          zillowStats,
-        });
-      }
-
-      setGeneratedEmails(newGeneratedEmails);
-      toast({ title: "Emails generated", description: `Generated ${newGeneratedEmails.size} emails` });
-    } catch (error) {
-      console.error('Error generating emails:', error);
-      toast({ title: "Error generating emails", description: error instanceof Error ? error.message : 'Unknown error', variant: "destructive" });
-    } finally {
-      setIsGenerating(false);
-      setFetchingZillow(null);
-    }
-  };
-
-  const handleSendEmails = async () => {
-    if (generatedEmails.size === 0) {
-      toast({ title: "No emails to send", description: "Please generate emails first", variant: "destructive" });
-      return;
-    }
-
-    setIsSending(true);
-    let sentCount = 0;
-
-    try {
-      const { data: session } = await supabase.auth.getSession();
-
-      for (const [clientId, email] of generatedEmails) {
-        const client = clients?.find(c => c.id === clientId);
-        if (!client?.email) continue;
-
+        // Send email immediately
         const response = await fetch(
           `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-weekly-email`,
           {
@@ -458,11 +427,11 @@ const WeeklyUpdateTab = () => {
             body: JSON.stringify({
               client_id: clientId,
               client_email: client.email,
-              subject: email.subject,
-              body: email.body,
-              zillow_views: email.zillowStats.views,
-              zillow_saves: email.zillowStats.saves,
-              zillow_days: email.zillowStats.days,
+              subject: emailData.subject,
+              body: emailData.body,
+              zillow_views: zillowStats.views,
+              zillow_saves: zillowStats.saves,
+              zillow_days: zillowStats.days,
             }),
           }
         );
@@ -482,7 +451,9 @@ const WeeklyUpdateTab = () => {
       console.error('Error sending emails:', error);
       toast({ title: "Error sending emails", description: error instanceof Error ? error.message : 'Unknown error', variant: "destructive" });
     } finally {
+      setIsGenerating(false);
       setIsSending(false);
+      setFetchingZillow(null);
     }
   };
 
@@ -875,35 +846,18 @@ const WeeklyUpdateTab = () => {
           {selectedClients.size} client{selectedClients.size !== 1 ? 's' : ''} selected
         </div>
         <Button
-          variant="outline"
-          onClick={handleGenerateEmails}
-          disabled={isGenerating || selectedClients.size === 0}
-        >
-          {isGenerating ? (
-            <>
-              <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-              Generating...
-            </>
-          ) : (
-            <>
-              <Mail className="w-4 h-4 mr-2" />
-              Generate Emails
-            </>
-          )}
-        </Button>
-        <Button
           onClick={handleSendEmails}
-          disabled={isSending || generatedEmails.size === 0}
+          disabled={isGenerating || isSending || selectedClients.size === 0}
         >
-          {isSending ? (
+          {isGenerating || isSending ? (
             <>
               <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-              Sending...
+              {isGenerating ? 'Generating & Sending...' : 'Sending...'}
             </>
           ) : (
             <>
               <Send className="w-4 h-4 mr-2" />
-              Send {generatedEmails.size > 0 ? `(${generatedEmails.size})` : ''}
+              Send Emails
             </>
           )}
         </Button>
