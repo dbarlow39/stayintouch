@@ -641,18 +641,9 @@ const WeeklyUpdateTab = () => {
                   className="min-h-[400px] font-mono text-sm"
                   placeholder="Email template prompt..."
                 />
-                <div className="flex items-center gap-2">
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => setEmailTemplate(generateSampleEmail(clients?.[0] || null))}
-                  >
-                    Reset to Default
-                  </Button>
-                  <p className="text-xs text-muted-foreground">
-                    Variables like {"{first_name}"}, {"{property_address}"} will be replaced with actual values
-                  </p>
-                </div>
+                <p className="text-xs text-muted-foreground">
+                  Variables like {"{first_name}"}, {"{property_address}"} will be replaced with actual values
+                </p>
               </div>
             </CardContent>
           </CollapsibleContent>
