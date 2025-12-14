@@ -34,7 +34,10 @@ serve(async (req) => {
   }
 
   try {
-    const { market_data, client_data }: { market_data: MarketData; client_data: ClientData } = await req.json();
+    const requestBody = await req.json();
+    // Support both camelCase and snake_case parameter names
+    const market_data: MarketData = requestBody.market_data || requestBody.marketData;
+    const client_data: ClientData = requestBody.client_data || requestBody.clientData;
     
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) {
