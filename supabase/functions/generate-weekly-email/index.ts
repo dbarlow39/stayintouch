@@ -56,12 +56,12 @@ serve(async (req) => {
     const expectedShowingsMax = Math.floor(views / 200) * 4;
     const expectedOffers = Math.floor(expectedShowingsMax / 8);
 
-    // Use custom template if provided, otherwise use default prompt
-    let prompt: string;
-    
+    // Use custom template if provided - send directly without AI regeneration
     if (customTemplate && customTemplate.trim()) {
+      console.log('Using custom template directly (no AI generation)');
+      
       // Replace variables in the custom template
-      prompt = customTemplate
+      const processedTemplate = customTemplate
         .replace(/\{first_name\}/g, client_data.first_name || '')
         .replace(/\{last_name\}/g, client_data.last_name || '')
         .replace(/\{property_address\}/g, propertyAddress)
@@ -84,11 +84,29 @@ serve(async (req) => {
         .replace(/\{expected_showings_max\}/g, String(expectedShowingsMax))
         .replace(/\{expected_offers\}/g, String(expectedOffers));
       
-      // Wrap as a generation instruction
-      prompt = `Generate a weekly seller market update email based on the following template and instructions:\n\n${prompt}\n\nFORMAT: Return ONLY the email content (subject line on first line, then body). Do not include any JSON or markdown formatting.`;
-    } else {
-      // Default prompt
-      prompt = `Generate a weekly seller market update email for a real estate client.
+      // Extract subject and body from template (first line is subject)
+      const lines = processedTemplate.split('\n');
+      let subject = 'Weekly Market Update';
+      let body = processedTemplate;
+      
+      // Check if first line looks like a subject line
+      const firstLine = lines[0].trim();
+      if (firstLine.toLowerCase().startsWith('subject:')) {
+        subject = firstLine.replace(/^subject:\s*/i, '').trim();
+        body = lines.slice(1).join('\n').trim();
+      } else if (!firstLine.toLowerCase().startsWith('dear') && !firstLine.toLowerCase().startsWith('hi') && firstLine.length < 100) {
+        // First line is short and doesn't look like a greeting - treat as subject
+        subject = firstLine;
+        body = lines.slice(1).join('\n').trim();
+      }
+      
+      return new Response(JSON.stringify({ subject, body }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    
+    // No custom template - use AI to generate
+    const prompt = `Generate a weekly seller market update email for a real estate client.
 
 MARKET DATA:
 - Week of: ${market_data.week_of}
@@ -138,7 +156,6 @@ TONE REQUIREMENTS:
 LENGTH: 600-750 words
 
 FORMAT: Return ONLY the email content (subject line on first line, then body). Do not include any JSON or markdown formatting.`;
-    }
 
     console.log('Generating email with Lovable AI...', customTemplate ? '(using custom template)' : '(using default prompt)');
 
