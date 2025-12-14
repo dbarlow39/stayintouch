@@ -223,14 +223,25 @@ const WeeklyUpdateTab = () => {
         if (error) throw error;
       }
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["saved-market-data"] });
-      toast({ title: "Market data saved" });
-    },
     onError: (error) => {
       toast({ title: "Error saving market data", description: error.message, variant: "destructive" });
     },
   });
+
+  // Auto-save market data when it changes (debounced)
+  const [hasUserEdited, setHasUserEdited] = useState(false);
+  
+  useEffect(() => {
+    if (!hasUserEdited || !user) return;
+    
+    const timer = setTimeout(() => {
+      if (marketData.active_homes > 0 && marketData.market_avg_dom > 0) {
+        saveMarketData.mutate(marketData);
+      }
+    }, 1500);
+    
+    return () => clearTimeout(timer);
+  }, [marketData.week_of, marketData.active_homes, marketData.active_homes_last_week, marketData.market_avg_dom, marketData.price_trend, marketData.price_reductions, hasUserEdited]);
 
   // Calculate inventory change when active_homes changes
   useEffect(() => {
@@ -516,7 +527,7 @@ const WeeklyUpdateTab = () => {
                 id="week_of"
                 type="date"
                 value={marketData.week_of}
-                onChange={(e) => setMarketData({ ...marketData, week_of: e.target.value })}
+                onChange={(e) => { setHasUserEdited(true); setMarketData({ ...marketData, week_of: e.target.value }); }}
               />
             </div>
             <div className="space-y-2">
@@ -525,7 +536,7 @@ const WeeklyUpdateTab = () => {
                 id="active_homes"
                 type="number"
                 value={marketData.active_homes || ''}
-                onChange={(e) => setMarketData({ ...marketData, active_homes: parseInt(e.target.value) || 0 })}
+                onChange={(e) => { setHasUserEdited(true); setMarketData({ ...marketData, active_homes: parseInt(e.target.value) || 0 }); }}
                 placeholder="e.g., 2500"
               />
             </div>
@@ -535,7 +546,7 @@ const WeeklyUpdateTab = () => {
                 id="active_homes_last_week"
                 type="number"
                 value={marketData.active_homes_last_week || ''}
-                onChange={(e) => setMarketData({ ...marketData, active_homes_last_week: parseInt(e.target.value) || 0 })}
+                onChange={(e) => { setHasUserEdited(true); setMarketData({ ...marketData, active_homes_last_week: parseInt(e.target.value) || 0 }); }}
                 placeholder="e.g., 2450"
               />
             </div>
@@ -545,7 +556,7 @@ const WeeklyUpdateTab = () => {
                 id="market_avg_dom"
                 type="number"
                 value={marketData.market_avg_dom || ''}
-                onChange={(e) => setMarketData({ ...marketData, market_avg_dom: parseInt(e.target.value) || 0 })}
+                onChange={(e) => { setHasUserEdited(true); setMarketData({ ...marketData, market_avg_dom: parseInt(e.target.value) || 0 }); }}
                 placeholder="e.g., 45"
               />
             </div>
@@ -553,7 +564,7 @@ const WeeklyUpdateTab = () => {
               <Label htmlFor="price_trend">Price Trend</Label>
               <Select 
                 value={marketData.price_trend} 
-                onValueChange={(value: 'up' | 'down' | 'stable') => setMarketData({ ...marketData, price_trend: value })}
+                onValueChange={(value: 'up' | 'down' | 'stable') => { setHasUserEdited(true); setMarketData({ ...marketData, price_trend: value }); }}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -571,7 +582,7 @@ const WeeklyUpdateTab = () => {
                 id="price_reductions"
                 type="number"
                 value={marketData.price_reductions || ''}
-                onChange={(e) => setMarketData({ ...marketData, price_reductions: parseInt(e.target.value) || 0 })}
+                onChange={(e) => { setHasUserEdited(true); setMarketData({ ...marketData, price_reductions: parseInt(e.target.value) || 0 }); }}
                 placeholder="e.g., 150"
               />
             </div>
@@ -597,25 +608,11 @@ const WeeklyUpdateTab = () => {
               </div>
             )}
           </div>
-          <div className="mt-4 flex justify-start gap-2">
-            <Button
-              variant="default"
-              size="sm"
-              onClick={() => saveMarketData.mutate(marketData)}
-              disabled={saveMarketData.isPending}
-            >
-              {saveMarketData.isPending ? (
-                <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-              ) : (
-                <CheckCircle className="w-4 h-4 mr-2" />
-              )}
-              Save Market Data
-            </Button>
+          <div className="mt-4 flex justify-start">
             <Button
               variant="destructive"
               size="sm"
               onClick={() => {
-                saveMarketData.mutate(marketData);
                 const firstClient = clients?.[0] || null;
                 setEmailTemplate(generateSampleEmail(firstClient, marketData));
                 setIsTemplateOpen(true);
