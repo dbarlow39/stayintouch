@@ -625,6 +625,102 @@ export type Database = {
         }
         Relationships: []
       }
+      weekly_email_logs: {
+        Row: {
+          agent_id: string
+          body: string
+          client_id: string
+          id: string
+          market_data_id: string | null
+          sent_at: string
+          subject: string
+          zillow_days: number | null
+          zillow_saves: number | null
+          zillow_views: number | null
+        }
+        Insert: {
+          agent_id: string
+          body: string
+          client_id: string
+          id?: string
+          market_data_id?: string | null
+          sent_at?: string
+          subject: string
+          zillow_days?: number | null
+          zillow_saves?: number | null
+          zillow_views?: number | null
+        }
+        Update: {
+          agent_id?: string
+          body?: string
+          client_id?: string
+          id?: string
+          market_data_id?: string | null
+          sent_at?: string
+          subject?: string
+          zillow_days?: number | null
+          zillow_saves?: number | null
+          zillow_views?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "weekly_email_logs_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "weekly_email_logs_market_data_id_fkey"
+            columns: ["market_data_id"]
+            isOneToOne: false
+            referencedRelation: "weekly_market_data"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      weekly_market_data: {
+        Row: {
+          active_homes: number
+          active_homes_last_week: number | null
+          agent_id: string
+          created_at: string
+          id: string
+          inventory_change: number | null
+          market_avg_dom: number
+          price_reductions: number | null
+          price_trend: string
+          updated_at: string
+          week_of: string
+        }
+        Insert: {
+          active_homes: number
+          active_homes_last_week?: number | null
+          agent_id: string
+          created_at?: string
+          id?: string
+          inventory_change?: number | null
+          market_avg_dom: number
+          price_reductions?: number | null
+          price_trend: string
+          updated_at?: string
+          week_of: string
+        }
+        Update: {
+          active_homes?: number
+          active_homes_last_week?: number | null
+          agent_id?: string
+          created_at?: string
+          id?: string
+          inventory_change?: number | null
+          market_avg_dom?: number
+          price_reductions?: number | null
+          price_trend?: string
+          updated_at?: string
+          week_of?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
