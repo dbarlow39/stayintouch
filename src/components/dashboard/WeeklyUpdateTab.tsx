@@ -356,6 +356,7 @@ const WeeklyUpdateTab = () => {
           'Authorization': `Bearer ${session?.session?.access_token}`,
         },
         body: JSON.stringify({
+          template: emailTemplate,
           market_data: marketData,
           client_data: {
             first_name: client.first_name || '',
