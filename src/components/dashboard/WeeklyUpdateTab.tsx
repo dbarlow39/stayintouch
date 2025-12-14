@@ -18,56 +18,50 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth";
 import { format } from "date-fns";
 
-const DEFAULT_EMAIL_TEMPLATE = `Generate a weekly seller market update email for a real estate client.
+const DEFAULT_EMAIL_TEMPLATE = `Subject: Weekly Christmas Season Market Update – 123 Main Street, Columbus, OH 43215
 
-MARKET DATA:
-- Week of: {week_of}
-- Active homes on market: {active_homes}
-- Active homes last week: {active_homes_last_week}
-- Inventory change: {inventory_change}
-- Market average Days on Market (DOM): {market_avg_dom}
-- Price trend: {price_trend}
-- Homes with price reductions: {price_reductions}
+Dear John,
 
-CLIENT LISTING INFORMATION:
-- Client name: {first_name} {last_name}
-- Property address: {property_address}
+I hope this message finds you well as we move through the holiday season. As your listing agent, I wanted to provide you with this week's market update and share how your property at 123 Main Street is performing.
 
-ZILLOW PERFORMANCE:
-- Days on Zillow: {zillow_days}
-- Total views: {zillow_views}
-- Total saves: {zillow_saves}
+**Columbus Market Snapshot – Week of December 14, 2024**
 
-CONVERSION METRICS TO INCLUDE:
-Based on {views} views, the expected showings range is {expected_showings_min}-{expected_showings_max} and expected offers is {expected_offers}.
+This week, the Columbus metro area has 2,450 active homes on the market, compared to 2,425 last week—a modest increase of 25 listings. The market average days on market currently stands at 42 days, and pricing trends remain stable. Approximately 145 homes have undergone price reductions this week.
 
-INSTRUCTIONS:
-1. Subject Line: "Weekly Christmas Season Market Update – {property_address}"
-2. Greeting: Address {first_name} by first name with a brief holiday-season acknowledgment
-3. Columbus Market Snapshot: Present the market data with week-over-week comparison
-4. What This Means for Sellers: Translate data into plain English, emphasize seasonal normalcy
-5. Your Property Performance: Present days on market, views, and saves (do NOT mention Zillow by name)
-6. How Views Convert to Showings and Offers: Use this exact framework:
-   - Every 200 views → 2-4 showings
-   - Every 7-8 showings → 1 offer
-   - State: "We have generated {views} online views which means we should have between {expected_showings_min} and {expected_showings_max} in person showings and at least {expected_offers} offer at this point."
-7. Weekly Outlook: Measured, data-driven expectations for next week
-8. Closing: Sign as:
-   Dave Barlow
-   Sell for 1 Percent Realtors
-   📞 614-778-6616
-   🌐 www.Sellfor1Percent.com
+**What This Means for Sellers**
 
-TONE REQUIREMENTS:
-- Conservative, calm, factual, and reassuring
-- No hype, urgency, sales language, or speculation
-- Use phrases like "holding steady", "within normal seasonal ranges", "buyer interest remains selective"
-- NEVER use: "hot market", "act now", "urgent", "guaranteed", "perfect time"
-- Keep it professional and supportive
+These numbers reflect typical seasonal patterns we see during the holiday period. Buyer activity remains selective, as many families focus on holiday commitments. However, serious buyers continue to search, and inventory levels are holding steady within normal seasonal ranges.
 
-LENGTH: 600-750 words
+**Your Property Performance**
 
-FORMAT: Return ONLY the email content (subject line on first line, then body). Do not include any JSON or markdown formatting.`;
+Your home at 123 Main Street has been on the market for 28 days. During this time, we have generated significant online interest:
+
+- Total online views: 1,250
+- Total saves by interested buyers: 45
+
+These engagement numbers indicate solid buyer interest in your property.
+
+**How Views Convert to Showings and Offers**
+
+Based on industry data, here's how online engagement typically translates to in-person activity:
+
+- Every 200 views → 2-4 showings
+- Every 7-8 showings → 1 offer
+
+We have generated 1,250 online views which means we should have between 12 and 24 in person showings and at least 3 offers at this point.
+
+**Weekly Outlook**
+
+As we head into the week before Christmas, we anticipate buyer activity to remain measured. Serious buyers who are actively searching during this period tend to be highly motivated. We will continue monitoring showing requests and feedback closely.
+
+Please don't hesitate to reach out if you have any questions or would like to discuss your listing strategy.
+
+Warm regards,
+
+Dave Barlow
+Sell for 1 Percent Realtors
+📞 614-778-6616
+🌐 www.Sellfor1Percent.com`;
 
 interface MarketData {
   id?: string;
