@@ -150,6 +150,7 @@ const WeeklyUpdateTab = () => {
   const [previewEmail, setPreviewEmail] = useState<GeneratedEmail | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSending, setIsSending] = useState(false);
+  const [isSendingTest, setIsSendingTest] = useState(false);
   const [fetchingZillow, setFetchingZillow] = useState<string | null>(null);
   const [emailTemplate, setEmailTemplate] = useState('');
   const [isTemplateOpen, setIsTemplateOpen] = useState(false);
@@ -491,6 +492,80 @@ const WeeklyUpdateTab = () => {
     }
   };
 
+  const handleSendTestEmail = async () => {
+    if (!user?.email) {
+      toast({ title: "No email found", description: "Could not find your email address", variant: "destructive" });
+      return;
+    }
+
+    setIsSendingTest(true);
+
+    try {
+      const { data: session } = await supabase.auth.getSession();
+      
+      // Use a sample client or first available client for test
+      const sampleClient = clients?.[0] || {
+        first_name: 'Test',
+        last_name: 'Client',
+        street_number: '123',
+        street_name: 'Main Street',
+        city: 'Columbus',
+        state: 'OH',
+        zip: '43215',
+      };
+
+      // Generate a test email using the template
+      const response = await supabase.functions.invoke('generate-weekly-email', {
+        body: {
+          template: emailTemplate,
+          marketData: {
+            week_of: marketData.week_of,
+            active_homes: marketData.active_homes,
+            active_homes_last_week: marketData.active_homes_last_week,
+            inventory_change: marketData.inventory_change,
+            market_avg_dom: marketData.market_avg_dom,
+            price_trend: marketData.price_trend,
+            price_reductions: marketData.price_reductions,
+          },
+          clientData: {
+            first_name: sampleClient.first_name || 'Test',
+            last_name: sampleClient.last_name || 'Client',
+            street_number: sampleClient.street_number || '123',
+            street_name: sampleClient.street_name || 'Main Street',
+            city: sampleClient.city || 'Columbus',
+            state: sampleClient.state || 'OH',
+            zip: sampleClient.zip || '43215',
+            zillow_views: 1250,
+            zillow_saves: 45,
+            zillow_days: 28,
+          },
+        },
+      });
+
+      if (response.error) throw response.error;
+
+      const emailData = response.data;
+
+      // Send the test email
+      const sendResponse = await supabase.functions.invoke('send-weekly-email', {
+        body: {
+          to: user.email,
+          subject: `[TEST] ${emailData.subject}`,
+          body: emailData.body,
+        },
+      });
+
+      if (sendResponse.error) throw sendResponse.error;
+
+      toast({ title: "Test email sent", description: `Sent to ${user.email}` });
+    } catch (error) {
+      console.error('Error sending test email:', error);
+      toast({ title: "Error sending test email", description: error instanceof Error ? error.message : 'Unknown error', variant: "destructive" });
+    } finally {
+      setIsSendingTest(false);
+    }
+  };
+
   const getPriceTrendIcon = (trend: string) => {
     switch (trend) {
       case 'up': return <TrendingUp className="w-4 h-4 text-green-500" />;
@@ -641,9 +716,23 @@ const WeeklyUpdateTab = () => {
                   className="min-h-[400px] font-mono text-sm"
                   placeholder="Email template prompt..."
                 />
-                <p className="text-xs text-muted-foreground">
-                  Variables like {"{first_name}"}, {"{property_address}"} will be replaced with actual values
-                </p>
+                <Button 
+                  onClick={handleSendTestEmail}
+                  disabled={isSendingTest}
+                  size="sm"
+                >
+                  {isSendingTest ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                      Sending...
+                    </>
+                  ) : (
+                    <>
+                      <Send className="w-4 h-4 mr-2" />
+                      Send Test Email
+                    </>
+                  )}
+                </Button>
               </div>
             </CardContent>
           </CollapsibleContent>
