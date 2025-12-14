@@ -11,10 +11,63 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Calendar, Send, Eye, RefreshCw, Mail, CheckCircle, AlertCircle, TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Calendar, Send, Eye, RefreshCw, Mail, CheckCircle, AlertCircle, TrendingUp, TrendingDown, Minus, ChevronDown, FileText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth";
 import { format } from "date-fns";
+
+const DEFAULT_EMAIL_TEMPLATE = `Generate a weekly seller market update email for a real estate client.
+
+MARKET DATA:
+- Week of: {week_of}
+- Active homes on market: {active_homes}
+- Active homes last week: {active_homes_last_week}
+- Inventory change: {inventory_change}
+- Market average Days on Market (DOM): {market_avg_dom}
+- Price trend: {price_trend}
+- Homes with price reductions: {price_reductions}
+
+CLIENT LISTING INFORMATION:
+- Client name: {first_name} {last_name}
+- Property address: {property_address}
+
+ZILLOW PERFORMANCE:
+- Days on Zillow: {zillow_days}
+- Total views: {zillow_views}
+- Total saves: {zillow_saves}
+
+CONVERSION METRICS TO INCLUDE:
+Based on {views} views, the expected showings range is {expected_showings_min}-{expected_showings_max} and expected offers is {expected_offers}.
+
+INSTRUCTIONS:
+1. Subject Line: "Weekly Christmas Season Market Update – {property_address}"
+2. Greeting: Address {first_name} by first name with a brief holiday-season acknowledgment
+3. Columbus Market Snapshot: Present the market data with week-over-week comparison
+4. What This Means for Sellers: Translate data into plain English, emphasize seasonal normalcy
+5. Your Property Performance: Present days on market, views, and saves (do NOT mention Zillow by name)
+6. How Views Convert to Showings and Offers: Use this exact framework:
+   - Every 200 views → 2-4 showings
+   - Every 7-8 showings → 1 offer
+   - State: "We have generated {views} online views which means we should have between {expected_showings_min} and {expected_showings_max} in person showings and at least {expected_offers} offer at this point."
+7. Weekly Outlook: Measured, data-driven expectations for next week
+8. Closing: Sign as:
+   Dave Barlow
+   Sell for 1 Percent Realtors
+   📞 614-778-6616
+   🌐 www.Sellfor1Percent.com
+
+TONE REQUIREMENTS:
+- Conservative, calm, factual, and reassuring
+- No hype, urgency, sales language, or speculation
+- Use phrases like "holding steady", "within normal seasonal ranges", "buyer interest remains selective"
+- NEVER use: "hot market", "act now", "urgent", "guaranteed", "perfect time"
+- Keep it professional and supportive
+
+LENGTH: 600-750 words
+
+FORMAT: Return ONLY the email content (subject line on first line, then body). Do not include any JSON or markdown formatting.`;
 
 interface MarketData {
   id?: string;
@@ -75,6 +128,8 @@ const WeeklyUpdateTab = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [fetchingZillow, setFetchingZillow] = useState<string | null>(null);
+  const [emailTemplate, setEmailTemplate] = useState(DEFAULT_EMAIL_TEMPLATE);
+  const [isTemplateOpen, setIsTemplateOpen] = useState(false);
 
   // Fetch previous week's market data for comparison
   const { data: previousMarketData } = useQuery({
@@ -448,6 +503,48 @@ const WeeklyUpdateTab = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Email Template Editor */}
+      <Collapsible open={isTemplateOpen} onOpenChange={setIsTemplateOpen}>
+        <Card className="shadow-soft">
+          <CollapsibleTrigger asChild>
+            <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-primary" />
+                  <CardTitle className="text-base">Email Template</CardTitle>
+                </div>
+                <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${isTemplateOpen ? 'rotate-180' : ''}`} />
+              </div>
+              <CardDescription>View and edit the AI prompt used to generate emails</CardDescription>
+            </CardHeader>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <CardContent className="pt-0">
+              <div className="space-y-4">
+                <Textarea
+                  value={emailTemplate}
+                  onChange={(e) => setEmailTemplate(e.target.value)}
+                  className="min-h-[400px] font-mono text-sm"
+                  placeholder="Email template prompt..."
+                />
+                <div className="flex items-center gap-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => setEmailTemplate(DEFAULT_EMAIL_TEMPLATE)}
+                  >
+                    Reset to Default
+                  </Button>
+                  <p className="text-xs text-muted-foreground">
+                    Variables like {"{first_name}"}, {"{property_address}"} will be replaced with actual values
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </CollapsibleContent>
+        </Card>
+      </Collapsible>
 
       {/* Client Selection */}
       <Card className="shadow-soft">
