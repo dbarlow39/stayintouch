@@ -156,13 +156,13 @@ const WeeklyUpdateTab = () => {
   const [isTemplateOpen, setIsTemplateOpen] = useState(false);
   const [templateInitialized, setTemplateInitialized] = useState(false);
 
-  // Fetch agent profile for preferred email
+  // Fetch agent profile for preferred email and saved template
   const { data: agentProfile } = useQuery({
     queryKey: ["agent-profile", user?.id],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("profiles")
-        .select("first_name, last_name, cell_phone, preferred_email, website, bio")
+        .select("first_name, last_name, cell_phone, preferred_email, website, bio, email_template")
         .eq("id", user!.id)
         .maybeSingle();
       if (error) throw error;
@@ -170,6 +170,43 @@ const WeeklyUpdateTab = () => {
     },
     enabled: !!user,
   });
+
+  // Load saved email template from profile
+  useEffect(() => {
+    if (agentProfile?.email_template && !templateInitialized) {
+      setEmailTemplate(agentProfile.email_template);
+      setTemplateInitialized(true);
+    } else if (!templateInitialized && agentProfile && !agentProfile.email_template) {
+      // No saved template, generate default
+      setEmailTemplate(generateSampleEmail(null, marketData));
+      setTemplateInitialized(true);
+    }
+  }, [agentProfile, templateInitialized, marketData]);
+
+  // Save email template to database
+  const saveEmailTemplate = useMutation({
+    mutationFn: async (template: string) => {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ email_template: template })
+        .eq("id", user!.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["agent-profile", user?.id] });
+    },
+  });
+
+  // Auto-save template when it changes (debounced)
+  useEffect(() => {
+    if (!templateInitialized || !emailTemplate) return;
+    
+    const timeoutId = setTimeout(() => {
+      saveEmailTemplate.mutate(emailTemplate);
+    }, 2000); // Save after 2 seconds of no typing
+    
+    return () => clearTimeout(timeoutId);
+  }, [emailTemplate, templateInitialized]);
 
   // Fetch most recent market data to pre-populate form
   const { data: savedMarketData } = useQuery({
@@ -689,11 +726,17 @@ const WeeklyUpdateTab = () => {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <FileText className="w-4 h-4 text-primary" />
-                  <CardTitle className="text-base">Sample Email Template</CardTitle>
+                  <CardTitle className="text-base">Email Template</CardTitle>
+                  {saveEmailTemplate.isPending && (
+                    <span className="text-xs text-muted-foreground flex items-center gap-1">
+                      <RefreshCw className="w-3 h-3 animate-spin" />
+                      Saving...
+                    </span>
+                  )}
                 </div>
                 <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${isTemplateOpen ? 'rotate-180' : ''}`} />
               </div>
-              <CardDescription>View and edit the AI prompt used to generate emails</CardDescription>
+              <CardDescription>Edit and customize your weekly email template (auto-saves)</CardDescription>
             </CardHeader>
           </CollapsibleTrigger>
           <CollapsibleContent>
