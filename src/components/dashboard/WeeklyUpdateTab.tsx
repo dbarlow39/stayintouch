@@ -155,31 +155,82 @@ const WeeklyUpdateTab = () => {
   const [isTemplateOpen, setIsTemplateOpen] = useState(false);
   const [templateInitialized, setTemplateInitialized] = useState(false);
 
-  // Fetch previous week's market data for comparison
-  const { data: previousMarketData } = useQuery({
-    queryKey: ["previous-market-data", user?.id],
+  // Fetch most recent market data to pre-populate form
+  const { data: savedMarketData } = useQuery({
+    queryKey: ["saved-market-data", user?.id],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("weekly_market_data")
         .select("*")
         .eq("agent_id", user!.id)
         .order("week_of", { ascending: false })
-        .limit(1);
+        .limit(1)
+        .maybeSingle();
       if (error) throw error;
-      return data?.[0] || null;
+      return data;
     },
     enabled: !!user,
   });
 
-  // Update active_homes_last_week when previous data is loaded
+  // Load saved market data into form when available
   useEffect(() => {
-    if (previousMarketData) {
-      setMarketData(prev => ({
-        ...prev,
-        active_homes_last_week: previousMarketData.active_homes,
-      }));
+    if (savedMarketData) {
+      setMarketData({
+        id: savedMarketData.id,
+        week_of: savedMarketData.week_of,
+        active_homes: savedMarketData.active_homes,
+        active_homes_last_week: savedMarketData.active_homes_last_week,
+        inventory_change: savedMarketData.inventory_change,
+        market_avg_dom: savedMarketData.market_avg_dom,
+        price_trend: savedMarketData.price_trend as 'up' | 'down' | 'stable',
+        price_reductions: savedMarketData.price_reductions || 0,
+      });
     }
-  }, [previousMarketData]);
+  }, [savedMarketData]);
+
+  // Save market data mutation
+  const saveMarketData = useMutation({
+    mutationFn: async (data: MarketData) => {
+      if (data.id) {
+        // Update existing record
+        const { error } = await supabase
+          .from("weekly_market_data")
+          .update({
+            week_of: data.week_of,
+            active_homes: data.active_homes,
+            active_homes_last_week: data.active_homes_last_week,
+            inventory_change: data.inventory_change,
+            market_avg_dom: data.market_avg_dom,
+            price_trend: data.price_trend,
+            price_reductions: data.price_reductions,
+          })
+          .eq("id", data.id);
+        if (error) throw error;
+      } else {
+        // Insert new record
+        const { error } = await supabase
+          .from("weekly_market_data")
+          .insert({
+            agent_id: user!.id,
+            week_of: data.week_of,
+            active_homes: data.active_homes,
+            active_homes_last_week: data.active_homes_last_week,
+            inventory_change: data.inventory_change,
+            market_avg_dom: data.market_avg_dom,
+            price_trend: data.price_trend,
+            price_reductions: data.price_reductions,
+          });
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["saved-market-data"] });
+      toast({ title: "Market data saved" });
+    },
+    onError: (error) => {
+      toast({ title: "Error saving market data", description: error.message, variant: "destructive" });
+    },
+  });
 
   // Calculate inventory change when active_homes changes
   useEffect(() => {
@@ -524,11 +575,11 @@ const WeeklyUpdateTab = () => {
                 placeholder="e.g., 150"
               />
             </div>
-            {previousMarketData && (
+            {marketData.active_homes_last_week !== null && (
               <div className="space-y-2">
                 <Label>Last Week's Active</Label>
                 <div className="h-10 px-3 py-2 border rounded-md bg-muted/50 text-muted-foreground flex items-center">
-                  {previousMarketData.active_homes}
+                  {marketData.active_homes_last_week}
                 </div>
               </div>
             )}
@@ -546,11 +597,25 @@ const WeeklyUpdateTab = () => {
               </div>
             )}
           </div>
-          <div className="mt-4 flex justify-start">
+          <div className="mt-4 flex justify-start gap-2">
+            <Button
+              variant="default"
+              size="sm"
+              onClick={() => saveMarketData.mutate(marketData)}
+              disabled={saveMarketData.isPending}
+            >
+              {saveMarketData.isPending ? (
+                <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <CheckCircle className="w-4 h-4 mr-2" />
+              )}
+              Save Market Data
+            </Button>
             <Button
               variant="destructive"
               size="sm"
               onClick={() => {
+                saveMarketData.mutate(marketData);
                 const firstClient = clients?.[0] || null;
                 setEmailTemplate(generateSampleEmail(firstClient, marketData));
                 setIsTemplateOpen(true);
