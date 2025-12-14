@@ -462,6 +462,16 @@ const WeeklyUpdateTab = () => {
               />
             </div>
             <div className="space-y-2">
+              <Label htmlFor="active_homes_last_week">Active Homes Last Week</Label>
+              <Input
+                id="active_homes_last_week"
+                type="number"
+                value={marketData.active_homes_last_week || ''}
+                onChange={(e) => setMarketData({ ...marketData, active_homes_last_week: parseInt(e.target.value) || 0 })}
+                placeholder="e.g., 2450"
+              />
+            </div>
+            <div className="space-y-2">
               <Label htmlFor="market_avg_dom">Avg Days on Market</Label>
               <Input
                 id="market_avg_dom"
