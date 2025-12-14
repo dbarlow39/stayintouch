@@ -18,13 +18,24 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth";
 import { format } from "date-fns";
 
-const DEFAULT_EMAIL_TEMPLATE = `Subject: Weekly Christmas Season Market Update – 123 Main Street, Columbus, OH 43215
+const generateSampleEmail = (client: { first_name: string | null; last_name: string | null; street_number: string | null; street_name: string | null; city: string | null; state: string | null; zip: string | null } | null) => {
+  const firstName = client?.first_name || 'John';
+  const lastName = client?.last_name || 'Smith';
+  const streetNumber = client?.street_number || '123';
+  const streetName = client?.street_name || 'Main Street';
+  const city = client?.city || 'Columbus';
+  const state = client?.state || 'OH';
+  const zip = client?.zip || '43215';
+  const propertyAddress = `${streetNumber} ${streetName}, ${city}, ${state} ${zip}`;
+  const weekOf = format(new Date(), 'MMMM d, yyyy');
 
-Dear John,
+  return `Subject: Weekly Christmas Season Market Update – ${propertyAddress}
 
-I hope this message finds you well as we move through the holiday season. As your listing agent, I wanted to provide you with this week's market update and share how your property at 123 Main Street is performing.
+Dear ${firstName},
 
-**Columbus Market Snapshot – Week of December 14, 2024**
+I hope this message finds you well as we move through the holiday season. As your listing agent, I wanted to provide you with this week's market update and share how your property at ${streetNumber} ${streetName} is performing.
+
+**Columbus Market Snapshot – Week of ${weekOf}**
 
 This week, the Columbus metro area has 2,450 active homes on the market, compared to 2,425 last week—a modest increase of 25 listings. The market average days on market currently stands at 42 days, and pricing trends remain stable. Approximately 145 homes have undergone price reductions this week.
 
@@ -34,7 +45,7 @@ These numbers reflect typical seasonal patterns we see during the holiday period
 
 **Your Property Performance**
 
-Your home at 123 Main Street has been on the market for 28 days. During this time, we have generated significant online interest:
+Your home at ${streetNumber} ${streetName} has been on the market for 28 days. During this time, we have generated significant online interest:
 
 - Total online views: 1,250
 - Total saves by interested buyers: 45
@@ -43,7 +54,7 @@ These engagement numbers indicate solid buyer interest in your property.
 
 **How Views Convert to Showings and Offers**
 
-Based on industry data, here's how online engagement typically translates to in-person activity:
+Based on industry data, here is how online engagement typically translates to in-person activity:
 
 - Every 200 views → 2-4 showings
 - Every 7-8 showings → 1 offer
@@ -54,7 +65,7 @@ We have generated 1,250 online views which means we should have between 12 and 2
 
 As we head into the week before Christmas, we anticipate buyer activity to remain measured. Serious buyers who are actively searching during this period tend to be highly motivated. We will continue monitoring showing requests and feedback closely.
 
-Please don't hesitate to reach out if you have any questions or would like to discuss your listing strategy.
+Please do not hesitate to reach out if you have any questions or would like to discuss your listing strategy.
 
 Warm regards,
 
@@ -62,6 +73,7 @@ Dave Barlow
 Sell for 1 Percent Realtors
 📞 614-778-6616
 🌐 www.Sellfor1Percent.com`;
+};
 
 interface MarketData {
   id?: string;
@@ -122,8 +134,9 @@ const WeeklyUpdateTab = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [fetchingZillow, setFetchingZillow] = useState<string | null>(null);
-  const [emailTemplate, setEmailTemplate] = useState(DEFAULT_EMAIL_TEMPLATE);
+  const [emailTemplate, setEmailTemplate] = useState('');
   const [isTemplateOpen, setIsTemplateOpen] = useState(false);
+  const [templateInitialized, setTemplateInitialized] = useState(false);
 
   // Fetch previous week's market data for comparison
   const { data: previousMarketData } = useQuery({
@@ -176,6 +189,17 @@ const WeeklyUpdateTab = () => {
     },
     enabled: !!user,
   });
+
+  // Initialize email template with first client data
+  useEffect(() => {
+    if (clients && clients.length > 0 && !templateInitialized) {
+      setEmailTemplate(generateSampleEmail(clients[0]));
+      setTemplateInitialized(true);
+    } else if (!templateInitialized && !loadingClients && (!clients || clients.length === 0)) {
+      setEmailTemplate(generateSampleEmail(null));
+      setTemplateInitialized(true);
+    }
+  }, [clients, loadingClients, templateInitialized]);
 
   // Save market data mutation
   const saveMarketDataMutation = useMutation({
@@ -526,7 +550,7 @@ const WeeklyUpdateTab = () => {
                   <Button 
                     variant="outline" 
                     size="sm"
-                    onClick={() => setEmailTemplate(DEFAULT_EMAIL_TEMPLATE)}
+                    onClick={() => setEmailTemplate(generateSampleEmail(clients?.[0] || null))}
                   >
                     Reset to Default
                   </Button>
