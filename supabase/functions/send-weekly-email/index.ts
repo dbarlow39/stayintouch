@@ -35,16 +35,19 @@ serve(async (req) => {
       throw new Error('Unauthorized: Invalid token');
     }
 
+    const requestBody = await req.json();
+    
+    // Support both 'to' and 'client_email' parameter names
+    const client_email = requestBody.client_email || requestBody.to;
     const { 
       client_id,
-      client_email,
       subject,
       body,
       market_data_id,
       zillow_views,
       zillow_saves,
       zillow_days
-    } = await req.json();
+    } = requestBody;
 
     if (!client_email) {
       throw new Error('Client email is required');
