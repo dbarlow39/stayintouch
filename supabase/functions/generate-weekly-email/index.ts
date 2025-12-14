@@ -38,6 +38,7 @@ serve(async (req) => {
     // Support both camelCase and snake_case parameter names
     const market_data: MarketData = requestBody.market_data || requestBody.marketData;
     const client_data: ClientData = requestBody.client_data || requestBody.clientData;
+    const customTemplate: string | undefined = requestBody.template;
     
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) {
@@ -52,7 +53,39 @@ serve(async (req) => {
     const expectedShowingsMax = Math.floor(views / 200) * 4;
     const expectedOffers = Math.floor(expectedShowingsMax / 8);
 
-    const prompt = `Generate a weekly seller market update email for a real estate client.
+    // Use custom template if provided, otherwise use default prompt
+    let prompt: string;
+    
+    if (customTemplate && customTemplate.trim()) {
+      // Replace variables in the custom template
+      prompt = customTemplate
+        .replace(/\{first_name\}/g, client_data.first_name || '')
+        .replace(/\{last_name\}/g, client_data.last_name || '')
+        .replace(/\{property_address\}/g, propertyAddress)
+        .replace(/\{street_number\}/g, client_data.street_number || '')
+        .replace(/\{street_name\}/g, client_data.street_name || '')
+        .replace(/\{city\}/g, client_data.city || '')
+        .replace(/\{state\}/g, client_data.state || '')
+        .replace(/\{zip\}/g, client_data.zip || '')
+        .replace(/\{week_of\}/g, market_data.week_of || '')
+        .replace(/\{active_homes\}/g, String(market_data.active_homes || 0))
+        .replace(/\{active_homes_last_week\}/g, String(market_data.active_homes_last_week || 'N/A'))
+        .replace(/\{inventory_change\}/g, market_data.inventory_change !== null ? String(market_data.inventory_change) : 'N/A')
+        .replace(/\{market_avg_dom\}/g, String(market_data.market_avg_dom || 0))
+        .replace(/\{price_trend\}/g, market_data.price_trend || 'stable')
+        .replace(/\{price_reductions\}/g, String(market_data.price_reductions || 0))
+        .replace(/\{zillow_views\}/g, String(client_data.zillow_views || 'N/A'))
+        .replace(/\{zillow_saves\}/g, String(client_data.zillow_saves || 'N/A'))
+        .replace(/\{zillow_days\}/g, String(client_data.zillow_days || 'N/A'))
+        .replace(/\{expected_showings_min\}/g, String(expectedShowingsMin))
+        .replace(/\{expected_showings_max\}/g, String(expectedShowingsMax))
+        .replace(/\{expected_offers\}/g, String(expectedOffers));
+      
+      // Wrap as a generation instruction
+      prompt = `Generate a weekly seller market update email based on the following template and instructions:\n\n${prompt}\n\nFORMAT: Return ONLY the email content (subject line on first line, then body). Do not include any JSON or markdown formatting.`;
+    } else {
+      // Default prompt
+      prompt = `Generate a weekly seller market update email for a real estate client.
 
 MARKET DATA:
 - Week of: ${market_data.week_of}
@@ -76,8 +109,8 @@ CONVERSION METRICS TO INCLUDE:
 Based on ${views} views, the expected showings range is ${expectedShowingsMin}-${expectedShowingsMax} and expected offers is ${expectedOffers}.
 
 INSTRUCTIONS:
-1. Subject Line: "Weekly Christmas Season Market Update – ${propertyAddress}"
-2. Greeting: Address ${client_data.first_name} by first name with a brief holiday-season acknowledgment
+1. Subject Line: "Weekly Market Update – ${propertyAddress}"
+2. Greeting: Address ${client_data.first_name} by first name
 3. Columbus Market Snapshot: Present the market data with week-over-week comparison
 4. What This Means for Sellers: Translate data into plain English, emphasize seasonal normalcy
 5. Your Property Performance: Present days on market, views, and saves (do NOT mention Zillow by name)
@@ -102,8 +135,9 @@ TONE REQUIREMENTS:
 LENGTH: 600-750 words
 
 FORMAT: Return ONLY the email content (subject line on first line, then body). Do not include any JSON or markdown formatting.`;
+    }
 
-    console.log('Generating email with Lovable AI...');
+    console.log('Generating email with Lovable AI...', customTemplate ? '(using custom template)' : '(using default prompt)');
 
     const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
