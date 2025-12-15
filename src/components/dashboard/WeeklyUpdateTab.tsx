@@ -22,23 +22,15 @@ const generateSampleEmail = (
   client: { first_name: string | null; last_name: string | null; street_number: string | null; street_name: string | null; city: string | null; state: string | null; zip: string | null } | null,
   marketData?: { week_of: string; active_homes: number; active_homes_last_week: number | null; inventory_change: number | null; market_avg_dom: number; price_trend: string; price_reductions: number }
 ) => {
-  const firstName = client?.first_name || 'John';
-  const lastName = client?.last_name || 'Smith';
-  const streetNumber = client?.street_number || '123';
-  const streetName = client?.street_name || 'Main Street';
-  const city = client?.city || 'Columbus';
-  const state = client?.state || 'OH';
-  const zip = client?.zip || '43215';
-  const propertyAddress = `${streetNumber} ${streetName}, ${city}, ${state} ${zip}`;
-  
-  // Use market data if provided, otherwise use defaults
+  // Use placeholders that will be replaced by the edge function for each client
+  // For preview purposes, show sample data but the template uses placeholders
   const weekOf = marketData?.week_of ? format(new Date(marketData.week_of), 'MMMM d, yyyy') : format(new Date(), 'MMMM d, yyyy');
   const activeHomes = marketData?.active_homes || 2450;
   const activeHomesLastWeek = marketData?.active_homes_last_week || 2425;
   const inventoryChange = marketData?.inventory_change ?? (activeHomes - activeHomesLastWeek);
   const avgDom = marketData?.market_avg_dom || 42;
   const priceTrend = marketData?.price_trend || 'stable';
-  const priceReductions = marketData?.price_reductions || 145;
+  const priceReductions = marketData?.price_reductions || 0;
   
   const inventoryChangeText = inventoryChange > 0 
     ? `a modest increase of ${inventoryChange} listings` 
@@ -46,11 +38,13 @@ const generateSampleEmail = (
     ? `a decrease of ${Math.abs(inventoryChange)} listings` 
     : 'no change in listings';
 
-  return `Subject: Weekly Market Update – ${propertyAddress}
+  // Template uses placeholders like {first_name}, {property_address}, etc.
+  // These get replaced by the edge function for EACH client when sending
+  return `Subject: Weekly Market Update – {property_address}
 
-Dear ${firstName},
+Dear {first_name},
 
-I hope this message finds you well. As your listing agent, I wanted to provide you with this week's market update and share how your property at ${streetNumber} ${streetName} is performing.
+I hope this message finds you well. As your listing agent, I wanted to provide you with this week's market update and share how your property at {street_number} {street_name} is performing.
 
 📊 Columbus Market Snapshot – Week of ${weekOf}
 
@@ -62,10 +56,10 @@ These numbers reflect typical seasonal patterns. Buyer activity remains selectiv
 
 🏠 Your Property Performance
 
-Your home at ${streetNumber} ${streetName} has been on the market for 28 days. During this time, we have generated significant online interest:
+Your home at {street_number} {street_name} has been on the market for {zillow_days} days. During this time, we have generated significant online interest:
 
-- Total online views: 1,250
-- Total saves by interested buyers: 45
+- Total online views: {zillow_views}
+- Total saves by interested buyers: {zillow_saves}
 
 These engagement numbers indicate solid buyer interest in your property.
 
@@ -76,7 +70,7 @@ Based on industry data, here is how online engagement typically translates to in
 - Every 200 views → 2-4 showings
 - Every 7-8 showings → 1 offer
 
-We have generated 1,250 online views which means we should have between 12 and 24 in person showings and at least 3 offers at this point.
+We have generated {zillow_views} online views which means we should have between {expected_showings_min} and {expected_showings_max} in person showings and at least {expected_offers} offers at this point.
 
 🔮 Weekly Outlook
 
