@@ -47,26 +47,24 @@ serve(async (req) => {
     const sourceHtml = pmmsNewsMatch?.[1] || html;
     const plainText = toPlainText(sourceHtml);
 
-    // Parse using Freddie Mac's stable wording patterns:
-    // "The 30-year FRM averaged X% as of [date], up from last week when it averaged Y%. 
-    //  A year ago at this time, the 30-year FRM averaged Z%"
+    // Parse using Freddie Mac's stable wording patterns (matches provided sample):
+    // "The 30-year FRM averaged X% ... last week when it averaged Y% ... A year ago at this time, the 30-year FRM averaged Z%"
+    // NOTE: We parse the *full* sentence block to avoid accidentally treating the "A year ago... the 30-year..." value as the current rate.
     const extractRates = (term: "30-year" | "15-year") => {
-      // Match: "The 30-year FRM averaged 6.22%"
-      const currentMatch = plainText.match(
-        new RegExp(`The ${term} FRM averaged (\\d+\\.\\d+)%`, "i")
-      );
-      // Match: "last week when it averaged 6.19%"
-      const weekAgoMatch = plainText.match(
-        /last week when it averaged (\d+\.\d+)%/i
-      );
-      // Match: "A year ago at this time, the 30-year FRM averaged 6.60%"
-      const yearAgoMatch = plainText.match(
-        new RegExp(`A year ago at this time,? the ${term} FRM averaged (\\d+\\.\\d+)%`, "i")
+      const blockMatch = plainText.match(
+        new RegExp(
+          [
+            `The\\s+${term}\\s+FRM\\s+averaged\\s+(\\d+(?:\\.\\d+)?)\\s*(?:%|percent)`,
+            `.{0,260}?last week when it averaged\\s+(\\d+(?:\\.\\d+)?)\\s*(?:%|percent)`,
+            `.{0,360}?A year ago at this time,\\s*the\\s+${term}\\s+FRM\\s+averaged\\s+(\\d+(?:\\.\\d+)?)\\s*(?:%|percent)`,
+          ].join("\\s"),
+          "i"
+        )
       );
 
-      const current = currentMatch ? parseFloat(currentMatch[1]) : undefined;
-      const weekAgo = weekAgoMatch ? parseFloat(weekAgoMatch[1]) : undefined;
-      const yearAgo = yearAgoMatch ? parseFloat(yearAgoMatch[1]) : undefined;
+      const current = blockMatch ? parseFloat(blockMatch[1]) : undefined;
+      const weekAgo = blockMatch ? parseFloat(blockMatch[2]) : undefined;
+      const yearAgo = blockMatch ? parseFloat(blockMatch[3]) : undefined;
 
       console.log(`Parsed ${term} rates:`, { current, weekAgo, yearAgo });
       return { current, weekAgo, yearAgo };
