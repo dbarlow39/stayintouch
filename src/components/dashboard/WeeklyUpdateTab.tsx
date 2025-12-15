@@ -825,22 +825,6 @@ const WeeklyUpdateTab = () => {
             )}
           </div>
           
-          {/* Freddie Mac Summary - Auto-fetched */}
-          <div className="mt-4 space-y-2">
-            <Label>Freddie Mac News Summary</Label>
-            <div className="p-3 bg-muted/50 rounded-md text-sm">
-              {isFetchingFreddieMac ? (
-                <span className="text-muted-foreground italic flex items-center gap-2">
-                  <RefreshCw className="w-3 h-3 animate-spin" />
-                  Fetching Freddie Mac report...
-                </span>
-              ) : marketData.freddie_mac_summary ? (
-                marketData.freddie_mac_summary
-              ) : (
-                <span className="text-muted-foreground italic">Unable to fetch Freddie Mac summary</span>
-              )}
-            </div>
-          </div>
           
           <div className="mt-4 flex justify-start">
             <Button
