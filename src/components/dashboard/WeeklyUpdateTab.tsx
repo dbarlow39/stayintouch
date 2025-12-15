@@ -187,6 +187,8 @@ const WeeklyUpdateTab = () => {
   const [emailTemplate, setEmailTemplate] = useState('');
   const [isTemplateOpen, setIsTemplateOpen] = useState(false);
   const [templateInitialized, setTemplateInitialized] = useState(false);
+  const [isFetchingFreddieMac, setIsFetchingFreddieMac] = useState(false);
+  const [freddieMacFetched, setFreddieMacFetched] = useState(false);
 
   // Fetch agent profile for preferred email and saved template
   const { data: agentProfile } = useQuery({
@@ -272,6 +274,29 @@ const WeeklyUpdateTab = () => {
       });
     }
   }, [savedMarketData]);
+
+  // Auto-fetch Freddie Mac summary on component mount
+  useEffect(() => {
+    if (freddieMacFetched || isFetchingFreddieMac) return;
+    
+    const fetchFreddieMac = async () => {
+      setIsFetchingFreddieMac(true);
+      try {
+        const { data, error } = await supabase.functions.invoke('fetch-freddie-mac');
+        if (error) throw error;
+        if (data?.summary) {
+          setMarketData(prev => ({ ...prev, freddie_mac_summary: data.summary }));
+        }
+      } catch (err) {
+        console.error('Error fetching Freddie Mac:', err);
+      } finally {
+        setIsFetchingFreddieMac(false);
+        setFreddieMacFetched(true);
+      }
+    };
+    
+    fetchFreddieMac();
+  }, [freddieMacFetched, isFetchingFreddieMac]);
 
   // Save market data mutation
   const saveMarketData = useMutation({
@@ -802,33 +827,18 @@ const WeeklyUpdateTab = () => {
           
           {/* Freddie Mac Summary - Auto-fetched */}
           <div className="mt-4 space-y-2">
-            <div className="flex items-center justify-between">
-              <Label>Freddie Mac News Summary</Label>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={async () => {
-                  try {
-                    toast({ title: "Fetching Freddie Mac report...", description: "Please wait while we get the latest data" });
-                    const { data, error } = await supabase.functions.invoke('fetch-freddie-mac');
-                    if (error) throw error;
-                    if (data?.summary) {
-                      setMarketData(prev => ({ ...prev, freddie_mac_summary: data.summary }));
-                      setHasUserEdited(true);
-                      toast({ title: "Success", description: "Freddie Mac summary updated" });
-                    }
-                  } catch (err) {
-                    console.error('Error fetching Freddie Mac:', err);
-                    toast({ title: "Error", description: "Failed to fetch Freddie Mac report", variant: "destructive" });
-                  }
-                }}
-              >
-                <RefreshCw className="w-3 h-3 mr-1" />
-                Fetch Latest
-              </Button>
-            </div>
+            <Label>Freddie Mac News Summary</Label>
             <div className="p-3 bg-muted/50 rounded-md text-sm">
-              {marketData.freddie_mac_summary || <span className="text-muted-foreground italic">Click "Fetch Latest" to get the Freddie Mac news summary</span>}
+              {isFetchingFreddieMac ? (
+                <span className="text-muted-foreground italic flex items-center gap-2">
+                  <RefreshCw className="w-3 h-3 animate-spin" />
+                  Fetching Freddie Mac report...
+                </span>
+              ) : marketData.freddie_mac_summary ? (
+                marketData.freddie_mac_summary
+              ) : (
+                <span className="text-muted-foreground italic">Unable to fetch Freddie Mac summary</span>
+              )}
             </div>
           </div>
           
