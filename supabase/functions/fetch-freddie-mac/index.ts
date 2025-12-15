@@ -28,71 +28,108 @@ serve(async (req) => {
     const html = await response.text();
     console.log('Fetched Freddie Mac page, extracting content...');
     
-    // Convert to plain text for reliable extraction
-    const plainText = html
-      .replace(/<script[\s\S]*?<\/script>/gi, ' ')
-      .replace(/<style[\s\S]*?<\/style>/gi, ' ')
-      .replace(/<[^>]+>/g, ' ')
-      .replace(/&nbsp;|&#160;/g, ' ')
-      .replace(/&amp;/g, '&')
-      .replace(/&quot;/g, '"')
-      .replace(/&#39;/g, "'")
-      .replace(/\s+/g, ' ')
+    const toPlainText = (input: string) =>
+      input
+        .replace(/<script[\s\S]*?<\/script>/gi, " ")
+        .replace(/<style[\s\S]*?<\/style>/gi, " ")
+        .replace(/<[^>]+>/g, " ")
+        .replace(/&nbsp;|&#160;/g, " ")
+        .replace(/&amp;/g, "&")
+        .replace(/&quot;/g, '"')
+        .replace(/&#39;/g, "'")
+        .replace(/\s+/g, " ")
+        .trim();
+
+    // Prefer the PMMS news section if present (more focused than the whole page)
+    const pmmsNewsMatch = html.match(
+      /<div[^>]*class="[^"]*pmms-news[^"]*"[^>]*>([\s\S]*?)<\/div>/i
+    );
+    const sourceHtml = pmmsNewsMatch?.[1] || html;
+    const plainText = toPlainText(sourceHtml);
+
+    const extractRates = (term: "30-year" | "15-year") => {
+      const idx = plainText.toLowerCase().indexOf(term);
+      if (idx < 0) return { current: undefined, weekAgo: undefined, yearAgo: undefined };
+
+      const slice = plainText.slice(idx, idx + 900);
+
+      const currentMatch = slice.match(
+        new RegExp(
+          `${term}\\s+fixed-rate\\s+mortgage[^.]{0,180}?averaged\\s+(\\d+(?:\\.\\d+)?)\\s*percent`,
+          "i"
+        )
+      );
+      const weekAgoMatch = slice.match(/last week[^.]{0,180}?(\d+(?:\.\d+)?)\s*percent/i);
+      const yearAgoMatch = slice.match(
+        /(a|one) year ago[^.]{0,220}?(\d+(?:\.\d+)?)\s*percent/i
+      );
+
+      const current = currentMatch ? parseFloat(currentMatch[1]) : undefined;
+      const weekAgo = weekAgoMatch ? parseFloat(weekAgoMatch[1]) : undefined;
+      const yearAgo = yearAgoMatch ? parseFloat(yearAgoMatch[2]) : undefined;
+
+      return { current, weekAgo, yearAgo };
+    };
+
+    const r30 = extractRates("30-year");
+    const r15 = extractRates("15-year");
+
+    const ytdAvgMatch = plainText.match(
+      /year[- ]to[- ]date average[^0-9]{0,40}(\d+(?:\.\d+)?)\s*percent/i
+    );
+    const ytdAverage = ytdAvgMatch ? parseFloat(ytdAvgMatch[1]) : undefined;
+
+    // Build a short "What Freddie Mac Says" snippet without AI (avoid misreads)
+    const safeText = plainText.replace(/(\d)\.(\d)/g, "$1§$2");
+    const headline =
+      html.match(/<h[12][^>]*>\s*([^<]*Mortgage Rates[^<]*)<\/h[12]>/i)?.[1]?.trim() ||
+      "";
+    const mortgageSentence =
+      safeText.match(/Mortgage rates[^.!?]{0,260}[.!?]/i)?.[0]?.replace(/§/g, ".") ||
+      "";
+    const ytdSentence =
+      safeText.match(/year[- ]to[- ]date average[^.!?]{0,260}[.!?]/i)?.[0]?.replace(/§/g, ".") ||
+      "";
+
+    const extractedSummary = [headline, mortgageSentence, ytdSentence]
+      .filter(Boolean)
+      .join(" ")
+      .replace(/\s+/g, " ")
       .trim();
 
-    const sentenceMatches = plainText.match(/[^.!?]+[.!?]+/g) || [];
-    const sentences = sentenceMatches.map((s) => s.trim());
+    const rates = {
+      mortgage_rate_30yr: r30.current,
+      mortgage_rate_30yr_week_ago: r30.weekAgo,
+      mortgage_rate_30yr_year_ago: r30.yearAgo,
+      mortgage_rate_15yr: r15.current,
+      mortgage_rate_15yr_week_ago: r15.weekAgo,
+      mortgage_rate_15yr_year_ago: r15.yearAgo,
+      year_to_date_average_30yr: ytdAverage,
+    };
 
-    // Try to extract Freddie Mac's own PMMS commentary directly (avoids AI misinterpretation)
-    const weeklyChange = sentences.find(
-      (s) =>
-        /mortgage rates?/i.test(s) &&
-        /(inched|increased|decreased|fell|rose|declined|moved|remained|stayed)/i.test(s)
+    const hasRates = Object.values(rates).some(
+      (v) => typeof v === "number" && Number.isFinite(v)
     );
 
-    const ytdAverage = sentences.find((s) => /year[- ]to[- ]date average/i.test(s));
+    console.log("Parsed PMMS rates:", rates);
+    if (extractedSummary) console.log("Extracted PMMS summary:", extractedSummary);
 
-    const directSummaryParts = [weeklyChange, ytdAverage].filter(
-      (s): s is string => Boolean(s)
-    );
-
-    if (directSummaryParts.length > 0) {
-      // If we only got one sentence, add one more seller-relevant sentence nearby
-      if (directSummaryParts.length === 1 && weeklyChange) {
-        const idx = sentences.indexOf(weeklyChange);
-        const next =
-          idx >= 0
-            ? sentences
-                .slice(idx + 1)
-                .find((s) => /housing|buyers?|market|demand|inflation|economy/i.test(s))
-            : undefined;
-        if (next) directSummaryParts.push(next);
-      }
-
-      const directSummary = directSummaryParts.join(' ').replace(/\s+/g, ' ').trim();
-      console.log('Directly extracted PMMS summary:', directSummary);
-
+    if (hasRates || extractedSummary) {
       return new Response(
         JSON.stringify({
           success: true,
-          summary: directSummary,
+          summary: extractedSummary || null,
+          rates,
         }),
         {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
         }
       );
     }
 
-    // Fallback: keep only PMMS-relevant sentences for AI summarization
-    let extractedContent = sentences
-      .filter((s) =>
-        /PMMS|Primary Mortgage Market Survey|mortgage rates?|30-year|15-year|year[- ]to[- ]date average|points?/i.test(
-          s
-        )
-      )
-      .slice(0, 30)
-      .join('\n');
-
+    // Fallback: give AI only the most relevant text chunk
+    const pmmsIdx = plainText.toLowerCase().indexOf("primary mortgage market survey");
+    let extractedContent = pmmsIdx >= 0 ? plainText.slice(pmmsIdx, pmmsIdx + 3500) : plainText;
     extractedContent = extractedContent.slice(0, 3000);
 
     console.log('Fallback extracted PMMS content length:', extractedContent.length);
