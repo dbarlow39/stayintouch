@@ -830,13 +830,38 @@ const WeeklyUpdateTab = () => {
             <Button
               variant="destructive"
               size="sm"
-              onClick={() => {
-                const firstClient = clients?.[0] || null;
-                setEmailTemplate(generateSampleEmail(firstClient, marketData));
-                setIsTemplateOpen(true);
+              disabled={isFetchingFreddieMac}
+              onClick={async () => {
+                // Re-fetch Freddie Mac summary to ensure latest data
+                setIsFetchingFreddieMac(true);
+                try {
+                  const { data, error } = await supabase.functions.invoke('fetch-freddie-mac');
+                  if (error) throw error;
+                  const updatedMarketData = { 
+                    ...marketData, 
+                    freddie_mac_summary: data?.summary || marketData.freddie_mac_summary 
+                  };
+                  setMarketData(updatedMarketData);
+                  const firstClient = clients?.[0] || null;
+                  setEmailTemplate(generateSampleEmail(firstClient, updatedMarketData));
+                  setIsTemplateOpen(true);
+                  toast({ title: "Template updated with latest data" });
+                } catch (err) {
+                  console.error('Error fetching Freddie Mac:', err);
+                  // Still update template with current market data
+                  const firstClient = clients?.[0] || null;
+                  setEmailTemplate(generateSampleEmail(firstClient, marketData));
+                  setIsTemplateOpen(true);
+                } finally {
+                  setIsFetchingFreddieMac(false);
+                }
               }}
             >
-              <RefreshCw className="w-4 h-4 mr-2" />
+              {isFetchingFreddieMac ? (
+                <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <RefreshCw className="w-4 h-4 mr-2" />
+              )}
               Update Template
             </Button>
           </div>
