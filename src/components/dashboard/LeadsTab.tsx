@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { UserPlus, Pencil, Trash2, Phone, Mail } from "lucide-react";
+import { UserPlus, Pencil, Trash2, Phone, Mail, Asterisk } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth";
 
@@ -177,7 +177,9 @@ const LeadsTab = () => {
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="first_name">First Name *</Label>
+                  <Label htmlFor="first_name" className="flex items-center gap-1">
+                    First Name <Asterisk className="w-3 h-3 text-destructive" />
+                  </Label>
                   <Input
                     id="first_name"
                     value={formData.first_name}
@@ -186,7 +188,9 @@ const LeadsTab = () => {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="last_name">Last Name *</Label>
+                  <Label htmlFor="last_name" className="flex items-center gap-1">
+                    Last Name <Asterisk className="w-3 h-3 text-destructive" />
+                  </Label>
                   <Input
                     id="last_name"
                     value={formData.last_name}
