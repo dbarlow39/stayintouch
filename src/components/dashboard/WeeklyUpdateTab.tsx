@@ -262,7 +262,9 @@ const WeeklyUpdateTab = () => {
   // Load saved market data into form when available
   useEffect(() => {
     if (savedMarketData) {
-      setMarketData({
+      // Merge to avoid wiping Freddie Mac / mortgage fields that are held in local state
+      setMarketData((prev) => ({
+        ...prev,
         id: savedMarketData.id,
         week_of: savedMarketData.week_of,
         active_homes: savedMarketData.active_homes,
@@ -271,21 +273,32 @@ const WeeklyUpdateTab = () => {
         market_avg_dom: savedMarketData.market_avg_dom,
         price_trend: savedMarketData.price_trend as 'up' | 'down' | 'stable',
         price_reductions: savedMarketData.price_reductions || 0,
-      });
+      }));
     }
   }, [savedMarketData]);
 
   // Auto-fetch Freddie Mac summary on component mount
   useEffect(() => {
     if (freddieMacFetched || isFetchingFreddieMac) return;
-    
+
     const fetchFreddieMac = async () => {
       setIsFetchingFreddieMac(true);
       try {
         const { data, error } = await supabase.functions.invoke('fetch-freddie-mac');
         if (error) throw error;
-        if (data?.summary) {
-          setMarketData(prev => ({ ...prev, freddie_mac_summary: data.summary }));
+
+        const rates = data?.rates;
+        if (data?.summary || rates) {
+          setMarketData((prev) => ({
+            ...prev,
+            freddie_mac_summary: data?.summary ?? prev.freddie_mac_summary,
+            mortgage_rate_30yr: rates?.mortgage_rate_30yr ?? prev.mortgage_rate_30yr,
+            mortgage_rate_30yr_week_ago: rates?.mortgage_rate_30yr_week_ago ?? prev.mortgage_rate_30yr_week_ago,
+            mortgage_rate_30yr_year_ago: rates?.mortgage_rate_30yr_year_ago ?? prev.mortgage_rate_30yr_year_ago,
+            mortgage_rate_15yr: rates?.mortgage_rate_15yr ?? prev.mortgage_rate_15yr,
+            mortgage_rate_15yr_week_ago: rates?.mortgage_rate_15yr_week_ago ?? prev.mortgage_rate_15yr_week_ago,
+            mortgage_rate_15yr_year_ago: rates?.mortgage_rate_15yr_year_ago ?? prev.mortgage_rate_15yr_year_ago,
+          }));
         }
       } catch (err) {
         console.error('Error fetching Freddie Mac:', err);
@@ -294,7 +307,7 @@ const WeeklyUpdateTab = () => {
         setFreddieMacFetched(true);
       }
     };
-    
+
     fetchFreddieMac();
   }, [freddieMacFetched, isFetchingFreddieMac]);
 
@@ -832,20 +845,29 @@ const WeeklyUpdateTab = () => {
               size="sm"
               disabled={isFetchingFreddieMac}
               onClick={async () => {
-                // Re-fetch Freddie Mac summary to ensure latest data
+                // Re-fetch Freddie Mac data to ensure latest rates + commentary
                 setIsFetchingFreddieMac(true);
                 try {
                   const { data, error } = await supabase.functions.invoke('fetch-freddie-mac');
                   if (error) throw error;
-                  const updatedMarketData = { 
-                    ...marketData, 
-                    freddie_mac_summary: data?.summary || marketData.freddie_mac_summary 
+
+                  const rates = data?.rates;
+                  const updatedMarketData: MarketData = {
+                    ...marketData,
+                    freddie_mac_summary: data?.summary ?? marketData.freddie_mac_summary,
+                    mortgage_rate_30yr: rates?.mortgage_rate_30yr ?? marketData.mortgage_rate_30yr,
+                    mortgage_rate_30yr_week_ago: rates?.mortgage_rate_30yr_week_ago ?? marketData.mortgage_rate_30yr_week_ago,
+                    mortgage_rate_30yr_year_ago: rates?.mortgage_rate_30yr_year_ago ?? marketData.mortgage_rate_30yr_year_ago,
+                    mortgage_rate_15yr: rates?.mortgage_rate_15yr ?? marketData.mortgage_rate_15yr,
+                    mortgage_rate_15yr_week_ago: rates?.mortgage_rate_15yr_week_ago ?? marketData.mortgage_rate_15yr_week_ago,
+                    mortgage_rate_15yr_year_ago: rates?.mortgage_rate_15yr_year_ago ?? marketData.mortgage_rate_15yr_year_ago,
                   };
+
                   setMarketData(updatedMarketData);
                   const firstClient = clients?.[0] || null;
                   setEmailTemplate(generateSampleEmail(firstClient, updatedMarketData));
                   setIsTemplateOpen(true);
-                  toast({ title: "Template updated with latest data" });
+                  toast({ title: "Template updated with latest Freddie Mac rates" });
                 } catch (err) {
                   console.error('Error fetching Freddie Mac:', err);
                   // Still update template with current market data
