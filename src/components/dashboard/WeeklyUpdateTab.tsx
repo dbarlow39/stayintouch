@@ -20,10 +20,9 @@ import { format } from "date-fns";
 
 const generateSampleEmail = (
   client: { first_name: string | null; last_name: string | null; street_number: string | null; street_name: string | null; city: string | null; state: string | null; zip: string | null } | null,
-  marketData?: { week_of: string; active_homes: number; active_homes_last_week: number | null; inventory_change: number | null; market_avg_dom: number; price_trend: string; price_reductions: number }
+  marketData?: { week_of: string; active_homes: number; active_homes_last_week: number | null; inventory_change: number | null; market_avg_dom: number; price_trend: string; price_reductions: number; mortgage_rate_30yr?: number; mortgage_rate_15yr?: number }
 ) => {
   // Use placeholders that will be replaced by the edge function for each client
-  // For preview purposes, show sample data but the template uses placeholders
   const weekOf = marketData?.week_of ? format(new Date(marketData.week_of), 'MMMM d, yyyy') : format(new Date(), 'MMMM d, yyyy');
   const activeHomes = marketData?.active_homes || 2450;
   const activeHomesLastWeek = marketData?.active_homes_last_week || 2425;
@@ -31,6 +30,8 @@ const generateSampleEmail = (
   const avgDom = marketData?.market_avg_dom || 42;
   const priceTrend = marketData?.price_trend || 'stable';
   const priceReductions = marketData?.price_reductions || 0;
+  const mortgageRate30yr = marketData?.mortgage_rate_30yr || 6.85;
+  const mortgageRate15yr = marketData?.mortgage_rate_15yr || 6.10;
   
   const inventoryChangeText = inventoryChange > 0 
     ? `a modest increase of ${inventoryChange} listings` 
@@ -49,6 +50,14 @@ I hope this message finds you well. As your listing agent, I wanted to provide y
 📊 Columbus Market Snapshot – Week of ${weekOf}
 
 This week, the Columbus metro area has ${activeHomes.toLocaleString()} active homes on the market, compared to ${activeHomesLastWeek.toLocaleString()} last week—${inventoryChangeText}. The market average days on market currently stands at ${avgDom} days, and pricing trends remain ${priceTrend}. Approximately ${priceReductions} homes have undergone price reductions this week.
+
+🏦 Freddie Mac Mortgage Rates
+
+According to Freddie Mac's Primary Mortgage Market Survey:
+- 30-Year Fixed Rate: ${mortgageRate30yr}%
+- 15-Year Fixed Rate: ${mortgageRate15yr}%
+
+These rates continue to influence buyer purchasing power and overall market activity.
 
 💡 What This Means for Sellers
 
@@ -95,6 +104,8 @@ interface MarketData {
   market_avg_dom: number;
   price_trend: 'up' | 'down' | 'stable';
   price_reductions: number;
+  mortgage_rate_30yr?: number;
+  mortgage_rate_15yr?: number;
 }
 
 interface Client {
@@ -137,6 +148,8 @@ const WeeklyUpdateTab = () => {
     market_avg_dom: 0,
     price_trend: 'stable',
     price_reductions: 0,
+    mortgage_rate_30yr: undefined,
+    mortgage_rate_15yr: undefined,
   });
   
   const [selectedClients, setSelectedClients] = useState<Set<string>>(new Set());
@@ -679,6 +692,28 @@ const WeeklyUpdateTab = () => {
                 value={marketData.price_reductions || ''}
                 onChange={(e) => { setHasUserEdited(true); setMarketData({ ...marketData, price_reductions: parseInt(e.target.value) || 0 }); }}
                 placeholder="e.g., 150"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="mortgage_rate_30yr">30-Yr Mortgage Rate (%)</Label>
+              <Input
+                id="mortgage_rate_30yr"
+                type="number"
+                step="0.01"
+                value={marketData.mortgage_rate_30yr || ''}
+                onChange={(e) => { setHasUserEdited(true); setMarketData({ ...marketData, mortgage_rate_30yr: parseFloat(e.target.value) || undefined }); }}
+                placeholder="e.g., 6.85"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="mortgage_rate_15yr">15-Yr Mortgage Rate (%)</Label>
+              <Input
+                id="mortgage_rate_15yr"
+                type="number"
+                step="0.01"
+                value={marketData.mortgage_rate_15yr || ''}
+                onChange={(e) => { setHasUserEdited(true); setMarketData({ ...marketData, mortgage_rate_15yr: parseFloat(e.target.value) || undefined }); }}
+                placeholder="e.g., 6.10"
               />
             </div>
             {marketData.inventory_change !== null && (
