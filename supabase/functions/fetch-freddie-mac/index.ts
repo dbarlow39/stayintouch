@@ -47,27 +47,28 @@ serve(async (req) => {
     const sourceHtml = pmmsNewsMatch?.[1] || html;
     const plainText = toPlainText(sourceHtml);
 
+    // Parse using Freddie Mac's stable wording patterns:
+    // "The 30-year FRM averaged X% as of [date], up from last week when it averaged Y%. 
+    //  A year ago at this time, the 30-year FRM averaged Z%"
     const extractRates = (term: "30-year" | "15-year") => {
-      const idx = plainText.toLowerCase().indexOf(term);
-      if (idx < 0) return { current: undefined, weekAgo: undefined, yearAgo: undefined };
-
-      const slice = plainText.slice(idx, idx + 900);
-
-      const currentMatch = slice.match(
-        new RegExp(
-          `${term}\\s+fixed-rate\\s+mortgage[^.]{0,180}?averaged\\s+(\\d+(?:\\.\\d+)?)\\s*percent`,
-          "i"
-        )
+      // Match: "The 30-year FRM averaged 6.22%"
+      const currentMatch = plainText.match(
+        new RegExp(`The ${term} FRM averaged (\\d+\\.\\d+)%`, "i")
       );
-      const weekAgoMatch = slice.match(/last week[^.]{0,180}?(\d+(?:\.\d+)?)\s*percent/i);
-      const yearAgoMatch = slice.match(
-        /(a|one) year ago[^.]{0,220}?(\d+(?:\.\d+)?)\s*percent/i
+      // Match: "last week when it averaged 6.19%"
+      const weekAgoMatch = plainText.match(
+        /last week when it averaged (\d+\.\d+)%/i
+      );
+      // Match: "A year ago at this time, the 30-year FRM averaged 6.60%"
+      const yearAgoMatch = plainText.match(
+        new RegExp(`A year ago at this time,? the ${term} FRM averaged (\\d+\\.\\d+)%`, "i")
       );
 
       const current = currentMatch ? parseFloat(currentMatch[1]) : undefined;
       const weekAgo = weekAgoMatch ? parseFloat(weekAgoMatch[1]) : undefined;
-      const yearAgo = yearAgoMatch ? parseFloat(yearAgoMatch[2]) : undefined;
+      const yearAgo = yearAgoMatch ? parseFloat(yearAgoMatch[1]) : undefined;
 
+      console.log(`Parsed ${term} rates:`, { current, weekAgo, yearAgo });
       return { current, weekAgo, yearAgo };
     };
 
