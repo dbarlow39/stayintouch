@@ -23,3 +23,6 @@ verify_jwt = false
 
 [functions.send-weekly-email]
 verify_jwt = true
+
+[functions.fetch-freddie-mac]
+verify_jwt = false
