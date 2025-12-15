@@ -20,7 +20,7 @@ import { format } from "date-fns";
 
 const generateSampleEmail = (
   client: { first_name: string | null; last_name: string | null; street_number: string | null; street_name: string | null; city: string | null; state: string | null; zip: string | null } | null,
-  marketData?: { week_of: string; active_homes: number; active_homes_last_week: number | null; inventory_change: number | null; market_avg_dom: number; price_trend: string; price_reductions: number; mortgage_rate_30yr?: number; mortgage_rate_30yr_week_ago?: number; mortgage_rate_30yr_year_ago?: number; mortgage_rate_15yr?: number; mortgage_rate_15yr_week_ago?: number; mortgage_rate_15yr_year_ago?: number }
+  marketData?: { week_of: string; active_homes: number; active_homes_last_week: number | null; inventory_change: number | null; market_avg_dom: number; price_trend: string; price_reductions: number; mortgage_rate_30yr?: number; mortgage_rate_30yr_week_ago?: number; mortgage_rate_30yr_year_ago?: number; mortgage_rate_15yr?: number; mortgage_rate_15yr_week_ago?: number; mortgage_rate_15yr_year_ago?: number; freddie_mac_summary?: string }
 ) => {
   // Use placeholders that will be replaced by the edge function for each client
   const weekOf = marketData?.week_of ? format(new Date(marketData.week_of), 'MMMM d, yyyy') : format(new Date(), 'MMMM d, yyyy');
@@ -36,6 +36,7 @@ const generateSampleEmail = (
   const mortgageRate15yr = marketData?.mortgage_rate_15yr || 6.10;
   const mortgageRate15yrWeekAgo = marketData?.mortgage_rate_15yr_week_ago || 6.05;
   const mortgageRate15yrYearAgo = marketData?.mortgage_rate_15yr_year_ago || 5.95;
+  const freddieMacSummary = marketData?.freddie_mac_summary || 'Mortgage rates remain elevated as the Federal Reserve continues to monitor inflation. Buyers are adjusting to the current rate environment, and those who are actively searching remain motivated.';
   
   const inventoryChangeText = inventoryChange > 0 
     ? `a modest increase of ${inventoryChange} listings` 
@@ -69,7 +70,9 @@ According to Freddie Mac's Primary Mortgage Market Survey:
 - Last Week: ${mortgageRate15yrWeekAgo}%
 - One Year Ago: ${mortgageRate15yrYearAgo}%
 
-These rates continue to influence buyer purchasing power and overall market activity.
+📰 What Freddie Mac Says
+
+${freddieMacSummary}
 
 💡 What This Means for Sellers
 
@@ -122,6 +125,7 @@ interface MarketData {
   mortgage_rate_15yr?: number;
   mortgage_rate_15yr_week_ago?: number;
   mortgage_rate_15yr_year_ago?: number;
+  freddie_mac_summary?: string;
 }
 
 interface Client {
@@ -170,6 +174,7 @@ const WeeklyUpdateTab = () => {
     mortgage_rate_15yr: undefined,
     mortgage_rate_15yr_week_ago: undefined,
     mortgage_rate_15yr_year_ago: undefined,
+    freddie_mac_summary: undefined,
   });
   
   const [selectedClients, setSelectedClients] = useState<Set<string>>(new Set());
@@ -794,6 +799,19 @@ const WeeklyUpdateTab = () => {
               </div>
             )}
           </div>
+          
+          {/* Freddie Mac Summary */}
+          <div className="mt-4 space-y-2">
+            <Label htmlFor="freddie_mac_summary">Freddie Mac News Summary</Label>
+            <Textarea
+              id="freddie_mac_summary"
+              value={marketData.freddie_mac_summary || ''}
+              onChange={(e) => { setHasUserEdited(true); setMarketData({ ...marketData, freddie_mac_summary: e.target.value }); }}
+              placeholder="Enter a summary of the Freddie Mac weekly news release for sellers (e.g., 'Mortgage rates ticked up slightly this week as bond markets responded to stronger than expected employment data...')"
+              className="min-h-[80px]"
+            />
+          </div>
+          
           <div className="mt-4 flex justify-start">
             <Button
               variant="destructive"
