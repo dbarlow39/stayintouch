@@ -52,15 +52,15 @@ Dear ${firstName},
 
 I hope this message finds you well. As your listing agent, I wanted to provide you with this week's market update and share how your property at ${streetNumber} ${streetName} is performing.
 
-**Columbus Market Snapshot – Week of ${weekOf}**
+📊 Columbus Market Snapshot – Week of ${weekOf}
 
 This week, the Columbus metro area has ${activeHomes.toLocaleString()} active homes on the market, compared to ${activeHomesLastWeek.toLocaleString()} last week—${inventoryChangeText}. The market average days on market currently stands at ${avgDom} days, and pricing trends remain ${priceTrend}. Approximately ${priceReductions} homes have undergone price reductions this week.
 
-**What This Means for Sellers**
+💡 What This Means for Sellers
 
 These numbers reflect typical seasonal patterns. Buyer activity remains selective, and inventory levels are holding steady within normal ranges.
 
-**Your Property Performance**
+🏠 Your Property Performance
 
 Your home at ${streetNumber} ${streetName} has been on the market for 28 days. During this time, we have generated significant online interest:
 
@@ -69,7 +69,7 @@ Your home at ${streetNumber} ${streetName} has been on the market for 28 days. D
 
 These engagement numbers indicate solid buyer interest in your property.
 
-**How Views Convert to Showings and Offers**
+📈 How Views Convert to Showings and Offers
 
 Based on industry data, here is how online engagement typically translates to in-person activity:
 
@@ -78,7 +78,7 @@ Based on industry data, here is how online engagement typically translates to in
 
 We have generated 1,250 online views which means we should have between 12 and 24 in person showings and at least 3 offers at this point.
 
-**Weekly Outlook**
+🔮 Weekly Outlook
 
 We anticipate buyer activity to remain measured. Serious buyers who are actively searching tend to be highly motivated. We will continue monitoring showing requests and feedback closely.
 
