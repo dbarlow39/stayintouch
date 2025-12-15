@@ -73,6 +73,21 @@ const clientSchema = z.object({
   zillow_link: z.string().trim().max(500).optional().or(z.literal("")).or(z.null()),
 });
 
+// Format phone number with dashes (XXX-XXX-XXXX)
+const formatPhoneNumber = (value: string): string => {
+  // Remove all non-digits
+  const digits = value.replace(/\D/g, '');
+  
+  // Format based on length
+  if (digits.length <= 3) {
+    return digits;
+  } else if (digits.length <= 6) {
+    return `${digits.slice(0, 3)}-${digits.slice(3)}`;
+  } else {
+    return `${digits.slice(0, 3)}-${digits.slice(3, 6)}-${digits.slice(6, 10)}`;
+  }
+};
+
 const ClientsTab = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -559,7 +574,7 @@ const ClientsTab = () => {
                         id="home_phone"
                         type="tel"
                         value={formData.home_phone}
-                        onChange={(e) => setFormData({ ...formData, home_phone: e.target.value })}
+                        onChange={(e) => setFormData({ ...formData, home_phone: formatPhoneNumber(e.target.value) })}
                       />
                     </div>
                     <div className="space-y-2">
@@ -568,7 +583,7 @@ const ClientsTab = () => {
                         id="cell_phone"
                         type="tel"
                         value={formData.cell_phone}
-                        onChange={(e) => setFormData({ ...formData, cell_phone: e.target.value })}
+                        onChange={(e) => setFormData({ ...formData, cell_phone: formatPhoneNumber(e.target.value) })}
                       />
                     </div>
                   </div>
