@@ -28,26 +28,75 @@ serve(async (req) => {
     const html = await response.text();
     console.log('Fetched Freddie Mac page, extracting content...');
     
-    // Extract more content - get all paragraph text and any quotes
-    const allParagraphs = html.match(/<p[^>]*>([\s\S]*?)<\/p>/gi) || [];
-    const blockquotes = html.match(/<blockquote[^>]*>([\s\S]*?)<\/blockquote>/gi) || [];
-    const headings = html.match(/<h[1-6][^>]*>([\s\S]*?)<\/h[1-6]>/gi) || [];
-    
-    // Clean and combine content
-    let extractedContent = '';
-    
-    [...headings, ...blockquotes, ...allParagraphs].forEach(tag => {
-      const text = tag.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
-      if (text.length > 20 && !text.includes('cookie') && !text.includes('privacy')) {
-        extractedContent += text + '\n';
+    // Convert to plain text for reliable extraction
+    const plainText = html
+      .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+      .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/&nbsp;|&#160;/g, ' ')
+      .replace(/&amp;/g, '&')
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    const sentenceMatches = plainText.match(/[^.!?]+[.!?]+/g) || [];
+    const sentences = sentenceMatches.map((s) => s.trim());
+
+    // Try to extract Freddie Mac's own PMMS commentary directly (avoids AI misinterpretation)
+    const weeklyChange = sentences.find(
+      (s) =>
+        /mortgage rates?/i.test(s) &&
+        /(inched|increased|decreased|fell|rose|declined|moved|remained|stayed)/i.test(s)
+    );
+
+    const ytdAverage = sentences.find((s) => /year[- ]to[- ]date average/i.test(s));
+
+    const directSummaryParts = [weeklyChange, ytdAverage].filter(
+      (s): s is string => Boolean(s)
+    );
+
+    if (directSummaryParts.length > 0) {
+      // If we only got one sentence, add one more seller-relevant sentence nearby
+      if (directSummaryParts.length === 1 && weeklyChange) {
+        const idx = sentences.indexOf(weeklyChange);
+        const next =
+          idx >= 0
+            ? sentences
+                .slice(idx + 1)
+                .find((s) => /housing|buyers?|market|demand|inflation|economy/i.test(s))
+            : undefined;
+        if (next) directSummaryParts.push(next);
       }
-    });
-    
-    // Limit content to avoid token limits
-    extractedContent = extractedContent.slice(0, 4000);
-    
-    console.log('Extracted content length:', extractedContent.length);
-    console.log('Content preview:', extractedContent.slice(0, 500));
+
+      const directSummary = directSummaryParts.join(' ').replace(/\s+/g, ' ').trim();
+      console.log('Directly extracted PMMS summary:', directSummary);
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          summary: directSummary,
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
+    }
+
+    // Fallback: keep only PMMS-relevant sentences for AI summarization
+    let extractedContent = sentences
+      .filter((s) =>
+        /PMMS|Primary Mortgage Market Survey|mortgage rates?|30-year|15-year|year[- ]to[- ]date average|points?/i.test(
+          s
+        )
+      )
+      .slice(0, 30)
+      .join('\n');
+
+    extractedContent = extractedContent.slice(0, 3000);
+
+    console.log('Fallback extracted PMMS content length:', extractedContent.length);
+    console.log('Fallback content preview:', extractedContent.slice(0, 500));
     
     // Use Lovable AI to summarize the content for sellers
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
