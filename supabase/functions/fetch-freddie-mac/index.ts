@@ -28,31 +28,26 @@ serve(async (req) => {
     const html = await response.text();
     console.log('Fetched Freddie Mac page, extracting content...');
     
-    // Extract the news release content - look for the weekly update section
-    const newsMatch = html.match(/<div[^>]*class="[^"]*pmms-news[^"]*"[^>]*>([\s\S]*?)<\/div>/i);
-    const quoteMatch = html.match(/<blockquote[^>]*>([\s\S]*?)<\/blockquote>/i);
-    const paragraphs = html.match(/<p[^>]*class="[^"]*pmms[^"]*"[^>]*>([\s\S]*?)<\/p>/gi);
+    // Extract more content - get all paragraph text and any quotes
+    const allParagraphs = html.match(/<p[^>]*>([\s\S]*?)<\/p>/gi) || [];
+    const blockquotes = html.match(/<blockquote[^>]*>([\s\S]*?)<\/blockquote>/gi) || [];
+    const headings = html.match(/<h[1-6][^>]*>([\s\S]*?)<\/h[1-6]>/gi) || [];
     
-    // Extract any text content we can find
+    // Clean and combine content
     let extractedContent = '';
     
-    if (newsMatch) {
-      extractedContent += newsMatch[1].replace(/<[^>]+>/g, ' ').trim() + '\n';
-    }
-    if (quoteMatch) {
-      extractedContent += quoteMatch[1].replace(/<[^>]+>/g, ' ').trim() + '\n';
-    }
-    if (paragraphs) {
-      paragraphs.forEach(p => {
-        extractedContent += p.replace(/<[^>]+>/g, ' ').trim() + '\n';
-      });
-    }
+    [...headings, ...blockquotes, ...allParagraphs].forEach(tag => {
+      const text = tag.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+      if (text.length > 20 && !text.includes('cookie') && !text.includes('privacy')) {
+        extractedContent += text + '\n';
+      }
+    });
     
-    // Also try to get rate data
-    const rateMatches = html.match(/(\d+\.\d+)%/g);
+    // Limit content to avoid token limits
+    extractedContent = extractedContent.slice(0, 4000);
     
     console.log('Extracted content length:', extractedContent.length);
-    console.log('Found rate matches:', rateMatches?.slice(0, 4));
+    console.log('Content preview:', extractedContent.slice(0, 500));
     
     // Use Lovable AI to summarize the content for sellers
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
@@ -60,20 +55,24 @@ serve(async (req) => {
       throw new Error('LOVABLE_API_KEY is not configured');
     }
     
-    const prompt = `You are a real estate agent writing a brief summary of the Freddie Mac weekly mortgage rate report for home sellers. 
+    const prompt = `You are a real estate agent summarizing the Freddie Mac weekly mortgage rate report for home sellers.
 
-Here is content from the Freddie Mac Primary Mortgage Market Survey page:
+Here is content from the Freddie Mac Primary Mortgage Market Survey (PMMS) page:
 
 ${extractedContent || 'Unable to extract specific content from the page.'}
 
-Rate data found: ${rateMatches?.slice(0, 6).join(', ') || 'No specific rates extracted'}
+IMPORTANT INSTRUCTIONS:
+- Read the content CAREFULLY and accurately report what Freddie Mac said
+- Do NOT misinterpret numbers - if it says rates are "below the year-to-date average of X%", that means X% is the AVERAGE, not the current rate
+- If it mentions comparisons (e.g., "well below", "higher than"), accurately convey those comparisons
+- Quote or paraphrase the actual Freddie Mac commentary, don't make up interpretations
 
 Write a 2-3 sentence summary that:
-1. Mentions what happened with mortgage rates this week (up, down, or stable)
-2. Explains what this means for the housing market
-3. Is written in a professional but approachable tone for home sellers
+1. Accurately states what happened with mortgage rates this week based on what Freddie Mac reported
+2. Includes any key context they provided (comparisons to averages, trends, etc.)
+3. Is written in a professional tone for home sellers
 
-Keep it concise and seller-focused. Do not use bullet points. Just provide the summary text directly.`;
+Just provide the summary text directly, no bullet points or formatting.`;
 
     const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
