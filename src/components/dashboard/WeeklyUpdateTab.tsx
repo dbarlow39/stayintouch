@@ -800,16 +800,36 @@ const WeeklyUpdateTab = () => {
             )}
           </div>
           
-          {/* Freddie Mac Summary */}
+          {/* Freddie Mac Summary - Auto-fetched */}
           <div className="mt-4 space-y-2">
-            <Label htmlFor="freddie_mac_summary">Freddie Mac News Summary</Label>
-            <Textarea
-              id="freddie_mac_summary"
-              value={marketData.freddie_mac_summary || ''}
-              onChange={(e) => { setHasUserEdited(true); setMarketData({ ...marketData, freddie_mac_summary: e.target.value }); }}
-              placeholder="Enter a summary of the Freddie Mac weekly news release for sellers (e.g., 'Mortgage rates ticked up slightly this week as bond markets responded to stronger than expected employment data...')"
-              className="min-h-[80px]"
-            />
+            <div className="flex items-center justify-between">
+              <Label>Freddie Mac News Summary</Label>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={async () => {
+                  try {
+                    toast({ title: "Fetching Freddie Mac report...", description: "Please wait while we get the latest data" });
+                    const { data, error } = await supabase.functions.invoke('fetch-freddie-mac');
+                    if (error) throw error;
+                    if (data?.summary) {
+                      setMarketData(prev => ({ ...prev, freddie_mac_summary: data.summary }));
+                      setHasUserEdited(true);
+                      toast({ title: "Success", description: "Freddie Mac summary updated" });
+                    }
+                  } catch (err) {
+                    console.error('Error fetching Freddie Mac:', err);
+                    toast({ title: "Error", description: "Failed to fetch Freddie Mac report", variant: "destructive" });
+                  }
+                }}
+              >
+                <RefreshCw className="w-3 h-3 mr-1" />
+                Fetch Latest
+              </Button>
+            </div>
+            <div className="p-3 bg-muted/50 rounded-md text-sm">
+              {marketData.freddie_mac_summary || <span className="text-muted-foreground italic">Click "Fetch Latest" to get the Freddie Mac news summary</span>}
+            </div>
           </div>
           
           <div className="mt-4 flex justify-start">
