@@ -14,6 +14,7 @@ serve(async (req) => {
     const { zillow_url } = await req.json();
     
     if (!zillow_url || !zillow_url.includes('zillow.com')) {
+      console.log('Invalid or missing Zillow URL:', zillow_url);
       return new Response(JSON.stringify({ 
         error: 'Invalid Zillow URL',
         views: null,
@@ -26,19 +27,52 @@ serve(async (req) => {
 
     console.log('Fetching Zillow page:', zillow_url);
 
-    // Fetch the Zillow page
-    const response = await fetch(zillow_url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-        'Accept-Language': 'en-US,en;q=0.5',
-      },
-    });
+    // Try multiple user agents in case one is blocked
+    const userAgents = [
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
+      'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:122.0) Gecko/20100101 Firefox/122.0',
+    ];
 
-    if (!response.ok) {
-      console.error('Failed to fetch Zillow page:', response.status);
+    let response: Response | null = null;
+    let lastError: string = '';
+
+    for (const userAgent of userAgents) {
+      try {
+        response = await fetch(zillow_url, {
+          headers: {
+            'User-Agent': userAgent,
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.9',
+            'Accept-Encoding': 'gzip, deflate, br',
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache',
+            'Sec-Fetch-Dest': 'document',
+            'Sec-Fetch-Mode': 'navigate',
+            'Sec-Fetch-Site': 'none',
+            'Sec-Fetch-User': '?1',
+            'Upgrade-Insecure-Requests': '1',
+          },
+        });
+
+        console.log(`Attempt with user agent succeeded. Status: ${response.status}`);
+        
+        if (response.ok) {
+          break;
+        } else {
+          lastError = `HTTP ${response.status}`;
+          console.log(`HTTP error ${response.status}, trying next user agent...`);
+        }
+      } catch (fetchError) {
+        lastError = fetchError instanceof Error ? fetchError.message : 'Fetch failed';
+        console.error('Fetch attempt failed:', lastError);
+      }
+    }
+
+    if (!response || !response.ok) {
+      console.error('All fetch attempts failed. Last error:', lastError);
       return new Response(JSON.stringify({ 
-        error: 'Failed to fetch Zillow page',
+        error: `Failed to fetch Zillow page: ${lastError}`,
         views: null,
         saves: null,
         days: null 
@@ -48,38 +82,77 @@ serve(async (req) => {
     }
 
     const html = await response.text();
+    console.log('Received HTML length:', html.length);
+    
+    // Log a snippet to help debug what we're getting
+    console.log('HTML snippet (first 500 chars):', html.substring(0, 500));
     
     // Parse the stats from the HTML
-    // Look for patterns like "X days on Zillow", "X views", "X saves"
     let views: number | null = null;
     let saves: number | null = null;
     let days: number | null = null;
 
-    // Pattern for days on Zillow
-    const daysMatch = html.match(/(\d+)\s*days?\s*on\s*Zillow/i);
-    if (daysMatch) {
-      days = parseInt(daysMatch[1], 10);
+    // Pattern for days on Zillow - try multiple patterns
+    const daysPatterns = [
+      /(\d+)\s*days?\s*on\s*Zillow/i,
+      /Time on Zillow[:\s]*(\d+)\s*days?/i,
+      /"daysOnZillow"[:\s]*(\d+)/i,
+    ];
+    
+    for (const pattern of daysPatterns) {
+      const match = html.match(pattern);
+      if (match) {
+        days = parseInt(match[1], 10);
+        console.log('Found days with pattern:', pattern.toString(), '- Value:', days);
+        break;
+      }
     }
 
-    // Pattern for views - look for various formats
-    const viewsMatch = html.match(/(\d+(?:,\d+)?)\s*views?/i);
-    if (viewsMatch) {
-      views = parseInt(viewsMatch[1].replace(/,/g, ''), 10);
+    // Pattern for views - try multiple patterns
+    const viewsPatterns = [
+      /(\d+(?:,\d+)?)\s*views?\s*(?:in|this)/i,
+      /(\d+(?:,\d+)?)\s*total\s*views?/i,
+      /"views"[:\s]*(\d+)/i,
+      /(\d+(?:,\d+)?)\s*views?/i,
+    ];
+    
+    for (const pattern of viewsPatterns) {
+      const match = html.match(pattern);
+      if (match) {
+        views = parseInt(match[1].replace(/,/g, ''), 10);
+        console.log('Found views with pattern:', pattern.toString(), '- Value:', views);
+        break;
+      }
     }
 
-    // Pattern for saves
-    const savesMatch = html.match(/(\d+(?:,\d+)?)\s*saves?/i);
-    if (savesMatch) {
-      saves = parseInt(savesMatch[1].replace(/,/g, ''), 10);
+    // Pattern for saves - try multiple patterns
+    const savesPatterns = [
+      /(\d+(?:,\d+)?)\s*saves?/i,
+      /"saves"[:\s]*(\d+)/i,
+      /saved\s*by\s*(\d+(?:,\d+)?)/i,
+    ];
+    
+    for (const pattern of savesPatterns) {
+      const match = html.match(pattern);
+      if (match) {
+        saves = parseInt(match[1].replace(/,/g, ''), 10);
+        console.log('Found saves with pattern:', pattern.toString(), '- Value:', saves);
+        break;
+      }
     }
 
-    console.log('Parsed Zillow stats:', { views, saves, days });
+    console.log('Final parsed Zillow stats:', { views, saves, days });
+
+    // If we couldn't parse any stats, note it in the error
+    const parseError = (views === null && saves === null && days === null) 
+      ? 'Could not extract stats from page - Zillow may have changed their page structure'
+      : null;
 
     return new Response(JSON.stringify({ 
       views, 
       saves, 
       days,
-      error: null 
+      error: parseError 
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
