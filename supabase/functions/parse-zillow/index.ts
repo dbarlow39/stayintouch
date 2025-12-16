@@ -25,54 +25,43 @@ serve(async (req) => {
       });
     }
 
-    console.log('Fetching Zillow page:', zillow_url);
-
-    // Try multiple user agents in case one is blocked
-    const userAgents = [
-      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
-      'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
-      'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:122.0) Gecko/20100101 Firefox/122.0',
-    ];
-
-    let response: Response | null = null;
-    let lastError: string = '';
-
-    for (const userAgent of userAgents) {
-      try {
-        response = await fetch(zillow_url, {
-          headers: {
-            'User-Agent': userAgent,
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
-            'Accept-Language': 'en-US,en;q=0.9',
-            'Accept-Encoding': 'gzip, deflate, br',
-            'Cache-Control': 'no-cache',
-            'Pragma': 'no-cache',
-            'Sec-Fetch-Dest': 'document',
-            'Sec-Fetch-Mode': 'navigate',
-            'Sec-Fetch-Site': 'none',
-            'Sec-Fetch-User': '?1',
-            'Upgrade-Insecure-Requests': '1',
-          },
-        });
-
-        console.log(`Attempt with user agent succeeded. Status: ${response.status}`);
-        
-        if (response.ok) {
-          break;
-        } else {
-          lastError = `HTTP ${response.status}`;
-          console.log(`HTTP error ${response.status}, trying next user agent...`);
-        }
-      } catch (fetchError) {
-        lastError = fetchError instanceof Error ? fetchError.message : 'Fetch failed';
-        console.error('Fetch attempt failed:', lastError);
-      }
+    const apiKey = Deno.env.get('FIRECRAWL_API_KEY');
+    if (!apiKey) {
+      console.error('FIRECRAWL_API_KEY not configured');
+      return new Response(JSON.stringify({ 
+        error: 'Firecrawl API key not configured',
+        views: null,
+        saves: null,
+        days: null 
+      }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
-    if (!response || !response.ok) {
-      console.error('All fetch attempts failed. Last error:', lastError);
+    console.log('Fetching Zillow page via Firecrawl:', zillow_url);
+
+    // Use Firecrawl to scrape the Zillow page
+    const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        url: zillow_url,
+        formats: ['markdown'],
+        onlyMainContent: false,
+        waitFor: 3000, // Wait for dynamic content to load
+      }),
+    });
+
+    const firecrawlData = await response.json();
+
+    if (!response.ok || !firecrawlData.success) {
+      console.error('Firecrawl API error:', firecrawlData);
       return new Response(JSON.stringify({ 
-        error: `Failed to fetch Zillow page: ${lastError}`,
+        error: firecrawlData.error || `Firecrawl request failed with status ${response.status}`,
         views: null,
         saves: null,
         days: null 
@@ -81,13 +70,12 @@ serve(async (req) => {
       });
     }
 
-    const html = await response.text();
-    console.log('Received HTML length:', html.length);
-    
-    // Log a snippet to help debug what we're getting
-    console.log('HTML snippet (first 500 chars):', html.substring(0, 500));
-    
-    // Parse the stats from the HTML
+    // Get the markdown content from Firecrawl response
+    const markdown = firecrawlData.data?.markdown || firecrawlData.markdown || '';
+    console.log('Received markdown length:', markdown.length);
+    console.log('Markdown snippet (first 1000 chars):', markdown.substring(0, 1000));
+
+    // Parse the stats from the markdown content
     let views: number | null = null;
     let saves: number | null = null;
     let days: number | null = null;
@@ -96,11 +84,11 @@ serve(async (req) => {
     const daysPatterns = [
       /(\d+)\s*days?\s*on\s*Zillow/i,
       /Time on Zillow[:\s]*(\d+)\s*days?/i,
-      /"daysOnZillow"[:\s]*(\d+)/i,
+      /on Zillow\s*(\d+)\s*days?/i,
     ];
     
     for (const pattern of daysPatterns) {
-      const match = html.match(pattern);
+      const match = markdown.match(pattern);
       if (match) {
         days = parseInt(match[1], 10);
         console.log('Found days with pattern:', pattern.toString(), '- Value:', days);
@@ -112,12 +100,11 @@ serve(async (req) => {
     const viewsPatterns = [
       /(\d+(?:,\d+)?)\s*views?\s*(?:in|this)/i,
       /(\d+(?:,\d+)?)\s*total\s*views?/i,
-      /"views"[:\s]*(\d+)/i,
       /(\d+(?:,\d+)?)\s*views?/i,
     ];
     
     for (const pattern of viewsPatterns) {
-      const match = html.match(pattern);
+      const match = markdown.match(pattern);
       if (match) {
         views = parseInt(match[1].replace(/,/g, ''), 10);
         console.log('Found views with pattern:', pattern.toString(), '- Value:', views);
@@ -128,12 +115,12 @@ serve(async (req) => {
     // Pattern for saves - try multiple patterns
     const savesPatterns = [
       /(\d+(?:,\d+)?)\s*saves?/i,
-      /"saves"[:\s]*(\d+)/i,
       /saved\s*by\s*(\d+(?:,\d+)?)/i,
+      /(\d+(?:,\d+)?)\s*people\s*saved/i,
     ];
     
     for (const pattern of savesPatterns) {
-      const match = html.match(pattern);
+      const match = markdown.match(pattern);
       if (match) {
         saves = parseInt(match[1].replace(/,/g, ''), 10);
         console.log('Found saves with pattern:', pattern.toString(), '- Value:', saves);
