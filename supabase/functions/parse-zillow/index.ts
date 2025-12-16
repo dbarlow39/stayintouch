@@ -5,33 +5,6 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-type FirecrawlV2ScrapeResponse = {
-  success?: boolean;
-  error?: string;
-  code?: string;
-  data?: {
-    markdown?: string;
-    html?: string;
-    rawHtml?: string;
-    json?: unknown;
-    metadata?: unknown;
-  };
-  // Some responses may not be nested (defensive)
-  markdown?: string;
-  html?: string;
-  rawHtml?: string;
-  json?: unknown;
-  details?: unknown;
-};
-
-function pickJson(payload: FirecrawlV2ScrapeResponse): unknown {
-  return payload?.data?.json ?? payload?.json ?? null;
-}
-
-function pickText(payload: FirecrawlV2ScrapeResponse): string {
-  return payload?.data?.markdown ?? payload?.markdown ?? payload?.data?.html ?? payload?.html ?? "";
-}
-
 function toInt(value: unknown): number | null {
   if (value === null || value === undefined) return null;
   if (typeof value === "number" && Number.isFinite(value)) return Math.trunc(value);
@@ -66,9 +39,10 @@ serve(async (req) => {
       );
     }
 
-    console.log("Scraping Zillow via Firecrawl v2:", zillow_url);
+    console.log("Scraping Zillow via Firecrawl:", zillow_url);
 
-    const fcRes = await fetch("https://api.firecrawl.dev/v2/scrape", {
+    // Use v1 endpoint with simple markdown format
+    const fcRes = await fetch("https://api.firecrawl.dev/v1/scrape", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${apiKey}`,
@@ -76,35 +50,16 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         url: zillow_url,
-        // v2 supports object formats; use LLM JSON extraction directly.
-        formats: [
-          {
-            type: "json",
-            prompt:
-              "Extract Zillow listing engagement stats from the page. Return JSON with keys: views, saves, daysOnZillow. Use null if a value is not visible.",
-            schema: {
-              type: "object",
-              properties: {
-                views: { type: ["number", "null"] },
-                saves: { type: ["number", "null"] },
-                daysOnZillow: { type: ["number", "null"] },
-              },
-              required: [],
-            },
-          },
-          "markdown",
-        ],
+        formats: ["markdown"],
         onlyMainContent: false,
-        waitFor: 6000,
-        maxAge: 0,
-        proxy: "auto",
+        waitFor: 5000,
       }),
     });
 
-    const fcData = (await fcRes.json()) as FirecrawlV2ScrapeResponse;
+    const fcData = await fcRes.json();
 
     if (!fcRes.ok || fcData?.success === false) {
-      console.error("Firecrawl v2 scrape error:", { status: fcRes.status, fcData });
+      console.error("Firecrawl scrape error:", { status: fcRes.status, fcData });
       return new Response(
         JSON.stringify({
           error: fcData?.error || `Firecrawl request failed with status ${fcRes.status}`,
@@ -116,37 +71,63 @@ serve(async (req) => {
       );
     }
 
-    const extracted = pickJson(fcData);
-    const fallbackText = pickText(fcData);
+    // Extract markdown from response (handle nested data structure)
+    const markdown: string = fcData?.data?.markdown ?? fcData?.markdown ?? "";
+    console.log("Received markdown length:", markdown.length);
+    console.log("Markdown snippet (first 2000 chars):", markdown.substring(0, 2000));
 
     let views: number | null = null;
     let saves: number | null = null;
     let days: number | null = null;
 
-    if (extracted && typeof extracted === "object") {
-      const obj = extracted as Record<string, unknown>;
-      views = toInt(obj.views);
-      saves = toInt(obj.saves);
-      days = toInt(obj.daysOnZillow ?? obj.days);
+    // Firecrawl returns markdown like: **94 days**on Zillow|**822**views|**17**saves|
+    // Match bold markdown format: **NUMBER days**on Zillow or **NUMBER**days on Zillow
+    const daysPatterns = [
+      /\*\*(\d+)\s*days?\*\*\s*on\s*Zillow/i,
+      /\*\*(\d+)\*\*\s*days?\s*on\s*Zillow/i,
+      /(\d+)\s*days?\s*on\s*Zillow/i,
+    ];
+    
+    for (const pattern of daysPatterns) {
+      const match = markdown.match(pattern);
+      if (match) {
+        days = toInt(match[1]);
+        console.log("Found days with pattern:", pattern.toString(), "- Value:", days);
+        break;
+      }
     }
 
-    // Fallback: regex against markdown (just in case)
-    if (views === null && saves === null && days === null && fallbackText) {
-      console.log("Firecrawl JSON extraction empty; trying regex fallback.");
-
-      const daysMatch = fallbackText.match(/(\d+)\s*days?\s*on\s*Zillow/i);
-      if (daysMatch) days = toInt(daysMatch[1]);
-
-      const viewsMatch = fallbackText.match(/(\d+(?:,\d+)?)\s*views?/i);
-      if (viewsMatch) views = toInt(viewsMatch[1]);
-
-      const savesMatch = fallbackText.match(/(\d+(?:,\d+)?)\s*saves?/i);
-      if (savesMatch) saves = toInt(savesMatch[1]);
-
-      console.log("Fallback snippet:", fallbackText.substring(0, 1400));
+    // Match bold markdown format: **NUMBER**views or **NUMBER** views
+    const viewsPatterns = [
+      /\*\*(\d+(?:,\d+)?)\*\*\s*views?/i,
+      /(\d+(?:,\d+)?)\s*views?/i,
+    ];
+    
+    for (const pattern of viewsPatterns) {
+      const match = markdown.match(pattern);
+      if (match) {
+        views = toInt(match[1]);
+        console.log("Found views with pattern:", pattern.toString(), "- Value:", views);
+        break;
+      }
     }
 
-    console.log("Parsed Zillow stats:", { views, saves, days });
+    // Match bold markdown format: **NUMBER**saves or **NUMBER** saves
+    const savesPatterns = [
+      /\*\*(\d+(?:,\d+)?)\*\*\s*saves?/i,
+      /(\d+(?:,\d+)?)\s*saves?/i,
+    ];
+    
+    for (const pattern of savesPatterns) {
+      const match = markdown.match(pattern);
+      if (match) {
+        saves = toInt(match[1]);
+        console.log("Found saves with pattern:", pattern.toString(), "- Value:", saves);
+        break;
+      }
+    }
+
+    console.log("Final parsed Zillow stats:", { views, saves, days });
 
     const parseError = views === null && saves === null && days === null
       ? "Could not extract stats from page"
