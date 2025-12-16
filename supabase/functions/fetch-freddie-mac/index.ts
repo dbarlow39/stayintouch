@@ -44,23 +44,25 @@ serve(async (req) => {
     const pmmsNewsMatch = html.match(
       /<div[^>]*class="[^"]*pmms-news[^"]*"[^>]*>([\s\S]*?)<\/div>/i
     );
-    const sourceHtml = pmmsNewsMatch?.[1] || html;
-    const plainText = toPlainText(sourceHtml);
+
+    // Use FULL page text for rate parsing (the "The 30-year FRM averaged..." sentences may not be inside pmms-news)
+    const plainTextFull = toPlainText(html);
+    const plainTextNews = toPlainText(pmmsNewsMatch?.[1] || html);
 
     // Parse using Freddie Mac's stable wording patterns (matches provided sample):
     // "The 30-year FRM averaged X% ... last week when it averaged Y% ... A year ago at this time, the 30-year FRM averaged Z%"
-    // NOTE: We parse the *full* sentence block to avoid accidentally treating the "A year ago... the 30-year..." value as the current rate.
+    // NOTE: Support both "30-year FRM" and "30-year fixed-rate mortgage (FRM)" variants.
     const extractRates = (term: "30-year" | "15-year") => {
-      const blockMatch = plainText.match(
-        new RegExp(
-          [
-            `The\\s+${term}\\s+FRM\\s+averaged\\s+(\\d+(?:\\.\\d+)?)\\s*(?:%|percent)`,
-            `.{0,260}?last week when it averaged\\s+(\\d+(?:\\.\\d+)?)\\s*(?:%|percent)`,
-            `.{0,360}?A year ago at this time,\\s*the\\s+${term}\\s+FRM\\s+averaged\\s+(\\d+(?:\\.\\d+)?)\\s*(?:%|percent)`,
-          ].join("\\s"),
-          "i"
-        )
+      const rateBlockRegex = new RegExp(
+        [
+          `The\\s+${term}\\s+(?:fixed-rate\\s+mortgage\\s*\\(FRM\\)|FRM)\\s+averaged\\s+(\\d+(?:\\.\\d+)?)\\s*(?:%|percent)`,
+          `[\\s\\S]{0,260}?last week when it averaged\\s+(\\d+(?:\\.\\d+)?)\\s*(?:%|percent)`,
+          `[\\s\\S]{0,360}?A year ago at this time,\\s*the\\s+${term}\\s+(?:fixed-rate\\s+mortgage\\s*\\(FRM\\)|FRM)\\s+averaged\\s+(\\d+(?:\\.\\d+)?)\\s*(?:%|percent)`,
+        ].join(""),
+        "i"
       );
+
+      const blockMatch = plainTextFull.match(rateBlockRegex);
 
       const current = blockMatch ? parseFloat(blockMatch[1]) : undefined;
       const weekAgo = blockMatch ? parseFloat(blockMatch[2]) : undefined;
@@ -73,13 +75,13 @@ serve(async (req) => {
     const r30 = extractRates("30-year");
     const r15 = extractRates("15-year");
 
-    const ytdAvgMatch = plainText.match(
+    const ytdAvgMatch = plainTextFull.match(
       /year[- ]to[- ]date average[^0-9]{0,40}(\d+(?:\.\d+)?)\s*percent/i
     );
     const ytdAverage = ytdAvgMatch ? parseFloat(ytdAvgMatch[1]) : undefined;
 
     // Build a short "What Freddie Mac Says" snippet without AI (avoid misreads)
-    const safeText = plainText.replace(/(\d)\.(\d)/g, "$1§$2");
+    const safeText = plainTextNews.replace(/(\d)\.(\d)/g, "$1§$2");
     const headline =
       html.match(/<h[12][^>]*>\s*([^<]*Mortgage Rates[^<]*)<\/h[12]>/i)?.[1]?.trim() ||
       "";
@@ -87,7 +89,9 @@ serve(async (req) => {
       safeText.match(/Mortgage rates[^.!?]{0,260}[.!?]/i)?.[0]?.replace(/§/g, ".") ||
       "";
     const ytdSentence =
-      safeText.match(/year[- ]to[- ]date average[^.!?]{0,260}[.!?]/i)?.[0]?.replace(/§/g, ".") ||
+      safeText
+        .match(/year[- ]to[- ]date average[^.!?]{0,260}[.!?]/i)?.[0]
+        ?.replace(/§/g, ".") ||
       "";
 
     const extractedSummary = [headline, mortgageSentence, ytdSentence]
@@ -97,13 +101,13 @@ serve(async (req) => {
       .trim();
 
     const rates = {
-      mortgage_rate_30yr: r30.current,
-      mortgage_rate_30yr_week_ago: r30.weekAgo,
-      mortgage_rate_30yr_year_ago: r30.yearAgo,
-      mortgage_rate_15yr: r15.current,
-      mortgage_rate_15yr_week_ago: r15.weekAgo,
-      mortgage_rate_15yr_year_ago: r15.yearAgo,
-      year_to_date_average_30yr: ytdAverage,
+      mortgage_rate_30yr: r30.current ?? null,
+      mortgage_rate_30yr_week_ago: r30.weekAgo ?? null,
+      mortgage_rate_30yr_year_ago: r30.yearAgo ?? null,
+      mortgage_rate_15yr: r15.current ?? null,
+      mortgage_rate_15yr_week_ago: r15.weekAgo ?? null,
+      mortgage_rate_15yr_year_ago: r15.yearAgo ?? null,
+      year_to_date_average_30yr: ytdAverage ?? null,
     };
 
     const hasRates = Object.values(rates).some(
@@ -127,8 +131,11 @@ serve(async (req) => {
     }
 
     // Fallback: give AI only the most relevant text chunk
-    const pmmsIdx = plainText.toLowerCase().indexOf("primary mortgage market survey");
-    let extractedContent = pmmsIdx >= 0 ? plainText.slice(pmmsIdx, pmmsIdx + 3500) : plainText;
+    const pmmsIdx = plainTextFull.toLowerCase().indexOf("primary mortgage market survey");
+    let extractedContent =
+      pmmsIdx >= 0
+        ? plainTextFull.slice(pmmsIdx, pmmsIdx + 3500)
+        : plainTextFull;
     extractedContent = extractedContent.slice(0, 3000);
 
     console.log('Fallback extracted PMMS content length:', extractedContent.length);
