@@ -1,159 +1,170 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+type FirecrawlV2ScrapeResponse = {
+  success?: boolean;
+  error?: string;
+  code?: string;
+  data?: {
+    markdown?: string;
+    html?: string;
+    rawHtml?: string;
+    json?: unknown;
+    metadata?: unknown;
+  };
+  // Some responses may not be nested (defensive)
+  markdown?: string;
+  html?: string;
+  rawHtml?: string;
+  json?: unknown;
+  details?: unknown;
+};
+
+function pickJson(payload: FirecrawlV2ScrapeResponse): unknown {
+  return payload?.data?.json ?? payload?.json ?? null;
+}
+
+function pickText(payload: FirecrawlV2ScrapeResponse): string {
+  return payload?.data?.markdown ?? payload?.markdown ?? payload?.data?.html ?? payload?.html ?? "";
+}
+
+function toInt(value: unknown): number | null {
+  if (value === null || value === undefined) return null;
+  if (typeof value === "number" && Number.isFinite(value)) return Math.trunc(value);
+  const match = String(value).match(/[\d,]+/);
+  if (!match) return null;
+  const n = parseInt(match[0].replace(/,/g, ""), 10);
+  return Number.isFinite(n) ? n : null;
+}
+
 serve(async (req) => {
-  if (req.method === 'OPTIONS') {
+  if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
     const { zillow_url } = await req.json();
-    
-    if (!zillow_url || !zillow_url.includes('zillow.com')) {
-      console.log('Invalid or missing Zillow URL:', zillow_url);
-      return new Response(JSON.stringify({ 
-        error: 'Invalid Zillow URL',
-        views: null,
-        saves: null,
-        days: null 
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+
+    if (!zillow_url || typeof zillow_url !== "string" || !zillow_url.includes("zillow.com")) {
+      console.log("Invalid or missing Zillow URL:", zillow_url);
+      return new Response(
+        JSON.stringify({ error: "Invalid Zillow URL", views: null, saves: null, days: null }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
-    const apiKey = Deno.env.get('FIRECRAWL_API_KEY');
+    const apiKey = Deno.env.get("FIRECRAWL_API_KEY");
     if (!apiKey) {
-      console.error('FIRECRAWL_API_KEY not configured');
-      return new Response(JSON.stringify({ 
-        error: 'Firecrawl API key not configured',
-        views: null,
-        saves: null,
-        days: null 
-      }), {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      console.error("FIRECRAWL_API_KEY not configured");
+      return new Response(
+        JSON.stringify({ error: "Firecrawl API key not configured", views: null, saves: null, days: null }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
-    console.log('Fetching Zillow page via Firecrawl:', zillow_url);
+    console.log("Scraping Zillow via Firecrawl v2:", zillow_url);
 
-    // Use Firecrawl to scrape the Zillow page
-    const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
-      method: 'POST',
+    const fcRes = await fetch("https://api.firecrawl.dev/v2/scrape", {
+      method: "POST",
       headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
         url: zillow_url,
-        formats: ['markdown'],
+        // v2 supports object formats; use LLM JSON extraction directly.
+        formats: [
+          {
+            type: "json",
+            prompt:
+              "Extract Zillow listing engagement stats from the page. Return JSON with keys: views, saves, daysOnZillow. Use null if a value is not visible.",
+            schema: {
+              type: "object",
+              properties: {
+                views: { type: ["number", "null"] },
+                saves: { type: ["number", "null"] },
+                daysOnZillow: { type: ["number", "null"] },
+              },
+              required: [],
+            },
+          },
+          "markdown",
+        ],
         onlyMainContent: false,
-        waitFor: 3000, // Wait for dynamic content to load
+        waitFor: 6000,
+        maxAge: 0,
+        proxy: "auto",
       }),
     });
 
-    const firecrawlData = await response.json();
+    const fcData = (await fcRes.json()) as FirecrawlV2ScrapeResponse;
 
-    if (!response.ok || !firecrawlData.success) {
-      console.error('Firecrawl API error:', firecrawlData);
-      return new Response(JSON.stringify({ 
-        error: firecrawlData.error || `Firecrawl request failed with status ${response.status}`,
-        views: null,
-        saves: null,
-        days: null 
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+    if (!fcRes.ok || fcData?.success === false) {
+      console.error("Firecrawl v2 scrape error:", { status: fcRes.status, fcData });
+      return new Response(
+        JSON.stringify({
+          error: fcData?.error || `Firecrawl request failed with status ${fcRes.status}`,
+          views: null,
+          saves: null,
+          days: null,
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
-    // Get the markdown content from Firecrawl response
-    const markdown = firecrawlData.data?.markdown || firecrawlData.markdown || '';
-    console.log('Received markdown length:', markdown.length);
-    console.log('Markdown snippet (first 1000 chars):', markdown.substring(0, 1000));
+    const extracted = pickJson(fcData);
+    const fallbackText = pickText(fcData);
 
-    // Parse the stats from the markdown content
     let views: number | null = null;
     let saves: number | null = null;
     let days: number | null = null;
 
-    // Pattern for days on Zillow - try multiple patterns
-    const daysPatterns = [
-      /(\d+)\s*days?\s*on\s*Zillow/i,
-      /Time on Zillow[:\s]*(\d+)\s*days?/i,
-      /on Zillow\s*(\d+)\s*days?/i,
-    ];
-    
-    for (const pattern of daysPatterns) {
-      const match = markdown.match(pattern);
-      if (match) {
-        days = parseInt(match[1], 10);
-        console.log('Found days with pattern:', pattern.toString(), '- Value:', days);
-        break;
-      }
+    if (extracted && typeof extracted === "object") {
+      const obj = extracted as Record<string, unknown>;
+      views = toInt(obj.views);
+      saves = toInt(obj.saves);
+      days = toInt(obj.daysOnZillow ?? obj.days);
     }
 
-    // Pattern for views - try multiple patterns
-    const viewsPatterns = [
-      /(\d+(?:,\d+)?)\s*views?\s*(?:in|this)/i,
-      /(\d+(?:,\d+)?)\s*total\s*views?/i,
-      /(\d+(?:,\d+)?)\s*views?/i,
-    ];
-    
-    for (const pattern of viewsPatterns) {
-      const match = markdown.match(pattern);
-      if (match) {
-        views = parseInt(match[1].replace(/,/g, ''), 10);
-        console.log('Found views with pattern:', pattern.toString(), '- Value:', views);
-        break;
-      }
+    // Fallback: regex against markdown (just in case)
+    if (views === null && saves === null && days === null && fallbackText) {
+      console.log("Firecrawl JSON extraction empty; trying regex fallback.");
+
+      const daysMatch = fallbackText.match(/(\d+)\s*days?\s*on\s*Zillow/i);
+      if (daysMatch) days = toInt(daysMatch[1]);
+
+      const viewsMatch = fallbackText.match(/(\d+(?:,\d+)?)\s*views?/i);
+      if (viewsMatch) views = toInt(viewsMatch[1]);
+
+      const savesMatch = fallbackText.match(/(\d+(?:,\d+)?)\s*saves?/i);
+      if (savesMatch) saves = toInt(savesMatch[1]);
+
+      console.log("Fallback snippet:", fallbackText.substring(0, 1400));
     }
 
-    // Pattern for saves - try multiple patterns
-    const savesPatterns = [
-      /(\d+(?:,\d+)?)\s*saves?/i,
-      /saved\s*by\s*(\d+(?:,\d+)?)/i,
-      /(\d+(?:,\d+)?)\s*people\s*saved/i,
-    ];
-    
-    for (const pattern of savesPatterns) {
-      const match = markdown.match(pattern);
-      if (match) {
-        saves = parseInt(match[1].replace(/,/g, ''), 10);
-        console.log('Found saves with pattern:', pattern.toString(), '- Value:', saves);
-        break;
-      }
-    }
+    console.log("Parsed Zillow stats:", { views, saves, days });
 
-    console.log('Final parsed Zillow stats:', { views, saves, days });
-
-    // If we couldn't parse any stats, note it in the error
-    const parseError = (views === null && saves === null && days === null) 
-      ? 'Could not extract stats from page - Zillow may have changed their page structure'
+    const parseError = views === null && saves === null && days === null
+      ? "Could not extract stats from page"
       : null;
 
-    return new Response(JSON.stringify({ 
-      views, 
-      saves, 
-      days,
-      error: parseError 
-    }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    return new Response(JSON.stringify({ views, saves, days, error: parseError }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
-
   } catch (error) {
-    console.error('Error parsing Zillow:', error);
-    return new Response(JSON.stringify({ 
-      error: error instanceof Error ? error.message : 'Unknown error',
-      views: null,
-      saves: null,
-      days: null 
-    }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    console.error("Error parsing Zillow:", error);
+    return new Response(
+      JSON.stringify({
+        error: error instanceof Error ? error.message : "Unknown error",
+        views: null,
+        saves: null,
+        days: null,
+      }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
   }
 });
