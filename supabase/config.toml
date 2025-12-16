@@ -26,3 +26,6 @@ verify_jwt = true
 
 [functions.fetch-freddie-mac]
 verify_jwt = false
+
+[functions.fetch-showingtime]
+verify_jwt = false
