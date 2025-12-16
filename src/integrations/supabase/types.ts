@@ -709,6 +709,7 @@ export type Database = {
           active_homes_last_week: number | null
           agent_id: string
           created_at: string
+          freddie_mac_summary: string | null
           id: string
           inventory_change: number | null
           market_avg_dom: number
@@ -722,6 +723,7 @@ export type Database = {
           active_homes_last_week?: number | null
           agent_id: string
           created_at?: string
+          freddie_mac_summary?: string | null
           id?: string
           inventory_change?: number | null
           market_avg_dom: number
@@ -735,6 +737,7 @@ export type Database = {
           active_homes_last_week?: number | null
           agent_id?: string
           created_at?: string
+          freddie_mac_summary?: string | null
           id?: string
           inventory_change?: number | null
           market_avg_dom?: number
