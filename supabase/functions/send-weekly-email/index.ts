@@ -19,20 +19,31 @@ serve(async (req) => {
     if (!authHeader) {
       throw new Error('Unauthorized: Missing authorization header');
     }
-    
+
+    const token = authHeader.replace('Bearer ', '').trim();
+
+    // Function is configured with verify_jwt=true, so the platform already verified the JWT.
+    // We only need to extract the user id (sub) without calling the auth /user endpoint.
+    const getUserIdFromJwt = (jwt: string): string => {
+      const parts = jwt.split('.');
+      if (parts.length < 2) throw new Error('Unauthorized: Invalid token');
+
+      // base64url -> base64
+      const b64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+      const padded = b64.padEnd(b64.length + ((4 - (b64.length % 4)) % 4), '=');
+
+      const payload = JSON.parse(atob(padded));
+      if (!payload?.sub) throw new Error('Unauthorized: Invalid token');
+      return String(payload.sub);
+    };
+
+    const userId = getUserIdFromJwt(token);
+
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
       { global: { headers: { Authorization: authHeader } } }
     );
-
-    // Use getUser() without token parameter - it will use the Authorization header
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
-    
-    if (authError || !user) {
-      console.error('Authentication error:', authError);
-      throw new Error('Unauthorized: Invalid token');
-    }
 
     const requestBody = await req.json();
     
@@ -56,7 +67,7 @@ serve(async (req) => {
     const { data: profile, error: profileError } = await supabaseClient
       .from('profiles')
       .select('first_name, last_name, preferred_email')
-      .eq('id', user.id)
+      .eq('id', userId)
       .maybeSingle();
 
     if (profileError) {
@@ -111,7 +122,7 @@ serve(async (req) => {
     const { error: logError } = await supabaseClient
       .from('weekly_email_logs')
       .insert({
-        agent_id: user.id,
+        agent_id: userId,
         client_id,
         market_data_id,
         subject,
