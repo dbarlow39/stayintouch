@@ -187,6 +187,7 @@ const WeeklyUpdateTab = () => {
   const [emailTemplate, setEmailTemplate] = useState('');
   const [isTemplateOpen, setIsTemplateOpen] = useState(false);
   const [templateInitialized, setTemplateInitialized] = useState(false);
+  const [templateDirty, setTemplateDirty] = useState(false);
   const [isFetchingFreddieMac, setIsFetchingFreddieMac] = useState(false);
   const [freddieMacFetched, setFreddieMacFetched] = useState(false);
 
@@ -194,7 +195,7 @@ const WeeklyUpdateTab = () => {
   const isMasterUser = user?.id === MASTER_USER_ID;
 
   // Fetch agent profile for preferred email and saved template
-  const { data: agentProfile } = useQuery({
+  const { data: agentProfile, isLoading: loadingAgentProfile } = useQuery({
     queryKey: ["agent-profile", user?.id],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -209,7 +210,7 @@ const WeeklyUpdateTab = () => {
   });
 
   // Fetch master template
-  const { data: masterTemplate } = useQuery({
+  const { data: masterTemplate, isLoading: loadingMasterTemplate } = useQuery({
     queryKey: ["master-email-template"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -219,27 +220,35 @@ const WeeklyUpdateTab = () => {
         .limit(1)
         .maybeSingle();
       if (error) throw error;
-      return data?.template;
+      return data?.template ?? null;
     },
     enabled: !!user,
   });
 
   // Load saved email template: user's own template, or fallback to master, or generate default
   useEffect(() => {
-    if (!templateInitialized && agentProfile !== undefined) {
-      if (agentProfile?.email_template) {
-        // User has their own template
-        setEmailTemplate(agentProfile.email_template);
-      } else if (masterTemplate) {
-        // Fallback to master template
-        setEmailTemplate(masterTemplate);
-      } else {
-        // No templates exist, generate default
-        setEmailTemplate(generateSampleEmail(null, marketData));
-      }
-      setTemplateInitialized(true);
+    if (templateInitialized) return;
+    if (loadingAgentProfile || loadingMasterTemplate) return;
+
+    if (agentProfile?.email_template) {
+      setEmailTemplate(agentProfile.email_template);
+    } else if (masterTemplate) {
+      setEmailTemplate(masterTemplate);
+    } else {
+      // No templates exist, generate default
+      setEmailTemplate(generateSampleEmail(null, marketData));
     }
-  }, [agentProfile, masterTemplate, templateInitialized, marketData]);
+
+    setTemplateDirty(false);
+    setTemplateInitialized(true);
+  }, [
+    agentProfile,
+    loadingAgentProfile,
+    loadingMasterTemplate,
+    marketData,
+    masterTemplate,
+    templateInitialized,
+  ]);
 
   // Save email template to database
   const saveEmailTemplate = useMutation({
@@ -271,21 +280,25 @@ const WeeklyUpdateTab = () => {
       }
     },
     onSuccess: () => {
+      setTemplateDirty(false);
       queryClient.invalidateQueries({ queryKey: ["agent-profile", user?.id] });
       queryClient.invalidateQueries({ queryKey: ["master-email-template"] });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Template save failed", description: error.message, variant: "destructive" });
     },
   });
 
   // Auto-save template when it changes (debounced)
   useEffect(() => {
-    if (!templateInitialized || !emailTemplate) return;
-    
+    if (!templateInitialized || !emailTemplate || !templateDirty) return;
+
     const timeoutId = setTimeout(() => {
       saveEmailTemplate.mutate(emailTemplate);
     }, 2000); // Save after 2 seconds of no typing
-    
+
     return () => clearTimeout(timeoutId);
-  }, [emailTemplate, templateInitialized]);
+  }, [emailTemplate, templateDirty, templateInitialized]);
 
   // Fetch most recent market data to pre-populate form
   const { data: savedMarketData } = useQuery({
@@ -437,16 +450,6 @@ const WeeklyUpdateTab = () => {
     enabled: !!user,
   });
 
-  // Initialize email template with first client data
-  useEffect(() => {
-    if (clients && clients.length > 0 && !templateInitialized) {
-      setEmailTemplate(generateSampleEmail(clients[0]));
-      setTemplateInitialized(true);
-    } else if (!templateInitialized && !loadingClients && (!clients || clients.length === 0)) {
-      setEmailTemplate(generateSampleEmail(null));
-      setTemplateInitialized(true);
-    }
-  }, [clients, loadingClients, templateInitialized]);
 
   // Save market data mutation
   const saveMarketDataMutation = useMutation({
@@ -911,6 +914,7 @@ const WeeklyUpdateTab = () => {
                   setMarketData(updatedMarketData);
                   const firstClient = clients?.[0] || null;
                   setEmailTemplate(generateSampleEmail(firstClient, updatedMarketData));
+                  setTemplateDirty(true);
                   setIsTemplateOpen(true);
                   toast({ title: "Template updated with latest Freddie Mac rates" });
                 } catch (err) {
@@ -918,6 +922,7 @@ const WeeklyUpdateTab = () => {
                   // Still update template with current market data
                   const firstClient = clients?.[0] || null;
                   setEmailTemplate(generateSampleEmail(firstClient, marketData));
+                  setTemplateDirty(true);
                   setIsTemplateOpen(true);
                 } finally {
                   setIsFetchingFreddieMac(false);
@@ -961,18 +966,27 @@ const WeeklyUpdateTab = () => {
               <div className="space-y-4">
                 <Textarea
                   value={emailTemplate}
-                  onChange={(e) => setEmailTemplate(e.target.value)}
+                  onChange={(e) => {
+                    setEmailTemplate(e.target.value);
+                    setTemplateDirty(true);
+                  }}
                   className="min-h-[400px] font-mono text-sm"
                   placeholder="Email template prompt..."
                 />
                 <div className="flex items-center gap-3">
                   <Button 
-                    onClick={() => {
-                      saveEmailTemplate.mutate(emailTemplate);
-                      toast({ 
-                        title: isMasterUser ? "Master template saved" : "Template saved",
-                        description: isMasterUser ? "All user templates have been reset to this master template." : undefined
-                      });
+                    onClick={async () => {
+                      try {
+                        await saveEmailTemplate.mutateAsync(emailTemplate);
+                        toast({
+                          title: isMasterUser ? "Master template saved" : "Template saved",
+                          description: isMasterUser
+                            ? "All user templates have been reset to this master template."
+                            : undefined,
+                        });
+                      } catch {
+                        // handled by mutation onError
+                      }
                     }}
                     disabled={saveEmailTemplate.isPending}
                     variant="outline"
