@@ -13,7 +13,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Calendar, Send, Eye, RefreshCw, Mail, CheckCircle, AlertCircle, TrendingUp, TrendingDown, Minus, ChevronDown, FileText } from "lucide-react";
+import { Calendar, Send, Eye, RefreshCw, Mail, CheckCircle, AlertCircle, TrendingUp, TrendingDown, Minus, ChevronDown, FileText, Save } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth";
 import { format } from "date-fns";
@@ -921,6 +921,27 @@ const WeeklyUpdateTab = () => {
                   placeholder="Email template prompt..."
                 />
                 <div className="flex items-center gap-3">
+                  <Button 
+                    onClick={() => {
+                      saveEmailTemplate.mutate(emailTemplate);
+                      toast({ title: "Template saved" });
+                    }}
+                    disabled={saveEmailTemplate.isPending}
+                    variant="outline"
+                    size="sm"
+                  >
+                    {saveEmailTemplate.isPending ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="w-4 h-4 mr-2" />
+                        Save Template
+                      </>
+                    )}
+                  </Button>
                   <Button 
                     onClick={handleSendTestEmail}
                     disabled={isSendingTest}
