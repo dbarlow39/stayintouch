@@ -190,7 +190,7 @@ const WeeklyUpdateTab = () => {
   const [isFetchingFreddieMac, setIsFetchingFreddieMac] = useState(false);
   const [freddieMacFetched, setFreddieMacFetched] = useState(false);
 
-  const MASTER_USER_ID = '0859dbb2-f31d-4409-8c2f-e001706f3866';
+  const MASTER_USER_ID = '579941cc-bf37-4a75-8030-450e06c49f44';
   const isMasterUser = user?.id === MASTER_USER_ID;
 
   // Fetch agent profile for preferred email and saved template
