@@ -190,6 +190,9 @@ const WeeklyUpdateTab = () => {
   const [isFetchingFreddieMac, setIsFetchingFreddieMac] = useState(false);
   const [freddieMacFetched, setFreddieMacFetched] = useState(false);
 
+  const MASTER_USER_ID = '0859dbb2-f31d-4409-8c2f-e001706f3866';
+  const isMasterUser = user?.id === MASTER_USER_ID;
+
   // Fetch agent profile for preferred email and saved template
   const { data: agentProfile } = useQuery({
     queryKey: ["agent-profile", user?.id],
@@ -205,29 +208,71 @@ const WeeklyUpdateTab = () => {
     enabled: !!user,
   });
 
-  // Load saved email template from profile
+  // Fetch master template
+  const { data: masterTemplate } = useQuery({
+    queryKey: ["master-email-template"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("master_email_templates")
+        .select("template")
+        .order("updated_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      return data?.template;
+    },
+    enabled: !!user,
+  });
+
+  // Load saved email template: user's own template, or fallback to master, or generate default
   useEffect(() => {
-    if (agentProfile?.email_template && !templateInitialized) {
-      setEmailTemplate(agentProfile.email_template);
-      setTemplateInitialized(true);
-    } else if (!templateInitialized && agentProfile && !agentProfile.email_template) {
-      // No saved template, generate default
-      setEmailTemplate(generateSampleEmail(null, marketData));
+    if (!templateInitialized && agentProfile !== undefined) {
+      if (agentProfile?.email_template) {
+        // User has their own template
+        setEmailTemplate(agentProfile.email_template);
+      } else if (masterTemplate) {
+        // Fallback to master template
+        setEmailTemplate(masterTemplate);
+      } else {
+        // No templates exist, generate default
+        setEmailTemplate(generateSampleEmail(null, marketData));
+      }
       setTemplateInitialized(true);
     }
-  }, [agentProfile, templateInitialized, marketData]);
+  }, [agentProfile, masterTemplate, templateInitialized, marketData]);
 
   // Save email template to database
   const saveEmailTemplate = useMutation({
     mutationFn: async (template: string) => {
-      const { error } = await supabase
-        .from("profiles")
-        .update({ email_template: template })
-        .eq("id", user!.id);
-      if (error) throw error;
+      if (isMasterUser) {
+        // Master user: update master template and clear all user templates
+        // First, upsert master template (delete existing, insert new)
+        const { error: deleteError } = await supabase
+          .from("master_email_templates")
+          .delete()
+          .neq("id", "00000000-0000-0000-0000-000000000000"); // Delete all
+        if (deleteError) throw deleteError;
+
+        const { error: insertError } = await supabase
+          .from("master_email_templates")
+          .insert({ template, updated_by: user!.id });
+        if (insertError) throw insertError;
+
+        // Clear all user templates
+        const { error: clearError } = await supabase.rpc("clear_user_templates");
+        if (clearError) throw clearError;
+      } else {
+        // Regular user: save to their own profile only
+        const { error } = await supabase
+          .from("profiles")
+          .update({ email_template: template })
+          .eq("id", user!.id);
+        if (error) throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["agent-profile", user?.id] });
+      queryClient.invalidateQueries({ queryKey: ["master-email-template"] });
     },
   });
 
@@ -924,7 +969,10 @@ const WeeklyUpdateTab = () => {
                   <Button 
                     onClick={() => {
                       saveEmailTemplate.mutate(emailTemplate);
-                      toast({ title: "Template saved" });
+                      toast({ 
+                        title: isMasterUser ? "Master template saved" : "Template saved",
+                        description: isMasterUser ? "All user templates have been reset to this master template." : undefined
+                      });
                     }}
                     disabled={saveEmailTemplate.isPending}
                     variant="outline"
@@ -938,7 +986,7 @@ const WeeklyUpdateTab = () => {
                     ) : (
                       <>
                         <Save className="w-4 h-4 mr-2" />
-                        Save Template
+                        {isMasterUser ? "Save as Master Template" : "Save Template"}
                       </>
                     )}
                   </Button>

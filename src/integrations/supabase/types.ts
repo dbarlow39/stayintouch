@@ -321,6 +321,27 @@ export type Database = {
         }
         Relationships: []
       }
+      master_email_templates: {
+        Row: {
+          id: string
+          template: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          id?: string
+          template: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          id?: string
+          template?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       mls_properties: {
         Row: {
           address: string
@@ -771,6 +792,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      clear_user_templates: { Args: never; Returns: undefined }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
