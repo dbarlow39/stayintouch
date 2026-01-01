@@ -225,24 +225,34 @@ const WeeklyUpdateTab = () => {
     enabled: !!user,
   });
 
-  // Load saved email template: user's own template, or fallback to master, or generate default
+  // Load saved email template: master users always load master template; others load personal or fallback to master
   useEffect(() => {
     if (templateInitialized) return;
     if (loadingAgentProfile || loadingMasterTemplate) return;
 
-    if (agentProfile?.email_template) {
-      setEmailTemplate(agentProfile.email_template);
-    } else if (masterTemplate) {
-      setEmailTemplate(masterTemplate);
+    if (isMasterUser) {
+      // Master user always uses the master template
+      if (masterTemplate) {
+        setEmailTemplate(masterTemplate);
+      } else {
+        setEmailTemplate(generateSampleEmail(null, marketData));
+      }
     } else {
-      // No templates exist, generate default
-      setEmailTemplate(generateSampleEmail(null, marketData));
+      // Regular user: personal template first, then master, then default
+      if (agentProfile?.email_template) {
+        setEmailTemplate(agentProfile.email_template);
+      } else if (masterTemplate) {
+        setEmailTemplate(masterTemplate);
+      } else {
+        setEmailTemplate(generateSampleEmail(null, marketData));
+      }
     }
 
     setTemplateDirty(false);
     setTemplateInitialized(true);
   }, [
     agentProfile,
+    isMasterUser,
     loadingAgentProfile,
     loadingMasterTemplate,
     marketData,
