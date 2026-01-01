@@ -655,20 +655,11 @@ const WeeklyUpdateTab = () => {
     setIsSendingTest(true);
 
     try {
-      const { data: session } = await supabase.auth.getSession();
-      
-      // Use a sample client or first available client for test
-      const sampleClient = clients?.[0] || {
-        first_name: 'Test',
-        last_name: 'Client',
-        street_number: '123',
-        street_name: 'Main Street',
-        city: 'Columbus',
-        state: 'OH',
-        zip: '43215',
-      };
+      // Use agent's own name for test email so they see what their clients would receive
+      const agentFirstName = agentProfile?.first_name || 'Test';
+      const agentLastName = agentProfile?.last_name || 'Agent';
 
-      // Generate a test email using the template
+      // Generate a test email using the template with agent's own name and sample data
       const response = await supabase.functions.invoke('generate-weekly-email', {
         body: {
           template: emailTemplate,
@@ -682,13 +673,13 @@ const WeeklyUpdateTab = () => {
             price_reductions: marketData.price_reductions,
           },
           clientData: {
-            first_name: sampleClient.first_name || 'Test',
-            last_name: sampleClient.last_name || 'Client',
-            street_number: sampleClient.street_number || '123',
-            street_name: sampleClient.street_name || 'Main Street',
-            city: sampleClient.city || 'Columbus',
-            state: sampleClient.state || 'OH',
-            zip: sampleClient.zip || '43215',
+            first_name: agentFirstName,
+            last_name: agentLastName,
+            street_number: '123',
+            street_name: 'Sample Street',
+            city: 'Columbus',
+            state: 'OH',
+            zip: '43215',
             zillow_views: 1250,
             zillow_saves: 45,
             zillow_days: 28,
