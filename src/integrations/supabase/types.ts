@@ -58,6 +58,7 @@ export type Database = {
           city: string | null
           combo: string | null
           created_at: string | null
+          days_on_market: number | null
           email: string | null
           first_name: string | null
           home_phone: string | null
@@ -72,6 +73,7 @@ export type Database = {
           preferences: Json | null
           price: number | null
           showing_type: string | null
+          showings_to_date: number | null
           special_instructions: string | null
           state: string | null
           status: string | null
@@ -89,6 +91,7 @@ export type Database = {
           city?: string | null
           combo?: string | null
           created_at?: string | null
+          days_on_market?: number | null
           email?: string | null
           first_name?: string | null
           home_phone?: string | null
@@ -103,6 +106,7 @@ export type Database = {
           preferences?: Json | null
           price?: number | null
           showing_type?: string | null
+          showings_to_date?: number | null
           special_instructions?: string | null
           state?: string | null
           status?: string | null
@@ -120,6 +124,7 @@ export type Database = {
           city?: string | null
           combo?: string | null
           created_at?: string | null
+          days_on_market?: number | null
           email?: string | null
           first_name?: string | null
           home_phone?: string | null
@@ -134,6 +139,7 @@ export type Database = {
           preferences?: Json | null
           price?: number | null
           showing_type?: string | null
+          showings_to_date?: number | null
           special_instructions?: string | null
           state?: string | null
           status?: string | null

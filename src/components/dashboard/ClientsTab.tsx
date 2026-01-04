@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Upload, Pencil, Trash2, Filter, CalendarIcon } from "lucide-react";
+import { Plus, Upload, Pencil, Trash2, Filter, CalendarIcon, FileUp } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth";
 import { z } from "zod";
@@ -17,6 +17,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { format, parse } from "date-fns";
 import { cn } from "@/lib/utils";
 import logo from "@/assets/logo.jpg";
+import { InventoryImportDialog } from "./InventoryImportDialog";
 
 interface Client {
   id: string;
@@ -44,6 +45,8 @@ interface Client {
   special_instructions?: string;
   agent?: string;
   zillow_link?: string;
+  showings_to_date?: number;
+  days_on_market?: number;
 }
 
 const clientSchema = z.object({
@@ -496,6 +499,14 @@ const ClientsTab = () => {
             <Upload className="w-4 h-4 mr-2" />
             Import CSV
           </Button>
+          <InventoryImportDialog 
+            trigger={
+              <Button variant="outline" size="sm">
+                <FileUp className="w-4 h-4 mr-2" />
+                Import Inventory
+              </Button>
+            }
+          />
           <Dialog open={open} onOpenChange={(isOpen) => {
             setOpen(isOpen);
             if (!isOpen) resetForm();
