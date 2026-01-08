@@ -56,12 +56,32 @@ serve(async (req) => {
     const expectedShowingsMax = Math.floor(views / 200) * 4;
     const expectedOffers = Math.floor(expectedShowingsMax / 8);
 
+    // Check if Zillow data is available
+    const hasZillowData = client_data.zillow_views !== null && client_data.zillow_views !== undefined;
+
     // Use custom template if provided - send directly without AI regeneration
     if (customTemplate && customTemplate.trim()) {
       console.log('Using custom template directly (no AI generation)');
+      console.log('Has Zillow data:', hasZillowData);
+      
+      let processedTemplate = customTemplate;
+      
+      // If no Zillow data, remove the property performance and conversion sections
+      if (!hasZillowData) {
+        // Remove "🏠 Your Property Performance" section
+        processedTemplate = processedTemplate.replace(
+          /🏠 Your Property Performance[\s\S]*?(?=📈|🔮|💡|Please do not hesitate|Warm regards|Best regards|Sincerely|$)/gi,
+          ''
+        );
+        // Remove "📈 How Views Convert to Showings and Offers" section
+        processedTemplate = processedTemplate.replace(
+          /📈 How Views Convert to Showings and Offers[\s\S]*?(?=🔮|💡|Please do not hesitate|Warm regards|Best regards|Sincerely|$)/gi,
+          ''
+        );
+      }
       
       // Replace variables in the custom template
-      const processedTemplate = customTemplate
+      processedTemplate = processedTemplate
         .replace(/\{first_name\}/g, client_data.first_name || '')
         .replace(/\{last_name\}/g, client_data.last_name || '')
         .replace(/\{property_address\}/g, propertyAddress)
@@ -83,6 +103,9 @@ serve(async (req) => {
         .replace(/\{expected_showings_min\}/g, String(expectedShowingsMin))
         .replace(/\{expected_showings_max\}/g, String(expectedShowingsMax))
         .replace(/\{expected_offers\}/g, String(expectedOffers));
+      
+      // Clean up any double blank lines left after section removal
+      processedTemplate = processedTemplate.replace(/\n{3,}/g, '\n\n');
       
       // Extract subject and body from template (first line is subject)
       const lines = processedTemplate.split('\n');
