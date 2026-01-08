@@ -735,9 +735,12 @@ export type Database = {
           active_homes: number
           active_homes_last_week: number | null
           agent_id: string
+          article_summary: string | null
+          closed_deals: number | null
           created_at: string
           freddie_mac_summary: string | null
           id: string
+          in_contracts: number | null
           inventory_change: number | null
           market_avg_dom: number
           mortgage_rate_15yr: number | null
@@ -746,6 +749,7 @@ export type Database = {
           mortgage_rate_30yr: number | null
           mortgage_rate_30yr_week_ago: number | null
           mortgage_rate_30yr_year_ago: number | null
+          new_listings: number | null
           price_reductions: number | null
           price_trend: string
           updated_at: string
@@ -755,9 +759,12 @@ export type Database = {
           active_homes: number
           active_homes_last_week?: number | null
           agent_id: string
+          article_summary?: string | null
+          closed_deals?: number | null
           created_at?: string
           freddie_mac_summary?: string | null
           id?: string
+          in_contracts?: number | null
           inventory_change?: number | null
           market_avg_dom: number
           mortgage_rate_15yr?: number | null
@@ -766,6 +773,7 @@ export type Database = {
           mortgage_rate_30yr?: number | null
           mortgage_rate_30yr_week_ago?: number | null
           mortgage_rate_30yr_year_ago?: number | null
+          new_listings?: number | null
           price_reductions?: number | null
           price_trend: string
           updated_at?: string
@@ -775,9 +783,12 @@ export type Database = {
           active_homes?: number
           active_homes_last_week?: number | null
           agent_id?: string
+          article_summary?: string | null
+          closed_deals?: number | null
           created_at?: string
           freddie_mac_summary?: string | null
           id?: string
+          in_contracts?: number | null
           inventory_change?: number | null
           market_avg_dom?: number
           mortgage_rate_15yr?: number | null
@@ -786,6 +797,7 @@ export type Database = {
           mortgage_rate_30yr?: number | null
           mortgage_rate_30yr_week_ago?: number | null
           mortgage_rate_30yr_year_ago?: number | null
+          new_listings?: number | null
           price_reductions?: number | null
           price_trend?: string
           updated_at?: string
