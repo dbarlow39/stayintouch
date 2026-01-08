@@ -20,7 +20,7 @@ import { format } from "date-fns";
 
 const generateSampleEmail = (
   client: { first_name: string | null; last_name: string | null; street_number: string | null; street_name: string | null; city: string | null; state: string | null; zip: string | null } | null,
-  marketData?: { week_of: string; active_homes: number; active_homes_last_week: number | null; inventory_change: number | null; market_avg_dom: number; price_trend: string; price_reductions: number; mortgage_rate_30yr?: number; mortgage_rate_30yr_week_ago?: number; mortgage_rate_30yr_year_ago?: number; mortgage_rate_15yr?: number; mortgage_rate_15yr_week_ago?: number; mortgage_rate_15yr_year_ago?: number; freddie_mac_summary?: string }
+  marketData?: { week_of: string; active_homes: number; active_homes_last_week: number | null; inventory_change: number | null; market_avg_dom: number; price_trend: string; price_reductions: number; new_listings?: number; closed_deals?: number; in_contracts?: number; mortgage_rate_30yr?: number; mortgage_rate_30yr_week_ago?: number; mortgage_rate_30yr_year_ago?: number; mortgage_rate_15yr?: number; mortgage_rate_15yr_week_ago?: number; mortgage_rate_15yr_year_ago?: number; freddie_mac_summary?: string; article_summary?: string }
 ) => {
   // Use placeholders that will be replaced by the edge function for each client
   const weekOf = marketData?.week_of ? format(new Date(marketData.week_of), 'MMMM d, yyyy') : format(new Date(), 'MMMM d, yyyy');
@@ -30,6 +30,9 @@ const generateSampleEmail = (
   const avgDom = marketData?.market_avg_dom || 42;
   const priceTrend = marketData?.price_trend || 'stable';
   const priceReductions = marketData?.price_reductions || 0;
+  const newListings = marketData?.new_listings || 0;
+  const closedDeals = marketData?.closed_deals || 0;
+  const inContracts = marketData?.in_contracts || 0;
   const mortgageRate30yr = marketData?.mortgage_rate_30yr || 6.85;
   const mortgageRate30yrWeekAgo = marketData?.mortgage_rate_30yr_week_ago || 6.81;
   const mortgageRate30yrYearAgo = marketData?.mortgage_rate_30yr_year_ago || 6.67;
@@ -37,6 +40,7 @@ const generateSampleEmail = (
   const mortgageRate15yrWeekAgo = marketData?.mortgage_rate_15yr_week_ago || 6.05;
   const mortgageRate15yrYearAgo = marketData?.mortgage_rate_15yr_year_ago || 5.95;
   const freddieMacSummary = marketData?.freddie_mac_summary || 'Mortgage rates remain elevated as the Federal Reserve continues to monitor inflation. Buyers are adjusting to the current rate environment, and those who are actively searching remain motivated.';
+  const articleSummary = marketData?.article_summary;
   
   const inventoryChangeText = inventoryChange > 0 
     ? `a modest increase of ${inventoryChange} listings` 
@@ -55,17 +59,24 @@ const generateSampleEmail = (
     return `The Columbus real estate market is showing ${inventoryTrend} inventory levels with ${domContext} buyer activity and ${priceContext}. With ${activeHomes.toLocaleString()} active listings and an average of ${avgDom} days on market, conditions continue to favor ${avgDom < 45 ? 'sellers' : avgDom > 60 ? 'buyers' : 'a balanced market'}. Current mortgage rates around ${mortgageRate30yr}% are influencing buyer behavior, though serious buyers remain active in the market.`;
   };
 
+  const articleSection = articleSummary ? `\n\n📰 In The News\n\n${articleSummary}` : '';
+
   return `Subject: Weekly Market Update – {property_address}
 
 Dear {first_name},
 
-${getMarketSynopsis()}
+${getMarketSynopsis()}${articleSection}
 
 Here is this week's detailed market update to share how your property at {street_number} {street_name} is performing.
 
 📊 Columbus Market Snapshot – Week of ${weekOf}
 
 This week, the Columbus metro area has ${activeHomes.toLocaleString()} active homes on the market, compared to ${activeHomesLastWeek.toLocaleString()} last week—${inventoryChangeText}. The market average days on market currently stands at ${avgDom} days, and pricing trends remain ${priceTrend}. Approximately ${priceReductions} homes have undergone price reductions this week.
+
+📈 Market Activity
+- New Listings: ${newListings}
+- Closed Deals: ${closedDeals}
+- In Contracts: ${inContracts}
 
 🏦 Freddie Mac Mortgage Rates
 
@@ -130,6 +141,9 @@ interface MarketData {
   market_avg_dom: number;
   price_trend: 'up' | 'down' | 'stable';
   price_reductions: number;
+  new_listings: number;
+  closed_deals: number;
+  in_contracts: number;
   mortgage_rate_30yr?: number;
   mortgage_rate_30yr_week_ago?: number;
   mortgage_rate_30yr_year_ago?: number;
@@ -137,6 +151,7 @@ interface MarketData {
   mortgage_rate_15yr_week_ago?: number;
   mortgage_rate_15yr_year_ago?: number;
   freddie_mac_summary?: string;
+  article_summary?: string;
 }
 
 interface Client {
@@ -179,6 +194,9 @@ const WeeklyUpdateTab = () => {
     market_avg_dom: 0,
     price_trend: 'stable',
     price_reductions: 0,
+    new_listings: 0,
+    closed_deals: 0,
+    in_contracts: 0,
     mortgage_rate_30yr: undefined,
     mortgage_rate_30yr_week_ago: undefined,
     mortgage_rate_30yr_year_ago: undefined,
@@ -186,7 +204,11 @@ const WeeklyUpdateTab = () => {
     mortgage_rate_15yr_week_ago: undefined,
     mortgage_rate_15yr_year_ago: undefined,
     freddie_mac_summary: undefined,
+    article_summary: undefined,
   });
+  
+  const [articleText, setArticleText] = useState('');
+  const [isSummarizing, setIsSummarizing] = useState(false);
   
   const [selectedClients, setSelectedClients] = useState<Set<string>>(new Set());
   const [generatedEmails, setGeneratedEmails] = useState<Map<string, GeneratedEmail>>(new Map());
@@ -859,6 +881,36 @@ const WeeklyUpdateTab = () => {
               />
             </div>
             <div className="space-y-2">
+              <Label htmlFor="new_listings">New Listings</Label>
+              <Input
+                id="new_listings"
+                type="number"
+                value={marketData.new_listings || ''}
+                onChange={(e) => { setHasUserEdited(true); setMarketData({ ...marketData, new_listings: parseInt(e.target.value) || 0 }); }}
+                placeholder="e.g., 200"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="closed_deals">Closed Deals</Label>
+              <Input
+                id="closed_deals"
+                type="number"
+                value={marketData.closed_deals || ''}
+                onChange={(e) => { setHasUserEdited(true); setMarketData({ ...marketData, closed_deals: parseInt(e.target.value) || 0 }); }}
+                placeholder="e.g., 180"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="in_contracts">In Contracts</Label>
+              <Input
+                id="in_contracts"
+                type="number"
+                value={marketData.in_contracts || ''}
+                onChange={(e) => { setHasUserEdited(true); setMarketData({ ...marketData, in_contracts: parseInt(e.target.value) || 0 }); }}
+                placeholder="e.g., 250"
+              />
+            </div>
+            <div className="space-y-2">
               <Label htmlFor="mortgage_rate_30yr">30-Yr Rate (Current %)</Label>
               <Input
                 id="mortgage_rate_30yr"
@@ -939,6 +991,73 @@ const WeeklyUpdateTab = () => {
             )}
           </div>
           
+          {/* Article Summarization Section */}
+          <div className="mt-6 space-y-3">
+            <Label htmlFor="article_text" className="text-sm font-medium">
+              📰 Paste Real Estate Article (optional)
+            </Label>
+            <p className="text-xs text-muted-foreground">
+              Paste an article and we'll summarize it into a paragraph for your email
+            </p>
+            <Textarea
+              id="article_text"
+              value={articleText}
+              onChange={(e) => setArticleText(e.target.value)}
+              placeholder="Paste a real estate article here..."
+              className="min-h-[120px]"
+            />
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={isSummarizing || !articleText.trim()}
+                onClick={async () => {
+                  setIsSummarizing(true);
+                  try {
+                    const { data, error } = await supabase.functions.invoke('summarize-article', {
+                      body: { article: articleText },
+                    });
+                    if (error) throw error;
+                    
+                    setMarketData(prev => ({ ...prev, article_summary: data.summary }));
+                    setHasUserEdited(true);
+                    setArticleText('');
+                    toast({ title: "Article summarized", description: "Summary added to your market data" });
+                  } catch (err) {
+                    console.error('Error summarizing article:', err);
+                    toast({ title: "Error summarizing article", description: err instanceof Error ? err.message : "Unknown error", variant: "destructive" });
+                  } finally {
+                    setIsSummarizing(false);
+                  }
+                }}
+              >
+                {isSummarizing ? (
+                  <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <FileText className="w-4 h-4 mr-2" />
+                )}
+                Summarize Article
+              </Button>
+              {marketData.article_summary && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setMarketData(prev => ({ ...prev, article_summary: undefined }));
+                    setHasUserEdited(true);
+                  }}
+                >
+                  Clear Summary
+                </Button>
+              )}
+            </div>
+            {marketData.article_summary && (
+              <div className="p-3 bg-muted/50 rounded-md border">
+                <p className="text-sm font-medium mb-1">📝 Article Summary:</p>
+                <p className="text-sm text-muted-foreground">{marketData.article_summary}</p>
+              </div>
+            )}
+          </div>
           
           <div className="mt-4 flex justify-start">
             <Button
