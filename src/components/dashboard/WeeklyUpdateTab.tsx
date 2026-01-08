@@ -60,7 +60,7 @@ const generateSampleEmail = (
     return `The Columbus real estate market is showing ${inventoryTrend} inventory levels with ${domContext} buyer activity and ${priceContext}. This week we saw ${newListings} new listings hit the market, ${closedDeals} homes closed, and ${inContracts} properties went under contract. With ${activeHomes.toLocaleString()} active listings and an average of ${avgDom} days on market, conditions continue to favor ${marketBalance}. Current mortgage rates around ${mortgageRate30yr}% are influencing buyer behavior, though serious buyers remain active in the market.`;
   };
 
-  const articleSection = articleSummary ? `\n\n📰 In The News\n\n${articleSummary}` : '';
+  const articleSection = articleSummary ? `\n\n${articleSummary}` : '';
 
   return `Subject: Weekly Market Update – {property_address}
 
