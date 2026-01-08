@@ -311,18 +311,54 @@ const WeeklyUpdateTab = () => {
   }, [emailTemplate, templateDirty, templateInitialized]);
 
   // Fetch most recent market data to pre-populate form
+  // Non-master users load master user's data as default, master user loads their own
   const { data: savedMarketData } = useQuery({
-    queryKey: ["saved-market-data", user?.id],
+    queryKey: ["saved-market-data", isMasterUser ? user?.id : MASTER_USER_ID],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // First try to get the agent's own data (for master user, or for non-master who has customized)
+      if (isMasterUser) {
+        const { data, error } = await supabase
+          .from("weekly_market_data")
+          .select("*")
+          .eq("agent_id", user!.id)
+          .order("week_of", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (error) throw error;
+        return data;
+      }
+      
+      // Non-master users: first check if they have their own data for this week
+      const { data: ownData, error: ownError } = await supabase
         .from("weekly_market_data")
         .select("*")
         .eq("agent_id", user!.id)
         .order("week_of", { ascending: false })
         .limit(1)
         .maybeSingle();
-      if (error) throw error;
-      return data;
+      if (ownError) throw ownError;
+      
+      // If they have their own data, use it
+      if (ownData) {
+        return ownData;
+      }
+      
+      // Otherwise, load master user's data as default
+      const { data: masterData, error: masterError } = await supabase
+        .from("weekly_market_data")
+        .select("*")
+        .eq("agent_id", MASTER_USER_ID)
+        .order("week_of", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (masterError) throw masterError;
+      
+      // Return master data but without the id so it creates a new record when saved
+      if (masterData) {
+        return { ...masterData, id: undefined, agent_id: user!.id };
+      }
+      
+      return null;
     },
     enabled: !!user,
   });
