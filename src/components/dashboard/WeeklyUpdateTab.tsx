@@ -61,7 +61,7 @@ Dear {first_name},
 
 ${getMarketSynopsis()}
 
-As your listing agent, I wanted to provide you with this week's detailed market update and share how your property at {street_number} {street_name} is performing.
+Here is this week's detailed market update to share how your property at {street_number} {street_name} is performing.
 
 📊 Columbus Market Snapshot – Week of ${weekOf}
 
