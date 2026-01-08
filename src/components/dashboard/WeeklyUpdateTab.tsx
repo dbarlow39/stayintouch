@@ -808,7 +808,8 @@ const WeeklyUpdateTab = () => {
         </div>
       </div>
 
-      {/* Market Data Form */}
+      {/* Market Data Form - Only visible to master user */}
+      {isMasterUser && (
       <Card className="shadow-soft">
         <CardHeader>
           <CardTitle className="text-base">This Week's Market Data</CardTitle>
@@ -1112,6 +1113,7 @@ const WeeklyUpdateTab = () => {
           </div>
         </CardContent>
       </Card>
+      )}
 
       {/* Email Template Editor */}
       <Collapsible open={isTemplateOpen} onOpenChange={setIsTemplateOpen}>
