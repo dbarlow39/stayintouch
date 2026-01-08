@@ -55,8 +55,9 @@ const generateSampleEmail = (
     const inventoryTrend = inventoryChange > 10 ? 'increasing' : inventoryChange < -10 ? 'tightening' : 'steady';
     const domContext = avgDom < 30 ? 'brisk' : avgDom < 60 ? 'moderate' : 'slower';
     const priceContext = priceTrend === 'increasing' ? 'upward pressure on prices' : priceTrend === 'decreasing' ? 'softening prices' : 'stable pricing';
+    const marketBalance = avgDom < 45 ? 'sellers' : avgDom > 60 ? 'buyers' : 'a balanced market';
     
-    return `The Columbus real estate market is showing ${inventoryTrend} inventory levels with ${domContext} buyer activity and ${priceContext}. With ${activeHomes.toLocaleString()} active listings and an average of ${avgDom} days on market, conditions continue to favor ${avgDom < 45 ? 'sellers' : avgDom > 60 ? 'buyers' : 'a balanced market'}. Current mortgage rates around ${mortgageRate30yr}% are influencing buyer behavior, though serious buyers remain active in the market.`;
+    return `The Columbus real estate market is showing ${inventoryTrend} inventory levels with ${domContext} buyer activity and ${priceContext}. This week we saw ${newListings} new listings hit the market, ${closedDeals} homes closed, and ${inContracts} properties went under contract. With ${activeHomes.toLocaleString()} active listings and an average of ${avgDom} days on market, conditions continue to favor ${marketBalance}. Current mortgage rates around ${mortgageRate30yr}% are influencing buyer behavior, though serious buyers remain active in the market.`;
   };
 
   const articleSection = articleSummary ? `\n\n📰 In The News\n\n${articleSummary}` : '';
