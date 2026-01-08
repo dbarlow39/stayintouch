@@ -46,11 +46,22 @@ const generateSampleEmail = (
 
   // Template uses placeholders like {first_name}, {property_address}, etc.
   // These get replaced by the edge function for EACH client when sending
+  // Generate market synopsis based on conditions
+  const getMarketSynopsis = () => {
+    const inventoryTrend = inventoryChange > 10 ? 'increasing' : inventoryChange < -10 ? 'tightening' : 'steady';
+    const domContext = avgDom < 30 ? 'brisk' : avgDom < 60 ? 'moderate' : 'slower';
+    const priceContext = priceTrend === 'increasing' ? 'upward pressure on prices' : priceTrend === 'decreasing' ? 'softening prices' : 'stable pricing';
+    
+    return `The Columbus real estate market is showing ${inventoryTrend} inventory levels with ${domContext} buyer activity and ${priceContext}. With ${activeHomes.toLocaleString()} active listings and an average of ${avgDom} days on market, conditions continue to favor ${avgDom < 45 ? 'sellers' : avgDom > 60 ? 'buyers' : 'a balanced market'}. Current mortgage rates around ${mortgageRate30yr}% are influencing buyer behavior, though serious buyers remain active in the market.`;
+  };
+
   return `Subject: Weekly Market Update – {property_address}
 
 Dear {first_name},
 
-I hope this message finds you well. As your listing agent, I wanted to provide you with this week's market update and share how your property at {street_number} {street_name} is performing.
+${getMarketSynopsis()}
+
+As your listing agent, I wanted to provide you with this week's detailed market update and share how your property at {street_number} {street_name} is performing.
 
 📊 Columbus Market Snapshot – Week of ${weekOf}
 
