@@ -331,13 +331,18 @@ const WeeklyUpdateTab = () => {
   useEffect(() => {
     if (savedMarketData) {
       // Merge to avoid wiping Freddie Mac / mortgage fields that are held in local state
+      // Always recalculate inventory_change from active_homes and active_homes_last_week
+      const calculatedInventoryChange = savedMarketData.active_homes_last_week !== null 
+        ? savedMarketData.active_homes - savedMarketData.active_homes_last_week 
+        : null;
+      
       setMarketData((prev) => ({
         ...prev,
         id: savedMarketData.id,
         week_of: savedMarketData.week_of,
         active_homes: savedMarketData.active_homes,
         active_homes_last_week: savedMarketData.active_homes_last_week,
-        inventory_change: savedMarketData.inventory_change,
+        inventory_change: calculatedInventoryChange,
         market_avg_dom: savedMarketData.market_avg_dom,
         price_trend: savedMarketData.price_trend as 'up' | 'down' | 'stable',
         price_reductions: savedMarketData.price_reductions || 0,
