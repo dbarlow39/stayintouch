@@ -4,8 +4,9 @@ import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Users, Mail, LogOut, Calendar, Briefcase, CheckSquare, MessageSquare, Sparkles, Settings } from "lucide-react";
+import { Users, Mail, LogOut, Calendar, Briefcase, CheckSquare, MessageSquare, Sparkles, Settings, UserPlus } from "lucide-react";
 import ClientsTab from "@/components/dashboard/ClientsTab";
+import LeadsTab from "@/components/dashboard/LeadsTab";
 import WeeklyUpdateTab from "@/components/dashboard/WeeklyUpdateTab";
 import DealsTab from "@/components/dashboard/DealsTab";
 import TasksTab from "@/components/dashboard/TasksTab";
@@ -136,6 +137,10 @@ const Dashboard = () => {
                   Clients
                 </TabsTrigger>
                 <TabsTrigger value="leads">
+                  <UserPlus className="w-4 h-4 mr-2" />
+                  Leads
+                </TabsTrigger>
+                <TabsTrigger value="weekly">
                   <Calendar className="w-4 h-4 mr-2" />
                   Weekly Update
                 </TabsTrigger>
@@ -161,6 +166,9 @@ const Dashboard = () => {
                 <ClientsTab />
               </TabsContent>
               <TabsContent value="leads">
+                <LeadsTab />
+              </TabsContent>
+              <TabsContent value="weekly">
                 <WeeklyUpdateTab />
               </TabsContent>
               <TabsContent value="deals">
