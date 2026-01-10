@@ -9,9 +9,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { UserPlus, Pencil, Trash2, Phone, Mail, Asterisk } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { UserPlus, Pencil, Trash2, Phone, Mail, Asterisk, Zap, Users, Settings2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth";
+import SequenceManager from "./SequenceManager";
+import LeadEnrollmentDialog from "./LeadEnrollmentDialog";
 
 interface Lead {
   id: string;
@@ -157,13 +160,27 @@ const LeadsTab = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <Tabs defaultValue="leads" className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-semibold">Lead Management</h3>
-          <p className="text-sm text-muted-foreground">Track and manage your leads</p>
+          <h3 className="text-lg font-semibold">Lead CRM</h3>
+          <p className="text-sm text-muted-foreground">Track leads with automated follow-ups</p>
         </div>
-        <Dialog open={open} onOpenChange={(isOpen) => { setOpen(isOpen); if (!isOpen) resetForm(); }}>
+        <TabsList>
+          <TabsTrigger value="leads">
+            <Users className="w-4 h-4 mr-2" />
+            Leads
+          </TabsTrigger>
+          <TabsTrigger value="sequences">
+            <Settings2 className="w-4 h-4 mr-2" />
+            Sequences
+          </TabsTrigger>
+        </TabsList>
+      </div>
+
+      <TabsContent value="leads" className="space-y-4">
+        <div className="flex justify-end">
+          <Dialog open={open} onOpenChange={(isOpen) => { setOpen(isOpen); if (!isOpen) resetForm(); }}>
           <DialogTrigger asChild>
             <Button>
               <UserPlus className="w-4 h-4 mr-2" />
@@ -281,6 +298,7 @@ const LeadsTab = () => {
                 <TableHead>Status</TableHead>
                 <TableHead>Source</TableHead>
                 <TableHead>Created</TableHead>
+                <TableHead>Sequences</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -315,6 +333,18 @@ const LeadsTab = () => {
                   <TableCell className="text-muted-foreground">
                     {new Date(lead.created_at).toLocaleDateString()}
                   </TableCell>
+                  <TableCell>
+                    <LeadEnrollmentDialog
+                      leadId={lead.id}
+                      leadName={`${lead.first_name} ${lead.last_name}`}
+                      trigger={
+                        <Button variant="outline" size="sm">
+                          <Zap className="w-4 h-4 mr-1" />
+                          Sequences
+                        </Button>
+                      }
+                    />
+                  </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
                       <Button variant="ghost" size="sm" onClick={() => handleEdit(lead)}>
@@ -339,7 +369,12 @@ const LeadsTab = () => {
           </Table>
         </div>
       )}
-    </div>
+      </TabsContent>
+
+      <TabsContent value="sequences">
+        <SequenceManager />
+      </TabsContent>
+    </Tabs>
   );
 };
 

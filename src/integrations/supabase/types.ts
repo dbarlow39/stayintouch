@@ -282,6 +282,84 @@ export type Database = {
         }
         Relationships: []
       }
+      follow_up_sequences: {
+        Row: {
+          agent_id: string
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          agent_id: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          agent_id?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      lead_sequence_enrollments: {
+        Row: {
+          completed_at: string | null
+          current_step: number
+          enrolled_at: string
+          id: string
+          lead_id: string
+          next_send_at: string | null
+          sequence_id: string
+          status: string
+        }
+        Insert: {
+          completed_at?: string | null
+          current_step?: number
+          enrolled_at?: string
+          id?: string
+          lead_id: string
+          next_send_at?: string | null
+          sequence_id: string
+          status?: string
+        }
+        Update: {
+          completed_at?: string | null
+          current_step?: number
+          enrolled_at?: string
+          id?: string
+          lead_id?: string
+          next_send_at?: string | null
+          sequence_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_sequence_enrollments_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_sequence_enrollments_sequence_id_fkey"
+            columns: ["sequence_id"]
+            isOneToOne: false
+            referencedRelation: "follow_up_sequences"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       leads: {
         Row: {
           agent_id: string
@@ -494,6 +572,123 @@ export type Database = {
             columns: ["property_id"]
             isOneToOne: false
             referencedRelation: "mls_properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      scheduled_messages: {
+        Row: {
+          agent_id: string
+          ai_enhanced: boolean
+          channel: string
+          created_at: string
+          enrollment_id: string
+          error_message: string | null
+          id: string
+          lead_id: string
+          message_content: string | null
+          scheduled_for: string
+          sent_at: string | null
+          status: string
+          step_id: string
+          subject: string | null
+        }
+        Insert: {
+          agent_id: string
+          ai_enhanced?: boolean
+          channel: string
+          created_at?: string
+          enrollment_id: string
+          error_message?: string | null
+          id?: string
+          lead_id: string
+          message_content?: string | null
+          scheduled_for: string
+          sent_at?: string | null
+          status?: string
+          step_id: string
+          subject?: string | null
+        }
+        Update: {
+          agent_id?: string
+          ai_enhanced?: boolean
+          channel?: string
+          created_at?: string
+          enrollment_id?: string
+          error_message?: string | null
+          id?: string
+          lead_id?: string
+          message_content?: string | null
+          scheduled_for?: string
+          sent_at?: string | null
+          status?: string
+          step_id?: string
+          subject?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scheduled_messages_enrollment_id_fkey"
+            columns: ["enrollment_id"]
+            isOneToOne: false
+            referencedRelation: "lead_sequence_enrollments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scheduled_messages_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scheduled_messages_step_id_fkey"
+            columns: ["step_id"]
+            isOneToOne: false
+            referencedRelation: "sequence_steps"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sequence_steps: {
+        Row: {
+          channel: string
+          created_at: string
+          delay_days: number
+          id: string
+          message_template: string
+          sequence_id: string
+          step_order: number
+          subject: string | null
+          use_ai_enhancement: boolean
+        }
+        Insert: {
+          channel: string
+          created_at?: string
+          delay_days?: number
+          id?: string
+          message_template: string
+          sequence_id: string
+          step_order: number
+          subject?: string | null
+          use_ai_enhancement?: boolean
+        }
+        Update: {
+          channel?: string
+          created_at?: string
+          delay_days?: number
+          id?: string
+          message_template?: string
+          sequence_id?: string
+          step_order?: number
+          subject?: string | null
+          use_ai_enhancement?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sequence_steps_sequence_id_fkey"
+            columns: ["sequence_id"]
+            isOneToOne: false
+            referencedRelation: "follow_up_sequences"
             referencedColumns: ["id"]
           },
         ]
