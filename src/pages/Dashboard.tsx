@@ -138,7 +138,7 @@ const Dashboard = () => {
                 </TabsTrigger>
                 <TabsTrigger value="leads">
                   <UserPlus className="w-4 h-4 mr-2" />
-                  Leads
+                  Seller Leads
                 </TabsTrigger>
                 <TabsTrigger value="weekly">
                   <Calendar className="w-4 h-4 mr-2" />
