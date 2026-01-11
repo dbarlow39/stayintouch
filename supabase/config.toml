@@ -38,3 +38,6 @@ verify_jwt = true
 
 [functions.process-lead-followups]
 verify_jwt = true
+
+[functions.search-clients]
+verify_jwt = false
