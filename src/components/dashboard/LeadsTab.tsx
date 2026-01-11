@@ -163,13 +163,13 @@ const LeadsTab = () => {
     <Tabs defaultValue="leads" className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-semibold">Lead CRM</h3>
-          <p className="text-sm text-muted-foreground">Track leads with automated follow-ups</p>
+          <h3 className="text-lg font-semibold">Seller Lead CRM</h3>
+          <p className="text-sm text-muted-foreground">Track seller leads with automated follow-ups</p>
         </div>
         <TabsList>
           <TabsTrigger value="leads">
             <Users className="w-4 h-4 mr-2" />
-            Leads
+            Seller Leads
           </TabsTrigger>
           <TabsTrigger value="sequences">
             <Settings2 className="w-4 h-4 mr-2" />
