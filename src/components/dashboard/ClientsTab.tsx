@@ -174,8 +174,18 @@ const ClientsTab = () => {
       setOpen(false);
       resetForm();
     },
-    onError: () => {
-      toast.error("Failed to add client");
+    onError: (error: any) => {
+      // Parse database error to show helpful field-specific messages
+      const message = error?.message || '';
+      if (message.includes('invalid input syntax for type numeric')) {
+        toast.error("Invalid number format. Please check Price field - it should be a number or left empty.");
+      } else if (message.includes('violates not-null constraint')) {
+        toast.error("Missing required field. Please fill in all required fields.");
+      } else if (message.includes('duplicate key')) {
+        toast.error("A client with this information already exists.");
+      } else {
+        toast.error(`Failed to add client: ${message || 'Unknown error'}`);
+      }
     },
   });
 
@@ -201,8 +211,18 @@ const ClientsTab = () => {
       setOpen(false);
       resetForm();
     },
-    onError: () => {
-      toast.error("Failed to update client");
+    onError: (error: any) => {
+      // Parse database error to show helpful field-specific messages
+      const message = error?.message || '';
+      if (message.includes('invalid input syntax for type numeric')) {
+        toast.error("Invalid number format. Please check Price field - it should be a number or left empty.");
+      } else if (message.includes('violates not-null constraint')) {
+        toast.error("Missing required field. Please fill in all required fields.");
+      } else if (message.includes('duplicate key')) {
+        toast.error("A client with this information already exists.");
+      } else {
+        toast.error(`Failed to update client: ${message || 'Unknown error'}`);
+      }
     },
   });
 
