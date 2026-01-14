@@ -156,9 +156,11 @@ const ClientsTab = () => {
         agent_id: user!.id,
       };
       
-      // Convert price to number if it exists
-      if (submitData.price) {
+      // Convert price to number if it exists, otherwise set to null
+      if (submitData.price && submitData.price !== '') {
         submitData.price = parseFloat(submitData.price);
+      } else {
+        submitData.price = null;
       }
       
       const { error } = await supabase.from("clients").insert(submitData);
@@ -181,9 +183,11 @@ const ClientsTab = () => {
     mutationFn: async ({ id, data }: { id: string; data: typeof formData }) => {
       const submitData: any = { ...data };
       
-      // Convert price to number if it exists
-      if (submitData.price) {
+      // Convert price to number if it exists, otherwise set to null
+      if (submitData.price && submitData.price !== '') {
         submitData.price = parseFloat(submitData.price);
+      } else {
+        submitData.price = null;
       }
       
       const { error } = await supabase.from("clients").update(submitData).eq("id", id);
