@@ -483,6 +483,14 @@ const WeeklyUpdateTab = () => {
             new_listings: data.new_listings,
             closed_deals: data.closed_deals,
             in_contracts: data.in_contracts,
+            article_summary: data.article_summary || null,
+            freddie_mac_summary: data.freddie_mac_summary || null,
+            mortgage_rate_30yr: data.mortgage_rate_30yr || null,
+            mortgage_rate_30yr_week_ago: data.mortgage_rate_30yr_week_ago || null,
+            mortgage_rate_30yr_year_ago: data.mortgage_rate_30yr_year_ago || null,
+            mortgage_rate_15yr: data.mortgage_rate_15yr || null,
+            mortgage_rate_15yr_week_ago: data.mortgage_rate_15yr_week_ago || null,
+            mortgage_rate_15yr_year_ago: data.mortgage_rate_15yr_year_ago || null,
           })
           .eq("id", data.id);
         if (error) throw error;
@@ -502,6 +510,14 @@ const WeeklyUpdateTab = () => {
             new_listings: data.new_listings,
             closed_deals: data.closed_deals,
             in_contracts: data.in_contracts,
+            article_summary: data.article_summary || null,
+            freddie_mac_summary: data.freddie_mac_summary || null,
+            mortgage_rate_30yr: data.mortgage_rate_30yr || null,
+            mortgage_rate_30yr_week_ago: data.mortgage_rate_30yr_week_ago || null,
+            mortgage_rate_30yr_year_ago: data.mortgage_rate_30yr_year_ago || null,
+            mortgage_rate_15yr: data.mortgage_rate_15yr || null,
+            mortgage_rate_15yr_week_ago: data.mortgage_rate_15yr_week_ago || null,
+            mortgage_rate_15yr_year_ago: data.mortgage_rate_15yr_year_ago || null,
           });
         if (error) throw error;
       }
@@ -524,7 +540,7 @@ const WeeklyUpdateTab = () => {
     }, 1500);
     
     return () => clearTimeout(timer);
-  }, [marketData.week_of, marketData.active_homes, marketData.active_homes_last_week, marketData.market_avg_dom, marketData.price_trend, marketData.price_reductions, marketData.new_listings, marketData.closed_deals, marketData.in_contracts, hasUserEdited]);
+  }, [marketData.week_of, marketData.active_homes, marketData.active_homes_last_week, marketData.market_avg_dom, marketData.price_trend, marketData.price_reductions, marketData.new_listings, marketData.closed_deals, marketData.in_contracts, marketData.article_summary, hasUserEdited]);
 
   // Calculate inventory change when active_homes changes
   useEffect(() => {
