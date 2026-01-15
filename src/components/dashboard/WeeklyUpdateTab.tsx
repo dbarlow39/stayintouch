@@ -469,6 +469,9 @@ const WeeklyUpdateTab = () => {
             market_avg_dom: data.market_avg_dom,
             price_trend: data.price_trend,
             price_reductions: data.price_reductions,
+            new_listings: data.new_listings,
+            closed_deals: data.closed_deals,
+            in_contracts: data.in_contracts,
           })
           .eq("id", data.id);
         if (error) throw error;
@@ -485,6 +488,9 @@ const WeeklyUpdateTab = () => {
             market_avg_dom: data.market_avg_dom,
             price_trend: data.price_trend,
             price_reductions: data.price_reductions,
+            new_listings: data.new_listings,
+            closed_deals: data.closed_deals,
+            in_contracts: data.in_contracts,
           });
         if (error) throw error;
       }
@@ -507,7 +513,7 @@ const WeeklyUpdateTab = () => {
     }, 1500);
     
     return () => clearTimeout(timer);
-  }, [marketData.week_of, marketData.active_homes, marketData.active_homes_last_week, marketData.market_avg_dom, marketData.price_trend, marketData.price_reductions, hasUserEdited]);
+  }, [marketData.week_of, marketData.active_homes, marketData.active_homes_last_week, marketData.market_avg_dom, marketData.price_trend, marketData.price_reductions, marketData.new_listings, marketData.closed_deals, marketData.in_contracts, hasUserEdited]);
 
   // Calculate inventory change when active_homes changes
   useEffect(() => {
