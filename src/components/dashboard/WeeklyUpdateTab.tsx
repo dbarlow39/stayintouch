@@ -416,6 +416,17 @@ const WeeklyUpdateTab = () => {
         market_avg_dom: savedMarketData.market_avg_dom,
         price_trend: savedMarketData.price_trend as 'up' | 'down' | 'stable',
         price_reductions: savedMarketData.price_reductions || 0,
+        new_listings: savedMarketData.new_listings || 0,
+        closed_deals: savedMarketData.closed_deals || 0,
+        in_contracts: savedMarketData.in_contracts || 0,
+        freddie_mac_summary: savedMarketData.freddie_mac_summary || prev.freddie_mac_summary,
+        mortgage_rate_30yr: savedMarketData.mortgage_rate_30yr || prev.mortgage_rate_30yr,
+        mortgage_rate_30yr_week_ago: savedMarketData.mortgage_rate_30yr_week_ago || prev.mortgage_rate_30yr_week_ago,
+        mortgage_rate_30yr_year_ago: savedMarketData.mortgage_rate_30yr_year_ago || prev.mortgage_rate_30yr_year_ago,
+        mortgage_rate_15yr: savedMarketData.mortgage_rate_15yr || prev.mortgage_rate_15yr,
+        mortgage_rate_15yr_week_ago: savedMarketData.mortgage_rate_15yr_week_ago || prev.mortgage_rate_15yr_week_ago,
+        mortgage_rate_15yr_year_ago: savedMarketData.mortgage_rate_15yr_year_ago || prev.mortgage_rate_15yr_year_ago,
+        article_summary: savedMarketData.article_summary || prev.article_summary,
       }));
     }
   }, [savedMarketData]);
