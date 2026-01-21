@@ -11,6 +11,7 @@ import { formatCurrency } from "@/utils/estimatedNetCalculations";
 import { PropertyData, EstimatedNetProperty } from "@/types/estimatedNet";
 import PropertyInputForm from "./estimatedNet/PropertyInputForm";
 import ClosingCostsView from "./estimatedNet/ClosingCostsView";
+import OfferLetterView from "./estimatedNet/OfferLetterView";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,7 +23,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-type ViewState = 'list' | 'form' | 'results';
+type ViewState = 'list' | 'form' | 'results' | 'offer-letter';
 
 const EstimatedNetTab = () => {
   const { user } = useAuth();
@@ -196,6 +197,19 @@ const EstimatedNetTab = () => {
         propertyId={currentPropertyId}
         onBack={handleBackToList}
         onEdit={handleEditEstimate}
+        onNavigate={(view) => setViewState(view as ViewState)}
+      />
+    );
+  }
+
+  if (viewState === 'offer-letter' && currentPropertyData && currentPropertyId) {
+    return (
+      <OfferLetterView
+        propertyData={currentPropertyData}
+        propertyId={currentPropertyId}
+        onBack={handleBackToList}
+        onEdit={handleEditEstimate}
+        onNavigate={(view) => setViewState(view as ViewState)}
       />
     );
   }
