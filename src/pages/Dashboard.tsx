@@ -8,7 +8,7 @@ import { Users, Mail, LogOut, Calendar, Briefcase, CheckSquare, MessageSquare, S
 import ClientsTab from "@/components/dashboard/ClientsTab";
 import LeadsTab from "@/components/dashboard/LeadsTab";
 import WeeklyUpdateTab from "@/components/dashboard/WeeklyUpdateTab";
-import DealsTab from "@/components/dashboard/DealsTab";
+import EstimatedNetTab from "@/components/dashboard/EstimatedNetTab";
 import TasksTab from "@/components/dashboard/TasksTab";
 import SMSTab from "@/components/dashboard/SMSTab";
 import SmartAssistantTab from "@/components/dashboard/SmartAssistantTab";
@@ -172,7 +172,7 @@ const Dashboard = () => {
                 <WeeklyUpdateTab />
               </TabsContent>
               <TabsContent value="deals">
-                <DealsTab />
+                <EstimatedNetTab />
               </TabsContent>
               <TabsContent value="tasks">
                 <TasksTab />
