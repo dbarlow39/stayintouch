@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { PropertyData } from "@/types/estimatedNet";
-import { ArrowLeft, Download, List, Mail, Calendar, FileText, ArrowRight, Copy, DollarSign } from "lucide-react";
+import { ArrowLeft, Download, List, Mail, Calendar, FileText, ArrowRight, Copy, DollarSign, ClipboardList } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import logo from "@/assets/logo.jpg";
 
@@ -125,7 +125,7 @@ const OfferLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate 
     },
     {
       label: "Offer Summary",
-      icon: FileText,
+      icon: ClipboardList,
       onClick: () => onNavigate('offer-summary'),
     },
     {
