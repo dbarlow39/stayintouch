@@ -119,6 +119,11 @@ const OfferSummaryView = ({ propertyData, propertyId, onBack, onEdit, onNavigate
       onClick: onBack,
     },
     {
+      label: "Estimated Net",
+      icon: Download,
+      onClick: () => onNavigate('results'),
+    },
+    {
       label: "Offer Summary",
       icon: ArrowRight,
       onClick: () => {},
@@ -158,11 +163,6 @@ const OfferSummaryView = ({ propertyData, propertyId, onBack, onEdit, onNavigate
       icon: Mail,
       onClick: () => {},
       disabled: true,
-    },
-    {
-      label: "Estimated Net",
-      icon: Download,
-      onClick: () => onNavigate('results'),
     },
   ];
 
