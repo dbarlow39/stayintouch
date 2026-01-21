@@ -142,11 +142,12 @@ const ClosingCostsView = ({ propertyData, propertyId, onBack, onEdit }: ClosingC
         </div>
         
         <div className="max-w-4xl">
-          <div className="pdf-content" id="closing-costs-content">
+          <div className="pdf-content p-6" id="closing-costs-content">
             <style dangerouslySetInnerHTML={{ __html: `
               @media print, (min-width: 0px) {
                 .pdf-content {
                   font-size: 15px !important;
+                  padding: 24px 28px !important;
                 }
                 .pdf-content h1 {
                   font-size: 31px !important;
@@ -166,7 +167,7 @@ const ClosingCostsView = ({ propertyData, propertyId, onBack, onEdit }: ClosingC
                   padding-bottom: 6px !important;
                 }
                 .pdf-content .card-content {
-                  padding: 22px !important;
+                  padding: 24px 28px !important;
                 }
                 .pdf-content .header-section {
                   margin-bottom: 14px !important;
