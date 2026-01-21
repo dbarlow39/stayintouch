@@ -162,8 +162,7 @@ const OfferLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate 
     {
       label: "Offer Summary",
       icon: ArrowRight,
-      onClick: () => {},
-      disabled: true,
+      onClick: () => onNavigate('offer-summary'),
     },
   ];
 
