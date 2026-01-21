@@ -125,7 +125,7 @@ const OfferSummaryView = ({ propertyData, propertyId, onBack, onEdit, onNavigate
     },
     {
       label: "Offer Summary",
-      icon: ArrowRight,
+      icon: FileText,
       onClick: () => {},
       active: true,
     },
