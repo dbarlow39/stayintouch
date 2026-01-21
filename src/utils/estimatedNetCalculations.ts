@@ -26,10 +26,10 @@ export function calculateClosingCosts(data: PropertyData): ClosingCostData {
   
   // Title insurance calculation with tiered rates
   const titleInsurance = Math.round(
-    Math.min(offerPrice, 150000) * 6.75 / 1000 +
-    Math.max(Math.min(offerPrice - 150000, 100000), 0) * 5.25 / 1000 +
-    Math.max(Math.min(offerPrice - 250000, 250000), 0) * 4.25 / 1000 +
-    Math.max(offerPrice - 500000, 0) * 3.75 / 1000
+    Math.min(offerPrice, 150000) * 7.00 / 1000 +
+    Math.max(Math.min(offerPrice - 150000, 100000), 0) * 5.50 / 1000 +
+    Math.max(Math.min(offerPrice - 250000, 250000), 0) * 4.50 / 1000 +
+    Math.max(offerPrice - 500000, 0) * 4.00 / 1000
   );
   
   // Calculate estimated net: offer price minus all costs
