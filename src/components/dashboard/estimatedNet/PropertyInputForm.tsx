@@ -1,0 +1,1116 @@
+import { useState, useEffect, useRef } from "react";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { PropertyData } from "@/types/estimatedNet";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+
+interface PropertyInputFormProps {
+  editingId: string | null;
+  onSave: (propertyId: string, propertyData: PropertyData) => void;
+  onCancel: () => void;
+}
+
+const PropertyInputForm = ({ editingId, onSave, onCancel }: PropertyInputFormProps) => {
+  const { toast } = useToast();
+  const [loading, setLoading] = useState(false);
+  const [lookingUp, setLookingUp] = useState(false);
+  const formRef = useRef<HTMLFormElement>(null);
+  const [formData, setFormData] = useState<PropertyData>({
+    name: "",
+    sellerPhone: "",
+    sellerEmail: "",
+    streetAddress: "",
+    city: "",
+    state: "OH",
+    zip: "",
+    offerPrice: 0,
+    firstMortgage: 0,
+    secondMortgage: 0,
+    listingAgentCommission: 1,
+    buyerAgentCommission: 3,
+    closingCost: 0,
+    typeOfLoan: "Conventional",
+    loanAppTimeFrame: "7",
+    loanCommitment: "",
+    preApprovalDays: 0,
+    homeWarranty: 0,
+    homeWarrantyCompany: "",
+    deposit: 1000,
+    depositCollection: "Within 3 Days of Acceptance",
+    inContract: "",
+    closingDate: "",
+    possession: "",
+    finalWalkThrough: "48 hours prior to close",
+    respondToOfferBy: "",
+    inspectionDays: 7,
+    remedyPeriodDays: 2,
+    annualTaxes: 0,
+    firstHalfPaid: false,
+    secondHalfPaid: false,
+    taxDaysDueThisYear: 0,
+    daysFirstHalfTaxes: 0,
+    daysSecondHalfTaxes: 0,
+    agentName: "",
+    agentContact: "",
+    agentEmail: "",
+    listingAgentName: "",
+    listingAgentPhone: "",
+    listingAgentEmail: "",
+    adminFee: 499,
+    appliances: "",
+    notes: ""
+  });
+  const [propertyMatches, setPropertyMatches] = useState<any[]>([]);
+  const [selectedPropertyId, setSelectedPropertyId] = useState<string>("");
+  const [clientSuggestions, setClientSuggestions] = useState<any[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const autocompleteTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Helper function to convert text to title case
+  const toTitleCase = (text: string): string => {
+    if (!text) return text;
+    return text
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ');
+  };
+
+  // Load property data if editing
+  useEffect(() => {
+    const loadData = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      if (editingId) {
+        await loadProperty(editingId);
+      } else {
+        await loadUserDefaults(session.user.id);
+      }
+    };
+
+    loadData();
+  }, [editingId]);
+
+  const loadUserDefaults = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("first_name, last_name, cell_phone, preferred_email")
+        .eq("id", userId)
+        .single();
+
+      if (error && error.code !== 'PGRST116') {
+        throw error;
+      }
+
+      if (data) {
+        const fullName = [data.first_name, data.last_name].filter(Boolean).join(' ');
+        setFormData(prev => ({
+          ...prev,
+          listingAgentName: fullName || "",
+          listingAgentPhone: data.cell_phone || "",
+          listingAgentEmail: data.preferred_email || "",
+        }));
+      }
+    } catch (error: any) {
+      console.error("Error loading user defaults:", error);
+    }
+  };
+
+  const loadProperty = async (id: string) => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from("estimated_net_properties")
+        .select("*")
+        .eq("id", id)
+        .single();
+
+      if (error) throw error;
+
+      if (data) {
+        setFormData({
+          name: data.name,
+          sellerPhone: data.seller_phone || "",
+          sellerEmail: data.seller_email || "",
+          streetAddress: data.street_address,
+          city: data.city,
+          state: data.state,
+          zip: data.zip,
+          offerPrice: Number(data.offer_price),
+          firstMortgage: Number(data.first_mortgage),
+          secondMortgage: Number(data.second_mortgage),
+          listingAgentCommission: Number(data.listing_agent_commission),
+          buyerAgentCommission: Number(data.buyer_agent_commission),
+          closingCost: Number(data.closing_cost),
+          typeOfLoan: data.type_of_loan || "Conventional",
+          loanAppTimeFrame: data.loan_app_time_frame || "",
+          loanCommitment: data.loan_commitment || "",
+          preApprovalDays: data.pre_approval_days ?? 0,
+          homeWarranty: Number(data.home_warranty),
+          homeWarrantyCompany: data.home_warranty_company || "",
+          deposit: Number(data.deposit),
+          depositCollection: data.deposit_collection || "Within 3 Days of Acceptance",
+          inContract: data.in_contract || "",
+          closingDate: data.closing_date || "",
+          possession: data.possession || "",
+          finalWalkThrough: data.final_walk_through || "48 hours prior to close",
+          respondToOfferBy: data.respond_to_offer_by || "",
+          inspectionDays: data.inspection_days || 0,
+          remedyPeriodDays: data.remedy_period_days || 0,
+          annualTaxes: Number(data.annual_taxes),
+          firstHalfPaid: data.first_half_paid,
+          secondHalfPaid: data.second_half_paid,
+          taxDaysDueThisYear: data.tax_days_due_this_year || 0,
+          daysFirstHalfTaxes: data.days_first_half_taxes || 0,
+          daysSecondHalfTaxes: data.days_second_half_taxes || 0,
+          agentName: data.agent_name || "",
+          agentContact: data.agent_contact || "",
+          agentEmail: data.agent_email || "",
+          listingAgentName: data.listing_agent_name || "",
+          listingAgentPhone: data.listing_agent_phone || "",
+          listingAgentEmail: data.listing_agent_email || "",
+          adminFee: Number(data.admin_fee),
+          appliances: data.appliances || "",
+          notes: data.notes || "",
+        });
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error loading property",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
+      const taxDaysDue = calculateTaxDaysDue();
+      
+      const propertyData = {
+        agent_id: user.id,
+        name: formData.name,
+        seller_phone: formData.sellerPhone || null,
+        seller_email: formData.sellerEmail || null,
+        street_address: formData.streetAddress,
+        city: formData.city,
+        state: formData.state,
+        zip: formData.zip,
+        offer_price: Number(formData.offerPrice) || 0,
+        first_mortgage: Number(formData.firstMortgage) || 0,
+        second_mortgage: Number(formData.secondMortgage) || 0,
+        listing_agent_commission: Number(formData.listingAgentCommission) || 0,
+        buyer_agent_commission: Number(formData.buyerAgentCommission) || 0,
+        closing_cost: Number(formData.closingCost) || 0,
+        type_of_loan: formData.typeOfLoan,
+        loan_app_time_frame: formData.loanAppTimeFrame || null,
+        loan_commitment: formData.loanCommitment || null,
+        pre_approval_days: Number(formData.preApprovalDays) || 0,
+        home_warranty: Number(formData.homeWarranty) || 0,
+        home_warranty_company: formData.homeWarrantyCompany,
+        deposit: Number(formData.deposit) || 0,
+        deposit_collection: formData.depositCollection,
+        in_contract: formData.inContract || null,
+        closing_date: formData.closingDate || null,
+        possession: formData.possession || null,
+        final_walk_through: formData.finalWalkThrough || null,
+        respond_to_offer_by: formData.respondToOfferBy || null,
+        inspection_days: Number(formData.inspectionDays) || 0,
+        remedy_period_days: Number(formData.remedyPeriodDays) || 0,
+        annual_taxes: Number(formData.annualTaxes) || 0,
+        first_half_paid: formData.firstHalfPaid,
+        second_half_paid: formData.secondHalfPaid,
+        tax_days_due_this_year: taxDaysDue,
+        days_first_half_taxes: Number(formData.daysFirstHalfTaxes) || 0,
+        days_second_half_taxes: Number(formData.daysSecondHalfTaxes) || 0,
+        agent_name: formData.agentName,
+        agent_contact: formData.agentContact,
+        agent_email: formData.agentEmail,
+        listing_agent_name: formData.listingAgentName,
+        listing_agent_phone: formData.listingAgentPhone,
+        listing_agent_email: formData.listingAgentEmail,
+        admin_fee: Number(formData.adminFee) || 0,
+        appliances: formData.appliances,
+        notes: formData.notes,
+      };
+
+      let savedId: string;
+
+      if (editingId) {
+        const { error } = await supabase
+          .from("estimated_net_properties")
+          .update(propertyData)
+          .eq("id", editingId);
+
+        if (error) throw error;
+        savedId = editingId;
+      } else {
+        const { data, error } = await supabase
+          .from("estimated_net_properties")
+          .insert(propertyData)
+          .select()
+          .single();
+
+        if (error) throw error;
+        savedId = data.id;
+      }
+
+      const updatedFormData = {
+        ...formData,
+        taxDaysDueThisYear: taxDaysDue,
+      };
+
+      onSave(savedId, updatedFormData);
+    } catch (error: any) {
+      toast({
+        title: "Error saving property",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const updateField = (field: keyof PropertyData, value: any) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  // Search Stay in Touch clients database
+  const searchClients = async (query: string) => {
+    try {
+      const { data, error } = await supabase.functions.invoke('search-clients', {
+        body: { searchQuery: query }
+      });
+
+      if (error) {
+        console.error('Client search error:', error);
+        return [];
+      }
+
+      return data?.clients || [];
+    } catch (error) {
+      console.error('Error searching clients:', error);
+      return [];
+    }
+  };
+
+  const handleAddressAutocomplete = async () => {
+    if (!formData.streetAddress || formData.streetAddress.trim().length < 3) {
+      setClientSuggestions([]);
+      return;
+    }
+
+    try {
+      const clientResults = await searchClients(formData.streetAddress);
+      setClientSuggestions(clientResults);
+
+      if (clientResults.length > 0) {
+        setShowSuggestions(true);
+      }
+    } catch (error) {
+      console.error('Error in autocomplete:', error);
+    }
+  };
+
+  // Handle selecting a client from Stay in Touch
+  const handleSelectClient = async (client: any) => {
+    setFormData(prev => ({
+      ...prev,
+      name: client.name || `${client.firstName} ${client.lastName}`.trim(),
+      streetAddress: client.streetAddress || `${client.streetNumber} ${client.streetName}`.trim(),
+      city: client.city,
+      state: client.state,
+      zip: client.zip,
+      sellerPhone: client.phone || "",
+      sellerEmail: client.email || "",
+    }));
+    
+    setShowSuggestions(false);
+    setClientSuggestions([]);
+    setLookingUp(true);
+
+    // Look up property details using lookup-property edge function
+    try {
+      const { data, error } = await supabase.functions.invoke('lookup-property', {
+        body: {
+          address: client.streetAddress || `${client.streetNumber} ${client.streetName}`.trim(),
+          city: client.city,
+          state: client.state,
+          zip: client.zip,
+        }
+      });
+
+      if (!error && data?.matches?.length > 0) {
+        const property = data.matches[0];
+        
+        setFormData(prev => ({
+          ...prev,
+          annualTaxes: property.taxes?.annual || prev.annualTaxes,
+        }));
+
+        toast({
+          title: "Client & Property Found!",
+          description: `Loaded ${client.name || `${client.firstName} ${client.lastName}`} from Stay in Touch`,
+        });
+      } else {
+        toast({
+          title: "Client Loaded",
+          description: `${client.name || `${client.firstName} ${client.lastName}`} from Stay in Touch`,
+        });
+      }
+    } catch (error: any) {
+      console.error('Error looking up property:', error);
+      toast({
+        title: "Client Loaded",
+        description: `${client.name || `${client.firstName} ${client.lastName}`} from Stay in Touch`,
+      });
+    } finally {
+      setLookingUp(false);
+    }
+  };
+
+  // Autocomplete effect with debouncing
+  useEffect(() => {
+    if (autocompleteTimeoutRef.current) {
+      clearTimeout(autocompleteTimeoutRef.current);
+    }
+
+    if (formData.streetAddress.trim().length >= 3 && !editingId) {
+      autocompleteTimeoutRef.current = setTimeout(() => {
+        handleAddressAutocomplete();
+      }, 300);
+    } else if (formData.streetAddress.trim().length < 3) {
+      setClientSuggestions([]);
+      setShowSuggestions(false);
+    }
+
+    return () => {
+      if (autocompleteTimeoutRef.current) {
+        clearTimeout(autocompleteTimeoutRef.current);
+      }
+    };
+  }, [formData.streetAddress, editingId]);
+
+  // Calculate tax days due this year based on closing date
+  const calculateTaxDaysDue = () => {
+    if (!formData.closingDate) return 0;
+    
+    const closingDate = new Date(formData.closingDate);
+    const startOfYear = new Date(closingDate.getFullYear(), 0, 1);
+    const daysDifference = Math.floor((closingDate.getTime() - startOfYear.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+    
+    return daysDifference;
+  };
+
+  const taxDaysDue = calculateTaxDaysDue();
+  const taxesDueAmount = Math.round((formData.annualTaxes / 365) * taxDaysDue);
+
+  const handleAcceptAddress = () => {
+    const selectedIndex = parseInt(selectedPropertyId);
+    if (isNaN(selectedIndex) || !propertyMatches[selectedIndex]) return;
+    const selectedProperty = propertyMatches[selectedIndex];
+
+    setFormData(prev => ({
+      ...prev,
+      name: selectedProperty.owner ? toTitleCase(selectedProperty.owner) : prev.name,
+      streetAddress: selectedProperty.address?.street ? toTitleCase(selectedProperty.address.street) : prev.streetAddress,
+      city: selectedProperty.address?.city ? toTitleCase(selectedProperty.address.city) : prev.city,
+      state: selectedProperty.address?.state || prev.state,
+      zip: selectedProperty.address?.zip || prev.zip,
+      annualTaxes: selectedProperty.taxes?.annual || prev.annualTaxes,
+    }));
+
+    toast({
+      title: "Property Found!",
+      description: "Property information loaded successfully",
+    });
+
+    setPropertyMatches([]);
+    setSelectedPropertyId("");
+  };
+
+  const handleRejectAddress = () => {
+    setPropertyMatches([]);
+    setSelectedPropertyId("");
+  };
+
+  return (
+    <div className="max-w-5xl mx-auto">
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h2 className="text-2xl font-bold text-foreground">
+            {editingId ? "Edit Property" : "Property Information"}
+          </h2>
+          <p className="text-muted-foreground">Enter property and offer details</p>
+        </div>
+        <Button variant="outline" onClick={onCancel}>
+          Cancel
+        </Button>
+      </div>
+
+      <form ref={formRef} onSubmit={handleSubmit}>
+        <Card className="p-6 mb-6">
+          <h3 className="text-xl font-semibold mb-4 text-foreground">Seller(s) & Property Details</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="md:col-span-2">
+              <Label htmlFor="streetAddress">
+                Street Address
+                {lookingUp && <span className="text-muted-foreground text-xs ml-2">(loading property details...)</span>}
+              </Label>
+              <div className="relative">
+                <Input
+                  id="streetAddress"
+                  value={formData.streetAddress}
+                  onChange={(e) => {
+                    updateField("streetAddress", e.target.value);
+                    if (e.target.value.length >= 3) {
+                      setShowSuggestions(true);
+                    }
+                  }}
+                  onFocus={() => {
+                    if (clientSuggestions.length > 0) {
+                      setShowSuggestions(true);
+                    }
+                  }}
+                  onBlur={() => {
+                    setTimeout(() => setShowSuggestions(false), 200);
+                  }}
+                  required
+                  placeholder="Start typing a name or address..."
+                  autoComplete="off"
+                />
+                {showSuggestions && clientSuggestions.length > 0 && (
+                  <div className="absolute z-50 w-full mt-1 bg-popover border border-border rounded-md shadow-lg max-h-80 overflow-auto">
+                    <div className="px-3 py-1.5 text-xs font-semibold text-muted-foreground bg-muted border-b border-border">
+                      Stay in Touch Clients
+                    </div>
+                    {clientSuggestions.map((client, idx) => (
+                      <div
+                        key={`client-${idx}`}
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          handleSelectClient(client);
+                        }}
+                        className="px-3 py-2 cursor-pointer hover:bg-accent transition-colors border-b border-border"
+                      >
+                        <div className="text-sm font-medium text-primary">
+                          {client.name || `${client.firstName} ${client.lastName}`}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {client.streetAddress}, {client.city}, {client.state} {client.zip}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+            <div>
+              <Label htmlFor="city">City</Label>
+              <Input
+                id="city"
+                value={formData.city}
+                onChange={(e) => updateField("city", e.target.value)}
+                required
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <Label htmlFor="state">State</Label>
+                <Input
+                  id="state"
+                  value={formData.state}
+                  onChange={(e) => updateField("state", e.target.value)}
+                  maxLength={2}
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="zip">Zip</Label>
+                <Input
+                  id="zip"
+                  value={formData.zip}
+                  onChange={(e) => updateField("zip", e.target.value)}
+                  required
+                />
+              </div>
+            </div>
+            <div className="md:col-span-2">
+              <Label htmlFor="name">Seller(s) Name</Label>
+              <Input
+                id="name"
+                value={formData.name}
+                onChange={(e) => updateField("name", e.target.value)}
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="sellerPhone">Seller Phone</Label>
+              <Input
+                id="sellerPhone"
+                type="tel"
+                value={formData.sellerPhone}
+                onChange={(e) => updateField("sellerPhone", e.target.value)}
+              />
+            </div>
+            <div>
+              <Label htmlFor="sellerEmail">Seller Email(s)</Label>
+              <Input
+                id="sellerEmail"
+                type="text"
+                value={formData.sellerEmail}
+                onChange={(e) => updateField("sellerEmail", e.target.value)}
+                placeholder="email@example.com, email2@example.com"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Separate multiple emails with commas
+              </p>
+            </div>
+          </div>
+        </Card>
+
+        <Card className="p-6 mb-6">
+          <h3 className="text-xl font-semibold mb-4 text-foreground">Listing Agent</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="listingAgentName">Listing Agent Name</Label>
+              <Input
+                id="listingAgentName"
+                value={formData.listingAgentName}
+                onChange={(e) => updateField("listingAgentName", e.target.value)}
+              />
+            </div>
+            <div>
+              <Label htmlFor="listingAgentPhone">Listing Agent Phone Number</Label>
+              <Input
+                id="listingAgentPhone"
+                type="tel"
+                value={formData.listingAgentPhone}
+                onChange={(e) => updateField("listingAgentPhone", e.target.value)}
+              />
+            </div>
+            <div>
+              <Label htmlFor="listingAgentEmail">Listing Agent Email</Label>
+              <Input
+                id="listingAgentEmail"
+                type="email"
+                value={formData.listingAgentEmail}
+                onChange={(e) => updateField("listingAgentEmail", e.target.value)}
+              />
+            </div>
+          </div>
+        </Card>
+
+        <Card className="p-6 mb-6">
+          <h3 className="text-xl font-semibold mb-4 text-foreground">Contract Details</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="offerPrice">Offer Price</Label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                <Input
+                  id="offerPrice"
+                  type="number"
+                  value={formData.offerPrice}
+                  onChange={(e) => updateField("offerPrice", parseFloat(e.target.value) || 0)}
+                  required
+                  className="pl-7"
+                  placeholder="0"
+                />
+              </div>
+            </div>
+            <div>
+              <Label htmlFor="firstMortgage">1st Mortgage</Label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                <Input
+                  id="firstMortgage"
+                  type="number"
+                  value={formData.firstMortgage}
+                  onChange={(e) => updateField("firstMortgage", parseFloat(e.target.value) || 0)}
+                  className="pl-7"
+                  placeholder="0"
+                />
+              </div>
+            </div>
+            <div>
+              <Label htmlFor="secondMortgage">2nd Mortgage</Label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                <Input
+                  id="secondMortgage"
+                  type="number"
+                  value={formData.secondMortgage}
+                  onChange={(e) => updateField("secondMortgage", parseFloat(e.target.value) || 0)}
+                  className="pl-7"
+                  placeholder="0"
+                />
+              </div>
+            </div>
+            <div>
+              <Label htmlFor="closingCost">Closing Cost</Label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                <Input
+                  id="closingCost"
+                  type="number"
+                  value={formData.closingCost}
+                  onChange={(e) => updateField("closingCost", parseFloat(e.target.value) || 0)}
+                  className="pl-7"
+                  placeholder="0"
+                />
+              </div>
+            </div>
+            <div>
+              <Label htmlFor="listingAgentCommission">Listing Agent Commission (%)</Label>
+              <Input
+                id="listingAgentCommission"
+                type="number"
+                step="0.01"
+                value={formData.listingAgentCommission}
+                onChange={(e) => updateField("listingAgentCommission", parseFloat(e.target.value) || 0)}
+              />
+            </div>
+            <div>
+              <Label htmlFor="buyerAgentCommission">Buyer Agent Commission (%)</Label>
+              <Input
+                id="buyerAgentCommission"
+                type="number"
+                step="0.01"
+                value={formData.buyerAgentCommission}
+                onChange={(e) => updateField("buyerAgentCommission", parseFloat(e.target.value) || 0)}
+              />
+            </div>
+            <div>
+              <Label htmlFor="typeOfLoan">Type of Loan</Label>
+              <Select value={formData.typeOfLoan} onValueChange={(value) => updateField("typeOfLoan", value)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Conventional">Conventional</SelectItem>
+                  <SelectItem value="FHA">FHA</SelectItem>
+                  <SelectItem value="VA">VA</SelectItem>
+                  <SelectItem value="Cash">Cash</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="preApprovalDays">Pre-Approval (Days Due)</Label>
+              <Input
+                id="preApprovalDays"
+                type="text"
+                value={formData.preApprovalDays === 0 ? "Received" : (formData.preApprovalDays ? String(formData.preApprovalDays) : "")}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (value.toLowerCase() === "received" || value === "0") {
+                    updateField("preApprovalDays", 0);
+                  } else {
+                    updateField("preApprovalDays", value ? parseInt(value) : 0);
+                  }
+                }}
+                placeholder="Input 0 if already received"
+              />
+            </div>
+            <div>
+              <Label htmlFor="loanCommitment">Loan Commitment (Days Due)</Label>
+              <Input
+                id="loanCommitment"
+                value={formData.loanCommitment}
+                onChange={(e) => updateField("loanCommitment", e.target.value)}
+              />
+            </div>
+            <div>
+              <Label htmlFor="inspectionDays">Home Inspection (Days)</Label>
+              <Input
+                id="inspectionDays"
+                type="number"
+                value={formData.inspectionDays}
+                onChange={(e) => updateField("inspectionDays", parseInt(e.target.value) || 0)}
+                placeholder="0"
+              />
+            </div>
+            <div>
+              <Label htmlFor="remedyPeriodDays">Remedy Period (Days)</Label>
+              <Input
+                id="remedyPeriodDays"
+                type="number"
+                value={formData.remedyPeriodDays}
+                onChange={(e) => updateField("remedyPeriodDays", parseInt(e.target.value) || 0)}
+                placeholder="0"
+              />
+            </div>
+            <div>
+              <Label htmlFor="homeWarrantyCompany">Home Warranty Company</Label>
+              <Input
+                id="homeWarrantyCompany"
+                value={formData.homeWarrantyCompany}
+                onChange={(e) => updateField("homeWarrantyCompany", e.target.value)}
+              />
+            </div>
+            <div>
+              <Label htmlFor="homeWarranty">Home Warranty Cost</Label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                <Input
+                  id="homeWarranty"
+                  type="number"
+                  value={formData.homeWarranty}
+                  onChange={(e) => updateField("homeWarranty", parseFloat(e.target.value) || 0)}
+                  placeholder="0"
+                  className="pl-7"
+                />
+              </div>
+            </div>
+            <div>
+              <Label htmlFor="deposit">Earnest Money Deposit</Label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                <Input
+                  id="deposit"
+                  type="number"
+                  value={formData.deposit}
+                  onChange={(e) => updateField("deposit", parseFloat(e.target.value) || 0)}
+                  className="pl-7"
+                  placeholder="0"
+                />
+              </div>
+            </div>
+            <div>
+              <Label htmlFor="depositCollection">Deposit Collection</Label>
+              <Select value={formData.depositCollection} onValueChange={(value) => updateField("depositCollection", value)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Within 3 Days of Acceptance">Within 3 Days of Acceptance</SelectItem>
+                  <SelectItem value="Within 3 Days of Remedy Expiration">Within 3 Days of Remedy Expiration</SelectItem>
+                  <SelectItem value="Other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="finalWalkThrough">Final Walk-thru</Label>
+              <Input
+                id="finalWalkThrough"
+                value={formData.finalWalkThrough}
+                onChange={(e) => updateField("finalWalkThrough", e.target.value)}
+              />
+            </div>
+            <div>
+              <Label htmlFor="adminFee">Admin Fee</Label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                <Input
+                  id="adminFee"
+                  type="number"
+                  value={formData.adminFee}
+                  onChange={(e) => updateField("adminFee", parseFloat(e.target.value) || 0)}
+                  className="pl-7"
+                  placeholder="0"
+                />
+              </div>
+            </div>
+          </div>
+        </Card>
+
+        <Card className="p-6 mb-6">
+          <h3 className="text-xl font-semibold mb-4 text-foreground">Dates & Timeline</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="closingDate">Closing Date</Label>
+              <Input
+                id="closingDate"
+                type="date"
+                value={formData.closingDate}
+                onChange={(e) => updateField("closingDate", e.target.value)}
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="possession">Possession Date</Label>
+              <Input
+                id="possession"
+                type="date"
+                value={formData.possession}
+                onChange={(e) => updateField("possession", e.target.value)}
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="respondToOfferBy">Respond to Offer By</Label>
+              <Input
+                id="respondToOfferBy"
+                value={formData.respondToOfferBy}
+                onChange={(e) => updateField("respondToOfferBy", e.target.value)}
+              />
+            </div>
+            <div>
+              <Label htmlFor="inContract">In Contract Date</Label>
+              <Input
+                id="inContract"
+                type="date"
+                value={formData.inContract}
+                onChange={(e) => updateField("inContract", e.target.value)}
+              />
+            </div>
+          </div>
+        </Card>
+
+        <Card className="p-6 mb-6">
+          <h3 className="text-xl font-semibold mb-4 text-foreground">Tax Information</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="annualTaxes">Annual Taxes</Label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                <Input
+                  id="annualTaxes"
+                  type="number"
+                  value={formData.annualTaxes}
+                  onChange={(e) => updateField("annualTaxes", parseFloat(e.target.value) || 0)}
+                  placeholder="0"
+                  className="pl-7"
+                />
+              </div>
+            </div>
+            <div>
+              <Label htmlFor="taxesDueThisYear">Taxes Due This Year (2026)</Label>
+              <Input
+                id="taxesDueThisYear"
+                type="text"
+                value={new Intl.NumberFormat('en-US', {
+                  style: 'currency',
+                  currency: 'USD',
+                  minimumFractionDigits: 0,
+                  maximumFractionDigits: 0
+                }).format(taxesDueAmount)}
+                disabled
+                className="bg-muted"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Prorated from Jan 1 to closing date ({taxDaysDue} days)
+              </p>
+            </div>
+            <div>
+              <Label>1st Half Paid 2025</Label>
+              <div className="flex gap-4 mt-2">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="firstHalfPaid"
+                    checked={formData.firstHalfPaid === true}
+                    onChange={() => updateField("firstHalfPaid", true)}
+                    className="w-4 h-4 text-primary"
+                  />
+                  <span>Yes</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="firstHalfPaid"
+                    checked={formData.firstHalfPaid === false}
+                    onChange={() => updateField("firstHalfPaid", false)}
+                    className="w-4 h-4 text-primary"
+                  />
+                  <span>No</span>
+                </label>
+              </div>
+              <div className="relative mt-2">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                <Input
+                  type="number"
+                  value={formData.firstHalfPaid ? 0 : (formData.daysFirstHalfTaxes || Math.round(formData.annualTaxes / 2))}
+                  onChange={(e) => updateField("daysFirstHalfTaxes", parseInt(e.target.value) || 0)}
+                  placeholder="0"
+                  className="pl-7"
+                  disabled={formData.firstHalfPaid}
+                />
+              </div>
+            </div>
+            <div>
+              <Label>2nd Half Paid 2025</Label>
+              <div className="flex gap-4 mt-2">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="secondHalfPaid"
+                    checked={formData.secondHalfPaid === true}
+                    onChange={() => updateField("secondHalfPaid", true)}
+                    className="w-4 h-4 text-primary"
+                  />
+                  <span>Yes</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="secondHalfPaid"
+                    checked={formData.secondHalfPaid === false}
+                    onChange={() => updateField("secondHalfPaid", false)}
+                    className="w-4 h-4 text-primary"
+                  />
+                  <span>No</span>
+                </label>
+              </div>
+              <div className="relative mt-2">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                <Input
+                  type="number"
+                  value={formData.secondHalfPaid ? 0 : (formData.daysSecondHalfTaxes || Math.round(formData.annualTaxes / 2))}
+                  onChange={(e) => updateField("daysSecondHalfTaxes", parseInt(e.target.value) || 0)}
+                  placeholder="0"
+                  className="pl-7"
+                  disabled={formData.secondHalfPaid}
+                />
+              </div>
+            </div>
+          </div>
+        </Card>
+
+        <Card className="p-6 mb-6">
+          <h3 className="text-xl font-semibold mb-4 text-foreground">Buyer Agent Information</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="agentName">Buyer Agent Name</Label>
+              <Input
+                id="agentName"
+                value={formData.agentName}
+                onChange={(e) => updateField("agentName", e.target.value)}
+              />
+            </div>
+            <div>
+              <Label htmlFor="agentContact">Buyer Agent Cell Phone</Label>
+              <Input
+                id="agentContact"
+                value={formData.agentContact}
+                onChange={(e) => updateField("agentContact", e.target.value)}
+              />
+            </div>
+            <div>
+              <Label htmlFor="agentEmail">Buyer Agent Email</Label>
+              <Input
+                id="agentEmail"
+                type="email"
+                value={formData.agentEmail}
+                onChange={(e) => updateField("agentEmail", e.target.value)}
+              />
+            </div>
+          </div>
+        </Card>
+
+        <Card className="p-6 mb-6">
+          <h3 className="text-xl font-semibold mb-4 text-foreground">Additional Information</h3>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="notes">Notes</Label>
+              <Textarea
+                id="notes"
+                value={formData.notes}
+                onChange={(e) => updateField("notes", e.target.value)}
+                rows={4}
+              />
+            </div>
+          </div>
+        </Card>
+
+        <div className="flex justify-end">
+          <Button type="submit" size="lg" className="text-lg px-8" disabled={loading}>
+            {loading ? "Saving..." : editingId ? "Update & Calculate →" : "Calculate Closing Costs →"}
+          </Button>
+        </div>
+      </form>
+
+      {/* Property Selection Dialog */}
+      <Dialog open={propertyMatches.length > 0} onOpenChange={(open) => {
+        if (!open) {
+          handleRejectAddress();
+        }
+      }}>
+        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Select Property</DialogTitle>
+            <DialogDescription>
+              Multiple properties were found. Please select the correct one:
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-3">
+            {propertyMatches.map((property, index) => (
+              <Card 
+                key={index}
+                className={`p-4 cursor-pointer transition-all hover:border-primary ${
+                  selectedPropertyId === index.toString() ? 'border-primary bg-accent' : ''
+                }`}
+                onClick={() => setSelectedPropertyId(index.toString())}
+              >
+                <div className="space-y-2">
+                  <div className="font-semibold">
+                    {property.address?.street_address || 'Unknown Address'}
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    {property.address?.city}, {property.address?.state} {property.address?.zip}
+                  </div>
+                  {property.owner && (
+                    <div className="text-sm">
+                      <span className="font-medium">Owner:</span> {property.owner}
+                    </div>
+                  )}
+                  <div className="flex gap-4 text-sm text-muted-foreground">
+                    {property.structure?.sqft && <span>{property.structure.sqft} sq ft</span>}
+                    {property.structure?.beds && <span>{property.structure.beds} beds</span>}
+                    {property.structure?.baths && <span>{property.structure.baths} baths</span>}
+                  </div>
+                  {property.taxes?.annual && (
+                    <div className="text-sm">
+                      <span className="font-medium">Annual Taxes:</span> ${property.taxes.annual.toLocaleString()}
+                    </div>
+                  )}
+                </div>
+              </Card>
+            ))}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={handleRejectAddress}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={() => {
+                if (selectedPropertyId) {
+                  handleAcceptAddress();
+                } else {
+                  toast({
+                    title: "No Selection",
+                    description: "Please select a property first",
+                    variant: "destructive"
+                  });
+                }
+              }}
+              disabled={!selectedPropertyId}
+            >
+              Use Selected Property
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+};
+
+export default PropertyInputForm;
