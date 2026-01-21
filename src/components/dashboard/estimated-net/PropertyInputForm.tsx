@@ -41,6 +41,22 @@ const PropertyInputForm = ({ editingProperty, preselectedClient, onSuccess, onCa
   const [clientSearch, setClientSearch] = useState("");
   const [showClientSuggestions, setShowClientSuggestions] = useState(false);
 
+  // Fetch agent's profile for listing agent info
+  const { data: agentProfile } = useQuery({
+    queryKey: ["agent-profile", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("first_name, last_name, cell_phone, preferred_email, email")
+        .eq("id", user!.id)
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user,
+  });
+
   const [formData, setFormData] = useState<PropertyData>({
     name: "",
     sellerPhone: "",
@@ -86,6 +102,19 @@ const PropertyInputForm = ({ editingProperty, preselectedClient, onSuccess, onCa
     appliances: "",
     notes: "",
   });
+
+  // Pre-fill listing agent info from agent profile (only for new entries)
+  useEffect(() => {
+    if (agentProfile && !editingProperty) {
+      const agentName = [agentProfile.first_name, agentProfile.last_name].filter(Boolean).join(" ");
+      setFormData(prev => ({
+        ...prev,
+        listingAgentName: prev.listingAgentName || agentName,
+        listingAgentPhone: prev.listingAgentPhone || agentProfile.cell_phone || "",
+        listingAgentEmail: prev.listingAgentEmail || agentProfile.preferred_email || agentProfile.email || "",
+      }));
+    }
+  }, [agentProfile, editingProperty]);
 
   // Load preselected client data
   useEffect(() => {
