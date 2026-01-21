@@ -119,6 +119,11 @@ const OfferLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate 
       onClick: onBack,
     },
     {
+      label: "Offer Summary",
+      icon: ArrowRight,
+      onClick: () => onNavigate('offer-summary'),
+    },
+    {
       label: "Offer Letter",
       icon: Mail,
       onClick: () => {},
@@ -158,11 +163,6 @@ const OfferLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate 
       label: "Estimated Net",
       icon: Download,
       onClick: () => onNavigate('results'),
-    },
-    {
-      label: "Offer Summary",
-      icon: ArrowRight,
-      onClick: () => onNavigate('offer-summary'),
     },
   ];
 

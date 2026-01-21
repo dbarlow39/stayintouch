@@ -85,6 +85,11 @@ const ClosingCostsView = ({ propertyData, propertyId, onBack, onEdit, onNavigate
       onClick: onBack,
     },
     {
+      label: "Offer Summary",
+      icon: ArrowRight,
+      onClick: () => onNavigate('offer-summary'),
+    },
+    {
       label: "Offer Letter",
       icon: Mail,
       onClick: () => onNavigate('offer-letter'),
@@ -124,11 +129,6 @@ const ClosingCostsView = ({ propertyData, propertyId, onBack, onEdit, onNavigate
       icon: Download,
       onClick: () => {},
       active: true,
-    },
-    {
-      label: "Offer Summary",
-      icon: ArrowRight,
-      onClick: () => onNavigate('offer-summary'),
     },
   ];
 
