@@ -53,6 +53,7 @@ export type Database = {
         Row: {
           agent: string | null
           agent_id: string
+          annual_taxes: number | null
           cbs: string | null
           cell_phone: string | null
           city: string | null
@@ -86,6 +87,7 @@ export type Database = {
         Insert: {
           agent?: string | null
           agent_id: string
+          annual_taxes?: number | null
           cbs?: string | null
           cell_phone?: string | null
           city?: string | null
@@ -119,6 +121,7 @@ export type Database = {
         Update: {
           agent?: string | null
           agent_id?: string
+          annual_taxes?: number | null
           cbs?: string | null
           cell_phone?: string | null
           city?: string | null

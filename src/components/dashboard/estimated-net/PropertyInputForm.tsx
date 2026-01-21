@@ -186,7 +186,7 @@ const PropertyInputForm = ({ editingProperty, preselectedClient, onSuccess, onCa
     }
   }, [editingProperty]);
 
-  // Search clients from Stay in Touch
+  // Search clients from Stay in Touch - include annual_taxes
   const { data: clients } = useQuery({
     queryKey: ["clients-search", clientSearch],
     queryFn: async () => {
@@ -194,7 +194,7 @@ const PropertyInputForm = ({ editingProperty, preselectedClient, onSuccess, onCa
       
       const { data, error } = await supabase
         .from("clients")
-        .select("id, first_name, last_name, street_number, street_name, city, state, zip, email, phone, cell_phone")
+        .select("id, first_name, last_name, street_number, street_name, city, state, zip, email, phone, cell_phone, annual_taxes")
         .eq("agent_id", user!.id)
         .or(`first_name.ilike.%${clientSearch}%,last_name.ilike.%${clientSearch}%,street_name.ilike.%${clientSearch}%`)
         .limit(10);
@@ -293,13 +293,14 @@ const PropertyInputForm = ({ editingProperty, preselectedClient, onSuccess, onCa
       zip: clientZip,
       sellerPhone: client.cell_phone || client.phone || "",
       sellerEmail: client.email || "",
+      annualTaxes: client.annual_taxes || 0,
     }));
     setShowClientSuggestions(false);
     setClientSearch("");
     toast({ title: "Client loaded", description: `${client.first_name} ${client.last_name}` });
 
-    // Auto-lookup property taxes if address is complete
-    if (streetAddress && clientCity && clientState && clientZip) {
+    // Only lookup taxes if not already cached and address is complete
+    if (!client.annual_taxes && streetAddress && clientCity && clientState && clientZip) {
       setIsLookingUpTaxes(true);
       try {
         const { data, error } = await supabase.functions.invoke("lookup-property", {
@@ -312,12 +313,20 @@ const PropertyInputForm = ({ editingProperty, preselectedClient, onSuccess, onCa
         });
 
         if (!error && data?.annual_amount) {
+          // Update form
           setFormData(prev => ({
             ...prev,
             annualTaxes: data.annual_amount,
           }));
+          
+          // Save to client record to avoid future API calls
+          await supabase
+            .from("clients")
+            .update({ annual_taxes: data.annual_amount })
+            .eq("id", client.id);
+
           toast({
-            title: "Property taxes found",
+            title: "Property taxes found & saved",
             description: `Annual taxes: $${data.annual_amount.toLocaleString()}`,
           });
         }
@@ -326,6 +335,11 @@ const PropertyInputForm = ({ editingProperty, preselectedClient, onSuccess, onCa
       } finally {
         setIsLookingUpTaxes(false);
       }
+    } else if (client.annual_taxes) {
+      toast({
+        title: "Using saved taxes",
+        description: `Annual taxes: $${client.annual_taxes.toLocaleString()}`,
+      });
     }
   };
 
