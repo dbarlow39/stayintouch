@@ -26,6 +26,7 @@ interface Client {
   phone: string | null;
   cell_phone: string | null;
   price: number | null;
+  annual_taxes?: number | null;
 }
 
 interface PropertyInputFormProps {
@@ -117,23 +118,69 @@ const PropertyInputForm = ({ editingProperty, preselectedClient, onSuccess, onCa
     }
   }, [agentProfile, editingProperty]);
 
-  // Load preselected client data
+  // Load preselected client data and lookup taxes
   useEffect(() => {
     if (preselectedClient && !editingProperty) {
       const streetAddress = [preselectedClient.street_number, preselectedClient.street_name].filter(Boolean).join(" ");
+      const clientCity = preselectedClient.city || "";
+      const clientState = preselectedClient.state || "OH";
+      const clientZip = preselectedClient.zip || "";
+      
       setFormData(prev => ({
         ...prev,
         name: [preselectedClient.first_name, preselectedClient.last_name].filter(Boolean).join(" "),
         streetAddress,
-        city: preselectedClient.city || "",
-        state: preselectedClient.state || "OH",
-        zip: preselectedClient.zip || "",
+        city: clientCity,
+        state: clientState,
+        zip: clientZip,
         sellerPhone: preselectedClient.cell_phone || preselectedClient.phone || "",
         sellerEmail: preselectedClient.email || "",
         offerPrice: preselectedClient.price || 0,
+        annualTaxes: preselectedClient.annual_taxes || 0,
       }));
+
+      // Lookup taxes if not cached and address is complete
+      const lookupTaxes = async () => {
+        if (!preselectedClient.annual_taxes && streetAddress && clientCity && clientState && clientZip) {
+          setIsLookingUpTaxes(true);
+          try {
+            const { data, error } = await supabase.functions.invoke("lookup-property", {
+              body: {
+                address: streetAddress,
+                city: clientCity,
+                state: clientState,
+                zip: clientZip,
+              },
+            });
+
+            if (!error && data?.annual_amount) {
+              setFormData(prev => ({
+                ...prev,
+                annualTaxes: data.annual_amount,
+              }));
+              
+              // Save to client record
+              await supabase
+                .from("clients")
+                .update({ annual_taxes: data.annual_amount })
+                .eq("id", preselectedClient.id);
+
+              toast({
+                title: "Property taxes found & saved",
+                description: `Annual taxes: $${data.annual_amount.toLocaleString()}`,
+              });
+            }
+          } catch (err) {
+            console.error("Error fetching property taxes:", err);
+          } finally {
+            setIsLookingUpTaxes(false);
+          }
+        }
+      };
+      
+      lookupTaxes();
     }
-  }, [preselectedClient, editingProperty]);
+  }, [preselectedClient, editingProperty, toast]);
 
   // Load editing property data
   useEffect(() => {
