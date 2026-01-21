@@ -324,8 +324,8 @@ const EstimatedNetTab = ({ selectedClient, onClearSelectedClient }: EstimatedNet
               {estimates.map((estimate) => (
                 <TableRow key={estimate.id} className="cursor-pointer hover:bg-muted/50">
                   <TableCell 
-                    className="font-medium"
-                    onClick={() => handleViewResults(estimate.id)}
+                    className="font-medium text-primary hover:underline cursor-pointer"
+                    onClick={() => handleEditEstimate(estimate.id)}
                   >
                     {estimate.name}
                   </TableCell>
