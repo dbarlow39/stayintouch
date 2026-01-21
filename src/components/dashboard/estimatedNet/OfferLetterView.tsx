@@ -4,7 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PropertyData } from "@/types/estimatedNet";
 import { ArrowLeft, Download, List, Mail, Calendar, FileText, ArrowRight, Copy, DollarSign, ClipboardList, Settings } from "lucide-react";
-import { EmailClient, EMAIL_CLIENT_OPTIONS, getEmailClientPreference, setEmailClientPreference } from "@/utils/emailClientUtils";
+import { EmailClient, EMAIL_CLIENT_OPTIONS, getEmailClientPreference, setEmailClientPreference, openEmailClient } from "@/utils/emailClientUtils";
 import { useToast } from "@/hooks/use-toast";
 import logo from "@/assets/logo.jpg";
 
@@ -98,10 +98,10 @@ const OfferLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate 
         description: "The letter has been copied. You can now paste it into an email.",
       });
 
-      // Open email client
+      // Open email client using selected preference
       const sellerEmail = propertyData.sellerEmail || '';
-      const subject = encodeURIComponent(`We have received an offer for ${propertyData.streetAddress}`);
-      window.open(`mailto:${sellerEmail}?subject=${subject}`, '_blank');
+      const subject = `We have received an offer for ${propertyData.streetAddress}`;
+      openEmailClient(sellerEmail, emailClient, subject);
     } catch (err) {
       console.error('Copy error:', err);
       toast({
