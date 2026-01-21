@@ -12,13 +12,28 @@ import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, List, Download, Mail, Calendar, FileText, ArrowRight, Settings, DollarSign, ClipboardList } from "lucide-react";
 import { EmailClient, EMAIL_CLIENT_OPTIONS, getEmailClientPreference, setEmailClientPreference, openEmailClient } from "@/utils/emailClientUtils";
 
+interface InitialClientData {
+  id: string;
+  firstName: string;
+  lastName: string;
+  streetNumber?: string;
+  streetName?: string;
+  city?: string;
+  state?: string;
+  zip?: string;
+  phone?: string;
+  email?: string;
+}
+
 interface PropertyInputFormProps {
   editingId: string | null;
   onSave: (propertyId: string, propertyData: PropertyData) => void;
   onCancel: () => void;
+  initialClient?: InitialClientData | null;
+  onClearInitialClient?: () => void;
 }
 
-const PropertyInputForm = ({ editingId, onSave, onCancel }: PropertyInputFormProps) => {
+const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClearInitialClient }: PropertyInputFormProps) => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [lookingUp, setLookingUp] = useState(false);
@@ -100,6 +115,30 @@ const PropertyInputForm = ({ editingId, onSave, onCancel }: PropertyInputFormPro
 
     loadData();
   }, [editingId]);
+
+  // Handle initial client from Clients tab
+  useEffect(() => {
+    if (initialClient && !editingId) {
+      const streetAddress = [initialClient.streetNumber, initialClient.streetName]
+        .filter(Boolean)
+        .join(' ')
+        .trim();
+      
+      setFormData(prev => ({
+        ...prev,
+        name: `${initialClient.firstName} ${initialClient.lastName}`.trim(),
+        streetAddress,
+        city: initialClient.city || prev.city,
+        state: initialClient.state || prev.state,
+        zip: initialClient.zip || prev.zip,
+        sellerPhone: initialClient.phone || "",
+        sellerEmail: initialClient.email || "",
+      }));
+      
+      // Clear the initial client after using it
+      onClearInitialClient?.();
+    }
+  }, [initialClient, editingId, onClearInitialClient]);
 
   const loadUserDefaults = async (userId: string) => {
     try {

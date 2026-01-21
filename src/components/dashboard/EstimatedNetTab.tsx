@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -26,7 +26,25 @@ import {
 
 type ViewState = 'list' | 'form' | 'results' | 'offer-letter' | 'offer-summary';
 
-const EstimatedNetTab = () => {
+interface SelectedClientForEstimate {
+  id: string;
+  firstName: string;
+  lastName: string;
+  streetNumber?: string;
+  streetName?: string;
+  city?: string;
+  state?: string;
+  zip?: string;
+  phone?: string;
+  email?: string;
+}
+
+interface EstimatedNetTabProps {
+  selectedClient?: SelectedClientForEstimate | null;
+  onClearSelectedClient?: () => void;
+}
+
+const EstimatedNetTab = ({ selectedClient, onClearSelectedClient }: EstimatedNetTabProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -36,6 +54,17 @@ const EstimatedNetTab = () => {
   const [currentPropertyId, setCurrentPropertyId] = useState<string | null>(null);
   const [currentPropertyData, setCurrentPropertyData] = useState<PropertyData | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [initialClient, setInitialClient] = useState<SelectedClientForEstimate | null>(null);
+
+  // Handle selected client from Clients tab
+  useEffect(() => {
+    if (selectedClient) {
+      setInitialClient(selectedClient);
+      setEditingId(null);
+      setViewState('form');
+      onClearSelectedClient?.();
+    }
+  }, [selectedClient, onClearSelectedClient]);
 
   // Fetch saved estimates
   const { data: estimates = [], isLoading } = useQuery({
@@ -187,6 +216,8 @@ const EstimatedNetTab = () => {
         editingId={editingId}
         onSave={handleFormSave}
         onCancel={handleFormCancel}
+        initialClient={initialClient}
+        onClearInitialClient={() => setInitialClient(null)}
       />
     );
   }

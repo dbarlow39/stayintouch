@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
@@ -16,9 +16,33 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import logo from "@/assets/logo.jpg";
 
+export interface SelectedClientForEstimate {
+  id: string;
+  firstName: string;
+  lastName: string;
+  streetNumber?: string;
+  streetName?: string;
+  city?: string;
+  state?: string;
+  zip?: string;
+  phone?: string;
+  email?: string;
+}
+
 const Dashboard = () => {
   const { user, loading, signOut } = useAuth();
   const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState("clients");
+  const [selectedClientForEstimate, setSelectedClientForEstimate] = useState<SelectedClientForEstimate | null>(null);
+
+  const handleSelectClientForEstimate = (client: SelectedClientForEstimate) => {
+    setSelectedClientForEstimate(client);
+    setActiveTab("deals");
+  };
+
+  const handleClearSelectedClient = () => {
+    setSelectedClientForEstimate(null);
+  };
 
   useEffect(() => {
     if (!loading && !user) {
@@ -125,7 +149,8 @@ const Dashboard = () => {
         </div>
 
         <Card className="shadow-medium animate-fade-in">
-          <Tabs defaultValue="clients" className="w-full">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          
             <CardHeader>
               <TabsList className="w-full justify-start grid grid-cols-3 lg:flex">
                 <TabsTrigger value="assistant">
@@ -163,7 +188,7 @@ const Dashboard = () => {
                 <SmartAssistantTab />
               </TabsContent>
               <TabsContent value="clients">
-                <ClientsTab />
+                <ClientsTab onSelectClientForEstimate={handleSelectClientForEstimate} />
               </TabsContent>
               <TabsContent value="leads">
                 <LeadsTab />
@@ -172,7 +197,10 @@ const Dashboard = () => {
                 <WeeklyUpdateTab />
               </TabsContent>
               <TabsContent value="deals">
-                <EstimatedNetTab />
+                <EstimatedNetTab 
+                  selectedClient={selectedClientForEstimate} 
+                  onClearSelectedClient={handleClearSelectedClient}
+                />
               </TabsContent>
               <TabsContent value="tasks">
                 <TasksTab />

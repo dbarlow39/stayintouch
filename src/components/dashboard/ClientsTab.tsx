@@ -91,7 +91,22 @@ const formatPhoneNumber = (value: string): string => {
   }
 };
 
-const ClientsTab = () => {
+interface ClientsTabProps {
+  onSelectClientForEstimate?: (client: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    streetNumber?: string;
+    streetName?: string;
+    city?: string;
+    state?: string;
+    zip?: string;
+    phone?: string;
+    email?: string;
+  }) => void;
+}
+
+const ClientsTab = ({ onSelectClientForEstimate }: ClientsTabProps) => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
@@ -939,7 +954,24 @@ const ClientsTab = () => {
               {clients.map((client) => (
                 <TableRow 
                   key={client.id}
-                  onClick={() => setViewingClient(client)}
+                  onClick={() => {
+                    if (onSelectClientForEstimate) {
+                      onSelectClientForEstimate({
+                        id: client.id,
+                        firstName: client.first_name || "",
+                        lastName: client.last_name || "",
+                        streetNumber: client.street_number,
+                        streetName: client.street_name,
+                        city: client.city,
+                        state: client.state,
+                        zip: client.zip,
+                        phone: client.cell_phone || client.phone,
+                        email: client.email,
+                      });
+                    } else {
+                      setViewingClient(client);
+                    }
+                  }}
                   className="cursor-pointer hover:bg-muted/50"
                 >
                   <TableCell>
