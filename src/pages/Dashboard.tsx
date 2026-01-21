@@ -188,7 +188,7 @@ const Dashboard = () => {
                 <SmartAssistantTab />
               </TabsContent>
               <TabsContent value="clients">
-                <ClientsTab onSelectClientForEstimate={handleSelectClientForEstimate} />
+                <ClientsTab />
               </TabsContent>
               <TabsContent value="leads">
                 <LeadsTab />

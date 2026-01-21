@@ -954,24 +954,7 @@ const ClientsTab = ({ onSelectClientForEstimate }: ClientsTabProps) => {
               {clients.map((client) => (
                 <TableRow 
                   key={client.id}
-                  onClick={() => {
-                    if (onSelectClientForEstimate) {
-                      onSelectClientForEstimate({
-                        id: client.id,
-                        firstName: client.first_name || "",
-                        lastName: client.last_name || "",
-                        streetNumber: client.street_number,
-                        streetName: client.street_name,
-                        city: client.city,
-                        state: client.state,
-                        zip: client.zip,
-                        phone: client.cell_phone || client.phone,
-                        email: client.email,
-                      });
-                    } else {
-                      setViewingClient(client);
-                    }
-                  }}
+                  onClick={() => setViewingClient(client)}
                   className="cursor-pointer hover:bg-muted/50"
                 >
                   <TableCell>
