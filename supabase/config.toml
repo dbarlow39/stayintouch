@@ -41,3 +41,6 @@ verify_jwt = true
 
 [functions.search-clients]
 verify_jwt = false
+
+[functions.lookup-property]
+verify_jwt = false

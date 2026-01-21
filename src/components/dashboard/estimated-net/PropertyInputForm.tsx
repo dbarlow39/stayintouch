@@ -40,6 +40,7 @@ const PropertyInputForm = ({ editingProperty, preselectedClient, onSuccess, onCa
   const { toast } = useToast();
   const [clientSearch, setClientSearch] = useState("");
   const [showClientSuggestions, setShowClientSuggestions] = useState(false);
+  const [isLookingUpTaxes, setIsLookingUpTaxes] = useState(false);
 
   // Fetch agent's profile for listing agent info
   const { data: agentProfile } = useQuery({
@@ -296,6 +297,58 @@ const PropertyInputForm = ({ editingProperty, preselectedClient, onSuccess, onCa
 
   const updateField = (field: keyof PropertyData, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handlePropertyTaxLookup = async () => {
+    if (!formData.streetAddress || !formData.city || !formData.state || !formData.zip) {
+      toast({ 
+        title: "Missing address info", 
+        description: "Please enter street address, city, state, and zip to look up taxes.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsLookingUpTaxes(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("lookup-property", {
+        body: {
+          address: formData.streetAddress,
+          city: formData.city,
+          state: formData.state,
+          zip: formData.zip,
+        },
+      });
+
+      if (error) throw error;
+
+      if (data?.annual_amount) {
+        setFormData(prev => ({
+          ...prev,
+          annualTaxes: data.annual_amount,
+        }));
+        
+        toast({
+          title: "Property Data Found",
+          description: `Annual taxes updated: $${data.annual_amount.toLocaleString()}`,
+        });
+      } else {
+        toast({
+          title: "No tax data found",
+          description: "Property tax information not available for this address.",
+          variant: "destructive"
+        });
+      }
+    } catch (err) {
+      console.error("Error fetching property taxes:", err);
+      toast({
+        title: "Lookup failed",
+        description: "Could not retrieve property tax data. Please enter manually.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLookingUpTaxes(false);
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -678,7 +731,18 @@ const PropertyInputForm = ({ editingProperty, preselectedClient, onSuccess, onCa
 
       {/* Tax Information */}
       <Card className="p-4">
-        <h4 className="font-semibold mb-3">Tax Information</h4>
+        <div className="flex items-center justify-between mb-3">
+          <h4 className="font-semibold">Tax Information</h4>
+          <Button 
+            type="button" 
+            variant="outline" 
+            size="sm"
+            onClick={handlePropertyTaxLookup}
+            disabled={isLookingUpTaxes}
+          >
+            {isLookingUpTaxes ? "Looking up..." : "Lookup Taxes"}
+          </Button>
+        </div>
         <div className="grid grid-cols-2 gap-4">
           <div>
             <Label>Annual Taxes</Label>
