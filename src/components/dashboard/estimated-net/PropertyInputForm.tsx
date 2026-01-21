@@ -529,10 +529,21 @@ const PropertyInputForm = ({ editingProperty, preselectedClient, onSuccess, onCa
           <div>
             <Label>Pre-Approval (Days Due)</Label>
             <Input
-              type="number"
               placeholder="Input 0 if already received"
-              value={formData.preApprovalDays || ""}
-              onChange={(e) => updateField("preApprovalDays", parseInt(e.target.value) || 0)}
+              value={formData.preApprovalDays === 0 ? "Received" : (formData.preApprovalDays || "")}
+              onChange={(e) => {
+                const val = e.target.value;
+                if (val === "" || val === "Received") {
+                  updateField("preApprovalDays", 0);
+                } else {
+                  updateField("preApprovalDays", parseInt(val) || 0);
+                }
+              }}
+              onFocus={(e) => {
+                if (formData.preApprovalDays === 0) {
+                  e.target.value = "";
+                }
+              }}
             />
           </div>
           <div>
