@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { PropertyData, ClosingCostData } from "@/types/estimatedNet";
 import { calculateClosingCosts, formatCurrency } from "@/utils/estimatedNetCalculations";
-import { ArrowLeft, Download, List, Mail, Calendar, FileText, ArrowRight } from "lucide-react";
+import { ArrowLeft, Download, List, Mail, Calendar, FileText, ArrowRight, DollarSign } from "lucide-react";
 import logo from "@/assets/logo.jpg";
 
 interface OfferSummaryViewProps {
@@ -120,7 +120,7 @@ const OfferSummaryView = ({ propertyData, propertyId, onBack, onEdit, onNavigate
     },
     {
       label: "Estimated Net",
-      icon: Download,
+      icon: DollarSign,
       onClick: () => onNavigate('results'),
     },
     {

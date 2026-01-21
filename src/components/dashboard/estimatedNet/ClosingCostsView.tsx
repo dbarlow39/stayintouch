@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { PropertyData } from "@/types/estimatedNet";
 import { calculateClosingCosts, formatCurrency } from "@/utils/estimatedNetCalculations";
-import { ArrowLeft, Download, List, Mail, Calendar, FileText, ArrowRight } from "lucide-react";
+import { ArrowLeft, Download, List, Mail, Calendar, FileText, ArrowRight, DollarSign } from "lucide-react";
 import logo from "@/assets/logo.jpg";
 
 interface ClosingCostsViewProps {
@@ -86,7 +86,7 @@ const ClosingCostsView = ({ propertyData, propertyId, onBack, onEdit, onNavigate
     },
     {
       label: "Estimated Net",
-      icon: Download,
+      icon: DollarSign,
       onClick: () => {},
       active: true,
     },
