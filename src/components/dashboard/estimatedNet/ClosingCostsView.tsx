@@ -224,21 +224,21 @@ const ClosingCostsView = ({ propertyData, propertyId, onBack, onEdit }: ClosingC
                 <CostRow label="2nd Mortgage" amount={closingCosts.secondMortgage} />
                 <CostRow label="Buyer Closing Cost" amount={closingCosts.buyerClosingCost} />
                 
-                <div className="pt-4 pb-2">
+                <div className="pt-2 pb-1">
                   <h3 className="font-semibold text-foreground">Tax Information</h3>
                 </div>
                 <CostRow label="Taxes 1st Half 2025" amount={closingCosts.taxesFirstHalf} />
                 <CostRow label="Taxes 2nd Half 2025" amount={closingCosts.taxesSecondHalf} />
                 <CostRow label="Taxes Due for Year 2026" amount={closingCosts.taxesDueForYear} />
                 
-                <div className="pt-4 pb-2">
+                <div className="pt-2 pb-1">
                   <h3 className="font-semibold text-foreground">Commissions & Fees</h3>
                 </div>
                 <CostRow label={`Listing Agent Commission (${propertyData.listingAgentCommission}%)`} amount={closingCosts.listingAgentCommission} />
                 <CostRow label={`Buyer Agent Commission (${propertyData.buyerAgentCommission}%)`} amount={closingCosts.buyerAgentCommission} />
                 <CostRow label="County Conveyance Fee" amount={closingCosts.countyConveyanceFee} />
                 
-                <div className="pt-4 pb-2">
+                <div className="pt-2 pb-1">
                   <h3 className="font-semibold text-foreground">Additional Costs</h3>
                 </div>
                 <CostRow 
