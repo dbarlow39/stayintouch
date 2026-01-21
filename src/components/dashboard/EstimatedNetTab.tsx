@@ -27,6 +27,7 @@ interface Client {
   cell_phone: string | null;
   price: number | null;
   status: string | null;
+  annual_taxes?: number | null;
 }
 
 const EstimatedNetTab = () => {
@@ -40,13 +41,13 @@ const EstimatedNetTab = () => {
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [activeTab, setActiveTab] = useState("clients");
 
-  // Fetch active clients (status = "A")
+  // Fetch active clients (status = "A") - include annual_taxes
   const { data: activeClients, isLoading: loadingClients } = useQuery({
     queryKey: ["active-clients", user?.id],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("clients")
-        .select("id, first_name, last_name, street_number, street_name, city, state, zip, email, phone, cell_phone, price, status")
+        .select("id, first_name, last_name, street_number, street_name, city, state, zip, email, phone, cell_phone, price, status, annual_taxes")
         .eq("agent_id", user!.id)
         .eq("status", "A")
         .order("last_name", { ascending: true });
