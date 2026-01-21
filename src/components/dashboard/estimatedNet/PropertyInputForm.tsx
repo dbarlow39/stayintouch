@@ -530,13 +530,11 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
       label: "Offer Summary",
       icon: ClipboardList,
       onClick: () => triggerSubmitAndNavigate("offer-summary"),
-      disabled: true,
     },
     {
       label: "Offer Letter",
       icon: Mail,
       onClick: () => triggerSubmitAndNavigate("offer-letter"),
-      disabled: true,
     },
     {
       label: "Important Dates Letter",
