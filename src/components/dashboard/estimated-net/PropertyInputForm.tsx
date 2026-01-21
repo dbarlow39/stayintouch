@@ -866,7 +866,10 @@ const PropertyInputForm = ({ editingProperty, preselectedClient, onSuccess, onCa
                   type="radio"
                   name="firstHalfPaid"
                   checked={formData.firstHalfPaid}
-                  onChange={() => updateField("firstHalfPaid", true)}
+                  onChange={() => {
+                    updateField("firstHalfPaid", true);
+                    updateField("daysFirstHalfTaxes", 0);
+                  }}
                   className="w-4 h-4"
                 />
                 <span>Yes</span>
@@ -876,21 +879,33 @@ const PropertyInputForm = ({ editingProperty, preselectedClient, onSuccess, onCa
                   type="radio"
                   name="firstHalfPaid"
                   checked={!formData.firstHalfPaid}
-                  onChange={() => updateField("firstHalfPaid", false)}
+                  onChange={() => {
+                    updateField("firstHalfPaid", false);
+                    // Auto-calculate half of annual taxes
+                    updateField("daysFirstHalfTaxes", Math.round(formData.annualTaxes / 2));
+                  }}
                   className="w-4 h-4"
                 />
                 <span>No</span>
               </label>
             </div>
-            <div className="relative mt-2">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
-              <Input
-                type="number"
-                value={formData.daysFirstHalfTaxes || ""}
-                onChange={(e) => updateField("daysFirstHalfTaxes", parseFloat(e.target.value) || 0)}
-                className="pl-7"
-              />
-            </div>
+            {!formData.firstHalfPaid && (
+              <div className="relative mt-2">
+                <Label className="text-xs text-muted-foreground mb-1">Amount Due</Label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                  <Input
+                    type="number"
+                    value={formData.daysFirstHalfTaxes || Math.round(formData.annualTaxes / 2)}
+                    onChange={(e) => updateField("daysFirstHalfTaxes", parseFloat(e.target.value) || 0)}
+                    className="pl-7"
+                  />
+                </div>
+              </div>
+            )}
+            {formData.firstHalfPaid && (
+              <p className="text-sm text-green-600 mt-2">✓ Paid - $0 due</p>
+            )}
           </div>
           <div>
             <Label>2nd Half Paid {currentYear}</Label>
@@ -900,7 +915,10 @@ const PropertyInputForm = ({ editingProperty, preselectedClient, onSuccess, onCa
                   type="radio"
                   name="secondHalfPaid"
                   checked={formData.secondHalfPaid}
-                  onChange={() => updateField("secondHalfPaid", true)}
+                  onChange={() => {
+                    updateField("secondHalfPaid", true);
+                    updateField("daysSecondHalfTaxes", 0);
+                  }}
                   className="w-4 h-4"
                 />
                 <span>Yes</span>
@@ -910,21 +928,33 @@ const PropertyInputForm = ({ editingProperty, preselectedClient, onSuccess, onCa
                   type="radio"
                   name="secondHalfPaid"
                   checked={!formData.secondHalfPaid}
-                  onChange={() => updateField("secondHalfPaid", false)}
+                  onChange={() => {
+                    updateField("secondHalfPaid", false);
+                    // Auto-calculate half of annual taxes
+                    updateField("daysSecondHalfTaxes", Math.round(formData.annualTaxes / 2));
+                  }}
                   className="w-4 h-4"
                 />
                 <span>No</span>
               </label>
             </div>
-            <div className="relative mt-2">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
-              <Input
-                type="number"
-                value={formData.daysSecondHalfTaxes || ""}
-                onChange={(e) => updateField("daysSecondHalfTaxes", parseFloat(e.target.value) || 0)}
-                className="pl-7"
-              />
-            </div>
+            {!formData.secondHalfPaid && (
+              <div className="relative mt-2">
+                <Label className="text-xs text-muted-foreground mb-1">Amount Due</Label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                  <Input
+                    type="number"
+                    value={formData.daysSecondHalfTaxes || Math.round(formData.annualTaxes / 2)}
+                    onChange={(e) => updateField("daysSecondHalfTaxes", parseFloat(e.target.value) || 0)}
+                    className="pl-7"
+                  />
+                </div>
+              </div>
+            )}
+            {formData.secondHalfPaid && (
+              <p className="text-sm text-green-600 mt-2">✓ Paid - $0 due</p>
+            )}
           </div>
         </div>
       </Card>
