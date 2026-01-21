@@ -27,7 +27,7 @@ interface InitialClientData {
 
 interface PropertyInputFormProps {
   editingId: string | null;
-  onSave: (propertyId: string, propertyData: PropertyData) => void;
+  onSave: (propertyId: string, propertyData: PropertyData, targetView?: string) => void;
   onCancel: () => void;
   initialClient?: InitialClientData | null;
   onClearInitialClient?: () => void;
@@ -318,7 +318,7 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
         taxDaysDueThisYear: taxDaysDue,
       };
 
-      onSave(savedId, updatedFormData);
+      onSave(savedId, updatedFormData, navigationTarget);
     } catch (error: any) {
       toast({
         title: "Error saving property",
