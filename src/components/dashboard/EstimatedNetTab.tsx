@@ -64,7 +64,7 @@ const EstimatedNetTab = () => {
       const { data, error } = await supabase
         .from("estimated_net_properties")
         .select("*")
-        .order("created_at", { ascending: false });
+        .order("name", { ascending: true });
       
       if (error) throw error;
       return data as EstimatedNetProperty[];
