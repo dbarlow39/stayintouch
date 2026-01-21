@@ -181,11 +181,19 @@ const EstimatedNetTab = ({ selectedClient, onClearSelectedClient }: EstimatedNet
     setViewState('results');
   };
 
-  const handleFormSave = (propertyId: string, propertyData: PropertyData) => {
+  const handleFormSave = (propertyId: string, propertyData: PropertyData, targetView?: string) => {
     setCurrentPropertyId(propertyId);
     setCurrentPropertyData(propertyData);
     queryClient.invalidateQueries({ queryKey: ["estimated-net-properties"] });
-    setViewState('results');
+    
+    // Navigate to the requested view, defaulting to results
+    if (targetView === 'offer-summary') {
+      setViewState('offer-summary');
+    } else if (targetView === 'offer-letter') {
+      setViewState('offer-letter');
+    } else {
+      setViewState('results');
+    }
   };
 
   const handleFormCancel = () => {
