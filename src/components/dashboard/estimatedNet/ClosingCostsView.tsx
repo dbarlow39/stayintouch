@@ -61,11 +61,6 @@ const ClosingCostsView = ({ propertyData, propertyId, onBack, onEdit }: ClosingC
       onClick: onBack,
     },
     {
-      label: "Download PDF",
-      icon: Download,
-      onClick: handleDownloadPDF,
-    },
-    {
       label: "Offer Letter",
       icon: Mail,
       onClick: () => {},
@@ -138,6 +133,14 @@ const ClosingCostsView = ({ propertyData, propertyId, onBack, onEdit }: ClosingC
 
       {/* Main Content */}
       <div className="flex-1 py-4 px-6 overflow-auto">
+        {/* Download PDF Button - Top Right */}
+        <div className="flex justify-end mb-4 print:hidden">
+          <Button onClick={handleDownloadPDF} variant="outline" className="gap-2">
+            <Download className="h-4 w-4" />
+            Download PDF
+          </Button>
+        </div>
+        
         <div className="max-w-4xl">
           <div className="pdf-content" id="closing-costs-content">
             <style dangerouslySetInnerHTML={{ __html: `
