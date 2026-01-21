@@ -9,7 +9,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { PropertyData } from "@/types/estimatedNet";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, List, Download, Mail, Calendar, FileText, ArrowRight } from "lucide-react";
+import { ArrowLeft, List, Download, Mail, Calendar, FileText, ArrowRight, Settings, DollarSign, ClipboardList } from "lucide-react";
+import { EmailClient, EMAIL_CLIENT_OPTIONS, getEmailClientPreference, setEmailClientPreference, openEmailClient } from "@/utils/emailClientUtils";
 
 interface PropertyInputFormProps {
   editingId: string | null;
@@ -22,6 +23,7 @@ const PropertyInputForm = ({ editingId, onSave, onCancel }: PropertyInputFormPro
   const [loading, setLoading] = useState(false);
   const [lookingUp, setLookingUp] = useState(false);
   const [navigationTarget, setNavigationTarget] = useState<string>("closing-costs");
+  const [emailClient, setEmailClient] = useState<EmailClient>(getEmailClientPreference);
   const formRef = useRef<HTMLFormElement>(null);
   const [formData, setFormData] = useState<PropertyData>({
     name: "",
@@ -457,6 +459,12 @@ const PropertyInputForm = ({ editingId, onSave, onCancel }: PropertyInputFormPro
     setTimeout(() => formRef.current?.requestSubmit(), 0);
   };
 
+  const handleEmailClientChange = (value: string) => {
+    const client = value as EmailClient;
+    setEmailClient(client);
+    setEmailClientPreference(client);
+  };
+
   const navigationItems = [
     {
       label: "Back",
@@ -475,9 +483,15 @@ const PropertyInputForm = ({ editingId, onSave, onCancel }: PropertyInputFormPro
       onClick: onCancel,
     },
     {
-      label: "Download PDF",
-      icon: Download,
+      label: "Estimated Net",
+      icon: DollarSign,
       onClick: () => triggerSubmitAndNavigate("closing-costs"),
+    },
+    {
+      label: "Offer Summary",
+      icon: ClipboardList,
+      onClick: () => triggerSubmitAndNavigate("offer-summary"),
+      disabled: true,
     },
     {
       label: "Offer Letter",
@@ -485,12 +499,12 @@ const PropertyInputForm = ({ editingId, onSave, onCancel }: PropertyInputFormPro
       onClick: () => triggerSubmitAndNavigate("offer-letter"),
       disabled: true,
     },
-    ...(editingId ? [{
+    {
       label: "Important Dates Letter",
       icon: Calendar,
       onClick: () => triggerSubmitAndNavigate("important-dates"),
       disabled: true,
-    }] : []),
+    },
     {
       label: "Title Letter",
       icon: Mail,
@@ -515,23 +529,29 @@ const PropertyInputForm = ({ editingId, onSave, onCancel }: PropertyInputFormPro
       onClick: () => triggerSubmitAndNavigate("settlement-statement"),
       disabled: true,
     },
-    {
-      label: "Estimated Net",
-      icon: Download,
-      onClick: () => triggerSubmitAndNavigate("closing-costs"),
-    },
-    {
-      label: "Offer Summary",
-      icon: ArrowRight,
-      onClick: () => triggerSubmitAndNavigate("offer-summary"),
-      disabled: true,
-    },
   ];
 
   return (
     <div className="flex w-full min-h-[600px]">
       {/* Left Sidebar Navigation */}
       <aside className="w-56 p-3 border-r bg-card shrink-0">
+        {/* Email Client Selector */}
+        <div className="flex items-center gap-2 mb-4 px-1">
+          <Settings className="h-4 w-4 text-muted-foreground shrink-0" />
+          <Select value={emailClient} onValueChange={handleEmailClientChange}>
+            <SelectTrigger className="h-8 text-sm bg-background">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="bg-popover z-50">
+              {EMAIL_CLIENT_OPTIONS.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
         <div className="space-y-1">
           {navigationItems.map((item, idx) => (
             <Button
@@ -657,22 +677,52 @@ const PropertyInputForm = ({ editingId, onSave, onCancel }: PropertyInputFormPro
             </div>
             <div>
               <Label htmlFor="sellerPhone">Seller Phone</Label>
-              <Input
-                id="sellerPhone"
-                type="tel"
-                value={formData.sellerPhone}
-                onChange={(e) => updateField("sellerPhone", e.target.value)}
-              />
+              <div className="relative">
+                <Input
+                  id="sellerPhone"
+                  type="tel"
+                  value={formData.sellerPhone}
+                  onChange={(e) => updateField("sellerPhone", e.target.value)}
+                  className="pr-10"
+                />
+                {formData.sellerPhone && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 p-0 text-primary hover:text-primary/80"
+                    onClick={() => window.open(`tel:${formData.sellerPhone}`, '_self')}
+                    title="Call this number"
+                  >
+                    <span className="text-xs font-bold">📞</span>
+                  </Button>
+                )}
+              </div>
             </div>
             <div>
               <Label htmlFor="sellerEmail">Seller Email(s)</Label>
-              <Input
-                id="sellerEmail"
-                type="text"
-                value={formData.sellerEmail}
-                onChange={(e) => updateField("sellerEmail", e.target.value)}
-                placeholder="email@example.com, email2@example.com"
-              />
+              <div className="relative">
+                <Input
+                  id="sellerEmail"
+                  type="text"
+                  value={formData.sellerEmail}
+                  onChange={(e) => updateField("sellerEmail", e.target.value)}
+                  placeholder="email@example.com, email2@example.com"
+                  className="pr-10"
+                />
+                {formData.sellerEmail && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 p-0 text-primary hover:text-primary/80"
+                    onClick={() => openEmailClient(formData.sellerEmail.split(',')[0].trim())}
+                    title={`Open in ${EMAIL_CLIENT_OPTIONS.find(o => o.value === emailClient)?.label}`}
+                  >
+                    <Mail className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
               <p className="text-xs text-muted-foreground mt-1">
                 Separate multiple emails with commas
               </p>
@@ -693,21 +743,51 @@ const PropertyInputForm = ({ editingId, onSave, onCancel }: PropertyInputFormPro
             </div>
             <div>
               <Label htmlFor="listingAgentPhone">Listing Agent Phone Number</Label>
-              <Input
-                id="listingAgentPhone"
-                type="tel"
-                value={formData.listingAgentPhone}
-                onChange={(e) => updateField("listingAgentPhone", e.target.value)}
-              />
+              <div className="relative">
+                <Input
+                  id="listingAgentPhone"
+                  type="tel"
+                  value={formData.listingAgentPhone}
+                  onChange={(e) => updateField("listingAgentPhone", e.target.value)}
+                  className="pr-10"
+                />
+                {formData.listingAgentPhone && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 p-0 text-primary hover:text-primary/80"
+                    onClick={() => window.open(`tel:${formData.listingAgentPhone}`, '_self')}
+                    title="Call this number"
+                  >
+                    <span className="text-xs font-bold">📞</span>
+                  </Button>
+                )}
+              </div>
             </div>
             <div>
               <Label htmlFor="listingAgentEmail">Listing Agent Email</Label>
-              <Input
-                id="listingAgentEmail"
-                type="email"
-                value={formData.listingAgentEmail}
-                onChange={(e) => updateField("listingAgentEmail", e.target.value)}
-              />
+              <div className="relative">
+                <Input
+                  id="listingAgentEmail"
+                  type="email"
+                  value={formData.listingAgentEmail}
+                  onChange={(e) => updateField("listingAgentEmail", e.target.value)}
+                  className="pr-10"
+                />
+                {formData.listingAgentEmail && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 p-0 text-primary hover:text-primary/80"
+                    onClick={() => openEmailClient(formData.listingAgentEmail)}
+                    title={`Open in ${EMAIL_CLIENT_OPTIONS.find(o => o.value === emailClient)?.label}`}
+                  >
+                    <Mail className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
             </div>
           </div>
         </Card>

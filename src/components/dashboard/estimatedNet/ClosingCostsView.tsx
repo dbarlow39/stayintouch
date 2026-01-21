@@ -1,8 +1,11 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PropertyData } from "@/types/estimatedNet";
 import { calculateClosingCosts, formatCurrency } from "@/utils/estimatedNetCalculations";
-import { ArrowLeft, Download, List, Mail, Calendar, FileText, ArrowRight, DollarSign, ClipboardList } from "lucide-react";
+import { ArrowLeft, Download, List, Mail, Calendar, FileText, ArrowRight, DollarSign, ClipboardList, Settings } from "lucide-react";
+import { EmailClient, EMAIL_CLIENT_OPTIONS, getEmailClientPreference, setEmailClientPreference } from "@/utils/emailClientUtils";
 import logo from "@/assets/logo.jpg";
 
 interface ClosingCostsViewProps {
@@ -15,6 +18,13 @@ interface ClosingCostsViewProps {
 
 const ClosingCostsView = ({ propertyData, propertyId, onBack, onEdit, onNavigate }: ClosingCostsViewProps) => {
   const closingCosts = calculateClosingCosts(propertyData);
+  const [emailClient, setEmailClient] = useState<EmailClient>(getEmailClientPreference);
+
+  const handleEmailClientChange = (value: string) => {
+    const client = value as EmailClient;
+    setEmailClient(client);
+    setEmailClientPreference(client);
+  };
 
   const handleDownloadPDF = async () => {
     const html2canvas = (await import('html2canvas')).default;
@@ -136,6 +146,23 @@ const ClosingCostsView = ({ propertyData, propertyId, onBack, onEdit, onNavigate
     <div className="flex w-full min-h-[600px]">
       {/* Left Sidebar Navigation */}
       <aside className="w-56 p-3 border-r bg-card shrink-0 print:hidden">
+        {/* Email Client Selector */}
+        <div className="flex items-center gap-2 mb-4 px-1">
+          <Settings className="h-4 w-4 text-muted-foreground shrink-0" />
+          <Select value={emailClient} onValueChange={handleEmailClientChange}>
+            <SelectTrigger className="h-8 text-sm bg-background">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="bg-popover z-50">
+              {EMAIL_CLIENT_OPTIONS.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
         <div className="space-y-1">
           {navigationItems.map((item, idx) => (
             <Button
