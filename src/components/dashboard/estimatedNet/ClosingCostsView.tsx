@@ -92,7 +92,7 @@ const ClosingCostsView = ({ propertyData, propertyId, onBack, onEdit, onNavigate
     },
     {
       label: "Offer Summary",
-      icon: ArrowRight,
+      icon: FileText,
       onClick: () => onNavigate('offer-summary'),
     },
     {
