@@ -322,20 +322,18 @@ const EstimatedNetTab = ({ selectedClient, onClearSelectedClient }: EstimatedNet
             </TableHeader>
             <TableBody>
               {estimates.map((estimate) => (
-                <TableRow key={estimate.id} className="cursor-pointer hover:bg-muted/50">
-                  <TableCell 
-                    className="font-medium text-primary hover:underline cursor-pointer"
-                    onClick={() => handleEditEstimate(estimate.id)}
-                  >
+                <TableRow 
+                  key={estimate.id} 
+                  className="cursor-pointer hover:bg-muted/50"
+                  onClick={() => handleEditEstimate(estimate.id)}
+                >
+                  <TableCell className="font-medium">
                     {estimate.name}
                   </TableCell>
-                  <TableCell onClick={() => handleViewResults(estimate.id)}>
+                  <TableCell>
                     {estimate.street_address}, {estimate.city}
                   </TableCell>
-                  <TableCell 
-                    className="text-right"
-                    onClick={() => handleViewResults(estimate.id)}
-                  >
+                  <TableCell className="text-right">
                     {formatCurrency(estimate.offer_price)}
                   </TableCell>
                   <TableCell className="text-right">
