@@ -147,7 +147,7 @@ const ClosingCostsView = ({ propertyData, propertyId, onBack, onEdit }: ClosingC
               @media print, (min-width: 0px) {
                 .pdf-content {
                   font-size: 15px !important;
-                  padding: 24px 28px !important;
+                  padding: 24px 28px 40px 28px !important;
                 }
                 .pdf-content h1 {
                   font-size: 31px !important;
