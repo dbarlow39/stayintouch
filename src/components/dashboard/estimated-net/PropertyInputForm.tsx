@@ -611,9 +611,8 @@ const PropertyInputForm = ({ editingProperty, preselectedClient, onSuccess, onCa
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="Within 3 Days of Acceptance">Within 3 Days of Acceptance</SelectItem>
-                <SelectItem value="Within 5 Days of Acceptance">Within 5 Days of Acceptance</SelectItem>
-                <SelectItem value="Upon Acceptance">Upon Acceptance</SelectItem>
-                <SelectItem value="Already Collected">Already Collected</SelectItem>
+                <SelectItem value="Within 3 Days of Remedy Expiration">Within 3 Days of Remedy Expiration</SelectItem>
+                <SelectItem value="Other">Other</SelectItem>
               </SelectContent>
             </Select>
           </div>
