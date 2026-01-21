@@ -12,13 +12,29 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { PropertyData, EstimatedNetProperty } from "@/types/estimatedNet";
 import { calculateTaxDaysDue } from "@/utils/estimatedNetCalculations";
 
+interface Client {
+  id: string;
+  first_name: string | null;
+  last_name: string | null;
+  street_number: string | null;
+  street_name: string | null;
+  city: string | null;
+  state: string | null;
+  zip: string | null;
+  email: string | null;
+  phone: string | null;
+  cell_phone: string | null;
+  price: number | null;
+}
+
 interface PropertyInputFormProps {
   editingProperty: EstimatedNetProperty | null;
+  preselectedClient?: Client | null;
   onSuccess: () => void;
   onCancel: () => void;
 }
 
-const PropertyInputForm = ({ editingProperty, onSuccess, onCancel }: PropertyInputFormProps) => {
+const PropertyInputForm = ({ editingProperty, preselectedClient, onSuccess, onCancel }: PropertyInputFormProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [clientSearch, setClientSearch] = useState("");
@@ -69,6 +85,24 @@ const PropertyInputForm = ({ editingProperty, onSuccess, onCancel }: PropertyInp
     appliances: "",
     notes: "",
   });
+
+  // Load preselected client data
+  useEffect(() => {
+    if (preselectedClient && !editingProperty) {
+      const streetAddress = [preselectedClient.street_number, preselectedClient.street_name].filter(Boolean).join(" ");
+      setFormData(prev => ({
+        ...prev,
+        name: [preselectedClient.first_name, preselectedClient.last_name].filter(Boolean).join(" "),
+        streetAddress,
+        city: preselectedClient.city || "",
+        state: preselectedClient.state || "OH",
+        zip: preselectedClient.zip || "",
+        sellerPhone: preselectedClient.cell_phone || preselectedClient.phone || "",
+        sellerEmail: preselectedClient.email || "",
+        offerPrice: preselectedClient.price || 0,
+      }));
+    }
+  }, [preselectedClient, editingProperty]);
 
   // Load editing property data
   useEffect(() => {

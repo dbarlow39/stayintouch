@@ -6,11 +6,28 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Plus, Calculator, Trash2, Edit, DollarSign } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Plus, Calculator, Trash2, Edit, DollarSign, Users, FileText, Home } from "lucide-react";
 import { PropertyData, EstimatedNetProperty } from "@/types/estimatedNet";
 import { calculateClosingCosts, formatCurrency } from "@/utils/estimatedNetCalculations";
 import PropertyInputForm from "./estimated-net/PropertyInputForm";
 import ClosingCostsDisplay from "./estimated-net/ClosingCostsDisplay";
+
+interface Client {
+  id: string;
+  first_name: string | null;
+  last_name: string | null;
+  street_number: string | null;
+  street_name: string | null;
+  city: string | null;
+  state: string | null;
+  zip: string | null;
+  email: string | null;
+  phone: string | null;
+  cell_phone: string | null;
+  price: number | null;
+  status: string | null;
+}
 
 const EstimatedNetTab = () => {
   const { user } = useAuth();
@@ -20,8 +37,28 @@ const EstimatedNetTab = () => {
   const [showResults, setShowResults] = useState(false);
   const [editingProperty, setEditingProperty] = useState<EstimatedNetProperty | null>(null);
   const [selectedProperty, setSelectedProperty] = useState<EstimatedNetProperty | null>(null);
+  const [selectedClient, setSelectedClient] = useState<Client | null>(null);
+  const [activeTab, setActiveTab] = useState("clients");
 
-  const { data: properties, isLoading } = useQuery({
+  // Fetch active clients (status = "A")
+  const { data: activeClients, isLoading: loadingClients } = useQuery({
+    queryKey: ["active-clients", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("clients")
+        .select("id, first_name, last_name, street_number, street_name, city, state, zip, email, phone, cell_phone, price, status")
+        .eq("agent_id", user!.id)
+        .eq("status", "A")
+        .order("last_name", { ascending: true });
+      
+      if (error) throw error;
+      return data as Client[];
+    },
+    enabled: !!user,
+  });
+
+  // Fetch existing estimates
+  const { data: properties, isLoading: loadingProperties } = useQuery({
     queryKey: ["estimated-net-properties", user?.id],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -52,12 +89,20 @@ const EstimatedNetTab = () => {
     },
   });
 
+  const handleSelectClient = (client: Client) => {
+    setSelectedClient(client);
+    setEditingProperty(null);
+    setShowForm(true);
+  };
+
   const handleNewProperty = () => {
+    setSelectedClient(null);
     setEditingProperty(null);
     setShowForm(true);
   };
 
   const handleEditProperty = (property: EstimatedNetProperty) => {
+    setSelectedClient(null);
     setEditingProperty(property);
     setShowForm(true);
   };
@@ -70,7 +115,9 @@ const EstimatedNetTab = () => {
   const handleFormSuccess = () => {
     setShowForm(false);
     setEditingProperty(null);
+    setSelectedClient(null);
     queryClient.invalidateQueries({ queryKey: ["estimated-net-properties"] });
+    setActiveTab("estimates");
   };
 
   const getPropertyData = (property: EstimatedNetProperty): PropertyData => ({
@@ -124,90 +171,152 @@ const EstimatedNetTab = () => {
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-lg font-semibold">Estimated Net Calculator</h3>
-          <p className="text-sm text-muted-foreground">Calculate seller net proceeds for your properties</p>
+          <p className="text-sm text-muted-foreground">Select a client or view existing estimates</p>
         </div>
-        <Button onClick={handleNewProperty}>
+        <Button onClick={handleNewProperty} variant="outline">
           <Plus className="w-4 h-4 mr-2" />
-          New Estimate
+          Manual Entry
         </Button>
       </div>
 
-      {isLoading ? (
-        <div className="text-center py-12 text-muted-foreground">Loading properties...</div>
-      ) : !properties || properties.length === 0 ? (
-        <div className="text-center py-12 text-muted-foreground">
-          <Calculator className="w-12 h-12 mx-auto mb-4 opacity-50" />
-          <p>No estimates yet. Create your first one to get started.</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {properties.map((property) => {
-            const propertyData = getPropertyData(property);
-            const closingCosts = calculateClosingCosts(propertyData);
-            
-            return (
-              <Card key={property.id} className="shadow-soft hover:shadow-medium transition-shadow">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-base font-semibold line-clamp-1">
-                    {property.name}
-                  </CardTitle>
-                  <p className="text-sm text-muted-foreground line-clamp-1">
-                    {property.street_address}, {property.city}
-                  </p>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Offer Price:</span>
-                    <span className="font-medium">{formatCurrency(Number(property.offer_price))}</span>
-                  </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Estimated Net:</span>
-                    <span className={`font-bold ${closingCosts.estimatedNet >= 0 ? 'text-green-600' : 'text-destructive'}`}>
-                      {formatCurrency(closingCosts.estimatedNet)}
-                    </span>
-                  </div>
-                  <div className="flex gap-2 pt-2">
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      className="flex-1"
-                      onClick={() => handleViewResults(property)}
-                    >
-                      <DollarSign className="w-3 h-3 mr-1" />
-                      View
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList>
+          <TabsTrigger value="clients" className="gap-2">
+            <Users className="w-4 h-4" />
+            Active Clients ({activeClients?.length || 0})
+          </TabsTrigger>
+          <TabsTrigger value="estimates" className="gap-2">
+            <FileText className="w-4 h-4" />
+            Saved Estimates ({properties?.length || 0})
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="clients" className="mt-4">
+          {loadingClients ? (
+            <div className="text-center py-12 text-muted-foreground">Loading clients...</div>
+          ) : !activeClients || activeClients.length === 0 ? (
+            <div className="text-center py-12 text-muted-foreground">
+              <Users className="w-12 h-12 mx-auto mb-4 opacity-50" />
+              <p>No active clients found. Add clients in the Clients tab first.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {activeClients.map((client) => (
+                <Card 
+                  key={client.id} 
+                  className="shadow-soft hover:shadow-medium transition-all cursor-pointer hover:border-primary/50"
+                  onClick={() => handleSelectClient(client)}
+                >
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base font-semibold flex items-center gap-2">
+                      <Home className="w-4 h-4 text-muted-foreground" />
+                      {client.first_name} {client.last_name}
+                    </CardTitle>
+                    <p className="text-sm text-muted-foreground line-clamp-1">
+                      {client.street_number} {client.street_name}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {client.city}, {client.state} {client.zip}
+                    </p>
+                  </CardHeader>
+                  <CardContent className="pt-2">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">List Price:</span>
+                      <span className="font-medium">
+                        {client.price ? formatCurrency(client.price) : "N/A"}
+                      </span>
+                    </div>
+                    <Button className="w-full mt-3" size="sm">
+                      <Calculator className="w-4 h-4 mr-2" />
+                      Create Estimate
                     </Button>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => handleEditProperty(property)}
-                    >
-                      <Edit className="w-3 h-3" />
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => deleteMutation.mutate(property.id)}
-                    >
-                      <Trash2 className="w-3 h-3" />
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
-      )}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="estimates" className="mt-4">
+          {loadingProperties ? (
+            <div className="text-center py-12 text-muted-foreground">Loading estimates...</div>
+          ) : !properties || properties.length === 0 ? (
+            <div className="text-center py-12 text-muted-foreground">
+              <Calculator className="w-12 h-12 mx-auto mb-4 opacity-50" />
+              <p>No estimates yet. Select a client above to create one.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {properties.map((property) => {
+                const propertyData = getPropertyData(property);
+                const closingCosts = calculateClosingCosts(propertyData);
+                
+                return (
+                  <Card key={property.id} className="shadow-soft hover:shadow-medium transition-shadow">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-base font-semibold line-clamp-1">
+                        {property.name}
+                      </CardTitle>
+                      <p className="text-sm text-muted-foreground line-clamp-1">
+                        {property.street_address}, {property.city}
+                      </p>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">Offer Price:</span>
+                        <span className="font-medium">{formatCurrency(Number(property.offer_price))}</span>
+                      </div>
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">Estimated Net:</span>
+                        <span className={`font-bold ${closingCosts.estimatedNet >= 0 ? 'text-green-600' : 'text-destructive'}`}>
+                          {formatCurrency(closingCosts.estimatedNet)}
+                        </span>
+                      </div>
+                      <div className="flex gap-2 pt-2">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="flex-1"
+                          onClick={() => handleViewResults(property)}
+                        >
+                          <DollarSign className="w-3 h-3 mr-1" />
+                          View
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => handleEditProperty(property)}
+                        >
+                          <Edit className="w-3 h-3" />
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => deleteMutation.mutate(property.id)}
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
 
       {/* Property Input Form Dialog */}
       <Dialog open={showForm} onOpenChange={setShowForm}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              {editingProperty ? "Edit Property" : "New Estimated Net Calculation"}
+              {editingProperty ? "Edit Property" : selectedClient ? `Estimate for ${selectedClient.first_name} ${selectedClient.last_name}` : "New Estimated Net Calculation"}
             </DialogTitle>
           </DialogHeader>
           <PropertyInputForm 
             editingProperty={editingProperty}
+            preselectedClient={selectedClient}
             onSuccess={handleFormSuccess}
             onCancel={() => setShowForm(false)}
           />
