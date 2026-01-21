@@ -10,9 +10,10 @@ interface ClosingCostsViewProps {
   propertyId: string;
   onBack: () => void;
   onEdit: (id: string) => void;
+  onNavigate: (view: string) => void;
 }
 
-const ClosingCostsView = ({ propertyData, propertyId, onBack, onEdit }: ClosingCostsViewProps) => {
+const ClosingCostsView = ({ propertyData, propertyId, onBack, onEdit, onNavigate }: ClosingCostsViewProps) => {
   const closingCosts = calculateClosingCosts(propertyData);
 
   const handleDownloadPDF = async () => {
@@ -86,8 +87,7 @@ const ClosingCostsView = ({ propertyData, propertyId, onBack, onEdit }: ClosingC
     {
       label: "Offer Letter",
       icon: Mail,
-      onClick: () => {},
-      disabled: true,
+      onClick: () => onNavigate('offer-letter'),
     },
     {
       label: "Important Dates Letter",
