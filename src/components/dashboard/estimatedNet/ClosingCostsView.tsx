@@ -123,13 +123,12 @@ const ClosingCostsView = ({ propertyData, propertyId, onBack, onEdit, onNavigate
       label: "Estimated Net",
       icon: Download,
       onClick: () => {},
-      disabled: true,
+      active: true,
     },
     {
       label: "Offer Summary",
       icon: ArrowRight,
-      onClick: () => {},
-      disabled: true,
+      onClick: () => onNavigate('offer-summary'),
     },
   ];
 
