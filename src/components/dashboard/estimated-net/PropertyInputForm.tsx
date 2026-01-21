@@ -278,21 +278,55 @@ const PropertyInputForm = ({ editingProperty, preselectedClient, onSuccess, onCa
     },
   });
 
-  const handleSelectClient = (client: any) => {
+  const handleSelectClient = async (client: any) => {
     const streetAddress = [client.street_number, client.street_name].filter(Boolean).join(" ");
+    const clientCity = client.city || "";
+    const clientState = client.state || "OH";
+    const clientZip = client.zip || "";
+    
     setFormData(prev => ({
       ...prev,
       name: [client.first_name, client.last_name].filter(Boolean).join(" "),
       streetAddress,
-      city: client.city || "",
-      state: client.state || "OH",
-      zip: client.zip || "",
+      city: clientCity,
+      state: clientState,
+      zip: clientZip,
       sellerPhone: client.cell_phone || client.phone || "",
       sellerEmail: client.email || "",
     }));
     setShowClientSuggestions(false);
     setClientSearch("");
     toast({ title: "Client loaded", description: `${client.first_name} ${client.last_name}` });
+
+    // Auto-lookup property taxes if address is complete
+    if (streetAddress && clientCity && clientState && clientZip) {
+      setIsLookingUpTaxes(true);
+      try {
+        const { data, error } = await supabase.functions.invoke("lookup-property", {
+          body: {
+            address: streetAddress,
+            city: clientCity,
+            state: clientState,
+            zip: clientZip,
+          },
+        });
+
+        if (!error && data?.annual_amount) {
+          setFormData(prev => ({
+            ...prev,
+            annualTaxes: data.annual_amount,
+          }));
+          toast({
+            title: "Property taxes found",
+            description: `Annual taxes: $${data.annual_amount.toLocaleString()}`,
+          });
+        }
+      } catch (err) {
+        console.error("Error fetching property taxes:", err);
+      } finally {
+        setIsLookingUpTaxes(false);
+      }
+    }
   };
 
   const updateField = (field: keyof PropertyData, value: any) => {
