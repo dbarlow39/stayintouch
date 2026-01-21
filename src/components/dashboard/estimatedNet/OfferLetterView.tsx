@@ -177,7 +177,7 @@ const OfferLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate 
               variant="ghost"
               className={`w-full justify-start text-left h-auto py-2 px-3 ${
                 item.disabled ? 'opacity-50 cursor-not-allowed' : ''
-              } ${item.active ? 'bg-primary/10 text-primary' : ''}`}
+              } ${item.active ? 'bg-rose-100 text-rose-700 hover:bg-rose-200' : ''}`}
               onClick={item.disabled ? undefined : item.onClick}
               disabled={item.disabled}
               type="button"
