@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { PropertyData, EstimatedNetProperty } from "@/types/estimatedNet";
 import { calculateTaxDaysDue } from "@/utils/estimatedNetCalculations";
 
@@ -275,6 +276,7 @@ const PropertyInputForm = ({ editingProperty, preselectedClient, onSuccess, onCa
 
   const taxDaysDue = calculateTaxDaysDue(formData.closingDate);
   const taxesDueAmount = Math.round((formData.annualTaxes / 365) * taxDaysDue);
+  const currentYear = new Date().getFullYear();
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -283,7 +285,7 @@ const PropertyInputForm = ({ editingProperty, preselectedClient, onSuccess, onCa
         <h4 className="font-semibold mb-3">Search Stay in Touch Clients</h4>
         <div className="relative">
           <Input
-            placeholder="Type name or address to search clients..."
+            placeholder="Start typing a name or address..."
             value={clientSearch}
             onChange={(e) => {
               setClientSearch(e.target.value);
@@ -310,27 +312,28 @@ const PropertyInputForm = ({ editingProperty, preselectedClient, onSuccess, onCa
         </div>
       </Card>
 
-      {/* Seller & Property Details */}
+      {/* Seller(s) & Property Details */}
       <Card className="p-4">
-        <h4 className="font-semibold mb-3">Seller & Property Details</h4>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="md:col-span-2">
-            <Label>Street Address *</Label>
+        <h4 className="font-semibold mb-3">Seller(s) & Property Details</h4>
+        <div className="space-y-4">
+          <div>
+            <Label>Street Address</Label>
             <Input
+              placeholder="Start typing a name or address..."
               value={formData.streetAddress}
               onChange={(e) => updateField("streetAddress", e.target.value)}
               required
             />
           </div>
-          <div>
-            <Label>City *</Label>
-            <Input
-              value={formData.city}
-              onChange={(e) => updateField("city", e.target.value)}
-              required
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-3 gap-4">
+            <div>
+              <Label>City</Label>
+              <Input
+                value={formData.city}
+                onChange={(e) => updateField("city", e.target.value)}
+                required
+              />
+            </div>
             <div>
               <Label>State</Label>
               <Input
@@ -340,7 +343,7 @@ const PropertyInputForm = ({ editingProperty, preselectedClient, onSuccess, onCa
               />
             </div>
             <div>
-              <Label>Zip *</Label>
+              <Label>Zip</Label>
               <Input
                 value={formData.zip}
                 onChange={(e) => updateField("zip", e.target.value)}
@@ -349,36 +352,68 @@ const PropertyInputForm = ({ editingProperty, preselectedClient, onSuccess, onCa
             </div>
           </div>
           <div>
-            <Label>Seller(s) Name *</Label>
+            <Label>Seller(s) Name</Label>
             <Input
               value={formData.name}
               onChange={(e) => updateField("name", e.target.value)}
               required
             />
           </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label>Seller Phone</Label>
+              <Input
+                value={formData.sellerPhone}
+                onChange={(e) => updateField("sellerPhone", e.target.value)}
+              />
+            </div>
+            <div>
+              <Label>Seller Email(s)</Label>
+              <Input
+                placeholder="email@example.com, email2@example.com"
+                value={formData.sellerEmail}
+                onChange={(e) => updateField("sellerEmail", e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground mt-1">Separate multiple emails with commas</p>
+            </div>
+          </div>
+        </div>
+      </Card>
+
+      {/* Listing Agent */}
+      <Card className="p-4">
+        <h4 className="font-semibold mb-3">Listing Agent</h4>
+        <div className="grid grid-cols-2 gap-4">
           <div>
-            <Label>Seller Phone</Label>
+            <Label>Listing Agent Name</Label>
             <Input
-              value={formData.sellerPhone}
-              onChange={(e) => updateField("sellerPhone", e.target.value)}
+              value={formData.listingAgentName}
+              onChange={(e) => updateField("listingAgentName", e.target.value)}
             />
           </div>
           <div>
-            <Label>Seller Email</Label>
+            <Label>Listing Agent Phone Number</Label>
             <Input
-              value={formData.sellerEmail}
-              onChange={(e) => updateField("sellerEmail", e.target.value)}
+              value={formData.listingAgentPhone}
+              onChange={(e) => updateField("listingAgentPhone", e.target.value)}
+            />
+          </div>
+          <div>
+            <Label>Listing Agent Email</Label>
+            <Input
+              value={formData.listingAgentEmail}
+              onChange={(e) => updateField("listingAgentEmail", e.target.value)}
             />
           </div>
         </div>
       </Card>
 
-      {/* Financial Details */}
+      {/* Contract Details */}
       <Card className="p-4">
-        <h4 className="font-semibold mb-3">Financial Details</h4>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <h4 className="font-semibold mb-3">Contract Details</h4>
+        <div className="grid grid-cols-2 gap-4">
           <div>
-            <Label>Offer Price *</Label>
+            <Label>Offer Price</Label>
             <div className="relative">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
               <Input
@@ -415,7 +450,7 @@ const PropertyInputForm = ({ editingProperty, preselectedClient, onSuccess, onCa
             </div>
           </div>
           <div>
-            <Label>Buyer Closing Cost</Label>
+            <Label>Closing Cost</Label>
             <div className="relative">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
               <Input
@@ -445,7 +480,64 @@ const PropertyInputForm = ({ editingProperty, preselectedClient, onSuccess, onCa
             />
           </div>
           <div>
-            <Label>Home Warranty</Label>
+            <Label>Type of Loan</Label>
+            <Select
+              value={formData.typeOfLoan}
+              onValueChange={(value) => updateField("typeOfLoan", value)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select loan type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Conventional">Conventional</SelectItem>
+                <SelectItem value="FHA">FHA</SelectItem>
+                <SelectItem value="VA">VA</SelectItem>
+                <SelectItem value="USDA">USDA</SelectItem>
+                <SelectItem value="Cash">Cash</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label>Pre-Approval (Days Due)</Label>
+            <Input
+              type="number"
+              placeholder="Input 0 if already received"
+              value={formData.preApprovalDays || ""}
+              onChange={(e) => updateField("preApprovalDays", parseInt(e.target.value) || 0)}
+            />
+          </div>
+          <div>
+            <Label>Loan Commitment (Days Due)</Label>
+            <Input
+              value={formData.loanCommitment}
+              onChange={(e) => updateField("loanCommitment", e.target.value)}
+            />
+          </div>
+          <div>
+            <Label>Home Inspection (Days)</Label>
+            <Input
+              type="number"
+              value={formData.inspectionDays || ""}
+              onChange={(e) => updateField("inspectionDays", parseInt(e.target.value) || 0)}
+            />
+          </div>
+          <div>
+            <Label>Remedy Period (Days)</Label>
+            <Input
+              type="number"
+              value={formData.remedyPeriodDays || ""}
+              onChange={(e) => updateField("remedyPeriodDays", parseInt(e.target.value) || 0)}
+            />
+          </div>
+          <div>
+            <Label>Home Warranty Company</Label>
+            <Input
+              value={formData.homeWarrantyCompany}
+              onChange={(e) => updateField("homeWarrantyCompany", e.target.value)}
+            />
+          </div>
+          <div>
+            <Label>Home Warranty Cost</Label>
             <div className="relative">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
               <Input
@@ -455,6 +547,42 @@ const PropertyInputForm = ({ editingProperty, preselectedClient, onSuccess, onCa
                 className="pl-7"
               />
             </div>
+          </div>
+          <div>
+            <Label>Earnest Money Deposit</Label>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+              <Input
+                type="number"
+                value={formData.deposit || ""}
+                onChange={(e) => updateField("deposit", parseFloat(e.target.value) || 0)}
+                className="pl-7"
+              />
+            </div>
+          </div>
+          <div>
+            <Label>Deposit Collection</Label>
+            <Select
+              value={formData.depositCollection}
+              onValueChange={(value) => updateField("depositCollection", value)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select option" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Within 3 Days of Acceptance">Within 3 Days of Acceptance</SelectItem>
+                <SelectItem value="Within 5 Days of Acceptance">Within 5 Days of Acceptance</SelectItem>
+                <SelectItem value="Upon Acceptance">Upon Acceptance</SelectItem>
+                <SelectItem value="Already Collected">Already Collected</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label>Final Walk-thru</Label>
+            <Input
+              value={formData.finalWalkThrough}
+              onChange={(e) => updateField("finalWalkThrough", e.target.value)}
+            />
           </div>
           <div>
             <Label>Admin Fee</Label>
@@ -471,10 +599,48 @@ const PropertyInputForm = ({ editingProperty, preselectedClient, onSuccess, onCa
         </div>
       </Card>
 
+      {/* Dates & Timeline */}
+      <Card className="p-4">
+        <h4 className="font-semibold mb-3">Dates & Timeline</h4>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <Label>Closing Date</Label>
+            <Input
+              type="date"
+              value={formData.closingDate}
+              onChange={(e) => updateField("closingDate", e.target.value)}
+            />
+          </div>
+          <div>
+            <Label>Possession Date</Label>
+            <Input
+              type="date"
+              value={formData.possession}
+              onChange={(e) => updateField("possession", e.target.value)}
+            />
+          </div>
+          <div>
+            <Label>Respond to Offer By</Label>
+            <Input
+              value={formData.respondToOfferBy}
+              onChange={(e) => updateField("respondToOfferBy", e.target.value)}
+            />
+          </div>
+          <div>
+            <Label>In Contract Date</Label>
+            <Input
+              type="date"
+              value={formData.inContract}
+              onChange={(e) => updateField("inContract", e.target.value)}
+            />
+          </div>
+        </div>
+      </Card>
+
       {/* Tax Information */}
       <Card className="p-4">
         <h4 className="font-semibold mb-3">Tax Information</h4>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 gap-4">
           <div>
             <Label>Annual Taxes</Label>
             <div className="relative">
@@ -488,95 +654,122 @@ const PropertyInputForm = ({ editingProperty, preselectedClient, onSuccess, onCa
             </div>
           </div>
           <div>
-            <Label>Closing Date</Label>
-            <Input
-              type="date"
-              value={formData.closingDate}
-              onChange={(e) => updateField("closingDate", e.target.value)}
-            />
+            <Label>Taxes Due This Year ({currentYear})</Label>
+            <div className="text-lg font-semibold">${taxesDueAmount.toLocaleString()}</div>
+            <p className="text-xs text-muted-foreground">
+              Prorated from Jan 1 to closing date ({taxDaysDue} days)
+            </p>
           </div>
           <div>
-            <Label>Taxes Due This Year</Label>
-            <div className="text-lg font-semibold text-primary">${taxesDueAmount.toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground">Prorated ({taxDaysDue} days)</p>
-          </div>
-          <div>
-            <Label>1st Half Paid?</Label>
+            <Label>1st Half Paid {currentYear}</Label>
             <div className="flex gap-4 mt-2">
-              <label className="flex items-center gap-2">
+              <label className="flex items-center gap-2 cursor-pointer">
                 <input
                   type="radio"
+                  name="firstHalfPaid"
                   checked={formData.firstHalfPaid}
                   onChange={() => updateField("firstHalfPaid", true)}
+                  className="w-4 h-4"
                 />
-                Yes
+                <span>Yes</span>
               </label>
-              <label className="flex items-center gap-2">
+              <label className="flex items-center gap-2 cursor-pointer text-destructive">
                 <input
                   type="radio"
+                  name="firstHalfPaid"
                   checked={!formData.firstHalfPaid}
                   onChange={() => updateField("firstHalfPaid", false)}
+                  className="w-4 h-4"
                 />
-                No
+                <span>No</span>
               </label>
             </div>
-            {!formData.firstHalfPaid && (
-              <div className="relative mt-2">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
-                <Input
-                  type="number"
-                  value={formData.daysFirstHalfTaxes || ""}
-                  onChange={(e) => updateField("daysFirstHalfTaxes", parseFloat(e.target.value) || 0)}
-                  className="pl-7"
-                  placeholder="Amount owed"
-                />
-              </div>
-            )}
+            <div className="relative mt-2">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+              <Input
+                type="number"
+                value={formData.daysFirstHalfTaxes || ""}
+                onChange={(e) => updateField("daysFirstHalfTaxes", parseFloat(e.target.value) || 0)}
+                className="pl-7"
+              />
+            </div>
           </div>
           <div>
-            <Label>2nd Half Paid?</Label>
+            <Label>2nd Half Paid {currentYear}</Label>
             <div className="flex gap-4 mt-2">
-              <label className="flex items-center gap-2">
+              <label className="flex items-center gap-2 cursor-pointer">
                 <input
                   type="radio"
+                  name="secondHalfPaid"
                   checked={formData.secondHalfPaid}
                   onChange={() => updateField("secondHalfPaid", true)}
+                  className="w-4 h-4"
                 />
-                Yes
+                <span>Yes</span>
               </label>
-              <label className="flex items-center gap-2">
+              <label className="flex items-center gap-2 cursor-pointer text-destructive">
                 <input
                   type="radio"
+                  name="secondHalfPaid"
                   checked={!formData.secondHalfPaid}
                   onChange={() => updateField("secondHalfPaid", false)}
+                  className="w-4 h-4"
                 />
-                No
+                <span>No</span>
               </label>
             </div>
-            {!formData.secondHalfPaid && (
-              <div className="relative mt-2">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
-                <Input
-                  type="number"
-                  value={formData.daysSecondHalfTaxes || ""}
-                  onChange={(e) => updateField("daysSecondHalfTaxes", parseFloat(e.target.value) || 0)}
-                  className="pl-7"
-                  placeholder="Amount owed"
-                />
-              </div>
-            )}
+            <div className="relative mt-2">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+              <Input
+                type="number"
+                value={formData.daysSecondHalfTaxes || ""}
+                onChange={(e) => updateField("daysSecondHalfTaxes", parseFloat(e.target.value) || 0)}
+                className="pl-7"
+              />
+            </div>
           </div>
         </div>
       </Card>
 
-      {/* Notes */}
+      {/* Buyer Agent Information */}
       <Card className="p-4">
-        <h4 className="font-semibold mb-3">Notes</h4>
-        <Textarea
-          value={formData.notes}
-          onChange={(e) => updateField("notes", e.target.value)}
-          rows={3}
-        />
+        <h4 className="font-semibold mb-3">Buyer Agent Information</h4>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <Label>Buyer Agent Name</Label>
+            <Input
+              value={formData.agentName}
+              onChange={(e) => updateField("agentName", e.target.value)}
+            />
+          </div>
+          <div>
+            <Label>Buyer Agent Cell Phone</Label>
+            <Input
+              value={formData.agentContact}
+              onChange={(e) => updateField("agentContact", e.target.value)}
+            />
+          </div>
+          <div>
+            <Label>Buyer Agent Email</Label>
+            <Input
+              value={formData.agentEmail}
+              onChange={(e) => updateField("agentEmail", e.target.value)}
+            />
+          </div>
+        </div>
+      </Card>
+
+      {/* Additional Information */}
+      <Card className="p-4">
+        <h4 className="font-semibold mb-3">Additional Information</h4>
+        <div>
+          <Label>Notes</Label>
+          <Textarea
+            value={formData.notes}
+            onChange={(e) => updateField("notes", e.target.value)}
+            rows={4}
+          />
+        </div>
       </Card>
 
       <div className="flex justify-end gap-2">
@@ -584,7 +777,7 @@ const PropertyInputForm = ({ editingProperty, preselectedClient, onSuccess, onCa
           Cancel
         </Button>
         <Button type="submit" disabled={saveMutation.isPending}>
-          {saveMutation.isPending ? "Saving..." : editingProperty ? "Update" : "Calculate & Save"}
+          {saveMutation.isPending ? "Saving..." : "Calculate Closing Costs →"}
         </Button>
       </div>
     </form>
