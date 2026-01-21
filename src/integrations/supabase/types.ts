@@ -282,6 +282,167 @@ export type Database = {
         }
         Relationships: []
       }
+      estimated_net_properties: {
+        Row: {
+          admin_fee: number
+          agent_contact: string | null
+          agent_email: string | null
+          agent_id: string
+          agent_name: string | null
+          annual_taxes: number
+          appliances: string | null
+          buyer_agent_commission: number
+          city: string
+          client_id: string | null
+          closing_cost: number
+          closing_date: string | null
+          created_at: string
+          days_first_half_taxes: number | null
+          days_second_half_taxes: number | null
+          deposit: number
+          deposit_collection: string | null
+          final_walk_through: string | null
+          first_half_paid: boolean
+          first_mortgage: number
+          home_warranty: number
+          home_warranty_company: string | null
+          id: string
+          in_contract: string | null
+          inspection_days: number | null
+          listing_agent_commission: number
+          listing_agent_email: string | null
+          listing_agent_name: string | null
+          listing_agent_phone: string | null
+          loan_app_time_frame: string | null
+          loan_commitment: string | null
+          name: string
+          notes: string | null
+          offer_price: number
+          possession: string | null
+          pre_approval_days: number | null
+          remedy_period_days: number | null
+          respond_to_offer_by: string | null
+          second_half_paid: boolean
+          second_mortgage: number
+          seller_email: string | null
+          seller_phone: string | null
+          state: string
+          street_address: string
+          tax_days_due_this_year: number | null
+          type_of_loan: string | null
+          updated_at: string
+          zip: string
+        }
+        Insert: {
+          admin_fee?: number
+          agent_contact?: string | null
+          agent_email?: string | null
+          agent_id: string
+          agent_name?: string | null
+          annual_taxes?: number
+          appliances?: string | null
+          buyer_agent_commission?: number
+          city: string
+          client_id?: string | null
+          closing_cost?: number
+          closing_date?: string | null
+          created_at?: string
+          days_first_half_taxes?: number | null
+          days_second_half_taxes?: number | null
+          deposit?: number
+          deposit_collection?: string | null
+          final_walk_through?: string | null
+          first_half_paid?: boolean
+          first_mortgage?: number
+          home_warranty?: number
+          home_warranty_company?: string | null
+          id?: string
+          in_contract?: string | null
+          inspection_days?: number | null
+          listing_agent_commission?: number
+          listing_agent_email?: string | null
+          listing_agent_name?: string | null
+          listing_agent_phone?: string | null
+          loan_app_time_frame?: string | null
+          loan_commitment?: string | null
+          name: string
+          notes?: string | null
+          offer_price?: number
+          possession?: string | null
+          pre_approval_days?: number | null
+          remedy_period_days?: number | null
+          respond_to_offer_by?: string | null
+          second_half_paid?: boolean
+          second_mortgage?: number
+          seller_email?: string | null
+          seller_phone?: string | null
+          state?: string
+          street_address: string
+          tax_days_due_this_year?: number | null
+          type_of_loan?: string | null
+          updated_at?: string
+          zip: string
+        }
+        Update: {
+          admin_fee?: number
+          agent_contact?: string | null
+          agent_email?: string | null
+          agent_id?: string
+          agent_name?: string | null
+          annual_taxes?: number
+          appliances?: string | null
+          buyer_agent_commission?: number
+          city?: string
+          client_id?: string | null
+          closing_cost?: number
+          closing_date?: string | null
+          created_at?: string
+          days_first_half_taxes?: number | null
+          days_second_half_taxes?: number | null
+          deposit?: number
+          deposit_collection?: string | null
+          final_walk_through?: string | null
+          first_half_paid?: boolean
+          first_mortgage?: number
+          home_warranty?: number
+          home_warranty_company?: string | null
+          id?: string
+          in_contract?: string | null
+          inspection_days?: number | null
+          listing_agent_commission?: number
+          listing_agent_email?: string | null
+          listing_agent_name?: string | null
+          listing_agent_phone?: string | null
+          loan_app_time_frame?: string | null
+          loan_commitment?: string | null
+          name?: string
+          notes?: string | null
+          offer_price?: number
+          possession?: string | null
+          pre_approval_days?: number | null
+          remedy_period_days?: number | null
+          respond_to_offer_by?: string | null
+          second_half_paid?: boolean
+          second_mortgage?: number
+          seller_email?: string | null
+          seller_phone?: string | null
+          state?: string
+          street_address?: string
+          tax_days_due_this_year?: number | null
+          type_of_loan?: string | null
+          updated_at?: string
+          zip?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "estimated_net_properties_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       follow_up_sequences: {
         Row: {
           agent_id: string
