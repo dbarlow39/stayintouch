@@ -30,10 +30,33 @@ const ClosingCostsView = ({ propertyData, propertyId, onBack, onEdit }: ClosingC
     
     const imgData = canvas.toDataURL('image/png');
     const pdf = new jsPDF('p', 'mm', 'a4');
-    const pdfWidth = pdf.internal.pageSize.getWidth();
-    const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-    
-    pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+
+    // Ensure we never clip at the bottom by fitting the image within the page bounds
+    // with an explicit bottom margin (~5/8" = 15.9mm).
+    const marginLeft = 10;
+    const marginRight = 10;
+    const marginTop = 10;
+    const marginBottom = 16;
+
+    const maxWidth = pageWidth - marginLeft - marginRight;
+    const maxHeight = pageHeight - marginTop - marginBottom;
+
+    // Start by fitting to width, then shrink to fit height if needed.
+    let imgWidth = maxWidth;
+    let imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+    if (imgHeight > maxHeight) {
+      imgHeight = maxHeight;
+      imgWidth = (canvas.width * imgHeight) / canvas.height;
+    }
+
+    const x = marginLeft + (maxWidth - imgWidth) / 2;
+    const y = marginTop;
+
+    pdf.addImage(imgData, 'PNG', x, y, imgWidth, imgHeight);
     pdf.save(`Estimated Net - ${propertyData.streetAddress}.pdf`);
   };
 
