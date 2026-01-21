@@ -56,15 +56,34 @@ const EstimatedNetTab = ({ selectedClient, onClearSelectedClient }: EstimatedNet
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [initialClient, setInitialClient] = useState<SelectedClientForEstimate | null>(null);
 
-  // Handle selected client from Clients tab
+  // Handle selected client from Clients tab - check for existing estimate first
   useEffect(() => {
-    if (selectedClient) {
-      setInitialClient(selectedClient);
-      setEditingId(null);
-      setViewState('form');
-      onClearSelectedClient?.();
-    }
-  }, [selectedClient, onClearSelectedClient]);
+    const loadClientEstimate = async () => {
+      if (selectedClient && user) {
+        // Check if there's an existing estimate for this client
+        const { data: existingEstimate } = await supabase
+          .from("estimated_net_properties")
+          .select("id")
+          .eq("agent_id", user.id)
+          .eq("client_id", selectedClient.id)
+          .maybeSingle();
+
+        if (existingEstimate) {
+          // Load existing estimate for editing
+          setEditingId(existingEstimate.id);
+          setInitialClient(null);
+        } else {
+          // Create new estimate with client data
+          setInitialClient(selectedClient);
+          setEditingId(null);
+        }
+        setViewState('form');
+        onClearSelectedClient?.();
+      }
+    };
+
+    loadClientEstimate();
+  }, [selectedClient, onClearSelectedClient, user]);
 
   // Fetch saved estimates
   const { data: estimates = [], isLoading } = useQuery({
