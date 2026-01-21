@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { PropertyData } from "@/types/estimatedNet";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { ArrowLeft, List, Download, Mail, Calendar, FileText, ArrowRight } from "lucide-react";
 
 interface PropertyInputFormProps {
   editingId: string | null;
@@ -20,6 +21,7 @@ const PropertyInputForm = ({ editingId, onSave, onCancel }: PropertyInputFormPro
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [lookingUp, setLookingUp] = useState(false);
+  const [navigationTarget, setNavigationTarget] = useState<string>("closing-costs");
   const formRef = useRef<HTMLFormElement>(null);
   const [formData, setFormData] = useState<PropertyData>({
     name: "",
@@ -450,21 +452,114 @@ const PropertyInputForm = ({ editingId, onSave, onCancel }: PropertyInputFormPro
     setSelectedPropertyId("");
   };
 
-  return (
-    <div className="max-w-5xl mx-auto">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h2 className="text-2xl font-bold text-foreground">
-            {editingId ? "Edit Property" : "Property Information"}
-          </h2>
-          <p className="text-muted-foreground">Enter property and offer details</p>
-        </div>
-        <Button variant="outline" onClick={onCancel}>
-          Cancel
-        </Button>
-      </div>
+  const triggerSubmitAndNavigate = (target: string) => {
+    setNavigationTarget(target);
+    setTimeout(() => formRef.current?.requestSubmit(), 0);
+  };
 
-      <form ref={formRef} onSubmit={handleSubmit}>
+  const navigationItems = [
+    {
+      label: "Back",
+      icon: ArrowLeft,
+      onClick: onCancel,
+    },
+    {
+      label: "Back to Property Info",
+      icon: ArrowLeft,
+      onClick: () => {},
+      disabled: true,
+    },
+    {
+      label: "My Properties",
+      icon: List,
+      onClick: onCancel,
+    },
+    {
+      label: "Download PDF",
+      icon: Download,
+      onClick: () => triggerSubmitAndNavigate("closing-costs"),
+    },
+    {
+      label: "Offer Letter",
+      icon: Mail,
+      onClick: () => triggerSubmitAndNavigate("offer-letter"),
+      disabled: true,
+    },
+    ...(editingId ? [{
+      label: "Important Dates Letter",
+      icon: Calendar,
+      onClick: () => triggerSubmitAndNavigate("important-dates"),
+      disabled: true,
+    }] : []),
+    {
+      label: "Title Letter",
+      icon: Mail,
+      onClick: () => triggerSubmitAndNavigate("title-letter"),
+      disabled: true,
+    },
+    {
+      label: "Agent Letter",
+      icon: Mail,
+      onClick: () => triggerSubmitAndNavigate("agent-letter"),
+      disabled: true,
+    },
+    {
+      label: "Request to Remedy",
+      icon: FileText,
+      onClick: () => triggerSubmitAndNavigate("request-to-remedy"),
+      disabled: true,
+    },
+    {
+      label: "Settlement Statement",
+      icon: Mail,
+      onClick: () => triggerSubmitAndNavigate("settlement-statement"),
+      disabled: true,
+    },
+    {
+      label: "Estimated Net",
+      icon: Download,
+      onClick: () => triggerSubmitAndNavigate("closing-costs"),
+    },
+    {
+      label: "Offer Summary",
+      icon: ArrowRight,
+      onClick: () => triggerSubmitAndNavigate("offer-summary"),
+      disabled: true,
+    },
+  ];
+
+  return (
+    <div className="flex w-full min-h-[600px]">
+      {/* Left Sidebar Navigation */}
+      <aside className="w-56 p-3 border-r bg-card shrink-0">
+        <div className="space-y-1">
+          {navigationItems.map((item, idx) => (
+            <Button
+              key={idx}
+              variant="ghost"
+              className={`w-full justify-start text-left h-auto py-2 px-3 ${item.disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+              onClick={item.disabled ? undefined : item.onClick}
+              disabled={item.disabled}
+              type="button"
+            >
+              <item.icon className="mr-2 h-4 w-4 shrink-0" />
+              <span className="text-sm">{item.label}</span>
+            </Button>
+          ))}
+        </div>
+      </aside>
+
+      {/* Main Content */}
+      <div className="flex-1 py-4 px-6 overflow-auto">
+        <div className="max-w-4xl">
+          <div className="mb-6">
+            <h2 className="text-2xl font-bold text-foreground">
+              {editingId ? "Edit Property" : "Property Information"}
+            </h2>
+            <p className="text-muted-foreground">Enter property and offer details</p>
+          </div>
+
+          <form ref={formRef} onSubmit={handleSubmit}>
         <Card className="p-6 mb-6">
           <h3 className="text-xl font-semibold mb-4 text-foreground">Seller(s) & Property Details</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1109,6 +1204,8 @@ const PropertyInputForm = ({ editingId, onSave, onCancel }: PropertyInputFormPro
           </DialogFooter>
         </DialogContent>
       </Dialog>
+        </div>
+      </div>
     </div>
   );
 };
