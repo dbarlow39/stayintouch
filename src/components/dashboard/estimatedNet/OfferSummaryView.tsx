@@ -4,8 +4,9 @@ import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PropertyData, ClosingCostData } from "@/types/estimatedNet";
 import { calculateClosingCosts, formatCurrency } from "@/utils/estimatedNetCalculations";
-import { ArrowLeft, Download, List, Mail, Calendar, FileText, ArrowRight, DollarSign, ClipboardList, Settings } from "lucide-react";
-import { EmailClient, EMAIL_CLIENT_OPTIONS, getEmailClientPreference, setEmailClientPreference } from "@/utils/emailClientUtils";
+import { ArrowLeft, Download, List, Mail, Calendar, FileText, ArrowRight, DollarSign, ClipboardList, Settings, Copy } from "lucide-react";
+import { EmailClient, EMAIL_CLIENT_OPTIONS, getEmailClientPreference, setEmailClientPreference, openEmailClient } from "@/utils/emailClientUtils";
+import { useToast } from "@/hooks/use-toast";
 import logo from "@/assets/logo.jpg";
 
 interface OfferSummaryViewProps {
@@ -19,6 +20,7 @@ interface OfferSummaryViewProps {
 const OfferSummaryView = ({ propertyData, propertyId, onBack, onEdit, onNavigate }: OfferSummaryViewProps) => {
   const closingCosts = calculateClosingCosts(propertyData);
   const [emailClient, setEmailClient] = useState<EmailClient>(getEmailClientPreference);
+  const { toast } = useToast();
 
   const handleEmailClientChange = (value: string) => {
     const client = value as EmailClient;
@@ -103,6 +105,46 @@ const OfferSummaryView = ({ propertyData, propertyId, onBack, onEdit, onNavigate
 
     pdf.addImage(imgData, 'PNG', x, y, imgWidth, imgHeight);
     pdf.save(`Summary of Offer - ${propertyData.streetAddress}.pdf`);
+  };
+
+  const handleCopyAndEmail = async () => {
+    const content = document.getElementById('offer-summary-content');
+    if (!content) return;
+
+    try {
+      const clonedContent = content.cloneNode(true) as HTMLElement;
+      
+      // Remove print:hidden elements
+      const noPdfElements = clonedContent.querySelectorAll('.print\\:hidden');
+      noPdfElements.forEach(el => el.remove());
+      
+      const htmlContent = clonedContent.innerHTML;
+      const plainText = content.innerText;
+      
+      await navigator.clipboard.write([
+        new ClipboardItem({
+          'text/html': new Blob([htmlContent], { type: 'text/html' }),
+          'text/plain': new Blob([plainText], { type: 'text/plain' })
+        })
+      ]);
+      
+      toast({
+        title: "Copied to clipboard",
+        description: "The summary has been copied. You can now paste it into an email.",
+      });
+
+      // Open email client using selected preference
+      const sellerEmail = propertyData.sellerEmail || '';
+      const subject = `Summary of Offer for ${propertyData.streetAddress}`;
+      openEmailClient(sellerEmail, emailClient, subject);
+    } catch (err) {
+      console.error('Copy error:', err);
+      toast({
+        title: "Error",
+        description: "Failed to copy content. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const SummaryRow = ({ label, value }: { label: string; value: string | number }) => (
@@ -218,8 +260,12 @@ const OfferSummaryView = ({ propertyData, propertyId, onBack, onEdit, onNavigate
 
       {/* Main Content */}
       <div className="flex-1 py-4 px-6 overflow-auto">
-        {/* Download PDF Button - Top Right */}
-        <div className="flex justify-end mb-4 print:hidden">
+        {/* Action Buttons - Top Right */}
+        <div className="flex justify-end gap-2 mb-4 print:hidden">
+          <Button onClick={handleCopyAndEmail} variant="outline" className="gap-2">
+            <Copy className="h-4 w-4" />
+            Copy & Email
+          </Button>
           <Button onClick={handleDownloadPDF} variant="outline" className="gap-2">
             <Download className="h-4 w-4" />
             Download PDF
