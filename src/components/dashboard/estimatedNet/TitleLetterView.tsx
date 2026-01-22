@@ -55,9 +55,9 @@ const TitleLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate 
             ctx?.drawImage(img, 0, 0);
             const dataUrl = canvas.toDataURL('image/jpeg');
             logoImg.src = dataUrl;
-            logoImg.style.width = '200px';
+            logoImg.style.width = '120px';
             logoImg.style.height = 'auto';
-            logoImg.setAttribute('width', '200');
+            logoImg.setAttribute('width', '120');
             resolve(true);
           };
           img.onerror = reject;
@@ -128,9 +128,10 @@ const TitleLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate 
         description: "Opening your email client...",
       });
 
-      // Open email client with pre-filled subject
+      // Open email client with pre-filled subject and title company recipient
       const subject = `${propertyData.streetAddress} into contract`;
-      const link = getEmailLink("", emailClient, subject);
+      const titleCompanyEmail = "polaris@titlefirst.com";
+      const link = getEmailLink(titleCompanyEmail, emailClient, subject);
       window.open(link, '_blank');
     } catch (error) {
       console.error('Failed to copy:', error);
