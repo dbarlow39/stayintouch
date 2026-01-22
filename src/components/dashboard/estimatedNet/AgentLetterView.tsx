@@ -342,7 +342,7 @@ const AgentLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate 
               </div>
             </div>
             <div className="flex gap-2 print:hidden no-pdf">
-              <Button onClick={handleCopyToClipboard} size="lg">
+              <Button onClick={handleCopyToClipboard} size="lg" className="bg-rose-500 hover:bg-rose-600 text-white">
                 <Copy className="mr-2 h-4 w-4" />
                 Copy & Email
               </Button>
