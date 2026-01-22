@@ -86,7 +86,7 @@ const OfferLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate 
       // Replace local logo with absolute URL for email compatibility
       const logoImg = clonedContent.querySelector('.email-logo') as HTMLImageElement;
       if (logoImg) {
-        logoImg.src = `${window.location.origin}/logo.jpg`;
+        logoImg.src = 'https://stayintouch.lovable.app/logo.jpg';
       }
       
       const htmlContent = clonedContent.innerHTML;
