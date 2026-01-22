@@ -147,7 +147,8 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
 
   const hydrateMissingFromClient = async (
     clientId: string,
-    current: { streetAddress: string; city: string; state: string; zip: string; sellerPhone: string; annualTaxes: number }
+    current: { streetAddress: string; city: string; state: string; zip: string; sellerPhone: string; annualTaxes: number },
+    opts?: { estimateId?: string | null }
   ) => {
     try {
       const { data: client, error } = await supabase
@@ -160,6 +161,7 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
 
       const fallbackPhone = client.phone || client.cell_phone || client.home_phone || "";
       const clientAnnualTaxes = client.annual_taxes != null ? Number(client.annual_taxes) : 0;
+      const updatesForEstimate: Record<string, any> = {};
 
       // Fill missing seller phone
       if (!current.sellerPhone?.trim() && fallbackPhone) {
@@ -167,6 +169,10 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
           ...prev,
           sellerPhone: prev.sellerPhone?.trim() ? prev.sellerPhone : fallbackPhone,
         }));
+
+        if (opts?.estimateId) {
+          updatesForEstimate.seller_phone = fallbackPhone;
+        }
       }
 
       // Fill missing taxes from client, and if still missing try lookup by address
@@ -177,6 +183,18 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
           ...prev,
           annualTaxes: prev.annualTaxes > 0 ? prev.annualTaxes : clientAnnualTaxes,
         }));
+
+        if (opts?.estimateId) {
+          updatesForEstimate.annual_taxes = clientAnnualTaxes;
+        }
+
+        // Best-effort: persist immediately so the next edit load already has it.
+        if (opts?.estimateId && Object.keys(updatesForEstimate).length > 0) {
+          await supabase
+            .from("estimated_net_properties")
+            .update(updatesForEstimate)
+            .eq("id", opts.estimateId);
+        }
         return;
       }
 
@@ -198,12 +216,24 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
             annualTaxes: prev.annualTaxes > 0 ? prev.annualTaxes : normalized,
           }));
 
+          if (opts?.estimateId) {
+            updatesForEstimate.annual_taxes = normalized;
+          }
+
           // Cache onto client for next time (best-effort)
           if (!clientAnnualTaxes || clientAnnualTaxes <= 0) {
             await supabase
               .from("clients")
               .update({ annual_taxes: normalized })
               .eq("id", clientId);
+          }
+
+          // Best-effort: persist immediately so the next edit load already has it.
+          if (opts?.estimateId && Object.keys(updatesForEstimate).length > 0) {
+            await supabase
+              .from("estimated_net_properties")
+              .update(updatesForEstimate)
+              .eq("id", opts.estimateId);
           }
         }
       }
@@ -214,9 +244,25 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
 
   const parseStreetAddress = (address: string): { streetNumber: string; streetName: string } | null => {
     const trimmed = (address || "").trim();
+    // Handles: "113 Blackstone Ct", "7693 Mikayla Dr Apt B", etc.
     const match = trimmed.match(/^([0-9]+)\s+(.+)$/);
     if (!match) return null;
     return { streetNumber: match[1], streetName: match[2] };
+  };
+
+  const normalizeStreetNameForSearch = (streetName: string) => {
+    // Drop unit/suite/apt fragments to make matching more reliable against imported CRM data.
+    const withoutUnit = (streetName || "")
+      .replace(/\b(apt|apartment|unit|ste|suite|#)\b.*$/i, "")
+      .replace(/[,]/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+
+    const tokens = withoutUnit.split(" ").filter(Boolean);
+    // Use up to first 3 tokens (e.g. "Clubview Boulevard S" -> "Clubview Boulevard S")
+    // but avoids including extra trailing descriptors that often vary.
+    const base = tokens.slice(0, Math.min(tokens.length, 3)).join(" ");
+    return { withoutUnit, base };
   };
 
   const findClientIdForAddress = async (
@@ -225,24 +271,37 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
     _city?: string,
     zip?: string
   ) => {
-    const q = supabase
-      .from("clients")
-      .select("id")
-      .eq("agent_id", agentId)
-      .eq("street_number", address.streetNumber)
-      // Street names often vary (Rd/Road/etc). Use ILIKE contains.
-      .ilike("street_name", `%${address.streetName}%`)
-      .limit(1);
+    const streetNumber = (address.streetNumber || "").trim();
+    const { base } = normalizeStreetNameForSearch(address.streetName);
 
     // Zip is usually stable; city can vary/missing in imports, so don't require it.
-    if (zip) q.eq("zip", zip);
+    const run = async (withZip: boolean) => {
+      const q = supabase
+        .from("clients")
+        .select("id")
+        .eq("agent_id", agentId)
+        // street_number values sometimes have trailing spaces from CSV imports; match either exact or prefix.
+        .or(`street_number.eq.${streetNumber},street_number.ilike.${streetNumber}%`)
+        .ilike("street_name", `%${base}%`)
+        .limit(1);
 
-    const { data, error } = await q;
-    if (error) return null;
-    return data?.[0]?.id ?? null;
+      if (withZip && zip) q.eq("zip", zip);
+
+      const { data, error } = await q;
+      if (error) return null;
+      return data?.[0]?.id ?? null;
+    };
+
+    // Try with zip first, then loosen.
+    const withZip = await run(true);
+    if (withZip) return withZip;
+    return await run(false);
   };
 
-  const hydrateMissingFromAddressLookup = async (current: { streetAddress: string; city: string; state: string; zip: string; annualTaxes: number }) => {
+  const hydrateMissingFromAddressLookup = async (
+    current: { streetAddress: string; city: string; state: string; zip: string; annualTaxes: number },
+    opts?: { estimateId?: string | null }
+  ) => {
     try {
       if (!current.streetAddress) return;
       if (current.annualTaxes && current.annualTaxes > 0) return;
@@ -268,6 +327,13 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
           ...prev,
           annualTaxes: prev.annualTaxes > 0 ? prev.annualTaxes : normalized,
         }));
+
+        if (opts?.estimateId) {
+          await supabase
+            .from("estimated_net_properties")
+            .update({ annual_taxes: normalized })
+            .eq("id", opts.estimateId);
+        }
       }
     } catch (e) {
       console.error("hydrateMissingFromAddressLookup error:", e);
@@ -382,23 +448,30 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
         }
 
         if (clientIdToUse) {
-          await hydrateMissingFromClient(clientIdToUse, {
+          await hydrateMissingFromClient(
+            clientIdToUse,
+            {
             streetAddress: nextFormData.streetAddress,
             city: nextFormData.city,
             state: nextFormData.state,
             zip: nextFormData.zip,
             sellerPhone: nextFormData.sellerPhone,
             annualTaxes: nextFormData.annualTaxes,
-          });
+            },
+            { estimateId: id }
+          );
         } else {
           // Fallback: if taxes are missing, try lookup directly by the estimate address
-          await hydrateMissingFromAddressLookup({
+          await hydrateMissingFromAddressLookup(
+            {
             streetAddress: nextFormData.streetAddress,
             city: nextFormData.city,
             state: nextFormData.state,
             zip: nextFormData.zip,
             annualTaxes: nextFormData.annualTaxes,
-          });
+            },
+            { estimateId: id }
+          );
         }
       }
     } catch (error: any) {
@@ -425,14 +498,18 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
     if (!needsPhone && !needsTaxes) return;
 
     hydratedKeyRef.current = key;
-    void hydrateMissingFromClient(linkedClientId, {
-      streetAddress: formData.streetAddress,
-      city: formData.city,
-      state: formData.state,
-      zip: formData.zip,
-      sellerPhone: formData.sellerPhone,
-      annualTaxes: formData.annualTaxes,
-    });
+    void hydrateMissingFromClient(
+      linkedClientId,
+      {
+        streetAddress: formData.streetAddress,
+        city: formData.city,
+        state: formData.state,
+        zip: formData.zip,
+        sellerPhone: formData.sellerPhone,
+        annualTaxes: formData.annualTaxes,
+      },
+      { estimateId: editingId }
+    );
   }, [linkedClientId, formData.streetAddress, formData.city, formData.zip, formData.sellerPhone, formData.annualTaxes, loading]);
 
   const handleSubmit = async (e: React.FormEvent) => {
