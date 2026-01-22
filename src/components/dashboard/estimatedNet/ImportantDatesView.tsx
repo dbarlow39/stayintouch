@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PropertyData } from "@/types/estimatedNet";
-import { ArrowLeft, List, Mail, Calendar, FileText, Copy, DollarSign, ClipboardList, Settings, Building2, Phone, Search, Wrench, Eye, Key, Wallet, MapPin } from "lucide-react";
+import { ArrowLeft, List, Mail, Calendar, FileText, Copy, DollarSign, ClipboardList, Settings, Home, Phone, Search, Wrench, Eye, Key, Wallet, MapPin } from "lucide-react";
 import { EmailClient, EMAIL_CLIENT_OPTIONS, getEmailClientPreference, setEmailClientPreference, openEmailClient } from "@/utils/emailClientUtils";
 import { useToast } from "@/hooks/use-toast";
 import logo from "@/assets/logo.jpg";
@@ -348,7 +348,7 @@ const ImportantDatesView = ({ propertyData, propertyId, onBack, onEdit, onNaviga
 
             <div className="space-y-3">
               <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
-                <Building2 className="h-6 w-6 text-primary" />
+                <Home className="h-6 w-6 text-primary" />
                 TITLE COMPANY:
               </h2>
               <p>
