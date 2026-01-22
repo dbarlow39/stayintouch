@@ -92,6 +92,7 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
   const [clientSuggestions, setClientSuggestions] = useState<any[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const autocompleteTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const hydratedKeyRef = useRef<string | null>(null);
 
   // Helper function to convert text to title case
   const toTitleCase = (text: string): string => {
@@ -211,6 +212,68 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
     }
   };
 
+  const parseStreetAddress = (address: string): { streetNumber: string; streetName: string } | null => {
+    const trimmed = (address || "").trim();
+    const match = trimmed.match(/^([0-9]+)\s+(.+)$/);
+    if (!match) return null;
+    return { streetNumber: match[1], streetName: match[2] };
+  };
+
+  const findClientIdForAddress = async (
+    agentId: string,
+    address: { streetNumber: string; streetName: string },
+    _city?: string,
+    zip?: string
+  ) => {
+    const q = supabase
+      .from("clients")
+      .select("id")
+      .eq("agent_id", agentId)
+      .eq("street_number", address.streetNumber)
+      // Street names often vary (Rd/Road/etc). Use ILIKE contains.
+      .ilike("street_name", `%${address.streetName}%`)
+      .limit(1);
+
+    // Zip is usually stable; city can vary/missing in imports, so don't require it.
+    if (zip) q.eq("zip", zip);
+
+    const { data, error } = await q;
+    if (error) return null;
+    return data?.[0]?.id ?? null;
+  };
+
+  const hydrateMissingFromAddressLookup = async (current: { streetAddress: string; city: string; state: string; zip: string; annualTaxes: number }) => {
+    try {
+      if (!current.streetAddress) return;
+      if (current.annualTaxes && current.annualTaxes > 0) return;
+
+      const { data: taxData, error: taxError } = await supabase.functions.invoke("lookup-property", {
+        body: {
+          address: current.streetAddress,
+          city: current.city,
+          state: current.state,
+          zip: current.zip,
+        },
+      });
+
+      if (taxError) {
+        console.error("lookup-property error:", taxError);
+        return;
+      }
+
+      const fetched = taxData?.annual_amount;
+      const normalized = fetched != null ? Number(fetched) : 0;
+      if (normalized > 0) {
+        setFormData(prev => ({
+          ...prev,
+          annualTaxes: prev.annualTaxes > 0 ? prev.annualTaxes : normalized,
+        }));
+      }
+    } catch (e) {
+      console.error("hydrateMissingFromAddressLookup error:", e);
+    }
+  };
+
   const loadUserDefaults = async (userId: string) => {
     try {
       const { data, error } = await supabase
@@ -299,13 +362,41 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
 
         setFormData(nextFormData);
 
-        if (data.client_id) {
-          await hydrateMissingFromClient(data.client_id, {
+        // If this estimate isn't linked to a client yet, try to match by address so we can pull phone/taxes.
+        let clientIdToUse = data.client_id ?? null;
+        if (!clientIdToUse) {
+          const { data: auth } = await supabase.auth.getUser();
+          const agentId = auth.user?.id;
+          const parsed = parseStreetAddress(nextFormData.streetAddress);
+          if (agentId && parsed) {
+            clientIdToUse = await findClientIdForAddress(agentId, parsed, nextFormData.city, nextFormData.zip);
+            if (clientIdToUse) {
+              setLinkedClientId(clientIdToUse);
+              // best-effort: link the estimate to the client so future loads are instant
+              await supabase
+                .from("estimated_net_properties")
+                .update({ client_id: clientIdToUse })
+                .eq("id", id);
+            }
+          }
+        }
+
+        if (clientIdToUse) {
+          await hydrateMissingFromClient(clientIdToUse, {
             streetAddress: nextFormData.streetAddress,
             city: nextFormData.city,
             state: nextFormData.state,
             zip: nextFormData.zip,
             sellerPhone: nextFormData.sellerPhone,
+            annualTaxes: nextFormData.annualTaxes,
+          });
+        } else {
+          // Fallback: if taxes are missing, try lookup directly by the estimate address
+          await hydrateMissingFromAddressLookup({
+            streetAddress: nextFormData.streetAddress,
+            city: nextFormData.city,
+            state: nextFormData.state,
+            zip: nextFormData.zip,
             annualTaxes: nextFormData.annualTaxes,
           });
         }
@@ -320,6 +411,29 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
       setLoading(false);
     }
   };
+
+  // For NEW estimates: once we have a linked client, fill missing seller phone/taxes automatically.
+  useEffect(() => {
+    if (!linkedClientId) return;
+    if (loading) return;
+
+    const key = `${linkedClientId}|${formData.streetAddress}|${formData.city}|${formData.zip}`;
+    if (hydratedKeyRef.current === key) return;
+
+    const needsPhone = !formData.sellerPhone?.trim();
+    const needsTaxes = !formData.annualTaxes || formData.annualTaxes <= 0;
+    if (!needsPhone && !needsTaxes) return;
+
+    hydratedKeyRef.current = key;
+    void hydrateMissingFromClient(linkedClientId, {
+      streetAddress: formData.streetAddress,
+      city: formData.city,
+      state: formData.state,
+      zip: formData.zip,
+      sellerPhone: formData.sellerPhone,
+      annualTaxes: formData.annualTaxes,
+    });
+  }, [linkedClientId, formData.streetAddress, formData.city, formData.zip, formData.sellerPhone, formData.annualTaxes, loading]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
