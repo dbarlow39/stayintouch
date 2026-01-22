@@ -108,11 +108,6 @@ const AgentLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate 
       noPdfElements.forEach(el => el.remove());
       
       // Add inline styles for email compatibility
-      const headerSection = clonedContent.querySelector('.flex.items-center.justify-between.mb-8');
-      if (headerSection) {
-        (headerSection as HTMLElement).style.cssText = 'display: flex; align-items: center; margin-bottom: 32px;';
-      }
-      
       const logoContainer = clonedContent.querySelector('.flex.items-center.gap-3');
       if (logoContainer) {
         (logoContainer as HTMLElement).style.cssText = 'display: flex; align-items: center; gap: 12px;';
