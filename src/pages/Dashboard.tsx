@@ -171,7 +171,7 @@ const Dashboard = () => {
                 </TabsTrigger>
                 <TabsTrigger value="deals">
                   <Briefcase className="w-4 h-4 mr-2" />
-                  Estimated Net
+                  Working Deals
                 </TabsTrigger>
                 <TabsTrigger value="tasks">
                   <CheckSquare className="w-4 h-4 mr-2" />
