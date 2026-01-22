@@ -235,7 +235,7 @@ const OfferLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate 
       <div className="flex-1 py-4 px-6 overflow-auto">
         {/* Action Button - Top Right */}
         <div className="flex justify-end mb-4 print:hidden">
-          <Button onClick={handleCopyToClipboard} variant="outline" className="gap-2">
+          <Button onClick={handleCopyToClipboard} className="gap-2 bg-rose-500 hover:bg-rose-600 text-white">
             <Copy className="h-4 w-4" />
             Copy & Email
           </Button>
