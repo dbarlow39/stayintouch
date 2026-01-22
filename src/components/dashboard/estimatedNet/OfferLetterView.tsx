@@ -20,6 +20,52 @@ const OfferLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate 
   const { toast } = useToast();
   const [emailClient, setEmailClient] = useState<EmailClient>(getEmailClientPreference);
 
+  const EMAIL_LOGO_WIDTH_PX = 56;
+
+  const resizeImageForEmail = async (imageUrl: string, targetWidth: number): Promise<string> => {
+    return await new Promise((resolve, reject) => {
+      const img = new Image();
+
+      // Set crossOrigin BEFORE src to avoid "tainted" canvas errors
+      if (!imageUrl.startsWith('data:') && !imageUrl.startsWith('blob:')) {
+        img.crossOrigin = 'anonymous';
+      }
+
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+
+        const naturalWidth = img.naturalWidth || img.width;
+        const naturalHeight = img.naturalHeight || img.height;
+        if (!naturalWidth || !naturalHeight) {
+          reject(new Error('Invalid logo dimensions'));
+          return;
+        }
+
+        const scale = targetWidth / naturalWidth;
+        const targetHeight = Math.max(1, Math.round(naturalHeight * scale));
+
+        canvas.width = targetWidth;
+        canvas.height = targetHeight;
+
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          reject(new Error('Failed to get canvas context'));
+          return;
+        }
+
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
+
+        // PNG keeps text/logo edges crisp
+        resolve(canvas.toDataURL('image/png'));
+      };
+
+      img.onerror = () => reject(new Error('Failed to load logo'));
+      img.src = imageUrl;
+    });
+  };
+
   const handleEmailClientChange = (value: string) => {
     const client = value as EmailClient;
     setEmailClient(client);
@@ -39,30 +85,20 @@ const OfferLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate 
       // Clone the content
       const clonedContent = content.cloneNode(true) as HTMLElement;
       
-      // Find the logo image and convert to base64
+      // Find the logo image and convert to a physically resized base64 image
       const logoImg = clonedContent.querySelector('img') as HTMLImageElement;
       if (logoImg) {
-        // Create a canvas to convert the image to base64
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        const img = new Image();
-        img.crossOrigin = 'anonymous';
-        
-        await new Promise((resolve, reject) => {
-          img.onload = () => {
-            canvas.width = img.width;
-            canvas.height = img.height;
-            ctx?.drawImage(img, 0, 0);
-            const dataUrl = canvas.toDataURL('image/jpeg');
-            logoImg.src = dataUrl;
-            logoImg.style.width = '80px';
-            logoImg.style.height = 'auto';
-            logoImg.setAttribute('width', '80');
-            resolve(true);
-          };
-          img.onerror = reject;
-          img.src = logoImg.src;
-        });
+        const resizedDataUrl = await resizeImageForEmail(logoImg.src, EMAIL_LOGO_WIDTH_PX);
+        logoImg.src = resizedDataUrl;
+        logoImg.removeAttribute('class');
+        logoImg.setAttribute('width', String(EMAIL_LOGO_WIDTH_PX));
+        logoImg.style.cssText = [
+          `width:${EMAIL_LOGO_WIDTH_PX}px !important`,
+          `max-width:${EMAIL_LOGO_WIDTH_PX}px !important`,
+          `height:auto !important`,
+          `display:block`,
+          `margin:0`,
+        ].join(';');
       }
       
       // Remove print:hidden elements
@@ -76,7 +112,15 @@ const OfferLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate 
         
         const logoInContainer = logoContainer.querySelector('img');
         if (logoInContainer) {
-          (logoInContainer as HTMLElement).style.cssText = 'display: block; margin: 0; flex-shrink: 0;';
+          // IMPORTANT: must include width constraints here too (cssText overwrites previous styles)
+          (logoInContainer as HTMLElement).style.cssText = [
+            `display:block`,
+            `margin:0`,
+            `flex-shrink:0`,
+            `width:${EMAIL_LOGO_WIDTH_PX}px !important`,
+            `max-width:${EMAIL_LOGO_WIDTH_PX}px !important`,
+            `height:auto !important`,
+          ].join(';');
         }
         
         const textContainer = logoContainer.querySelector('div');
