@@ -113,7 +113,7 @@ const EstimatedNetTab = ({ selectedClient, onClearSelectedClient }: EstimatedNet
     setViewState('select-client');
   };
 
-  const handleSelectClientForEstimate = (client: {
+  const handleSelectClientForEstimate = async (client: {
     id: string;
     first_name: string | null;
     last_name: string | null;
@@ -127,6 +127,41 @@ const EstimatedNetTab = ({ selectedClient, onClearSelectedClient }: EstimatedNet
     email: string | null;
     annual_taxes: number | null;
   }) => {
+    const phoneNumber = client.phone || client.cell_phone || undefined;
+    let annualTaxes = client.annual_taxes || undefined;
+
+    // If annual taxes are missing, look them up via Estated API
+    if (!annualTaxes && client.street_number && client.street_name) {
+      try {
+        const address = `${client.street_number} ${client.street_name}`.trim();
+        const { data, error } = await supabase.functions.invoke('lookup-property', {
+          body: {
+            address,
+            city: client.city,
+            state: client.state,
+            zip: client.zip,
+          }
+        });
+
+        if (!error && data?.annual_amount) {
+          annualTaxes = data.annual_amount;
+          
+          // Update the client record with the fetched tax data
+          await supabase
+            .from("clients")
+            .update({ annual_taxes: annualTaxes })
+            .eq("id", client.id);
+
+          toast({
+            title: "Tax data found",
+            description: `Annual taxes of ${formatCurrency(annualTaxes)} retrieved and saved.`,
+          });
+        }
+      } catch (error) {
+        console.error('Error looking up property taxes:', error);
+      }
+    }
+
     setInitialClient({
       id: client.id,
       firstName: client.first_name || "",
@@ -136,9 +171,9 @@ const EstimatedNetTab = ({ selectedClient, onClearSelectedClient }: EstimatedNet
       city: client.city || undefined,
       state: client.state || undefined,
       zip: client.zip || undefined,
-      phone: client.phone || client.cell_phone || undefined,
+      phone: phoneNumber,
       email: client.email || undefined,
-      annualTaxes: client.annual_taxes || undefined,
+      annualTaxes,
     });
     setEditingId(null);
     setViewState('form');
