@@ -38,6 +38,7 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [lookingUp, setLookingUp] = useState(false);
+  const [linkedClientId, setLinkedClientId] = useState<string | null>(null);
   const [navigationTarget, setNavigationTarget] = useState<string>("closing-costs");
   const [emailClient, setEmailClient] = useState<EmailClient>(getEmailClientPreference);
   const formRef = useRef<HTMLFormElement>(null);
@@ -125,6 +126,7 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
         .join(' ')
         .trim();
       
+      setLinkedClientId(initialClient.id);
       setFormData(prev => ({
         ...prev,
         name: `${initialClient.firstName} ${initialClient.lastName}`.trim(),
@@ -141,6 +143,73 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
       onClearInitialClient?.();
     }
   }, [initialClient, editingId, onClearInitialClient]);
+
+  const hydrateMissingFromClient = async (
+    clientId: string,
+    current: { streetAddress: string; city: string; state: string; zip: string; sellerPhone: string; annualTaxes: number }
+  ) => {
+    try {
+      const { data: client, error } = await supabase
+        .from("clients")
+        .select("phone, cell_phone, home_phone, annual_taxes")
+        .eq("id", clientId)
+        .maybeSingle();
+
+      if (error || !client) return;
+
+      const fallbackPhone = client.phone || client.cell_phone || client.home_phone || "";
+      const clientAnnualTaxes = client.annual_taxes != null ? Number(client.annual_taxes) : 0;
+
+      // Fill missing seller phone
+      if (!current.sellerPhone?.trim() && fallbackPhone) {
+        setFormData(prev => ({
+          ...prev,
+          sellerPhone: prev.sellerPhone?.trim() ? prev.sellerPhone : fallbackPhone,
+        }));
+      }
+
+      // Fill missing taxes from client, and if still missing try lookup by address
+      const shouldLookupTaxes = (taxes: number) => !taxes || taxes <= 0;
+
+      if (shouldLookupTaxes(current.annualTaxes) && clientAnnualTaxes > 0) {
+        setFormData(prev => ({
+          ...prev,
+          annualTaxes: prev.annualTaxes > 0 ? prev.annualTaxes : clientAnnualTaxes,
+        }));
+        return;
+      }
+
+      if (shouldLookupTaxes(current.annualTaxes) && current.streetAddress) {
+        const { data: taxData, error: taxError } = await supabase.functions.invoke("lookup-property", {
+          body: {
+            address: current.streetAddress,
+            city: current.city,
+            state: current.state,
+            zip: current.zip,
+          },
+        });
+
+        const fetched = taxData?.annual_amount;
+        const normalized = fetched != null ? Number(fetched) : 0;
+        if (!taxError && normalized > 0) {
+          setFormData(prev => ({
+            ...prev,
+            annualTaxes: prev.annualTaxes > 0 ? prev.annualTaxes : normalized,
+          }));
+
+          // Cache onto client for next time (best-effort)
+          if (!clientAnnualTaxes || clientAnnualTaxes <= 0) {
+            await supabase
+              .from("clients")
+              .update({ annual_taxes: normalized })
+              .eq("id", clientId);
+          }
+        }
+      }
+    } catch (e) {
+      console.error("hydrateMissingFromClient error:", e);
+    }
+  };
 
   const loadUserDefaults = async (userId: string) => {
     try {
@@ -180,7 +249,9 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
       if (error) throw error;
 
       if (data) {
-        setFormData({
+        setLinkedClientId(data.client_id ?? null);
+
+        const nextFormData: PropertyData = {
           name: data.name,
           sellerPhone: data.seller_phone || "",
           sellerEmail: data.seller_email || "",
@@ -224,7 +295,20 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
           adminFee: Number(data.admin_fee),
           appliances: data.appliances || "",
           notes: data.notes || "",
-        });
+        };
+
+        setFormData(nextFormData);
+
+        if (data.client_id) {
+          await hydrateMissingFromClient(data.client_id, {
+            streetAddress: nextFormData.streetAddress,
+            city: nextFormData.city,
+            state: nextFormData.state,
+            zip: nextFormData.zip,
+            sellerPhone: nextFormData.sellerPhone,
+            annualTaxes: nextFormData.annualTaxes,
+          });
+        }
       }
     } catch (error: any) {
       toast({
@@ -249,6 +333,7 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
       
       const propertyData = {
         agent_id: user.id,
+        client_id: linkedClientId,
         name: formData.name,
         seller_phone: formData.sellerPhone || null,
         seller_email: formData.sellerEmail || null,
