@@ -16,6 +16,7 @@ import OfferSummaryView from "./estimatedNet/OfferSummaryView";
 import ImportantDatesView from "./estimatedNet/ImportantDatesView";
 import TitleLetterView from "./estimatedNet/TitleLetterView";
 import AgentLetterView from "./estimatedNet/AgentLetterView";
+import ClientSelectionView from "./estimatedNet/ClientSelectionView";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -27,7 +28,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-type ViewState = 'list' | 'form' | 'results' | 'offer-letter' | 'offer-summary' | 'important-dates' | 'title-letter' | 'agent-letter';
+type ViewState = 'list' | 'select-client' | 'form' | 'results' | 'offer-letter' | 'offer-summary' | 'important-dates' | 'title-letter' | 'agent-letter';
 
 interface SelectedClientForEstimate {
   id: string;
@@ -107,6 +108,41 @@ const EstimatedNetTab = ({ selectedClient, onClearSelectedClient }: EstimatedNet
   const handleNewEstimate = () => {
     setEditingId(null);
     setCurrentPropertyData(null);
+    setInitialClient(null);
+    setViewState('select-client');
+  };
+
+  const handleSelectClientForEstimate = (client: {
+    id: string;
+    first_name: string | null;
+    last_name: string | null;
+    street_number: string | null;
+    street_name: string | null;
+    city: string | null;
+    state: string | null;
+    zip: string | null;
+    phone: string | null;
+    email: string | null;
+  }) => {
+    setInitialClient({
+      id: client.id,
+      firstName: client.first_name || "",
+      lastName: client.last_name || "",
+      streetNumber: client.street_number || undefined,
+      streetName: client.street_name || undefined,
+      city: client.city || undefined,
+      state: client.state || undefined,
+      zip: client.zip || undefined,
+      phone: client.phone || undefined,
+      email: client.email || undefined,
+    });
+    setEditingId(null);
+    setViewState('form');
+  };
+
+  const handleNewClientEstimate = () => {
+    setInitialClient(null);
+    setEditingId(null);
     setViewState('form');
   };
 
@@ -242,6 +278,16 @@ const EstimatedNetTab = ({ selectedClient, onClearSelectedClient }: EstimatedNet
   };
 
   // Render based on current view state
+  if (viewState === 'select-client') {
+    return (
+      <ClientSelectionView
+        onSelectClient={handleSelectClientForEstimate}
+        onNewClient={handleNewClientEstimate}
+        onCancel={handleBackToList}
+      />
+    );
+  }
+
   if (viewState === 'form') {
     return (
       <PropertyInputForm
