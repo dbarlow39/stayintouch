@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PropertyData } from "@/types/estimatedNet";
-import { ArrowLeft, Download, List, Mail, Calendar, FileText, ArrowRight, Copy, DollarSign, ClipboardList, Settings } from "lucide-react";
+import { ArrowLeft, List, Mail, Calendar, FileText, Copy, DollarSign, ClipboardList, Settings } from "lucide-react";
 import { EmailClient, EMAIL_CLIENT_OPTIONS, getEmailClientPreference, setEmailClientPreference, openEmailClient } from "@/utils/emailClientUtils";
 import { useToast } from "@/hooks/use-toast";
 import logo from "@/assets/logo.jpg";
@@ -30,47 +30,6 @@ const OfferLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate 
   const ownerFirstName = propertyData.name.split(' ')[0];
   const listingAgentFirstName = propertyData.listingAgentName?.split(' ')[0] || '';
 
-  const handleDownloadPDF = async () => {
-    const html2canvas = (await import('html2canvas')).default;
-    const { jsPDF } = await import('jspdf');
-    
-    const element = document.getElementById('offer-letter-content');
-    if (!element) return;
-    
-    const canvas = await html2canvas(element, {
-      scale: 2,
-      useCORS: true,
-      logging: false,
-    });
-    
-    const imgData = canvas.toDataURL('image/png');
-    const pdf = new jsPDF('p', 'mm', 'a4');
-
-    const pageWidth = pdf.internal.pageSize.getWidth();
-    const pageHeight = pdf.internal.pageSize.getHeight();
-
-    const marginLeft = 10;
-    const marginRight = 10;
-    const marginTop = 10;
-    const marginBottom = 16;
-
-    const maxWidth = pageWidth - marginLeft - marginRight;
-    const maxHeight = pageHeight - marginTop - marginBottom;
-
-    let imgWidth = maxWidth;
-    let imgHeight = (canvas.height * imgWidth) / canvas.width;
-
-    if (imgHeight > maxHeight) {
-      imgHeight = maxHeight;
-      imgWidth = (canvas.width * imgHeight) / canvas.height;
-    }
-
-    const x = marginLeft + (maxWidth - imgWidth) / 2;
-    const y = marginTop;
-
-    pdf.addImage(imgData, 'PNG', x, y, imgWidth, imgHeight);
-    pdf.save(`Offer Letter - ${propertyData.streetAddress}.pdf`);
-  };
 
   const handleCopyToClipboard = async () => {
     const content = document.getElementById('offer-letter-content');
@@ -277,15 +236,11 @@ const OfferLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate 
 
       {/* Main Content */}
       <div className="flex-1 py-4 px-6 overflow-auto">
-        {/* Action Buttons - Top Right */}
-        <div className="flex justify-end gap-2 mb-4 print:hidden">
+        {/* Action Button - Top Right */}
+        <div className="flex justify-end mb-4 print:hidden">
           <Button onClick={handleCopyToClipboard} variant="outline" className="gap-2">
             <Copy className="h-4 w-4" />
             Copy & Email
-          </Button>
-          <Button onClick={handleDownloadPDF} variant="outline" className="gap-2">
-            <Download className="h-4 w-4" />
-            Download PDF
           </Button>
         </div>
         
