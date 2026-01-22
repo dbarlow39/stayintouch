@@ -550,7 +550,6 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
       label: "Agent Letter",
       icon: Mail,
       onClick: () => triggerSubmitAndNavigate("agent-letter"),
-      disabled: true,
     },
     {
       label: "Request to Remedy",

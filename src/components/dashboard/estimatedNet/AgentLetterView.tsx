@@ -7,8 +7,9 @@ import { ArrowLeft, List, Mail, Calendar, FileText, Copy, DollarSign, ClipboardL
 import { EmailClient, EMAIL_CLIENT_OPTIONS, getEmailClientPreference, setEmailClientPreference, getEmailLink } from "@/utils/emailClientUtils";
 import { useToast } from "@/hooks/use-toast";
 import logo from "@/assets/logo.jpg";
+import { format, subDays } from "date-fns";
 
-interface TitleLetterViewProps {
+interface AgentLetterViewProps {
   propertyData: PropertyData;
   propertyId: string;
   onBack: () => void;
@@ -16,7 +17,7 @@ interface TitleLetterViewProps {
   onNavigate: (view: string) => void;
 }
 
-const TitleLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate }: TitleLetterViewProps) => {
+const AgentLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate }: AgentLetterViewProps) => {
   const { toast } = useToast();
   const [emailClient, setEmailClient] = useState<EmailClient>(getEmailClientPreference);
 
@@ -26,15 +27,52 @@ const TitleLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate 
     setEmailClientPreference(client);
   };
 
-  const formatDate = (dateString: string) => {
-    if (!dateString) return "";
+  // Helper function to parse date string as local date to avoid timezone shifts
+  const parseLocalDate = (dateString: string): Date => {
     const [year, month, day] = dateString.split('-');
-    const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
-    return date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+    return new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
   };
 
+  // Calculate 15 days prior to closing date
+  const titleCommitmentDue = propertyData.closingDate 
+    ? format(subDays(parseLocalDate(propertyData.closingDate), 15), "MM/dd/yyyy")
+    : "";
+
+  // Pre-approval due in days
+  const preApprovalDue = propertyData.preApprovalDays === 0 
+    ? "Received" 
+    : propertyData.preApprovalDays 
+    ? `${propertyData.preApprovalDays} days` 
+    : "";
+
+  // Calculate loan commitment due date (in contract date + loan commitment days)
+  const loanCommitmentDue = propertyData.inContract && propertyData.loanCommitment
+    ? format(new Date(parseLocalDate(propertyData.inContract).getTime() + parseInt(propertyData.loanCommitment) * 24 * 60 * 60 * 1000), "MM/dd/yyyy")
+    : "";
+
+  // Calculate home inspection due date
+  const inspectionDue = propertyData.inContract && propertyData.inspectionDays
+    ? format(new Date(parseLocalDate(propertyData.inContract).getTime() + propertyData.inspectionDays * 24 * 60 * 60 * 1000), "MM/dd/yyyy")
+    : "";
+
+  // Calculate remedy period due date
+  const remedyDue = propertyData.remedyPeriodDays === 0
+    ? "Buyer Waived"
+    : propertyData.inContract && propertyData.inspectionDays && propertyData.remedyPeriodDays
+    ? format(new Date(parseLocalDate(propertyData.inContract).getTime() + (propertyData.inspectionDays + propertyData.remedyPeriodDays) * 24 * 60 * 60 * 1000), "MM/dd/yyyy")
+    : "";
+
+  // Deposit due date
+  const depositDue = propertyData.depositCollection || "";
+
+  // Extract buyer agent first name
+  const buyerAgentFirstName = propertyData.agentName?.split(" ")[0] || "";
+  
+  // Extract listing agent first name
+  const listingAgentFirstName = propertyData.listingAgentName?.split(" ")[0] || "";
+
   const handleCopyToClipboard = async () => {
-    const content = document.getElementById('title-letter-content');
+    const content = document.getElementById('agent-letter-content');
     if (!content) return;
 
     try {
@@ -106,6 +144,15 @@ const TitleLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate 
         (card as HTMLElement).style.cssText = 'padding: 32px; background: white; border: 1px solid #e5e7eb; border-radius: 8px;';
       }
       
+      // Style the processor section paragraphs to have single spacing
+      const processorSection = clonedContent.querySelector('.bg-muted\\/50');
+      if (processorSection) {
+        const paragraphs = processorSection.querySelectorAll('p');
+        paragraphs.forEach((p) => {
+          (p as HTMLElement).style.cssText = 'margin: 0; padding: 0; line-height: 1.5;';
+        });
+      }
+      
       // Style paragraphs
       clonedContent.querySelectorAll('p').forEach((p) => {
         if (!(p as HTMLElement).style.cssText) {
@@ -128,9 +175,9 @@ const TitleLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate 
         description: "Opening your email client...",
       });
 
-      // Open email client with pre-filled subject
-      const subject = `${propertyData.streetAddress} into contract`;
-      const link = getEmailLink("", emailClient, subject);
+      // Open email client with pre-filled subject and recipient
+      const subject = `Transaction Summary for "${propertyData.streetAddress}"`;
+      const link = getEmailLink(propertyData.agentEmail || "", emailClient, subject);
       window.open(link, '_blank');
     } catch (error) {
       console.error('Failed to copy:', error);
@@ -146,7 +193,7 @@ const TitleLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate 
     const html2canvas = (await import('html2canvas')).default;
     const { jsPDF } = await import('jspdf');
     
-    const element = document.getElementById('title-letter-content');
+    const element = document.getElementById('agent-letter-content');
     if (!element) return;
     
     const canvas = await html2canvas(element, {
@@ -181,7 +228,7 @@ const TitleLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate 
     const y = marginTop;
 
     pdf.addImage(imgData, 'PNG', x, y, imgWidth, imgHeight);
-    pdf.save(`Title Letter - ${propertyData.streetAddress}.pdf`);
+    pdf.save(`Agent Letter - ${propertyData.streetAddress}.pdf`);
   };
 
   const navigationItems = [
@@ -223,13 +270,13 @@ const TitleLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate 
     {
       label: "Title Letter",
       icon: Home,
-      onClick: () => {},
-      active: true,
+      onClick: () => onNavigate('title-letter'),
     },
     {
       label: "Agent Letter",
       icon: Mail,
-      onClick: () => onNavigate('agent-letter'),
+      onClick: () => {},
+      active: true,
     },
     {
       label: "Request to Remedy",
@@ -285,13 +332,13 @@ const TitleLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate 
 
       {/* Main Content */}
       <div className="flex-1 py-8 px-4">
-        <div className="max-w-4xl mx-auto" id="title-letter-content">
+        <div className="max-w-4xl mx-auto" id="agent-letter-content">
           <div className="flex items-center justify-between mb-8 print:mb-4">
             <div className="flex items-center gap-3">
               <img src={logo} alt="Sell for 1 Percent" className="h-16 w-auto print:h-12" />
               <div>
-                <h1 className="text-3xl font-bold text-foreground">Title Letter</h1>
-                <p className="text-muted-foreground">Property in contract notification</p>
+                <h1 className="text-3xl font-bold text-foreground">Transaction Summary</h1>
+                <p className="text-muted-foreground">Details of The Purchase Offer</p>
               </div>
             </div>
             <div className="flex gap-2 print:hidden no-pdf">
@@ -307,29 +354,77 @@ const TitleLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate 
           </div>
 
           <Card className="p-8 mb-6 print:shadow-none">
-            <div className="prose prose-lg max-w-none text-foreground">
-              <p className="mb-4">Hi Everyone,</p>
-              <p className="mb-4">
-                We have put <strong>{propertyData.streetAddress}, {propertyData.city}, {propertyData.state} {propertyData.zip}</strong> into contract.
-              </p>
-              <p className="mb-2">
-                <strong>Closing Date:</strong> {formatDate(propertyData.closingDate || '')}
-              </p>
-              <p className="mb-2">
-                <strong>{propertyData.listingAgentCommission}%</strong> Commission to Sell for 1 Percent plus $499 admin
-              </p>
-              <p className="mb-2">
-                <strong>{propertyData.buyerAgentCommission}%</strong> commission to the buyer brokerage
-              </p>
-              <p className="mb-4">
-                Seller is <strong>{propertyData.name}</strong>  phone: {propertyData.sellerPhone}     email: {propertyData.sellerEmail}
-              </p>
-              <p className="mb-4">
-                Buyer agent is <strong>{propertyData.agentName}</strong>  phone: {propertyData.agentContact}   email: {propertyData.agentEmail}
-              </p>
-              <p className="mb-4">Let know if you need anything else.</p>
-              <p className="mb-0">Thanks</p>
-              <p className="mb-4"><strong>{propertyData.listingAgentName}</strong></p>
+            <div className="space-y-6">
+              <div>
+                <p className="mb-4">Hi {buyerAgentFirstName},</p>
+                <p className="mb-4">
+                  We are in contract on {propertyData.streetAddress}, {propertyData.city}, {propertyData.state} {propertyData.zip}. 
+                  I look forward to working with you and your team to close this one. Below is additional information about 
+                  the title company and the contract dates I have.
+                </p>
+              </div>
+
+              <div className="bg-muted/50 p-4 rounded-lg">
+                <h3 className="font-semibold mb-2">Caliber Title / Title First</h3>
+                <p>Kameron Faulkner or Shina Painter</p>
+                <p className="text-sm text-muted-foreground">Processor</p>
+                <p>Phone: 614-854-0980</p>
+                <p>polaris@titlefirst.com</p>
+              </div>
+
+              <div>
+                <h2 className="text-xl font-semibold mb-4">Important Dates</h2>
+                <table className="w-full">
+                  <tbody className="space-y-2">
+                    <tr className="border-b">
+                      <td className="py-2 font-medium">Closing date:</td>
+                      <td className="py-2 text-right">{propertyData.closingDate ? format(parseLocalDate(propertyData.closingDate), "MM/dd/yyyy") : ""}</td>
+                    </tr>
+                    <tr className="border-b">
+                      <td className="py-2 font-medium">Possession Date:</td>
+                      <td className="py-2 text-right">{propertyData.possession ? format(parseLocalDate(propertyData.possession), "MM/dd/yyyy") : ""}</td>
+                    </tr>
+                    <tr className="border-b">
+                      <td className="py-2 font-medium">Pre-approval Due:</td>
+                      <td className="py-2 text-right">{preApprovalDue}</td>
+                    </tr>
+                    <tr className="border-b">
+                      <td className="py-2 font-medium">Loan Commitment due:</td>
+                      <td className="py-2 text-right">{loanCommitmentDue}</td>
+                    </tr>
+                    <tr className="border-b">
+                      <td className="py-2 font-medium">Home Inspection period ends:</td>
+                      <td className="py-2 text-right">{inspectionDue}</td>
+                    </tr>
+                    <tr className="border-b">
+                      <td className="py-2 font-medium">Buyers Request to Remedy period ends:</td>
+                      <td className="py-2 text-right">{remedyDue}</td>
+                    </tr>
+                    <tr className="border-b">
+                      <td className="py-2 font-medium">Title Commitment due:</td>
+                      <td className="py-2 text-right">{titleCommitmentDue}</td>
+                    </tr>
+                    <tr className="border-b">
+                      <td className="py-2 font-medium">Earnest Money due:</td>
+                      <td className="py-2 text-right">{depositDue}</td>
+                    </tr>
+                    <tr className="border-b">
+                      <td className="py-2 font-medium">Final walk-through:</td>
+                      <td className="py-2 text-right">{propertyData.finalWalkThrough || ""}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="mt-6">
+                <p className="mb-4">
+                  Let me know if you see anything that needs to be changed. I look forward to working with you to get this one closed.
+                </p>
+                <p className="mt-6">Thanks</p>
+                <p className="mt-4">{listingAgentFirstName}</p>
+                <p>{propertyData.listingAgentPhone}</p>
+                <p>{propertyData.listingAgentEmail}</p>
+              </div>
             </div>
           </Card>
         </div>
@@ -338,4 +433,4 @@ const TitleLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate 
   );
 };
 
-export default TitleLetterView;
+export default AgentLetterView;
