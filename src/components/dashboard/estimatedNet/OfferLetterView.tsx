@@ -76,7 +76,14 @@ const OfferLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate 
         
         const logoInContainer = logoContainer.querySelector('img');
         if (logoInContainer) {
-          (logoInContainer as HTMLElement).style.cssText = 'display: block; margin: 0; flex-shrink: 0;';
+          const logoEl = logoInContainer as HTMLImageElement;
+          // IMPORTANT: don't use cssText here; it would wipe the width set above.
+          logoEl.style.display = 'block';
+          logoEl.style.margin = '0';
+          logoEl.style.flexShrink = '0';
+          logoEl.style.width = '150px';
+          logoEl.style.height = 'auto';
+          logoEl.setAttribute('width', '150');
         }
         
         const textContainer = logoContainer.querySelector('div');
