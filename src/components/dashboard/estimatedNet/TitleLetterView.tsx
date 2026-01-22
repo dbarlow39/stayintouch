@@ -128,10 +128,10 @@ const TitleLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate 
         description: "Opening your email client...",
       });
 
-      // Open email client with pre-filled subject and title company recipient
+      // Open email client with pre-filled subject and title company recipients
       const subject = `${propertyData.streetAddress} into contract`;
-      const titleCompanyEmail = "polaris@titlefirst.com";
-      const link = getEmailLink(titleCompanyEmail, emailClient, subject);
+      const titleCompanyEmails = "jonadeguzman0330@gmail.com,Kameron.Faulkner@titlefirst.com,chris.furrow@titlefirst.com,polaris@titlefirst.com";
+      const link = getEmailLink(titleCompanyEmails, emailClient, subject);
       window.open(link, '_blank');
     } catch (error) {
       console.error('Failed to copy:', error);
