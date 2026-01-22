@@ -129,10 +129,12 @@ const EstimatedNetTab = ({ selectedClient, onClearSelectedClient }: EstimatedNet
     annual_taxes: number | null;
   }) => {
     const phoneNumber = client.phone || client.cell_phone || client.home_phone || undefined;
-    let annualTaxes: number | undefined = client.annual_taxes ?? undefined;
+    // Treat null/0 as missing
+    let annualTaxes: number | undefined =
+      client.annual_taxes != null && Number(client.annual_taxes) > 0 ? Number(client.annual_taxes) : undefined;
 
     // If annual taxes are missing, look them up via Estated API
-    if (annualTaxes == null && client.street_number && client.street_name) {
+    if ((annualTaxes == null || annualTaxes <= 0) && client.street_number && client.street_name) {
       try {
         const address = `${client.street_number} ${client.street_name}`.trim();
         const { data, error } = await supabase.functions.invoke('lookup-property', {
