@@ -55,9 +55,9 @@ const OfferLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate 
             ctx?.drawImage(img, 0, 0);
             const dataUrl = canvas.toDataURL('image/jpeg');
             logoImg.src = dataUrl;
-            logoImg.style.width = '100px';
+            logoImg.style.width = '150px';
             logoImg.style.height = 'auto';
-            logoImg.setAttribute('width', '100');
+            logoImg.setAttribute('width', '150');
             resolve(true);
           };
           img.onerror = reject;
