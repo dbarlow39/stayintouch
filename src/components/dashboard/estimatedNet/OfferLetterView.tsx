@@ -55,9 +55,9 @@ const OfferLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate 
             ctx?.drawImage(img, 0, 0);
             const dataUrl = canvas.toDataURL('image/jpeg');
             logoImg.src = dataUrl;
-            logoImg.style.width = '150px';
+            logoImg.style.width = '200px';
             logoImg.style.height = 'auto';
-            logoImg.setAttribute('width', '150');
+            logoImg.setAttribute('width', '200');
             resolve(true);
           };
           img.onerror = reject;
@@ -81,9 +81,9 @@ const OfferLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate 
           logoEl.style.display = 'block';
           logoEl.style.margin = '0';
           logoEl.style.flexShrink = '0';
-          logoEl.style.width = '150px';
+          logoEl.style.width = '200px';
           logoEl.style.height = 'auto';
-          logoEl.setAttribute('width', '150');
+          logoEl.setAttribute('width', '200');
         }
         
         const textContainer = logoContainer.querySelector('div');
