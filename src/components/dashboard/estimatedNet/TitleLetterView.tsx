@@ -1,12 +1,12 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PropertyData } from "@/types/estimatedNet";
 import { ArrowLeft, List, Mail, Calendar, FileText, Copy, DollarSign, ClipboardList, Settings, Download, Home } from "lucide-react";
 import { EmailClient, EMAIL_CLIENT_OPTIONS, getEmailClientPreference, setEmailClientPreference, getEmailLink } from "@/utils/emailClientUtils";
 import { useToast } from "@/hooks/use-toast";
 import logo from "@/assets/logo.jpg";
-import { formatCurrency } from "@/utils/estimatedNetCalculations";
 
 interface TitleLetterViewProps {
   propertyData: PropertyData;
@@ -26,6 +26,13 @@ const TitleLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate 
     setEmailClientPreference(client);
   };
 
+  const formatDate = (dateString: string) => {
+    if (!dateString) return "";
+    const [year, month, day] = dateString.split('-');
+    const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+    return date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+  };
+
   const handleCopyToClipboard = async () => {
     const content = document.getElementById('title-letter-content');
     if (!content) return;
@@ -34,7 +41,7 @@ const TitleLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate 
       const clonedContent = content.cloneNode(true) as HTMLElement;
       
       // Convert logo to base64
-      const logoImg = clonedContent.querySelector('img');
+      const logoImg = clonedContent.querySelector('img') as HTMLImageElement;
       if (logoImg) {
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
@@ -58,20 +65,23 @@ const TitleLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate 
         });
       }
       
+      // Remove print:hidden and no-pdf elements
+      const noPdfElements = clonedContent.querySelectorAll('.no-pdf, .print\\:hidden');
+      noPdfElements.forEach(el => el.remove());
+      
       // Add inline styles for email compatibility
+      const headerSection = clonedContent.querySelector('.flex.items-center.justify-between.mb-8');
+      if (headerSection) {
+        (headerSection as HTMLElement).style.cssText = 'display: flex; align-items: center; margin-bottom: 32px;';
+      }
+      
       const logoContainer = clonedContent.querySelector('.flex.items-center.gap-3');
       if (logoContainer) {
         (logoContainer as HTMLElement).style.cssText = 'display: flex; align-items: center; gap: 12px;';
         
         const logoInContainer = logoContainer.querySelector('img');
         if (logoInContainer) {
-          const logoEl = logoInContainer as HTMLImageElement;
-          logoEl.style.display = 'block';
-          logoEl.style.margin = '0';
-          logoEl.style.flexShrink = '0';
-          logoEl.style.width = '200px';
-          logoEl.style.height = 'auto';
-          logoEl.setAttribute('width', '200');
+          (logoInContainer as HTMLElement).style.cssText = 'display: block; margin: 0; flex-shrink: 0;';
         }
         
         const textContainer = logoContainer.querySelector('div');
@@ -89,24 +99,18 @@ const TitleLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate 
           }
         }
       }
+
+      // Style the card content
+      const card = clonedContent.querySelector('.bg-card, [class*="Card"]');
+      if (card) {
+        (card as HTMLElement).style.cssText = 'padding: 32px; background: white; border: 1px solid #e5e7eb; border-radius: 8px;';
+      }
       
-      // Style all paragraphs
+      // Style paragraphs
       clonedContent.querySelectorAll('p').forEach((p) => {
-        (p as HTMLElement).style.cssText = 'margin: 16px 0; line-height: 1.6; color: #374151;';
-      });
-      
-      // Style headings
-      clonedContent.querySelectorAll('h2').forEach((h2) => {
-        (h2 as HTMLElement).style.cssText = 'font-size: 20px; font-weight: bold; margin: 24px 0 16px; color: #111827;';
-      });
-      
-      // Style tables
-      clonedContent.querySelectorAll('table').forEach((table) => {
-        (table as HTMLElement).style.cssText = 'width: 100%; border-collapse: collapse; margin: 16px 0;';
-      });
-      
-      clonedContent.querySelectorAll('td').forEach((td) => {
-        (td as HTMLElement).style.cssText = 'padding: 12px 16px; border-bottom: 1px solid #e5e7eb;';
+        if (!(p as HTMLElement).style.cssText) {
+          (p as HTMLElement).style.cssText = 'margin: 16px 0; line-height: 1.6; color: #374151;';
+        }
       });
       
       const htmlContent = clonedContent.innerHTML;
@@ -125,7 +129,7 @@ const TitleLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate 
       });
 
       // Open email client with pre-filled subject
-      const subject = `Title Information - ${propertyData.streetAddress}`;
+      const subject = `${propertyData.streetAddress} into contract`;
       const link = getEmailLink("", emailClient, subject);
       window.open(link, '_blank');
     } catch (error) {
@@ -245,7 +249,7 @@ const TitleLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate 
   return (
     <div className="flex w-full min-h-[600px]">
       {/* Left Sidebar Navigation */}
-      <aside className="w-56 p-3 border-r bg-card shrink-0 print:hidden">
+      <aside className="w-56 p-3 border-r bg-card shrink-0 print:hidden no-pdf">
         {/* Email Client Selector */}
         <div className="flex items-center gap-2 mb-4 px-1">
           <Settings className="h-4 w-4 text-muted-foreground shrink-0" />
@@ -281,191 +285,54 @@ const TitleLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate 
       </aside>
 
       {/* Main Content */}
-      <div className="flex-1 py-4 px-6 overflow-auto">
-        {/* Action Buttons */}
-        <div className="flex justify-end gap-2 mb-4 print:hidden">
-          <Button onClick={handleCopyToClipboard} variant="default" className="gap-2">
-            <Copy className="h-4 w-4" />
-            Copy & Email
-          </Button>
-          <Button onClick={handleDownloadPDF} variant="outline" className="gap-2">
-            <Download className="h-4 w-4" />
-            Download PDF
-          </Button>
-        </div>
-        
-        <div className="max-w-4xl">
-          <div className="bg-white p-8 rounded-lg shadow-sm" id="title-letter-content">
-            {/* Header with Logo */}
-            <div className="flex items-center gap-3 mb-8">
-              <img src={logo} alt="Sell for 1 Percent" className="h-16 w-auto" />
+      <div className="flex-1 py-8 px-4">
+        <div className="max-w-4xl mx-auto" id="title-letter-content">
+          <div className="flex items-center justify-between mb-8 print:mb-4">
+            <div className="flex items-center gap-3">
+              <img src={logo} alt="Sell for 1 Percent" className="h-16 w-auto print:h-12" />
               <div>
                 <h1 className="text-3xl font-bold text-foreground">Title Letter</h1>
-                <p className="text-muted-foreground">Title Company Information</p>
+                <p className="text-muted-foreground">Property in contract notification</p>
               </div>
             </div>
-
-            {/* Property Information */}
-            <div className="mb-6">
-              <h2 className="text-xl font-semibold text-foreground mb-2 flex items-center gap-2">
-                <Home className="h-5 w-5 text-primary" />
-                Property Details
-              </h2>
-              <table className="w-full">
-                <tbody>
-                  <tr>
-                    <td className="py-2 text-muted-foreground w-1/3">Property Address:</td>
-                    <td className="py-2 font-medium">{propertyData.streetAddress}</td>
-                  </tr>
-                  <tr>
-                    <td className="py-2 text-muted-foreground">City, State, Zip:</td>
-                    <td className="py-2 font-medium">{propertyData.city}, {propertyData.state} {propertyData.zip}</td>
-                  </tr>
-                  <tr>
-                    <td className="py-2 text-muted-foreground">Seller Name:</td>
-                    <td className="py-2 font-medium">{propertyData.name}</td>
-                  </tr>
-                  {propertyData.sellerPhone && (
-                    <tr>
-                      <td className="py-2 text-muted-foreground">Seller Phone:</td>
-                      <td className="py-2 font-medium">{propertyData.sellerPhone}</td>
-                    </tr>
-                  )}
-                  {propertyData.sellerEmail && (
-                    <tr>
-                      <td className="py-2 text-muted-foreground">Seller Email:</td>
-                      <td className="py-2 font-medium">{propertyData.sellerEmail}</td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
+            <div className="flex gap-2 print:hidden no-pdf">
+              <Button onClick={handleCopyToClipboard} size="lg">
+                <Copy className="mr-2 h-4 w-4" />
+                Copy & Email
+              </Button>
+              <Button onClick={handleDownloadPDF} variant="outline" size="lg">
+                <Download className="mr-2 h-4 w-4" />
+                Download PDF
+              </Button>
             </div>
-
-            {/* Contract Information */}
-            <div className="mb-6">
-              <h2 className="text-xl font-semibold text-foreground mb-2">Contract Details</h2>
-              <table className="w-full">
-                <tbody>
-                  <tr>
-                    <td className="py-2 text-muted-foreground w-1/3">Sale Price:</td>
-                    <td className="py-2 font-medium">{formatCurrency(propertyData.offerPrice)}</td>
-                  </tr>
-                  {propertyData.closingDate && (
-                    <tr>
-                      <td className="py-2 text-muted-foreground">Closing Date:</td>
-                      <td className="py-2 font-medium">{new Date(propertyData.closingDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</td>
-                    </tr>
-                  )}
-                  <tr>
-                    <td className="py-2 text-muted-foreground">Deposit Amount:</td>
-                    <td className="py-2 font-medium">{formatCurrency(propertyData.deposit)}</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-
-            {/* Listing Agent Information */}
-            <div className="mb-6">
-              <h2 className="text-xl font-semibold text-foreground mb-2">Listing Agent</h2>
-              <table className="w-full">
-                <tbody>
-                  {propertyData.listingAgentName && (
-                    <tr>
-                      <td className="py-2 text-muted-foreground w-1/3">Name:</td>
-                      <td className="py-2 font-medium">{propertyData.listingAgentName}</td>
-                    </tr>
-                  )}
-                  {propertyData.listingAgentPhone && (
-                    <tr>
-                      <td className="py-2 text-muted-foreground">Phone:</td>
-                      <td className="py-2 font-medium">{propertyData.listingAgentPhone}</td>
-                    </tr>
-                  )}
-                  {propertyData.listingAgentEmail && (
-                    <tr>
-                      <td className="py-2 text-muted-foreground">Email:</td>
-                      <td className="py-2 font-medium">{propertyData.listingAgentEmail}</td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Buyer Agent Information */}
-            <div className="mb-6">
-              <h2 className="text-xl font-semibold text-foreground mb-2">Buyer's Agent</h2>
-              <table className="w-full">
-                <tbody>
-                  {propertyData.agentName && (
-                    <tr>
-                      <td className="py-2 text-muted-foreground w-1/3">Name:</td>
-                      <td className="py-2 font-medium">{propertyData.agentName}</td>
-                    </tr>
-                  )}
-                  {propertyData.agentContact && (
-                    <tr>
-                      <td className="py-2 text-muted-foreground">Phone:</td>
-                      <td className="py-2 font-medium">{propertyData.agentContact}</td>
-                    </tr>
-                  )}
-                  {propertyData.agentEmail && (
-                    <tr>
-                      <td className="py-2 text-muted-foreground">Email:</td>
-                      <td className="py-2 font-medium">{propertyData.agentEmail}</td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Mortgage Information */}
-            <div className="mb-6">
-              <h2 className="text-xl font-semibold text-foreground mb-2">Mortgage Payoff Information</h2>
-              <table className="w-full">
-                <tbody>
-                  <tr>
-                    <td className="py-2 text-muted-foreground w-1/3">1st Mortgage:</td>
-                    <td className="py-2 font-medium">{formatCurrency(propertyData.firstMortgage)}</td>
-                  </tr>
-                  {propertyData.secondMortgage > 0 && (
-                    <tr>
-                      <td className="py-2 text-muted-foreground">2nd Mortgage:</td>
-                      <td className="py-2 font-medium">{formatCurrency(propertyData.secondMortgage)}</td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Tax Information */}
-            <div className="mb-6">
-              <h2 className="text-xl font-semibold text-foreground mb-2">Tax Information</h2>
-              <table className="w-full">
-                <tbody>
-                  <tr>
-                    <td className="py-2 text-muted-foreground w-1/3">Annual Taxes:</td>
-                    <td className="py-2 font-medium">{formatCurrency(propertyData.annualTaxes)}</td>
-                  </tr>
-                  <tr>
-                    <td className="py-2 text-muted-foreground">First Half Paid:</td>
-                    <td className="py-2 font-medium">{propertyData.firstHalfPaid ? 'Yes' : 'No'}</td>
-                  </tr>
-                  <tr>
-                    <td className="py-2 text-muted-foreground">Second Half Paid:</td>
-                    <td className="py-2 font-medium">{propertyData.secondHalfPaid ? 'Yes' : 'No'}</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-
-            {/* Notes */}
-            {propertyData.notes && (
-              <div className="mb-6">
-                <h2 className="text-xl font-semibold text-foreground mb-2">Additional Notes</h2>
-                <p className="text-muted-foreground whitespace-pre-wrap">{propertyData.notes}</p>
-              </div>
-            )}
           </div>
+
+          <Card className="p-8 mb-6 print:shadow-none">
+            <div className="prose prose-lg max-w-none text-foreground">
+              <p className="mb-4">Hi Everyone,</p>
+              <p className="mb-4">
+                We have put <strong>{propertyData.streetAddress}, {propertyData.city}, {propertyData.state} {propertyData.zip}</strong> into contract.
+              </p>
+              <p className="mb-2">
+                <strong>Closing Date:</strong> {formatDate(propertyData.closingDate || '')}
+              </p>
+              <p className="mb-2">
+                <strong>{propertyData.listingAgentCommission}%</strong> Commission to Sell for 1 Percent plus $499 admin
+              </p>
+              <p className="mb-2">
+                <strong>{propertyData.buyerAgentCommission}%</strong> commission to the buyer brokerage
+              </p>
+              <p className="mb-4">
+                Seller is <strong>{propertyData.name}</strong>  phone: {propertyData.sellerPhone}     email: {propertyData.sellerEmail}
+              </p>
+              <p className="mb-4">
+                Buyer agent is <strong>{propertyData.agentName}</strong>  phone: {propertyData.agentContact}   email: {propertyData.agentEmail}
+              </p>
+              <p className="mb-4">Let know if you need anything else.</p>
+              <p className="mb-0">Thanks</p>
+              <p className="mb-4"><strong>{propertyData.listingAgentName}</strong></p>
+            </div>
+          </Card>
         </div>
       </div>
     </div>
