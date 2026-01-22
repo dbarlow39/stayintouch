@@ -83,6 +83,10 @@ const OfferLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate 
       const noPdfElements = clonedContent.querySelectorAll('.print\\:hidden');
       noPdfElements.forEach(el => el.remove());
       
+      // Remove logo from email copy (local image paths don't work in emails)
+      const logoElements = clonedContent.querySelectorAll('.no-email-copy');
+      logoElements.forEach(el => el.remove());
+      
       const htmlContent = clonedContent.innerHTML;
       const plainText = content.innerText;
       
@@ -248,7 +252,7 @@ const OfferLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate 
               }
             ` }} />
             <div className="flex items-center gap-3 mb-8 header-section">
-              <img src={logo} alt="Sell for 1 Percent" className="h-16 w-auto" />
+              <img src={logo} alt="Sell for 1 Percent" className="h-16 w-auto no-email-copy" />
               <div>
                 <h1 className="text-3xl font-bold text-foreground">Offer Letter</h1>
                 <p className="text-muted-foreground">Notification of offer received</p>
