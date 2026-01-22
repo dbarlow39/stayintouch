@@ -199,8 +199,7 @@ const OfferSummaryView = ({ propertyData, propertyId, onBack, onEdit, onNavigate
     {
       label: "Agent Letter",
       icon: Mail,
-      onClick: () => {},
-      disabled: true,
+      onClick: () => onNavigate('agent-letter'),
     },
     {
       label: "Request to Remedy",

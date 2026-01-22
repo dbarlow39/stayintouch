@@ -214,8 +214,7 @@ const ImportantDatesView = ({ propertyData, propertyId, onBack, onEdit, onNaviga
     {
       label: "Agent Letter",
       icon: Mail,
-      onClick: () => {},
-      disabled: true,
+      onClick: () => onNavigate('agent-letter'),
     },
     {
       label: "Request to Remedy",
