@@ -77,16 +77,69 @@ const OfferLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate 
     if (!content) return;
 
     try {
+      // Clone the content
       const clonedContent = content.cloneNode(true) as HTMLElement;
+      
+      // Find the logo image and convert to base64
+      const logoImg = clonedContent.querySelector('img') as HTMLImageElement;
+      if (logoImg) {
+        // Create a canvas to convert the image to base64
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        
+        await new Promise((resolve, reject) => {
+          img.onload = () => {
+            canvas.width = img.width;
+            canvas.height = img.height;
+            ctx?.drawImage(img, 0, 0);
+            const dataUrl = canvas.toDataURL('image/jpeg');
+            logoImg.src = dataUrl;
+            logoImg.style.width = '200px';
+            logoImg.style.height = 'auto';
+            logoImg.setAttribute('width', '200');
+            resolve(true);
+          };
+          img.onerror = reject;
+          img.src = logoImg.src;
+        });
+      }
       
       // Remove print:hidden elements
       const noPdfElements = clonedContent.querySelectorAll('.print\\:hidden');
       noPdfElements.forEach(el => el.remove());
       
-      // Replace local logo with absolute URL for email compatibility
-      const logoImg = clonedContent.querySelector('.email-logo') as HTMLImageElement;
-      if (logoImg) {
-        logoImg.src = 'https://stayintouch.lovable.app/logo.jpg';
+      // Add inline styles for email compatibility
+      const logoContainer = clonedContent.querySelector('.flex.items-center.gap-3');
+      if (logoContainer) {
+        (logoContainer as HTMLElement).style.cssText = 'display: flex; align-items: center; gap: 12px;';
+        
+        const logoInContainer = logoContainer.querySelector('img');
+        if (logoInContainer) {
+          (logoInContainer as HTMLElement).style.cssText = 'display: block; margin: 0; flex-shrink: 0;';
+        }
+        
+        const textContainer = logoContainer.querySelector('div');
+        if (textContainer) {
+          (textContainer as HTMLElement).style.cssText = 'display: flex; flex-direction: column; justify-content: center; margin: 0;';
+          
+          const heading = textContainer.querySelector('h1');
+          if (heading) {
+            (heading as HTMLElement).style.cssText = 'margin: 0; padding: 0; font-size: 30px; font-weight: bold; line-height: 1.2;';
+          }
+          
+          const subtitle = textContainer.querySelector('p');
+          if (subtitle) {
+            (subtitle as HTMLElement).style.cssText = 'margin: 0; padding: 0; font-size: 16px; line-height: 1.2; color: #6b7280;';
+          }
+        }
+      }
+
+      // Style the card content
+      const card = clonedContent.querySelector('.bg-card, [class*="Card"]');
+      if (card) {
+        (card as HTMLElement).style.cssText = 'padding: 32px; background: white; border: 1px solid #e5e7eb; border-radius: 8px;';
       }
       
       const htmlContent = clonedContent.innerHTML;
@@ -101,7 +154,7 @@ const OfferLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate 
       
       toast({
         title: "Copied to clipboard",
-        description: "The letter has been copied. You can now paste it into an email.",
+        description: "The letter with formatted header has been copied. Opening email client...",
       });
 
       // Open email client using selected preference
@@ -254,7 +307,7 @@ const OfferLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate 
               }
             ` }} />
             <div className="flex items-center gap-3 mb-8 header-section">
-              <img src={logo} alt="Sell for 1 Percent" className="h-16 w-auto email-logo" />
+              <img src={logo} alt="Sell for 1 Percent" className="h-16 w-auto" />
               <div>
                 <h1 className="text-3xl font-bold text-foreground">Offer Letter</h1>
                 <p className="text-muted-foreground">Notification of offer received</p>
