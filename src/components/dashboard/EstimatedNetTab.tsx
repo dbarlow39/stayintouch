@@ -124,14 +124,15 @@ const EstimatedNetTab = ({ selectedClient, onClearSelectedClient }: EstimatedNet
     zip: string | null;
     phone: string | null;
     cell_phone: string | null;
+    home_phone: string | null;
     email: string | null;
     annual_taxes: number | null;
   }) => {
-    const phoneNumber = client.phone || client.cell_phone || undefined;
-    let annualTaxes = client.annual_taxes || undefined;
+    const phoneNumber = client.phone || client.cell_phone || client.home_phone || undefined;
+    let annualTaxes: number | undefined = client.annual_taxes ?? undefined;
 
     // If annual taxes are missing, look them up via Estated API
-    if (!annualTaxes && client.street_number && client.street_name) {
+    if (annualTaxes == null && client.street_number && client.street_name) {
       try {
         const address = `${client.street_number} ${client.street_name}`.trim();
         const { data, error } = await supabase.functions.invoke('lookup-property', {
@@ -143,19 +144,33 @@ const EstimatedNetTab = ({ selectedClient, onClearSelectedClient }: EstimatedNet
           }
         });
 
-        if (!error && data?.annual_amount) {
-          annualTaxes = data.annual_amount;
-          
-          // Update the client record with the fetched tax data
-          await supabase
-            .from("clients")
-            .update({ annual_taxes: annualTaxes })
-            .eq("id", client.id);
+        const fetchedAnnualTaxes = data?.annual_amount;
 
-          toast({
-            title: "Tax data found",
-            description: `Annual taxes of ${formatCurrency(annualTaxes)} retrieved and saved.`,
-          });
+        if (!error && fetchedAnnualTaxes != null) {
+          const normalized = Number(fetchedAnnualTaxes);
+          if (!Number.isNaN(normalized) && normalized > 0) {
+            annualTaxes = normalized;
+          
+            // Update the client record with the fetched tax data
+            const { error: updateError } = await supabase
+              .from("clients")
+              .update({ annual_taxes: annualTaxes })
+              .eq("id", client.id);
+
+            if (updateError) {
+              console.error("Error updating client annual_taxes:", updateError);
+            }
+
+            toast({
+              title: "Tax data found",
+              description: `Annual taxes of ${formatCurrency(annualTaxes)} retrieved and saved.`,
+            });
+          } else {
+            toast({
+              title: "No tax data found",
+              description: "We couldn't find annual tax data for this address.",
+            });
+          }
         }
       } catch (error) {
         console.error('Error looking up property taxes:', error);
@@ -173,7 +188,7 @@ const EstimatedNetTab = ({ selectedClient, onClearSelectedClient }: EstimatedNet
       zip: client.zip || undefined,
       phone: phoneNumber,
       email: client.email || undefined,
-      annualTaxes,
+      annualTaxes: annualTaxes ?? undefined,
     });
     setEditingId(null);
     setViewState('form');

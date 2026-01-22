@@ -132,9 +132,9 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
         city: initialClient.city || prev.city,
         state: initialClient.state || prev.state,
         zip: initialClient.zip || prev.zip,
-        sellerPhone: initialClient.phone || "",
-        sellerEmail: initialClient.email || "",
-        annualTaxes: initialClient.annualTaxes || prev.annualTaxes,
+        sellerPhone: initialClient.phone ?? "",
+        sellerEmail: initialClient.email ?? "",
+        annualTaxes: initialClient.annualTaxes ?? prev.annualTaxes,
       }));
       
       // Clear the initial client after using it
