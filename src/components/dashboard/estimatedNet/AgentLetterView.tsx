@@ -346,10 +346,6 @@ const AgentLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate 
                 <Copy className="mr-2 h-4 w-4" />
                 Copy & Email
               </Button>
-              <Button onClick={handleDownloadPDF} variant="outline" size="lg">
-                <Download className="mr-2 h-4 w-4" />
-                Download PDF
-              </Button>
             </div>
           </div>
 
