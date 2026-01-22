@@ -20,7 +20,7 @@ const OfferLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate 
   const { toast } = useToast();
   const [emailClient, setEmailClient] = useState<EmailClient>(getEmailClientPreference);
 
-  const EMAIL_LOGO_WIDTH_PX = 56;
+  const EMAIL_LOGO_WIDTH_PX = 96;
 
   const resizeImageForEmail = async (imageUrl: string, targetWidth: number): Promise<string> => {
     return await new Promise((resolve, reject) => {
