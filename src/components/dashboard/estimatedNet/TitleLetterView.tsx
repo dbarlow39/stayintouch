@@ -55,9 +55,9 @@ const TitleLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate 
             ctx?.drawImage(img, 0, 0);
             const dataUrl = canvas.toDataURL('image/jpeg');
             logoImg.src = dataUrl;
-            logoImg.style.width = '120px';
+            logoImg.style.width = '200px';
             logoImg.style.height = 'auto';
-            logoImg.setAttribute('width', '120');
+            logoImg.setAttribute('width', '200');
             resolve(true);
           };
           img.onerror = reject;
