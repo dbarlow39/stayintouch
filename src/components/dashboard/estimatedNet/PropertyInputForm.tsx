@@ -540,7 +540,6 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
       label: "Important Dates Letter",
       icon: Calendar,
       onClick: () => triggerSubmitAndNavigate("important-dates"),
-      disabled: true,
     },
     {
       label: "Title Letter",

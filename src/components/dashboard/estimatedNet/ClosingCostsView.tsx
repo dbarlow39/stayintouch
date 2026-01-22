@@ -113,8 +113,7 @@ const ClosingCostsView = ({ propertyData, propertyId, onBack, onEdit, onNavigate
     {
       label: "Important Dates Letter",
       icon: Calendar,
-      onClick: () => {},
-      disabled: true,
+      onClick: () => onNavigate('important-dates'),
     },
     {
       label: "Title Letter",
