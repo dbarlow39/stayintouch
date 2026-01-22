@@ -18,8 +18,10 @@ interface Client {
   state: string | null;
   zip: string | null;
   phone: string | null;
+  cell_phone: string | null;
   email: string | null;
   status: string | null;
+  annual_taxes: number | null;
 }
 
 interface ClientSelectionViewProps {
@@ -37,7 +39,7 @@ const ClientSelectionView = ({ onSelectClient, onNewClient, onCancel }: ClientSe
     queryFn: async () => {
       const { data, error } = await supabase
         .from("clients")
-        .select("id, first_name, last_name, street_number, street_name, city, state, zip, phone, email, status")
+        .select("id, first_name, last_name, street_number, street_name, city, state, zip, phone, cell_phone, email, status, annual_taxes")
         .eq("agent_id", user!.id)
         .ilike("status", "A")
         .order("street_name", { ascending: true });

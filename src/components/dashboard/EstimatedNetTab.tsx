@@ -41,6 +41,7 @@ interface SelectedClientForEstimate {
   zip?: string;
   phone?: string;
   email?: string;
+  annualTaxes?: number;
 }
 
 interface EstimatedNetTabProps {
@@ -122,7 +123,9 @@ const EstimatedNetTab = ({ selectedClient, onClearSelectedClient }: EstimatedNet
     state: string | null;
     zip: string | null;
     phone: string | null;
+    cell_phone: string | null;
     email: string | null;
+    annual_taxes: number | null;
   }) => {
     setInitialClient({
       id: client.id,
@@ -133,8 +136,9 @@ const EstimatedNetTab = ({ selectedClient, onClearSelectedClient }: EstimatedNet
       city: client.city || undefined,
       state: client.state || undefined,
       zip: client.zip || undefined,
-      phone: client.phone || undefined,
+      phone: client.phone || client.cell_phone || undefined,
       email: client.email || undefined,
+      annualTaxes: client.annual_taxes || undefined,
     });
     setEditingId(null);
     setViewState('form');

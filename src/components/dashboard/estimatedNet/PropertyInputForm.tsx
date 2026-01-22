@@ -23,6 +23,7 @@ interface InitialClientData {
   zip?: string;
   phone?: string;
   email?: string;
+  annualTaxes?: number;
 }
 
 interface PropertyInputFormProps {
@@ -133,6 +134,7 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
         zip: initialClient.zip || prev.zip,
         sellerPhone: initialClient.phone || "",
         sellerEmail: initialClient.email || "",
+        annualTaxes: initialClient.annualTaxes || prev.annualTaxes,
       }));
       
       // Clear the initial client after using it
