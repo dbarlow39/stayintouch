@@ -545,7 +545,6 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
       label: "Title Letter",
       icon: Mail,
       onClick: () => triggerSubmitAndNavigate("title-letter"),
-      disabled: true,
     },
     {
       label: "Agent Letter",

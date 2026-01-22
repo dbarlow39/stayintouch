@@ -14,6 +14,7 @@ import ClosingCostsView from "./estimatedNet/ClosingCostsView";
 import OfferLetterView from "./estimatedNet/OfferLetterView";
 import OfferSummaryView from "./estimatedNet/OfferSummaryView";
 import ImportantDatesView from "./estimatedNet/ImportantDatesView";
+import TitleLetterView from "./estimatedNet/TitleLetterView";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,7 +26,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-type ViewState = 'list' | 'form' | 'results' | 'offer-letter' | 'offer-summary' | 'important-dates';
+type ViewState = 'list' | 'form' | 'results' | 'offer-letter' | 'offer-summary' | 'important-dates' | 'title-letter';
 
 interface SelectedClientForEstimate {
   id: string;
@@ -291,6 +292,18 @@ const EstimatedNetTab = ({ selectedClient, onClearSelectedClient }: EstimatedNet
   if (viewState === 'important-dates' && currentPropertyData && currentPropertyId) {
     return (
       <ImportantDatesView
+        propertyData={currentPropertyData}
+        propertyId={currentPropertyId}
+        onBack={handleBackToList}
+        onEdit={handleEditEstimate}
+        onNavigate={(view) => setViewState(view as ViewState)}
+      />
+    );
+  }
+
+  if (viewState === 'title-letter' && currentPropertyData && currentPropertyId) {
+    return (
+      <TitleLetterView
         propertyData={currentPropertyData}
         propertyId={currentPropertyId}
         onBack={handleBackToList}

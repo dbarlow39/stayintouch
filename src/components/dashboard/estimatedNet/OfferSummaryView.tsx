@@ -194,8 +194,7 @@ const OfferSummaryView = ({ propertyData, propertyId, onBack, onEdit, onNavigate
     {
       label: "Title Letter",
       icon: Mail,
-      onClick: () => {},
-      disabled: true,
+      onClick: () => onNavigate('title-letter'),
     },
     {
       label: "Agent Letter",
