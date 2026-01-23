@@ -132,9 +132,8 @@ const ClosingCostsView = ({ propertyData, propertyId, onBack, onEdit, onNavigate
     },
     {
       label: "Settlement Statement",
-      icon: Mail,
-      onClick: () => {},
-      disabled: true,
+      icon: FileText,
+      onClick: () => onNavigate('settlement-statement'),
     },
   ];
 
@@ -164,9 +163,8 @@ const ClosingCostsView = ({ propertyData, propertyId, onBack, onEdit, onNavigate
             <Button
               key={idx}
               variant="ghost"
-              className={`w-full justify-start text-left h-auto py-2 px-3 ${item.disabled ? 'opacity-50 cursor-not-allowed' : ''} ${item.active ? 'bg-rose-100 text-rose-700 hover:bg-rose-200' : ''}`}
-              onClick={item.disabled ? undefined : item.onClick}
-              disabled={item.disabled}
+              className={`w-full justify-start text-left h-auto py-2 px-3 ${item.active ? 'bg-rose-100 text-rose-700 hover:bg-rose-200' : ''}`}
+              onClick={item.onClick}
               type="button"
             >
               <item.icon className="mr-2 h-4 w-4 shrink-0" />

@@ -17,6 +17,7 @@ import ImportantDatesView from "./estimatedNet/ImportantDatesView";
 import TitleLetterView from "./estimatedNet/TitleLetterView";
 import AgentLetterView from "./estimatedNet/AgentLetterView";
 import RequestToRemedyView from "./estimatedNet/RequestToRemedyView";
+import SettlementStatementView from "./estimatedNet/SettlementStatementView";
 import ClientSelectionView from "./estimatedNet/ClientSelectionView";
 import {
   AlertDialog,
@@ -29,7 +30,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-type ViewState = 'list' | 'select-client' | 'form' | 'results' | 'offer-letter' | 'offer-summary' | 'important-dates' | 'title-letter' | 'agent-letter' | 'request-to-remedy';
+type ViewState = 'list' | 'select-client' | 'form' | 'results' | 'offer-letter' | 'offer-summary' | 'important-dates' | 'title-letter' | 'agent-letter' | 'request-to-remedy' | 'settlement-statement';
 
 interface SelectedClientForEstimate {
   id: string;
@@ -295,6 +296,8 @@ const EstimatedNetTab = ({ selectedClient, onClearSelectedClient }: EstimatedNet
       setViewState('agent-letter');
     } else if (targetView === 'request-to-remedy') {
       setViewState('request-to-remedy');
+    } else if (targetView === 'settlement-statement') {
+      setViewState('settlement-statement');
     } else {
       setViewState('results');
     }
@@ -438,6 +441,18 @@ const EstimatedNetTab = ({ selectedClient, onClearSelectedClient }: EstimatedNet
   if (viewState === 'request-to-remedy' && currentPropertyData && currentPropertyId) {
     return (
       <RequestToRemedyView
+        propertyData={currentPropertyData}
+        propertyId={currentPropertyId}
+        onBack={handleBackToList}
+        onEdit={handleEditEstimate}
+        onNavigate={(view) => setViewState(view as ViewState)}
+      />
+    );
+  }
+
+  if (viewState === 'settlement-statement' && currentPropertyData && currentPropertyId) {
+    return (
+      <SettlementStatementView
         propertyData={currentPropertyData}
         propertyId={currentPropertyId}
         onBack={handleBackToList}
