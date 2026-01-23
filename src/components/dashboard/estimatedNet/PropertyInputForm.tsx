@@ -1113,7 +1113,7 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
                 <Input
                   id="offerPrice"
                   type="number"
-                  value={formData.offerPrice}
+                  value={formData.offerPrice || ""}
                   onChange={(e) => updateField("offerPrice", parseFloat(e.target.value) || 0)}
                   required
                   className="pl-7"
@@ -1128,7 +1128,7 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
                 <Input
                   id="firstMortgage"
                   type="number"
-                  value={formData.firstMortgage}
+                  value={formData.firstMortgage || ""}
                   onChange={(e) => updateField("firstMortgage", parseFloat(e.target.value) || 0)}
                   className="pl-7"
                   placeholder="0"
@@ -1142,7 +1142,7 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
                 <Input
                   id="secondMortgage"
                   type="number"
-                  value={formData.secondMortgage}
+                  value={formData.secondMortgage || ""}
                   onChange={(e) => updateField("secondMortgage", parseFloat(e.target.value) || 0)}
                   className="pl-7"
                   placeholder="0"
@@ -1156,7 +1156,7 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
                 <Input
                   id="closingCost"
                   type="number"
-                  value={formData.closingCost}
+                  value={formData.closingCost || ""}
                   onChange={(e) => updateField("closingCost", parseFloat(e.target.value) || 0)}
                   className="pl-7"
                   placeholder="0"
@@ -1169,8 +1169,9 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
                 id="listingAgentCommission"
                 type="number"
                 step="0.01"
-                value={formData.listingAgentCommission}
+                value={formData.listingAgentCommission || ""}
                 onChange={(e) => updateField("listingAgentCommission", parseFloat(e.target.value) || 0)}
+                placeholder="0"
               />
             </div>
             <div>
@@ -1179,8 +1180,9 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
                 id="buyerAgentCommission"
                 type="number"
                 step="0.01"
-                value={formData.buyerAgentCommission}
+                value={formData.buyerAgentCommission || ""}
                 onChange={(e) => updateField("buyerAgentCommission", parseFloat(e.target.value) || 0)}
+                placeholder="0"
               />
             </div>
             <div>
@@ -1227,7 +1229,7 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
               <Input
                 id="inspectionDays"
                 type="number"
-                value={formData.inspectionDays}
+                value={formData.inspectionDays || ""}
                 onChange={(e) => updateField("inspectionDays", parseInt(e.target.value) || 0)}
                 placeholder="0"
               />
@@ -1237,7 +1239,7 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
               <Input
                 id="remedyPeriodDays"
                 type="number"
-                value={formData.remedyPeriodDays}
+                value={formData.remedyPeriodDays || ""}
                 onChange={(e) => updateField("remedyPeriodDays", parseInt(e.target.value) || 0)}
                 placeholder="0"
               />
@@ -1257,7 +1259,7 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
                 <Input
                   id="homeWarranty"
                   type="number"
-                  value={formData.homeWarranty}
+                  value={formData.homeWarranty || ""}
                   onChange={(e) => updateField("homeWarranty", parseFloat(e.target.value) || 0)}
                   placeholder="0"
                   className="pl-7"
@@ -1271,7 +1273,7 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
                 <Input
                   id="deposit"
                   type="number"
-                  value={formData.deposit}
+                  value={formData.deposit || ""}
                   onChange={(e) => updateField("deposit", parseFloat(e.target.value) || 0)}
                   className="pl-7"
                   placeholder="0"
@@ -1306,7 +1308,7 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
                 <Input
                   id="adminFee"
                   type="number"
-                  value={formData.adminFee}
+                  value={formData.adminFee || ""}
                   onChange={(e) => updateField("adminFee", parseFloat(e.target.value) || 0)}
                   className="pl-7"
                   placeholder="0"
@@ -1369,7 +1371,7 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
                 <Input
                   id="annualTaxes"
                   type="number"
-                  value={formData.annualTaxes}
+                  value={formData.annualTaxes || ""}
                   onChange={(e) => updateField("annualTaxes", parseFloat(e.target.value) || 0)}
                   placeholder="0"
                   className="pl-7"
