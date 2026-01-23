@@ -235,8 +235,7 @@ const TitleLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate 
     {
       label: "Request to Remedy",
       icon: FileText,
-      onClick: () => {},
-      disabled: true,
+      onClick: () => onNavigate('request-to-remedy'),
     },
     {
       label: "Settlement Statement",
