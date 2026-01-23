@@ -213,8 +213,7 @@ const ImportantDatesView = ({ propertyData, propertyId, onBack, onEdit, onNaviga
     {
       label: "Request to Remedy",
       icon: FileText,
-      onClick: () => {},
-      disabled: true,
+      onClick: () => onNavigate('request-to-remedy'),
     },
     {
       label: "Settlement Statement",

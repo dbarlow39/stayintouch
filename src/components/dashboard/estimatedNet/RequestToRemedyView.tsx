@@ -7,8 +7,9 @@ import { ArrowLeft, List, Mail, Calendar, FileText, Copy, DollarSign, ClipboardL
 import { EmailClient, EMAIL_CLIENT_OPTIONS, getEmailClientPreference, setEmailClientPreference, openEmailClient } from "@/utils/emailClientUtils";
 import { useToast } from "@/hooks/use-toast";
 import logo from "@/assets/logo.jpg";
+import { addDays, format } from "date-fns";
 
-interface OfferLetterViewProps {
+interface RequestToRemedyViewProps {
   propertyData: PropertyData;
   propertyId: string;
   onBack: () => void;
@@ -16,7 +17,7 @@ interface OfferLetterViewProps {
   onNavigate: (view: string) => void;
 }
 
-const OfferLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate }: OfferLetterViewProps) => {
+const RequestToRemedyView = ({ propertyData, propertyId, onBack, onEdit, onNavigate }: RequestToRemedyViewProps) => {
   const { toast } = useToast();
   const [emailClient, setEmailClient] = useState<EmailClient>(getEmailClientPreference);
 
@@ -26,7 +27,6 @@ const OfferLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate 
     return await new Promise((resolve, reject) => {
       const img = new Image();
 
-      // Set crossOrigin BEFORE src to avoid "tainted" canvas errors
       if (!imageUrl.startsWith('data:') && !imageUrl.startsWith('blob:')) {
         img.crossOrigin = 'anonymous';
       }
@@ -57,7 +57,6 @@ const OfferLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate 
         ctx.imageSmoothingQuality = 'high';
         ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
 
-        // PNG keeps text/logo edges crisp
         resolve(canvas.toDataURL('image/png'));
       };
 
@@ -72,17 +71,19 @@ const OfferLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate 
     setEmailClientPreference(client);
   };
 
-  // Extract first names
+  // Extract first name
   const ownerFirstName = propertyData.name.split(' ')[0];
-  const listingAgentFirstName = propertyData.listingAgentName?.split(' ')[0] || '';
 
+  // Calculate remedy dates
+  const inContractDate = propertyData.inContract ? new Date(propertyData.inContract) : new Date();
+  const inspectionDeadline = addDays(inContractDate, propertyData.inspectionDays || 0);
+  const remedyDeadline = addDays(inContractDate, (propertyData.inspectionDays || 0) + (propertyData.remedyPeriodDays || 0));
 
   const handleCopyToClipboard = async () => {
-    const content = document.getElementById('offer-letter-content');
+    const content = document.getElementById('request-to-remedy-content');
     if (!content) return;
 
     try {
-      // Clone the content
       const clonedContent = content.cloneNode(true) as HTMLElement;
       
       // Find the logo image and convert to a physically resized base64 image
@@ -112,7 +113,6 @@ const OfferLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate 
         
         const logoInContainer = logoContainer.querySelector('img');
         if (logoInContainer) {
-          // IMPORTANT: must include width constraints here too (cssText overwrites previous styles)
           (logoInContainer as HTMLElement).style.cssText = [
             `display:block`,
             `margin:0`,
@@ -144,6 +144,39 @@ const OfferLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate 
       if (card) {
         (card as HTMLElement).style.cssText = 'padding: 32px; background: white; border: 1px solid #e5e7eb; border-radius: 8px;';
       }
+
+      // Style the prose content
+      const proseContainer = clonedContent.querySelector('.prose');
+      if (proseContainer) {
+        const paragraphs = proseContainer.querySelectorAll('p');
+        paragraphs.forEach(p => {
+          (p as HTMLElement).style.cssText = 'margin-bottom: 16px; line-height: 1.6;';
+        });
+        
+        const unorderedLists = proseContainer.querySelectorAll('ul');
+        unorderedLists.forEach(ul => {
+          (ul as HTMLElement).style.cssText = 'margin: 16px 0 24px 0; padding-left: 24px;';
+        });
+
+        const orderedLists = proseContainer.querySelectorAll('ol');
+        orderedLists.forEach(ol => {
+          (ol as HTMLElement).style.cssText = 'margin: 16px 0 24px 0; padding-left: 24px;';
+        });
+        
+        const listItems = proseContainer.querySelectorAll('li');
+        listItems.forEach(li => {
+          (li as HTMLElement).style.cssText = 'margin: 4px 0;';
+        });
+      }
+
+      // Single-space the agent contact information
+      const agentInfoContainer = clonedContent.querySelector('.agent-info');
+      if (agentInfoContainer) {
+        const agentParagraphs = agentInfoContainer.querySelectorAll('p');
+        agentParagraphs.forEach(p => {
+          (p as HTMLElement).style.cssText = 'margin: 0; line-height: 1.3;';
+        });
+      }
       
       const htmlContent = clonedContent.innerHTML;
       const plainText = content.innerText;
@@ -157,12 +190,12 @@ const OfferLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate 
       
       toast({
         title: "Copied to clipboard",
-        description: "The letter with formatted header has been copied. Opening email client...",
+        description: "The request to remedy has been copied. Opening email client...",
       });
 
       // Open email client using selected preference
       const sellerEmail = propertyData.sellerEmail || '';
-      const subject = `We have received an offer for ${propertyData.streetAddress}`;
+      const subject = `Request to Remedy for ${propertyData.streetAddress}`;
       openEmailClient(sellerEmail, emailClient, subject);
     } catch (err) {
       console.error('Copy error:', err);
@@ -203,8 +236,7 @@ const OfferLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate 
     {
       label: "Offer Letter",
       icon: Mail,
-      onClick: () => {},
-      active: true,
+      onClick: () => onNavigate('offer-letter'),
     },
     {
       label: "Important Dates Letter",
@@ -224,7 +256,8 @@ const OfferLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate 
     {
       label: "Request to Remedy",
       icon: FileText,
-      onClick: () => onNavigate('request-to-remedy'),
+      onClick: () => {},
+      active: true,
     },
     {
       label: "Settlement Statement",
@@ -285,7 +318,7 @@ const OfferLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate 
         </div>
         
         <div className="max-w-4xl">
-          <div className="pdf-content p-6" id="offer-letter-content">
+          <div className="pdf-content p-6" id="request-to-remedy-content">
             <style dangerouslySetInnerHTML={{ __html: `
               @media print, (min-width: 0px) {
                 .pdf-content {
@@ -304,35 +337,56 @@ const OfferLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate 
             <div className="flex items-center gap-3 mb-8 header-section">
               <img src={logo} alt="Sell for 1 Percent" className="h-16 w-auto" />
               <div>
-                <h1 className="text-3xl font-bold text-foreground">Offer Letter</h1>
-                <p className="text-muted-foreground">Notification of offer received</p>
+                <h1 className="text-3xl font-bold text-foreground">Request to Remedy</h1>
+                <p className="text-muted-foreground">Buyer's inspection concerns</p>
               </div>
             </div>
 
             <Card className="p-8 mb-6 card-content">
               <div className="prose prose-lg max-w-none text-foreground space-y-4">
-                <p>Hey {ownerFirstName},</p>
+                <p>Hi {ownerFirstName},</p>
                 
                 <p>
-                  We have received an offer for your property. I have attached a summary of the offer to make it easier to understand the important terms, an estimated net sheet showing all of the numbers and the bottom line for you after everything is paid and a copy of the offer itself.
+                  The buyer did their home inspection and have several concerns they would like to have addressed. Please review the attached Buyers Request to Remedy asking for certain items to be addressed. The only things the buyers are interested in being fixed are those items in their Request to Remedy. I have attached the home inspection report for reference of these items. Don't get caught up reading the whole report as the buyer is only interested in fixing items on the Remedy Request.
                 </p>
-                
+
+                <p><strong>Dates we need to keep in mind:</strong></p>
+                <ul className="list-disc space-y-2 mb-6">
+                  <li>
+                    Buyers request to remedy to be submitted no later than:{" "}
+                    <strong>{format(inspectionDeadline, "MMMM d, yyyy")}</strong>
+                  </li>
+                  <li>
+                    Sellers Remedy Response and Agreement with Buyer no later than:{" "}
+                    <strong>{format(remedyDeadline, "MMMM d, yyyy")}</strong>
+                  </li>
+                </ul>
+
+                <p>You have 4 ways to resolve their request to remedy:</p>
+
+                <ol className="list-decimal space-y-2 mb-6">
+                  <li>(1) You can say yes you agree to make the repairs requested.</li>
+                  <li>(2) You can say no you do not agree and will not make any repairs.</li>
+                  <li>(3) You can say you'll make some repairs and not others.</li>
+                  <li>(4) You can offer a credit towards the sales price or closing cost and allow the buyer to take care of the requested items after closing.</li>
+                </ol>
+
                 <p>
-                  We can respond in 1 of 3 ways, (1) you can say I'll take it. . . (2) You can decline to respond altogether or (3) you can send over a counter offer with terms acceptable to you. It is my experience the buyer's first offer is not their best offer, sometimes they'll go fishing just to see what you are or are not willing to take. I would say put together a reasonable counter offer and let's see what we can do with this.
+                  I have always found the best way to handle the buyers request to remedy is choice (4) which is to offer the buyer a cash offer and let them deal with the items after closing. This way you don't have to worry about hiring vendors and can concentrate on moving.
                 </p>
-                
+
                 <p>
-                  Also be sure to check the items listed in Paragraph 5 to make sure you are OK with leaving those items. Otherwise I think everything else looks good to me.
+                  Take a look and let me know your thoughts and questions and we can prepare a response.
                 </p>
-                
-                <p>
-                  The buyer was asking for a response of some kind before {propertyData.respondToOfferBy || '[Date not specified]'}.
-                </p>
-                
-                <p>Take a look and let me know your thoughts.</p>
-                
-                <p className="mb-0">Thanks</p>
-                <p className="mb-0"><strong>{listingAgentFirstName}</strong></p>
+
+                <div className="mt-8">
+                  <p className="mb-0">Thanks,</p>
+                  <div className="text-foreground mt-4 agent-info">
+                    <p className="font-semibold">{propertyData.listingAgentName}</p>
+                    <p>{propertyData.listingAgentPhone}</p>
+                    <p>{propertyData.listingAgentEmail}</p>
+                  </div>
+                </div>
               </div>
             </Card>
           </div>
@@ -342,4 +396,4 @@ const OfferLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate 
   );
 };
 
-export default OfferLetterView;
+export default RequestToRemedyView;
