@@ -1203,17 +1203,10 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
               <Label htmlFor="preApprovalDays">Pre-Approval (Days Due)</Label>
               <Input
                 id="preApprovalDays"
-                type="text"
-                value={formData.preApprovalDays === 0 ? "Received" : (formData.preApprovalDays ? String(formData.preApprovalDays) : "")}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  if (value.toLowerCase() === "received" || value === "0") {
-                    updateField("preApprovalDays", 0);
-                  } else {
-                    updateField("preApprovalDays", value ? parseInt(value) : 0);
-                  }
-                }}
-                placeholder="Input 0 if already received"
+                type="number"
+                value={formData.preApprovalDays || ""}
+                onChange={(e) => updateField("preApprovalDays", parseInt(e.target.value) || 0)}
+                placeholder="0 = Received"
               />
             </div>
             <div>
