@@ -303,7 +303,7 @@ const SettlementStatementView = ({ propertyData, propertyId, onBack, onEdit, onN
             <div className="space-y-6">
             <div>
                 <h3 className="text-xl font-semibold mb-3 text-foreground flex items-center gap-2">
-                  <span className="text-lg">🧮</span>
+                  <span className="text-lg">🧮&nbsp;</span>
                   Tax Proration:
                 </h3>
                 <p className="text-foreground leading-relaxed">
@@ -313,7 +313,7 @@ const SettlementStatementView = ({ propertyData, propertyId, onBack, onEdit, onN
 
               <div>
                 <h3 className="text-xl font-semibold mb-3 text-foreground flex items-center gap-2">
-                  <span className="text-lg">🛡️</span>
+                  <span className="text-lg">🛡️&nbsp;</span>
                   Closing Protection Coverage:
                 </h3>
                 <p className="text-foreground leading-relaxed">
@@ -323,7 +323,7 @@ const SettlementStatementView = ({ propertyData, propertyId, onBack, onEdit, onN
 
               <div>
                 <h3 className="text-xl font-semibold mb-3 text-foreground flex items-center gap-2">
-                  <span className="text-lg">💰</span>
+                  <span className="text-lg">💰&nbsp;</span>
                   Escrow Funds:
                 </h3>
                 <p className="text-foreground leading-relaxed">
@@ -333,7 +333,7 @@ const SettlementStatementView = ({ propertyData, propertyId, onBack, onEdit, onN
 
               <div>
                 <h3 className="text-xl font-semibold mb-3 text-foreground flex items-center gap-2">
-                  <span className="text-lg">📅</span>
+                  <span className="text-lg">📅&nbsp;</span>
                   Scheduling Your Closing:
                 </h3>
                 <p className="text-foreground leading-relaxed">
@@ -343,7 +343,7 @@ const SettlementStatementView = ({ propertyData, propertyId, onBack, onEdit, onN
 
               <div>
                 <h3 className="text-xl font-semibold mb-3 text-foreground flex items-center gap-2">
-                  <span className="text-lg">💵</span>
+                  <span className="text-lg">💵&nbsp;</span>
                   Your Money:
                 </h3>
                 <p className="text-foreground leading-relaxed">
@@ -353,7 +353,7 @@ const SettlementStatementView = ({ propertyData, propertyId, onBack, onEdit, onN
 
               <div>
                 <h3 className="text-xl font-semibold mb-3 text-foreground flex items-center gap-2">
-                  <span className="text-lg">📤</span>
+                  <span className="text-lg">📤&nbsp;</span>
                   Wiring Your Funds:
                 </h3>
                 <p className="text-foreground leading-relaxed">
@@ -363,7 +363,7 @@ const SettlementStatementView = ({ propertyData, propertyId, onBack, onEdit, onN
 
               <div>
                 <h3 className="text-xl font-semibold mb-3 text-foreground flex items-center gap-2">
-                  <span className="text-lg">🔑</span>
+                  <span className="text-lg">🔑&nbsp;</span>
                   Transfer of Keys:
                 </h3>
                 <p className="text-foreground leading-relaxed">
@@ -373,7 +373,7 @@ const SettlementStatementView = ({ propertyData, propertyId, onBack, onEdit, onN
 
               <div>
                 <h3 className="text-xl font-semibold mb-3 text-foreground flex items-center gap-2">
-                  <span className="text-lg">🚚</span>
+                  <span className="text-lg">🚚&nbsp;</span>
                   Move Out Day & Time:
                 </h3>
                 <p className="text-foreground leading-relaxed">
@@ -383,7 +383,7 @@ const SettlementStatementView = ({ propertyData, propertyId, onBack, onEdit, onN
 
               <div>
                 <h3 className="text-xl font-semibold mb-3 text-foreground flex items-center gap-2">
-                  <span className="text-lg">✅</span>
+                  <span className="text-lg">✅&nbsp;</span>
                   Final Walk Through:
                 </h3>
                 <p className="text-foreground leading-relaxed">
