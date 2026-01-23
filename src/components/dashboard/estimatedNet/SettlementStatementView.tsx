@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PropertyData } from "@/types/estimatedNet";
-import { ArrowLeft, List, Mail, Calendar, FileText, Copy, DollarSign, ClipboardList, Settings, Calculator, Shield, Wallet, Banknote, Send, Key, Truck, ClipboardCheck } from "lucide-react";
+import { ArrowLeft, List, Mail, Calendar, FileText, Copy, DollarSign, ClipboardList, Settings } from "lucide-react";
 import { EmailClient, EMAIL_CLIENT_OPTIONS, getEmailClientPreference, setEmailClientPreference, openEmailClient } from "@/utils/emailClientUtils";
 import { useToast } from "@/hooks/use-toast";
 import logo from "@/assets/logo.jpg";
@@ -301,9 +301,9 @@ const SettlementStatementView = ({ propertyData, propertyId, onBack, onEdit, onN
             <h2 className="text-2xl font-semibold mb-6 text-foreground">FAQ's about your settlement statement:</h2>
             
             <div className="space-y-6">
-              <div>
+            <div>
                 <h3 className="text-xl font-semibold mb-3 text-foreground flex items-center gap-2">
-                  <Calculator className="h-5 w-5 text-primary lucide" />
+                  <span className="text-lg">🧮</span>
                   Tax Proration:
                 </h3>
                 <p className="text-foreground leading-relaxed">
@@ -313,7 +313,7 @@ const SettlementStatementView = ({ propertyData, propertyId, onBack, onEdit, onN
 
               <div>
                 <h3 className="text-xl font-semibold mb-3 text-foreground flex items-center gap-2">
-                  <Shield className="h-5 w-5 text-primary lucide" />
+                  <span className="text-lg">🛡️</span>
                   Closing Protection Coverage:
                 </h3>
                 <p className="text-foreground leading-relaxed">
@@ -323,7 +323,7 @@ const SettlementStatementView = ({ propertyData, propertyId, onBack, onEdit, onN
 
               <div>
                 <h3 className="text-xl font-semibold mb-3 text-foreground flex items-center gap-2">
-                  <Wallet className="h-5 w-5 text-primary lucide" />
+                  <span className="text-lg">💰</span>
                   Escrow Funds:
                 </h3>
                 <p className="text-foreground leading-relaxed">
@@ -333,7 +333,7 @@ const SettlementStatementView = ({ propertyData, propertyId, onBack, onEdit, onN
 
               <div>
                 <h3 className="text-xl font-semibold mb-3 text-foreground flex items-center gap-2">
-                  <Calendar className="h-5 w-5 text-primary lucide" />
+                  <span className="text-lg">📅</span>
                   Scheduling Your Closing:
                 </h3>
                 <p className="text-foreground leading-relaxed">
@@ -343,7 +343,7 @@ const SettlementStatementView = ({ propertyData, propertyId, onBack, onEdit, onN
 
               <div>
                 <h3 className="text-xl font-semibold mb-3 text-foreground flex items-center gap-2">
-                  <Banknote className="h-5 w-5 text-primary lucide" />
+                  <span className="text-lg">💵</span>
                   Your Money:
                 </h3>
                 <p className="text-foreground leading-relaxed">
@@ -353,7 +353,7 @@ const SettlementStatementView = ({ propertyData, propertyId, onBack, onEdit, onN
 
               <div>
                 <h3 className="text-xl font-semibold mb-3 text-foreground flex items-center gap-2">
-                  <Send className="h-5 w-5 text-primary lucide" />
+                  <span className="text-lg">📤</span>
                   Wiring Your Funds:
                 </h3>
                 <p className="text-foreground leading-relaxed">
@@ -363,7 +363,7 @@ const SettlementStatementView = ({ propertyData, propertyId, onBack, onEdit, onN
 
               <div>
                 <h3 className="text-xl font-semibold mb-3 text-foreground flex items-center gap-2">
-                  <Key className="h-5 w-5 text-primary lucide" />
+                  <span className="text-lg">🔑</span>
                   Transfer of Keys:
                 </h3>
                 <p className="text-foreground leading-relaxed">
@@ -373,7 +373,7 @@ const SettlementStatementView = ({ propertyData, propertyId, onBack, onEdit, onN
 
               <div>
                 <h3 className="text-xl font-semibold mb-3 text-foreground flex items-center gap-2">
-                  <Truck className="h-5 w-5 text-primary lucide" />
+                  <span className="text-lg">🚚</span>
                   Move Out Day & Time:
                 </h3>
                 <p className="text-foreground leading-relaxed">
@@ -383,7 +383,7 @@ const SettlementStatementView = ({ propertyData, propertyId, onBack, onEdit, onN
 
               <div>
                 <h3 className="text-xl font-semibold mb-3 text-foreground flex items-center gap-2">
-                  <ClipboardCheck className="h-5 w-5 text-primary lucide" />
+                  <span className="text-lg">✅</span>
                   Final Walk Through:
                 </h3>
                 <p className="text-foreground leading-relaxed">
