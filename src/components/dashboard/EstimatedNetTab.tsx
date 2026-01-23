@@ -100,7 +100,7 @@ const EstimatedNetTab = ({ selectedClient, onClearSelectedClient }: EstimatedNet
         .from("estimated_net_properties")
         .select("*")
         .eq("agent_id", user!.id)
-        .order("name", { ascending: true });
+        .order("street_address", { ascending: true });
       
       if (error) throw error;
       return data as EstimatedNetProperty[];
