@@ -833,7 +833,6 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
       label: "Request to Remedy",
       icon: FileText,
       onClick: () => triggerSubmitAndNavigate("request-to-remedy"),
-      disabled: true,
     },
     {
       label: "Settlement Statement",

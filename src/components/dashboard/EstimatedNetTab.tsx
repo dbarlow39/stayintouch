@@ -289,6 +289,12 @@ const EstimatedNetTab = ({ selectedClient, onClearSelectedClient }: EstimatedNet
       setViewState('offer-letter');
     } else if (targetView === 'important-dates') {
       setViewState('important-dates');
+    } else if (targetView === 'title-letter') {
+      setViewState('title-letter');
+    } else if (targetView === 'agent-letter') {
+      setViewState('agent-letter');
+    } else if (targetView === 'request-to-remedy') {
+      setViewState('request-to-remedy');
     } else {
       setViewState('results');
     }
