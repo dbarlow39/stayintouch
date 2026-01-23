@@ -365,10 +365,10 @@ const RequestToRemedyView = ({ propertyData, propertyId, onBack, onEdit, onNavig
                 <p>You have 4 ways to resolve their request to remedy:</p>
 
                 <ol className="list-decimal space-y-2 mb-6">
-                  <li>(1) You can say yes you agree to make the repairs requested.</li>
-                  <li>(2) You can say no you do not agree and will not make any repairs.</li>
-                  <li>(3) You can say you'll make some repairs and not others.</li>
-                  <li>(4) You can offer a credit towards the sales price or closing cost and allow the buyer to take care of the requested items after closing.</li>
+                  <li>You can say yes you agree to make the repairs requested.</li>
+                  <li>You can say no you do not agree and will not make any repairs.</li>
+                  <li>You can say you'll make some repairs and not others.</li>
+                  <li>You can offer a credit towards the sales price or closing cost and allow the buyer to take care of the requested items after closing.</li>
                 </ol>
 
                 <p>
