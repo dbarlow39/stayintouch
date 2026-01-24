@@ -839,6 +839,11 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
       icon: FileText,
       onClick: () => triggerSubmitAndNavigate("settlement-statement"),
     },
+    {
+      label: "Notices",
+      icon: Mail,
+      onClick: () => triggerSubmitAndNavigate("notices"),
+    },
   ];
 
   return (
