@@ -49,6 +49,71 @@ export type Database = {
           },
         ]
       }
+      client_email_logs: {
+        Row: {
+          agent_id: string
+          body_preview: string | null
+          client_id: string | null
+          created_at: string
+          direction: string
+          from_email: string
+          gmail_message_id: string
+          id: string
+          is_read: boolean | null
+          labels: string[] | null
+          notes: string | null
+          received_at: string
+          snippet: string | null
+          subject: string | null
+          thread_id: string | null
+          to_email: string
+        }
+        Insert: {
+          agent_id: string
+          body_preview?: string | null
+          client_id?: string | null
+          created_at?: string
+          direction: string
+          from_email: string
+          gmail_message_id: string
+          id?: string
+          is_read?: boolean | null
+          labels?: string[] | null
+          notes?: string | null
+          received_at: string
+          snippet?: string | null
+          subject?: string | null
+          thread_id?: string | null
+          to_email: string
+        }
+        Update: {
+          agent_id?: string
+          body_preview?: string | null
+          client_id?: string | null
+          created_at?: string
+          direction?: string
+          from_email?: string
+          gmail_message_id?: string
+          id?: string
+          is_read?: boolean | null
+          labels?: string[] | null
+          notes?: string | null
+          received_at?: string
+          snippet?: string | null
+          subject?: string | null
+          thread_id?: string | null
+          to_email?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_email_logs_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clients: {
         Row: {
           agent: string | null
@@ -472,6 +537,39 @@ export type Database = {
           id?: string
           is_active?: boolean
           name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      gmail_oauth_tokens: {
+        Row: {
+          access_token: string
+          agent_id: string
+          created_at: string
+          email_address: string
+          id: string
+          refresh_token: string
+          token_expiry: string
+          updated_at: string
+        }
+        Insert: {
+          access_token: string
+          agent_id: string
+          created_at?: string
+          email_address: string
+          id?: string
+          refresh_token: string
+          token_expiry: string
+          updated_at?: string
+        }
+        Update: {
+          access_token?: string
+          agent_id?: string
+          created_at?: string
+          email_address?: string
+          id?: string
+          refresh_token?: string
+          token_expiry?: string
           updated_at?: string
         }
         Relationships: []
