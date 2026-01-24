@@ -18,6 +18,7 @@ import TitleLetterView from "./estimatedNet/TitleLetterView";
 import AgentLetterView from "./estimatedNet/AgentLetterView";
 import RequestToRemedyView from "./estimatedNet/RequestToRemedyView";
 import SettlementStatementView from "./estimatedNet/SettlementStatementView";
+import NoticesView from "./estimatedNet/NoticesView";
 import ClientSelectionView from "./estimatedNet/ClientSelectionView";
 import {
   AlertDialog,
@@ -30,7 +31,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-type ViewState = 'list' | 'select-client' | 'form' | 'results' | 'offer-letter' | 'offer-summary' | 'important-dates' | 'title-letter' | 'agent-letter' | 'request-to-remedy' | 'settlement-statement';
+type ViewState = 'list' | 'select-client' | 'form' | 'results' | 'offer-letter' | 'offer-summary' | 'important-dates' | 'title-letter' | 'agent-letter' | 'request-to-remedy' | 'settlement-statement' | 'notices';
 
 interface SelectedClientForEstimate {
   id: string;
@@ -298,6 +299,8 @@ const EstimatedNetTab = ({ selectedClient, onClearSelectedClient }: EstimatedNet
       setViewState('request-to-remedy');
     } else if (targetView === 'settlement-statement') {
       setViewState('settlement-statement');
+    } else if (targetView === 'notices') {
+      setViewState('notices');
     } else {
       setViewState('results');
     }
@@ -453,6 +456,18 @@ const EstimatedNetTab = ({ selectedClient, onClearSelectedClient }: EstimatedNet
   if (viewState === 'settlement-statement' && currentPropertyData && currentPropertyId) {
     return (
       <SettlementStatementView
+        propertyData={currentPropertyData}
+        propertyId={currentPropertyId}
+        onBack={handleBackToList}
+        onEdit={handleEditEstimate}
+        onNavigate={(view) => setViewState(view as ViewState)}
+      />
+    );
+  }
+
+  if (viewState === 'notices' && currentPropertyData && currentPropertyId) {
+    return (
+      <NoticesView
         propertyData={currentPropertyData}
         propertyId={currentPropertyId}
         onBack={handleBackToList}
