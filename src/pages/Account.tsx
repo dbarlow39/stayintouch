@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, Save, User } from "lucide-react";
+import { ArrowLeft, Save, User, Mail, RefreshCw, CheckCircle, XCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import logo from "@/assets/logo.jpg";
@@ -60,6 +60,80 @@ const Account = () => {
     },
     enabled: !!user,
   });
+
+  // Query Gmail connection status
+  const { data: gmailToken, isLoading: gmailLoading, refetch: refetchGmail } = useQuery({
+    queryKey: ["gmail-token", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("gmail_oauth_tokens")
+        .select("email_address, updated_at")
+        .eq("agent_id", user!.id)
+        .maybeSingle();
+
+      if (error && error.code !== "PGRST116") throw error;
+      return data;
+    },
+    enabled: !!user,
+  });
+
+  const [isSyncing, setIsSyncing] = useState(false);
+
+  const handleConnectGmail = () => {
+    const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+    const redirectUri = `${SUPABASE_URL}/functions/v1/gmail-oauth-callback`;
+    const clientId = "285788741298-r91qf5e82lv26l7qvqtabp76g3p0sjgt.apps.googleusercontent.com"; // This should match your Google OAuth client ID
+    
+    const scope = encodeURIComponent("https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/userinfo.email");
+    const state = user!.id; // Pass agent_id as state
+    
+    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${scope}&state=${state}&access_type=offline&prompt=consent`;
+    
+    // Open in popup
+    const popup = window.open(authUrl, "gmail-oauth", "width=500,height=600");
+    
+    // Listen for success message
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data?.type === "gmail-oauth-success") {
+        refetchGmail();
+        toast({ title: "Gmail Connected!", description: `Connected to ${event.data.email}` });
+        window.removeEventListener("message", handleMessage);
+      }
+    };
+    window.addEventListener("message", handleMessage);
+  };
+
+  const handleSyncGmail = async () => {
+    setIsSyncing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("sync-gmail-emails", {
+        body: { agent_id: user!.id },
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Gmail Synced!",
+        description: data.message || `Synced ${data.synced_count} emails`,
+      });
+      
+      if (data.showingtime_count > 0) {
+        toast({
+          title: "ShowingTime Feedback Found",
+          description: `Found ${data.showingtime_count} ShowingTime notifications`,
+        });
+      }
+    } catch (err) {
+      console.error("Gmail sync error:", err);
+      toast({
+        title: "Sync Failed",
+        description: err instanceof Error ? err.message : "Unknown error",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   // Populate form when profile loads
   useEffect(() => {
@@ -285,6 +359,73 @@ const Account = () => {
                 </Button>
               </div>
             </form>
+          </CardContent>
+        </Card>
+
+        {/* Gmail Integration Card */}
+        <Card className="shadow-medium animate-fade-in mt-6">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Mail className="w-5 h-5" />
+              Gmail Integration
+            </CardTitle>
+            <CardDescription>
+              Connect your Gmail to automatically log client emails and ShowingTime feedback
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {gmailLoading ? (
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <RefreshCw className="w-4 h-4 animate-spin" />
+                Checking connection...
+              </div>
+            ) : gmailToken ? (
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 text-primary">
+                  <CheckCircle className="w-5 h-5" />
+                  <span>Connected to <strong>{gmailToken.email_address}</strong></span>
+                </div>
+                <div className="flex gap-2">
+                  <Button 
+                    onClick={handleSyncGmail} 
+                    disabled={isSyncing}
+                    variant="outline"
+                  >
+                    {isSyncing ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                        Syncing...
+                      </>
+                    ) : (
+                      <>
+                        <RefreshCw className="w-4 h-4 mr-2" />
+                        Sync Emails Now
+                      </>
+                    )}
+                  </Button>
+                  <Button onClick={handleConnectGmail} variant="ghost" size="sm">
+                    Reconnect
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Last synced: {gmailToken.updated_at ? new Date(gmailToken.updated_at).toLocaleString() : "Never"}
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <XCircle className="w-5 h-5" />
+                  <span>Gmail not connected</span>
+                </div>
+                <Button onClick={handleConnectGmail}>
+                  <Mail className="w-4 h-4 mr-2" />
+                  Connect Gmail
+                </Button>
+                <p className="text-xs text-muted-foreground">
+                  This will allow the app to read your emails to log client communications and extract ShowingTime feedback automatically.
+                </p>
+              </div>
+            )}
           </CardContent>
         </Card>
       </main>

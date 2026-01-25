@@ -44,3 +44,9 @@ verify_jwt = false
 
 [functions.lookup-property]
 verify_jwt = false
+
+[functions.gmail-oauth-callback]
+verify_jwt = false
+
+[functions.sync-gmail-emails]
+verify_jwt = false
