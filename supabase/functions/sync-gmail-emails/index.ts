@@ -253,7 +253,9 @@ async function syncAgentEmails(
     try {
       let encoded = msg.payload?.body?.data;
       if (!encoded && msg.payload?.parts) {
-        const textPart = msg.payload.parts.find(p => p.mimeType === "text/plain" || p.mimeType === "text/html");
+        // Prefer text/plain over text/html
+        const textPart = msg.payload.parts.find(p => p.mimeType === "text/plain") || 
+                         msg.payload.parts.find(p => p.mimeType === "text/html");
         encoded = textPart?.body?.data;
       }
       if (!encoded) return msg.snippet || "";
@@ -262,6 +264,22 @@ async function syncAgentEmails(
     } catch {
       return msg.snippet || "";
     }
+  };
+
+  // Helper to strip HTML tags and decode entities
+  const stripHtml = (html: string): string => {
+    return html
+      .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '') // Remove style blocks
+      .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '') // Remove script blocks
+      .replace(/<[^>]+>/g, ' ') // Remove HTML tags
+      .replace(/&nbsp;/g, ' ')
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
+      .replace(/\s+/g, ' ') // Collapse whitespace
+      .trim();
   };
 
   // Parse ShowingTime email to extract showing count and property info
@@ -288,7 +306,12 @@ async function syncAgentEmails(
       interestLevel: null as string | null,
     };
     
-    const combined = `${subject}\n${body}`;
+    // Strip HTML from body before parsing
+    const cleanBody = stripHtml(body);
+    const combined = `${subject}\n${cleanBody}`;
+    
+    console.log(`Parsing ShowingTime email. Subject: "${subject.substring(0, 50)}..."`);
+    console.log(`Clean body preview: "${cleanBody.substring(0, 300)}..."`);
     
     // Look for showing count patterns
     const countPatterns = [
@@ -397,9 +420,9 @@ async function syncAgentEmails(
       }
     }
 
-    // If no structured feedback, use the snippet/body as feedback
-    if (!result.feedbackText && body.length > 50) {
-      result.feedbackText = body.substring(0, 500);
+    // If no structured feedback, use the clean body as feedback
+    if (!result.feedbackText && cleanBody.length > 50) {
+      result.feedbackText = cleanBody.substring(0, 500);
     }
 
     // Extract showing date
