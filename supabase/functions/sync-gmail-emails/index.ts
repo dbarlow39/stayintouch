@@ -185,6 +185,7 @@ async function syncAgentEmails(
   });
 
   console.log(`Found ${clientEmails.size} clients with emails, ${clientMlsIds.size} with MLS IDs, ${clientAddresses.size} with addresses`);
+  console.log(`Sample addresses in map:`, Array.from(clientAddresses.keys()).slice(0, 10));
 
   // Fetch emails from Gmail
   // Search for emails from/to client addresses OR ShowingTime notifications
@@ -455,8 +456,19 @@ async function syncAgentEmails(
         // Try address match
         if (!matchedClient && parsedEmail.address) {
           const normalizedAddr = parsedEmail.address.toLowerCase().trim();
+          console.log(`Trying to match ShowingTime address: "${normalizedAddr}"`);
+          console.log(`First 3 words: "${normalizedAddr.split(' ').slice(0, 3).join(' ')}"`);
+          
           for (const [addr, client] of clientAddresses.entries()) {
-            if (normalizedAddr.includes(addr) || addr.includes(normalizedAddr.split(' ').slice(0, 3).join(' '))) {
+            const first3Match = normalizedAddr.split(' ').slice(0, 3).join(' ');
+            const includesCheck = normalizedAddr.includes(addr);
+            const substringCheck = addr.includes(first3Match);
+            
+            if (addr.includes('little bear')) {
+              console.log(`Testing "${addr}": includes="${includesCheck}", substring="${substringCheck}"`);
+            }
+            
+            if (includesCheck || substringCheck) {
               matchedClient = client;
               console.log(`Matched by address: "${parsedEmail.address}" -> "${addr}"`);
               break;
