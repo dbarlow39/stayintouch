@@ -307,10 +307,11 @@ async function syncAgentEmails(
     }
 
     // Look for MLS ID - ShowingTime uses "ID# 123456" format
+    // Only match 6-10 digit numeric IDs to avoid tracking parameters
     const mlsPatterns = [
-      /ID[#:\s]+(\d+)/i,                    // ShowingTime format: "ID# 225026582"
-      /MLS[#:\s]*([A-Z0-9-]+)/i,            // Standard MLS format
-      /listing\s*(?:id|#)[:\s]*([A-Z0-9-]+)/i,  // "Listing ID: 123"
+      /\bID[#:\s]+(\d{6,10})\b/i,              // ShowingTime format: "ID# 225026582" (6-10 digits)
+      /\bMLS[#:\s]*(\d{6,10})\b/i,             // Standard MLS format with digits only
+      /\blisting\s*(?:id|#)[:\s]*(\d{6,10})\b/i,  // "Listing ID: 123456"
     ];
     
     for (const pattern of mlsPatterns) {
