@@ -306,10 +306,20 @@ async function syncAgentEmails(
       }
     }
 
-    // Look for MLS ID
-    const mlsMatch = combined.match(/MLS[#:\s]*([A-Z0-9-]+)/i);
-    if (mlsMatch) {
-      result.mlsId = mlsMatch[1].trim();
+    // Look for MLS ID - ShowingTime uses "ID# 123456" format
+    const mlsPatterns = [
+      /ID[#:\s]+(\d+)/i,                    // ShowingTime format: "ID# 225026582"
+      /MLS[#:\s]*([A-Z0-9-]+)/i,            // Standard MLS format
+      /listing\s*(?:id|#)[:\s]*([A-Z0-9-]+)/i,  // "Listing ID: 123"
+    ];
+    
+    for (const pattern of mlsPatterns) {
+      const match = combined.match(pattern);
+      if (match) {
+        result.mlsId = match[1].trim();
+        console.log(`Extracted MLS ID "${result.mlsId}" using pattern: ${pattern}`);
+        break;
+      }
     }
 
     // Look for property address
