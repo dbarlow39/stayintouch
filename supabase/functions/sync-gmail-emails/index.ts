@@ -545,8 +545,11 @@ async function syncAgentEmails(
       if (!insertError && insertedEmail) {
         processedEmails.push(emailLog);
 
-        // For ShowingTime emails with a matched client, store feedback
-        if (isShowingTime && clientId && parsedEmail) {
+        // Only store feedback for "FEEDBACK RECEIVED" emails, not "SHOWING CONFIRMED"
+        // SHOWING CONFIRMED emails are still used to extract showing counts
+        const isFeedbackEmail = subject.toUpperCase().includes('FEEDBACK RECEIVED');
+        
+        if (isShowingTime && clientId && parsedEmail && isFeedbackEmail) {
           // Check if feedback already exists for this email
           const { data: existingFeedback } = await supabase
             .from("showing_feedback")
