@@ -12,8 +12,17 @@ interface GmailMessage {
   snippet: string;
   payload: {
     headers: Array<{ name: string; value: string }>;
+    body?: { data?: string };
+    parts?: Array<{ mimeType: string; body?: { data?: string } }>;
   };
   internalDate: string;
+}
+
+interface ShowingUpdate {
+  clientId: string;
+  mlsId: string | null;
+  address: string | null;
+  showingCount: number;
 }
 
 serve(async (req) => {
@@ -139,18 +148,30 @@ async function syncAgentEmails(
       .eq("agent_id", agent_id);
   }
 
-  // Get client emails for matching
+  // Get client emails and addresses for matching
   const { data: clients } = await supabase
     .from("clients")
-    .select("id, email, first_name, last_name")
-    .eq("agent_id", agent_id)
-    .not("email", "is", null);
+    .select("id, email, first_name, last_name, mls_id, street_number, street_name, city, state, zip")
+    .eq("agent_id", agent_id);
 
   const clientEmails = new Map(
     clients?.filter((c: any) => c.email).map((c: any) => [c.email!.toLowerCase(), c]) || []
   );
 
-  console.log(`Found ${clientEmails.size} clients with emails`);
+  // Create address-to-client mapping for ShowingTime matching
+  const clientAddresses = new Map<string, any>();
+  const clientMlsIds = new Map<string, any>();
+  clients?.forEach((c: any) => {
+    if (c.mls_id) {
+      clientMlsIds.set(c.mls_id.toLowerCase().trim(), c);
+    }
+    if (c.street_number && c.street_name) {
+      const addr = `${c.street_number} ${c.street_name}`.toLowerCase().trim();
+      clientAddresses.set(addr, c);
+    }
+  });
+
+  console.log(`Found ${clientEmails.size} clients with emails, ${clientMlsIds.size} with MLS IDs, ${clientAddresses.size} with addresses`);
 
   // Fetch emails from Gmail
   // Search for emails from/to client addresses OR ShowingTime notifications
@@ -158,12 +179,15 @@ async function syncAgentEmails(
   const searchQueries = [
     "from:noreply@showingtime.com",
     "from:notifications@showingtime.com",
-    ...clientEmailKeys.slice(0, 20).map((email) => `from:${email} OR to:${email}`)
+    "subject:showing confirmed",
+    "subject:showings scheduled",
+    ...clientEmailKeys.slice(0, 15).map((email) => `from:${email} OR to:${email}`)
   ];
 
   const allMessages: GmailMessage[] = [];
+  const showingTimeMessageIds: Set<string> = new Set();
 
-  for (const query of searchQueries.slice(0, 5)) { // Limit queries to avoid rate limits
+  for (const query of searchQueries.slice(0, 6)) { // Limit queries to avoid rate limits
     const listUrl = `https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=${max_results}&q=${encodeURIComponent(query)}`;
     
     const listResponse = await fetch(listUrl, {
@@ -179,9 +203,15 @@ async function syncAgentEmails(
     const listData = await listResponse.json();
     const messageIds = listData.messages || [];
 
+    const isShowingTimeQuery = query.includes("showingtime") || query.includes("showing");
+    
     // Fetch full message details
-    for (const msg of messageIds.slice(0, 10)) {
-      const msgUrl = `https://gmail.googleapis.com/gmail/v1/users/me/messages/${msg.id}?format=metadata&metadataHeaders=From&metadataHeaders=To&metadataHeaders=Subject&metadataHeaders=Date`;
+    for (const msg of messageIds.slice(0, 15)) {
+      // For ShowingTime emails, get full body; for others, just metadata
+      const format = isShowingTimeQuery ? "full" : "metadata";
+      const msgUrl = isShowingTimeQuery
+        ? `https://gmail.googleapis.com/gmail/v1/users/me/messages/${msg.id}?format=${format}`
+        : `https://gmail.googleapis.com/gmail/v1/users/me/messages/${msg.id}?format=metadata&metadataHeaders=From&metadataHeaders=To&metadataHeaders=Subject&metadataHeaders=Date`;
       
       const msgResponse = await fetch(msgUrl, {
         headers: { Authorization: `Bearer ${accessToken}` },
@@ -190,15 +220,82 @@ async function syncAgentEmails(
       if (msgResponse.ok) {
         const msgData = await msgResponse.json();
         allMessages.push(msgData);
+        if (isShowingTimeQuery) {
+          showingTimeMessageIds.add(msg.id);
+        }
       }
     }
   }
 
-  console.log(`Fetched ${allMessages.length} messages from Gmail`);
+  console.log(`Fetched ${allMessages.length} messages from Gmail (${showingTimeMessageIds.size} ShowingTime)`);
+
+  // Helper to decode base64url email body
+  const decodeBody = (msg: GmailMessage): string => {
+    try {
+      let encoded = msg.payload?.body?.data;
+      if (!encoded && msg.payload?.parts) {
+        const textPart = msg.payload.parts.find(p => p.mimeType === "text/plain" || p.mimeType === "text/html");
+        encoded = textPart?.body?.data;
+      }
+      if (!encoded) return msg.snippet || "";
+      const decoded = atob(encoded.replace(/-/g, '+').replace(/_/g, '/'));
+      return decoded;
+    } catch {
+      return msg.snippet || "";
+    }
+  };
+
+  // Parse ShowingTime email to extract showing count and property info
+  const parseShowingTimeEmail = (subject: string, body: string): { address: string | null; mlsId: string | null; showingCount: number | null } => {
+    const result = { address: null as string | null, mlsId: null as string | null, showingCount: null as number | null };
+    
+    const combined = `${subject}\n${body}`;
+    
+    // Look for showing count patterns
+    // "You have 5 showings scheduled" or "Showing #3" or "3 total showings"
+    const countPatterns = [
+      /(\d+)\s*(?:total\s*)?showings?\s*(?:scheduled|confirmed|completed)/i,
+      /showing\s*#?(\d+)/i,
+      /(\d+)\s*showings?\s*to\s*date/i,
+      /you\s*have\s*(\d+)\s*showings?/i,
+    ];
+    
+    for (const pattern of countPatterns) {
+      const match = combined.match(pattern);
+      if (match) {
+        result.showingCount = parseInt(match[1], 10);
+        break;
+      }
+    }
+
+    // Look for MLS ID
+    const mlsMatch = combined.match(/MLS[#:\s]*([A-Z0-9-]+)/i);
+    if (mlsMatch) {
+      result.mlsId = mlsMatch[1].trim();
+    }
+
+    // Look for property address (common patterns)
+    const addressPatterns = [
+      /property[:\s]+(\d+\s+[A-Za-z0-9\s]+(?:St|Street|Ave|Avenue|Rd|Road|Dr|Drive|Blvd|Boulevard|Ln|Lane|Ct|Court|Way|Pl|Place)[^,\n]*)/i,
+      /address[:\s]+(\d+\s+[A-Za-z0-9\s]+(?:St|Street|Ave|Avenue|Rd|Road|Dr|Drive|Blvd|Boulevard|Ln|Lane|Ct|Court|Way|Pl|Place)[^,\n]*)/i,
+      /(\d+\s+[A-Za-z0-9\s]+(?:St|Street|Ave|Avenue|Rd|Road|Dr|Drive|Blvd|Boulevard|Ln|Lane|Ct|Court|Way|Pl|Place))\s*,/i,
+    ];
+    
+    for (const pattern of addressPatterns) {
+      const match = combined.match(pattern);
+      if (match) {
+        result.address = match[1].trim();
+        break;
+      }
+    }
+
+    return result;
+  };
 
   // Process and store messages
   const processedEmails: any[] = [];
   const showingTimeFeedback: any[] = [];
+  const showingUpdates: ShowingUpdate[] = [];
 
   for (const msg of allMessages) {
     const headers = msg.payload?.headers || [];
@@ -219,11 +316,47 @@ async function syncAgentEmails(
     const toAddr = extractEmail(toEmail);
 
     // Check if this is a ShowingTime email
-    const isShowingTime = fromAddr.includes("showingtime.com");
+    const isShowingTime = fromAddr.includes("showingtime.com") || 
+      subject.toLowerCase().includes("showing") ||
+      showingTimeMessageIds.has(msg.id);
     
-    // Find matching client
+    // Find matching client by email
     let clientId = null;
-    const matchedClient = clientEmails.get(fromAddr) || clientEmails.get(toAddr);
+    let matchedClient = clientEmails.get(fromAddr) || clientEmails.get(toAddr);
+    
+    // For ShowingTime emails, try to match by address or MLS ID
+    if (isShowingTime && !matchedClient) {
+      const body = decodeBody(msg);
+      const parsed = parseShowingTimeEmail(subject, body);
+      
+      // Try MLS ID match first
+      if (parsed.mlsId) {
+        matchedClient = clientMlsIds.get(parsed.mlsId.toLowerCase());
+      }
+      
+      // Try address match
+      if (!matchedClient && parsed.address) {
+        const normalizedAddr = parsed.address.toLowerCase().trim();
+        for (const [addr, client] of clientAddresses.entries()) {
+          if (normalizedAddr.includes(addr) || addr.includes(normalizedAddr.split(' ').slice(0, 3).join(' '))) {
+            matchedClient = client;
+            break;
+          }
+        }
+      }
+      
+      // If we found a match and have a showing count, record for update
+      if (matchedClient && parsed.showingCount !== null) {
+        showingUpdates.push({
+          clientId: (matchedClient as any).id,
+          mlsId: parsed.mlsId,
+          address: parsed.address,
+          showingCount: parsed.showingCount,
+        });
+        console.log(`Found showing count ${parsed.showingCount} for client ${(matchedClient as any).id}`);
+      }
+    }
+    
     if (matchedClient) {
       clientId = (matchedClient as any).id;
     }
@@ -268,9 +401,34 @@ async function syncAgentEmails(
             subject,
             snippet: msg.snippet,
             received_at: receivedAt,
+            clientId,
           });
         }
       }
+    }
+  }
+
+  // Update client showing counts - use the highest count found per client
+  const clientShowingCounts = new Map<string, number>();
+  for (const update of showingUpdates) {
+    const current = clientShowingCounts.get(update.clientId) || 0;
+    if (update.showingCount > current) {
+      clientShowingCounts.set(update.clientId, update.showingCount);
+    }
+  }
+
+  let updatedClients = 0;
+  for (const [cid, count] of clientShowingCounts.entries()) {
+    const { error: updateError } = await supabase
+      .from("clients")
+      .update({ showings_to_date: count, updated_at: new Date().toISOString() })
+      .eq("id", cid);
+    
+    if (!updateError) {
+      updatedClients++;
+      console.log(`Updated client ${cid} with ${count} showings`);
+    } else {
+      console.error(`Failed to update client ${cid}:`, updateError);
     }
   }
 
@@ -278,7 +436,8 @@ async function syncAgentEmails(
     success: true,
     synced_count: processedEmails.length,
     showingtime_count: showingTimeFeedback.length,
+    clients_updated: updatedClients,
     showingtime_feedback: showingTimeFeedback,
-    message: `Synced ${processedEmails.length} new emails (${showingTimeFeedback.length} ShowingTime notifications)`,
+    message: `Synced ${processedEmails.length} new emails (${showingTimeFeedback.length} ShowingTime notifications, ${updatedClients} clients updated)`,
   };
 }
