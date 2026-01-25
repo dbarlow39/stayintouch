@@ -313,21 +313,9 @@ async function syncAgentEmails(
     console.log(`Parsing ShowingTime email. Subject: "${subject.substring(0, 50)}..."`);
     console.log(`Clean body preview: "${cleanBody.substring(0, 300)}..."`);
     
-    // Look for showing count patterns
-    const countPatterns = [
-      /(\d+)\s*(?:total\s*)?showings?\s*(?:scheduled|confirmed|completed)/i,
-      /showing\s*#?(\d+)/i,
-      /(\d+)\s*showings?\s*to\s*date/i,
-      /you\s*have\s*(\d+)\s*showings?/i,
-    ];
-    
-    for (const pattern of countPatterns) {
-      const match = combined.match(pattern);
-      if (match) {
-        result.showingCount = parseInt(match[1], 10);
-        break;
-      }
-    }
+    // NOTE: We no longer try to extract showing count from email body
+    // as it's error-prone. Instead, we count SHOWING CONFIRMED emails per client.
+    // Keeping showingCount as null here.
 
     // Look for MLS ID - ShowingTime uses "ID# 123456" format
     // Only match 6-10 digit numeric IDs to avoid tracking parameters
@@ -539,14 +527,18 @@ async function syncAgentEmails(
       }
       
       // If we found a match and have a showing count, record for update
-      if (matchedClient && parsedEmail.showingCount !== null) {
+      // Track SHOWING CONFIRMED emails to count showings per client
+      const isShowingConfirmed = subject.toUpperCase().includes('SHOWING CONFIRMED');
+      if (matchedClient && isShowingConfirmed) {
+        const clientId = (matchedClient as any).id;
+        const currentCount = showingUpdates.filter(u => u.clientId === clientId).length;
         showingUpdates.push({
-          clientId: (matchedClient as any).id,
+          clientId,
           mlsId: parsedEmail.mlsId,
           address: parsedEmail.address,
-          showingCount: parsedEmail.showingCount,
+          showingCount: currentCount + 1, // This is just a marker, we'll count later
         });
-        console.log(`Found showing count ${parsedEmail.showingCount} for client ${(matchedClient as any).id}`);
+        console.log(`Found SHOWING CONFIRMED email for client ${clientId}`);
       }
     }
     
@@ -646,13 +638,11 @@ async function syncAgentEmails(
     }
   }
 
-  // Update client showing counts - use the highest count found per client
+  // Count SHOWING CONFIRMED emails per client (each email = 1 showing)
   const clientShowingCounts = new Map<string, number>();
   for (const update of showingUpdates) {
     const current = clientShowingCounts.get(update.clientId) || 0;
-    if (update.showingCount > current) {
-      clientShowingCounts.set(update.clientId, update.showingCount);
-    }
+    clientShowingCounts.set(update.clientId, current + 1);
   }
 
   let updatedClients = 0;
