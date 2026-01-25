@@ -426,10 +426,15 @@ async function syncAgentEmails(
       const body = decodeBody(msg);
       parsedEmail = parseShowingTimeEmail(subject, body);
       
+      console.log(`ShowingTime email - Subject: "${subject.substring(0, 50)}..." | Parsed MLS: ${parsedEmail.mlsId} | Parsed Address: ${parsedEmail.address} | Showing Count: ${parsedEmail.showingCount}`);
+      
       if (!matchedClient) {
         // Try MLS ID match first
         if (parsedEmail.mlsId) {
           matchedClient = clientMlsIds.get(parsedEmail.mlsId.toLowerCase());
+          if (matchedClient) {
+            console.log(`Matched by MLS ID: ${parsedEmail.mlsId}`);
+          }
         }
         
         // Try address match
@@ -438,9 +443,14 @@ async function syncAgentEmails(
           for (const [addr, client] of clientAddresses.entries()) {
             if (normalizedAddr.includes(addr) || addr.includes(normalizedAddr.split(' ').slice(0, 3).join(' '))) {
               matchedClient = client;
+              console.log(`Matched by address: "${parsedEmail.address}" -> "${addr}"`);
               break;
             }
           }
+        }
+        
+        if (!matchedClient && (parsedEmail.mlsId || parsedEmail.address)) {
+          console.log(`NO MATCH for MLS: ${parsedEmail.mlsId}, Address: ${parsedEmail.address}`);
         }
       }
       
