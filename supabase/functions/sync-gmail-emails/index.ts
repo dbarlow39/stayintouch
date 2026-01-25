@@ -338,31 +338,49 @@ async function syncAgentEmails(
       }
     }
 
-    // Extract showing agent name
+    // Extract showing agent name - look for "Buyer's Agent Details" section first
     const agentNamePatterns = [
+      /Buyer(?:'s)?\s*Agent\s*Details[:\s]*([A-Z][a-zA-Z]+(?:\s+[A-Z][a-zA-Z]+)+)/i,  // "Buyer's Agent Details: John Smith"
+      /Buyer(?:'s)?\s*Agent[:\s]+([A-Z][a-zA-Z]+(?:\s+[A-Z][a-zA-Z]+)+)/i,             // "Buyer's Agent: John Smith"  
+      /Presented\s*by[:\s]+([A-Z][a-zA-Z]+(?:\s+[A-Z][a-zA-Z]+)+)/i,                   // "Presented by: John Smith"
+      /Showing\s*Agent[:\s]+([A-Z][a-zA-Z]+(?:\s+[A-Z][a-zA-Z]+)+)/i,                  // "Showing Agent: John Smith"
       /(?:from|by|agent)[:\s]+([A-Z][a-z]+\s+[A-Z][a-z]+)/i,
       /([A-Z][a-z]+\s+[A-Z][a-z]+)\s+(?:showed|viewed|submitted|feedback)/i,
-      /buyer(?:'s)?\s*agent[:\s]+([A-Z][a-z]+\s+[A-Z][a-z]+)/i,
     ];
     for (const pattern of agentNamePatterns) {
       const match = combined.match(pattern);
       if (match) {
         result.agentName = match[1].trim();
+        console.log(`Extracted agent name "${result.agentName}" using pattern: ${pattern}`);
         break;
       }
     }
 
-    // Extract agent phone
-    const phoneMatch = combined.match(/(?:phone|cell|mobile|tel)[:\s]*(\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4})/i) ||
-                       combined.match(/(\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4})/);
-    if (phoneMatch) {
-      result.agentPhone = phoneMatch[1];
+    // Extract agent phone - look near "Buyer's Agent Details" section
+    const phonePatterns = [
+      /Buyer(?:'s)?\s*Agent\s*Details[^]*?(\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4})/i,  // Phone after Buyer's Agent Details
+      /(?:phone|cell|mobile|tel)[:\s]*(\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4})/i,
+      /(\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4})/,
+    ];
+    for (const pattern of phonePatterns) {
+      const match = combined.match(pattern);
+      if (match) {
+        result.agentPhone = match[1];
+        break;
+      }
     }
 
-    // Extract agent email
-    const emailMatch = combined.match(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/);
-    if (emailMatch && !emailMatch[1].includes("showingtime.com") && !emailMatch[1].includes("noreply")) {
-      result.agentEmail = emailMatch[1];
+    // Extract agent email - look for email near agent details, exclude ShowingTime emails
+    const emailPatterns = [
+      /Buyer(?:'s)?\s*Agent\s*Details[^]*?([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/i,
+      /([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/,
+    ];
+    for (const pattern of emailPatterns) {
+      const match = combined.match(pattern);
+      if (match && !match[1].includes("showingtime.com") && !match[1].includes("noreply")) {
+        result.agentEmail = match[1];
+        break;
+      }
     }
 
     // Extract feedback text
