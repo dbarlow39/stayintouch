@@ -278,7 +278,10 @@ async function syncAgentEmails(
       .replace(/&gt;/g, '>')
       .replace(/&quot;/g, '"')
       .replace(/&#39;/g, "'")
+      .replace(/&#x27;/g, "'")  // Handle hex encoded apostrophe
+      .replace(/&#x2019;/g, "'")  // Handle smart quote
       .replace(/\s+/g, ' ') // Collapse whitespace
+      .replace(/^\d{1,3}\s+(?=Feedback|ShowingTime|Sell)/i, '') // Remove leading artifact numbers like "96 "
       .trim();
   };
 
@@ -362,9 +365,13 @@ async function syncAgentEmails(
     for (const pattern of agentNamePatterns) {
       const match = combined.match(pattern);
       if (match) {
-        const name = match[1].trim();
-        // Filter out false positives
-        if (name.toLowerCase() !== 'details' && !name.toLowerCase().includes('template')) {
+        let name = match[1].trim();
+        // Strip brokerage-related words from the end of the name
+        name = name.replace(/\s+(Keller|Williams|Realty|Properties|Real\s*Estate|Brokerage|BHHS|Coldwell|Banker|Century|21|RE\/MAX|ERA)$/i, '').trim();
+        // Filter out false positives - should have at least first + last name
+        if (name.toLowerCase() !== 'details' && 
+            !name.toLowerCase().includes('template') && 
+            name.split(' ').length >= 2) {
           result.agentName = name;
           console.log(`Extracted agent name "${result.agentName}" using pattern: ${pattern}`);
           break;
