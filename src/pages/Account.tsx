@@ -117,7 +117,7 @@ const Account = () => {
     try {
       // Manual sync looks back 60 days to capture all recent ShowingTime feedback
       const { data, error } = await supabase.functions.invoke("sync-gmail-emails", {
-        body: { agent_id: user!.id, days_back: 60, max_results: 200 },
+        body: { agent_id: user!.id, days_back: 60, max_results: 500 },
       });
 
       if (error) throw error;
