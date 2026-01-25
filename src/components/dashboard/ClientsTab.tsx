@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Upload, Pencil, Trash2, Filter, CalendarIcon, FileUp } from "lucide-react";
+import { Plus, Upload, Pencil, Trash2, Filter, CalendarIcon, FileUp, MessageSquare } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth";
 import { z } from "zod";
@@ -18,6 +18,7 @@ import { format, parse } from "date-fns";
 import { cn } from "@/lib/utils";
 import logo from "@/assets/logo.jpg";
 import { InventoryImportDialog } from "./InventoryImportDialog";
+import ClientFeedbackPage from "./ClientFeedbackPage";
 
 interface Client {
   id: string;
@@ -112,6 +113,7 @@ const ClientsTab = ({ onSelectClientForEstimate }: ClientsTabProps) => {
   const [open, setOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
   const [viewingClient, setViewingClient] = useState<Client | null>(null);
+  const [viewingFeedbackClientId, setViewingFeedbackClientId] = useState<string | null>(null);
   const [csvMappingOpen, setCsvMappingOpen] = useState(false);
   const [csvHeaders, setCsvHeaders] = useState<string[]>([]);
   const [csvData, setCsvData] = useState<string[][]>([]);
@@ -1283,6 +1285,16 @@ const ClientsTab = ({ onSelectClientForEstimate }: ClientsTabProps) => {
                 <Button variant="outline" onClick={() => setViewingClient(null)}>
                   Close
                 </Button>
+                <Button 
+                  variant="outline"
+                  onClick={() => {
+                    setViewingFeedbackClientId(viewingClient.id);
+                    setViewingClient(null);
+                  }}
+                >
+                  <MessageSquare className="w-4 h-4 mr-2" />
+                  Review Feedback
+                </Button>
                 <Button onClick={() => {
                   setViewingClient(null);
                   handleEdit(viewingClient);
@@ -1294,6 +1306,18 @@ const ClientsTab = ({ onSelectClientForEstimate }: ClientsTabProps) => {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Client Feedback Page */}
+      {viewingFeedbackClientId && (
+        <Dialog open={!!viewingFeedbackClientId} onOpenChange={() => setViewingFeedbackClientId(null)}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <ClientFeedbackPage 
+              clientId={viewingFeedbackClientId} 
+              onBack={() => setViewingFeedbackClientId(null)} 
+            />
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 };

@@ -955,6 +955,69 @@ export type Database = {
           },
         ]
       }
+      showing_feedback: {
+        Row: {
+          agent_id: string
+          buyer_interest_level: string | null
+          client_id: string | null
+          created_at: string
+          feedback: string | null
+          id: string
+          raw_email_content: string | null
+          showing_agent_email: string | null
+          showing_agent_name: string | null
+          showing_agent_phone: string | null
+          showing_date: string | null
+          source_email_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          agent_id: string
+          buyer_interest_level?: string | null
+          client_id?: string | null
+          created_at?: string
+          feedback?: string | null
+          id?: string
+          raw_email_content?: string | null
+          showing_agent_email?: string | null
+          showing_agent_name?: string | null
+          showing_agent_phone?: string | null
+          showing_date?: string | null
+          source_email_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          agent_id?: string
+          buyer_interest_level?: string | null
+          client_id?: string | null
+          created_at?: string
+          feedback?: string | null
+          id?: string
+          raw_email_content?: string | null
+          showing_agent_email?: string | null
+          showing_agent_name?: string | null
+          showing_agent_phone?: string | null
+          showing_date?: string | null
+          source_email_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "showing_feedback_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "showing_feedback_source_email_id_fkey"
+            columns: ["source_email_id"]
+            isOneToOne: false
+            referencedRelation: "client_email_logs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sms_campaigns: {
         Row: {
           agent_id: string
