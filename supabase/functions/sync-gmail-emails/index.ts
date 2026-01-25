@@ -246,13 +246,32 @@ async function syncAgentEmails(
   };
 
   // Parse ShowingTime email to extract showing count and property info
-  const parseShowingTimeEmail = (subject: string, body: string): { address: string | null; mlsId: string | null; showingCount: number | null } => {
-    const result = { address: null as string | null, mlsId: null as string | null, showingCount: null as number | null };
+  const parseShowingTimeEmail = (subject: string, body: string): { 
+    address: string | null; 
+    mlsId: string | null; 
+    showingCount: number | null;
+    agentName: string | null;
+    agentEmail: string | null;
+    agentPhone: string | null;
+    feedbackText: string | null;
+    showingDate: string | null;
+    interestLevel: string | null;
+  } => {
+    const result = { 
+      address: null as string | null, 
+      mlsId: null as string | null, 
+      showingCount: null as number | null,
+      agentName: null as string | null,
+      agentEmail: null as string | null,
+      agentPhone: null as string | null,
+      feedbackText: null as string | null,
+      showingDate: null as string | null,
+      interestLevel: null as string | null,
+    };
     
     const combined = `${subject}\n${body}`;
     
     // Look for showing count patterns
-    // "You have 5 showings scheduled" or "Showing #3" or "3 total showings"
     const countPatterns = [
       /(\d+)\s*(?:total\s*)?showings?\s*(?:scheduled|confirmed|completed)/i,
       /showing\s*#?(\d+)/i,
@@ -274,7 +293,7 @@ async function syncAgentEmails(
       result.mlsId = mlsMatch[1].trim();
     }
 
-    // Look for property address (common patterns)
+    // Look for property address
     const addressPatterns = [
       /property[:\s]+(\d+\s+[A-Za-z0-9\s]+(?:St|Street|Ave|Avenue|Rd|Road|Dr|Drive|Blvd|Boulevard|Ln|Lane|Ct|Court|Way|Pl|Place)[^,\n]*)/i,
       /address[:\s]+(\d+\s+[A-Za-z0-9\s]+(?:St|Street|Ave|Avenue|Rd|Road|Dr|Drive|Blvd|Boulevard|Ln|Lane|Ct|Court|Way|Pl|Place)[^,\n]*)/i,
@@ -285,6 +304,79 @@ async function syncAgentEmails(
       const match = combined.match(pattern);
       if (match) {
         result.address = match[1].trim();
+        break;
+      }
+    }
+
+    // Extract showing agent name
+    const agentNamePatterns = [
+      /(?:from|by|agent)[:\s]+([A-Z][a-z]+\s+[A-Z][a-z]+)/i,
+      /([A-Z][a-z]+\s+[A-Z][a-z]+)\s+(?:showed|viewed|submitted|feedback)/i,
+      /buyer(?:'s)?\s*agent[:\s]+([A-Z][a-z]+\s+[A-Z][a-z]+)/i,
+    ];
+    for (const pattern of agentNamePatterns) {
+      const match = combined.match(pattern);
+      if (match) {
+        result.agentName = match[1].trim();
+        break;
+      }
+    }
+
+    // Extract agent phone
+    const phoneMatch = combined.match(/(?:phone|cell|mobile|tel)[:\s]*(\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4})/i) ||
+                       combined.match(/(\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4})/);
+    if (phoneMatch) {
+      result.agentPhone = phoneMatch[1];
+    }
+
+    // Extract agent email
+    const emailMatch = combined.match(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/);
+    if (emailMatch && !emailMatch[1].includes("showingtime.com") && !emailMatch[1].includes("noreply")) {
+      result.agentEmail = emailMatch[1];
+    }
+
+    // Extract feedback text
+    const feedbackPatterns = [
+      /feedback[:\s]*["']?([^"'\n]{20,500})["']?/i,
+      /comments?[:\s]*["']?([^"'\n]{20,500})["']?/i,
+      /buyer\s*feedback[:\s]*["']?([^"'\n]{20,500})["']?/i,
+    ];
+    for (const pattern of feedbackPatterns) {
+      const match = combined.match(pattern);
+      if (match) {
+        result.feedbackText = match[1].trim();
+        break;
+      }
+    }
+
+    // If no structured feedback, use the snippet/body as feedback
+    if (!result.feedbackText && body.length > 50) {
+      result.feedbackText = body.substring(0, 500);
+    }
+
+    // Extract showing date
+    const datePatterns = [
+      /(?:showing|scheduled|date)[:\s]*(\d{1,2}\/\d{1,2}\/\d{2,4})/i,
+      /(\d{1,2}\/\d{1,2}\/\d{2,4})\s*(?:at|@)/i,
+      /(\w+\s+\d{1,2},?\s*\d{4})/i,
+    ];
+    for (const pattern of datePatterns) {
+      const match = combined.match(pattern);
+      if (match) {
+        result.showingDate = match[1];
+        break;
+      }
+    }
+
+    // Extract interest level
+    const interestPatterns = [
+      /interest(?:\s*level)?[:\s]*(very\s*interested|interested|not\s*interested|maybe|considering)/i,
+      /(very\s*interested|not\s*interested|strong\s*interest|mild\s*interest)/i,
+    ];
+    for (const pattern of interestPatterns) {
+      const match = combined.match(pattern);
+      if (match) {
+        result.interestLevel = match[1];
         break;
       }
     }
@@ -324,36 +416,40 @@ async function syncAgentEmails(
     let clientId = null;
     let matchedClient = clientEmails.get(fromAddr) || clientEmails.get(toAddr);
     
-    // For ShowingTime emails, try to match by address or MLS ID
-    if (isShowingTime && !matchedClient) {
+    // For ShowingTime emails, try to match by address or MLS ID and extract feedback
+    let parsedEmail: ReturnType<typeof parseShowingTimeEmail> | null = null;
+    
+    if (isShowingTime) {
       const body = decodeBody(msg);
-      const parsed = parseShowingTimeEmail(subject, body);
+      parsedEmail = parseShowingTimeEmail(subject, body);
       
-      // Try MLS ID match first
-      if (parsed.mlsId) {
-        matchedClient = clientMlsIds.get(parsed.mlsId.toLowerCase());
-      }
-      
-      // Try address match
-      if (!matchedClient && parsed.address) {
-        const normalizedAddr = parsed.address.toLowerCase().trim();
-        for (const [addr, client] of clientAddresses.entries()) {
-          if (normalizedAddr.includes(addr) || addr.includes(normalizedAddr.split(' ').slice(0, 3).join(' '))) {
-            matchedClient = client;
-            break;
+      if (!matchedClient) {
+        // Try MLS ID match first
+        if (parsedEmail.mlsId) {
+          matchedClient = clientMlsIds.get(parsedEmail.mlsId.toLowerCase());
+        }
+        
+        // Try address match
+        if (!matchedClient && parsedEmail.address) {
+          const normalizedAddr = parsedEmail.address.toLowerCase().trim();
+          for (const [addr, client] of clientAddresses.entries()) {
+            if (normalizedAddr.includes(addr) || addr.includes(normalizedAddr.split(' ').slice(0, 3).join(' '))) {
+              matchedClient = client;
+              break;
+            }
           }
         }
       }
       
       // If we found a match and have a showing count, record for update
-      if (matchedClient && parsed.showingCount !== null) {
+      if (matchedClient && parsedEmail.showingCount !== null) {
         showingUpdates.push({
           clientId: (matchedClient as any).id,
-          mlsId: parsed.mlsId,
-          address: parsed.address,
-          showingCount: parsed.showingCount,
+          mlsId: parsedEmail.mlsId,
+          address: parsedEmail.address,
+          showingCount: parsedEmail.showingCount,
         });
-        console.log(`Found showing count ${parsed.showingCount} for client ${(matchedClient as any).id}`);
+        console.log(`Found showing count ${parsedEmail.showingCount} for client ${(matchedClient as any).id}`);
       }
     }
     
@@ -389,19 +485,57 @@ async function syncAgentEmails(
         labels: isShowingTime ? ["ShowingTime"] : [],
       };
 
-      const { error: insertError } = await supabase
+      const { data: insertedEmail, error: insertError } = await supabase
         .from("client_email_logs")
-        .insert(emailLog);
+        .insert(emailLog)
+        .select("id")
+        .single();
 
-      if (!insertError) {
+      if (!insertError && insertedEmail) {
         processedEmails.push(emailLog);
 
-        if (isShowingTime) {
+        // For ShowingTime emails with a matched client, store feedback
+        if (isShowingTime && clientId && parsedEmail) {
+          // Check if feedback already exists for this email
+          const { data: existingFeedback } = await supabase
+            .from("showing_feedback")
+            .select("id")
+            .eq("source_email_id", insertedEmail.id)
+            .maybeSingle();
+
+          if (!existingFeedback) {
+            const feedbackRecord = {
+              agent_id,
+              client_id: clientId,
+              showing_agent_name: parsedEmail.agentName,
+              showing_agent_email: parsedEmail.agentEmail,
+              showing_agent_phone: parsedEmail.agentPhone,
+              showing_date: parsedEmail.showingDate ? new Date(parsedEmail.showingDate).toISOString() : receivedAt,
+              feedback: parsedEmail.feedbackText || msg.snippet,
+              buyer_interest_level: parsedEmail.interestLevel,
+              source_email_id: insertedEmail.id,
+              raw_email_content: msg.snippet,
+            };
+
+            const { error: feedbackError } = await supabase
+              .from("showing_feedback")
+              .insert(feedbackRecord);
+
+            if (feedbackError) {
+              console.error("Failed to insert feedback:", feedbackError);
+            } else {
+              console.log(`Stored feedback for client ${clientId}`);
+            }
+          }
+
           showingTimeFeedback.push({
             subject,
             snippet: msg.snippet,
             received_at: receivedAt,
             clientId,
+            agentName: parsedEmail.agentName,
+            agentEmail: parsedEmail.agentEmail,
+            agentPhone: parsedEmail.agentPhone,
           });
         }
       }
