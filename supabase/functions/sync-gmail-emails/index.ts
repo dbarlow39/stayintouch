@@ -268,7 +268,7 @@ async function syncAgentEmails(
 
   // Helper to strip HTML tags and decode entities
   const stripHtml = (html: string): string => {
-    return html
+    let result = html
       .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '') // Remove style blocks
       .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '') // Remove script blocks
       .replace(/<[^>]+>/g, ' ') // Remove HTML tags
@@ -281,9 +281,14 @@ async function syncAgentEmails(
       .replace(/&#x27;/g, "'")  // Handle hex encoded apostrophe
       .replace(/&#x2019;/g, "'")  // Handle smart quote
       .replace(/\s+/g, ' ') // Collapse whitespace
-      .replace(/^\d{1,3}\s+(?=Feedback|ShowingTime|Sell|For\s)/i, '') // Remove leading artifact numbers like "96 Feedback"
-      .replace(/^Sell For One Percent\s+/i, '') // Remove "Sell For One Percent" prefix
       .trim();
+    
+    // Remove leading artifact numbers like "96 Feedback Received" -> "Feedback Received"
+    result = result.replace(/^\d{1,3}\s+(Feedback|ShowingTime|Sell)/i, '$1');
+    // Remove "Sell For One Percent" prefix
+    result = result.replace(/^Sell For One Percent\s+/i, '');
+    
+    return result;
   };
 
   // Parse ShowingTime email to extract showing count and property info
