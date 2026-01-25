@@ -566,8 +566,9 @@ async function syncAgentEmails(
       .maybeSingle();
 
     if (!existing) {
-      // Decode full body for ShowingTime emails
-      const fullBody = isShowingTime ? decodeBody(msg) : msg.snippet;
+      // Decode and clean body for ShowingTime emails
+      const rawBody = isShowingTime ? decodeBody(msg) : msg.snippet;
+      const cleanedBody = isShowingTime ? stripHtml(rawBody) : msg.snippet;
       
       const emailLog = {
         agent_id,
@@ -579,7 +580,7 @@ async function syncAgentEmails(
         to_email: toEmail,
         subject,
         snippet: msg.snippet,
-        body_preview: isShowingTime ? fullBody.substring(0, 2000) : msg.snippet, // Store more of the body
+        body_preview: isShowingTime ? cleanedBody.substring(0, 2000) : msg.snippet, // Store cleaned body
         received_at: receivedAt,
         is_read: true,
         labels: isShowingTime ? ["ShowingTime"] : [],
@@ -614,10 +615,10 @@ async function syncAgentEmails(
               showing_agent_email: parsedEmail.agentEmail,
               showing_agent_phone: parsedEmail.agentPhone,
               showing_date: parsedEmail.showingDate ? new Date(parsedEmail.showingDate).toISOString() : receivedAt,
-              feedback: parsedEmail.feedbackText || fullBody.substring(0, 1000),
+              feedback: parsedEmail.feedbackText || cleanedBody.substring(0, 1000), // Use cleaned body
               buyer_interest_level: parsedEmail.interestLevel,
               source_email_id: insertedEmail.id,
-              raw_email_content: fullBody.substring(0, 5000), // Store full email content
+              raw_email_content: rawBody.substring(0, 5000), // Store original raw for debugging
             };
 
             const { error: feedbackError } = await supabase
@@ -633,7 +634,7 @@ async function syncAgentEmails(
 
           showingTimeFeedback.push({
             subject,
-            snippet: fullBody.substring(0, 500),
+            snippet: cleanedBody.substring(0, 500), // Use cleaned body
             received_at: receivedAt,
             clientId,
             agentName: parsedEmail.agentName,
