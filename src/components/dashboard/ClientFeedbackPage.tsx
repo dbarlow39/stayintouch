@@ -265,20 +265,22 @@ const ClientFeedbackPage = ({ clientId, onBack }: ClientFeedbackPageProps) => {
                 <Label className="text-sm font-semibold text-muted-foreground">Listing Date</Label>
                 <p className="text-base">{client.listing_date || "—"}</p>
               </div>
-              <div className="flex gap-4">
-                {client.email && (
-                  <a href={`mailto:${client.email}`} className="text-primary hover:underline text-sm flex items-center gap-1">
-                    <Mail className="w-3 h-3" />
-                    {client.email}
-                  </a>
-                )}
-                {client.cell_phone && (
+              {client.cell_phone && (
+                <div>
                   <a href={`tel:${client.cell_phone.replace(/\D/g, '')}`} className="text-primary hover:underline text-sm flex items-center gap-1">
                     <Phone className="w-3 h-3" />
                     {client.cell_phone}
                   </a>
-                )}
-              </div>
+                </div>
+              )}
+              {client.email && (
+                <div>
+                  <a href={`mailto:${client.email}`} className="text-primary hover:underline text-sm flex items-center gap-1">
+                    <Mail className="w-3 h-3" />
+                    {client.email}
+                  </a>
+                </div>
+              )}
             </div>
           </div>
         </CardContent>
