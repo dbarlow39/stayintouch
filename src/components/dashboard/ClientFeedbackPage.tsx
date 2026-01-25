@@ -90,6 +90,22 @@ const ClientFeedbackPage = ({ clientId, onBack }: ClientFeedbackPageProps) => {
     },
   });
 
+  // Fetch SHOWING CONFIRMED emails to count actual showings
+  const { data: confirmedShowings = [] } = useQuery({
+    queryKey: ["client-confirmed-showings", clientId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("client_email_logs")
+        .select("*")
+        .eq("client_id", clientId)
+        .contains("labels", ["ShowingTime"])
+        .ilike("subject", "%SHOWING CONFIRMED%")
+        .order("received_at", { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+  });
+
   const isLoading = loadingClient || loadingFeedback || loadingEmails;
 
   // Parse agent info from email snippets
@@ -124,6 +140,21 @@ const ClientFeedbackPage = ({ clientId, onBack }: ClientFeedbackPageProps) => {
     return result;
   };
 
+  // Parse interest level from feedback snippet
+  const parseInterestLevel = (snippet: string): string | null => {
+    const patterns = [
+      /interested in this listing\?\s*(Very|Not interested|Maybe)/i,
+      /client interested\?\s*(Yes|No|Maybe)/i,
+    ];
+    for (const pattern of patterns) {
+      const match = snippet.match(pattern);
+      if (match) {
+        return match[1];
+      }
+    }
+    return null;
+  };
+
   // Combine structured feedback with email-based feedback
   const allFeedback = [
     ...feedbackList.map(f => ({
@@ -138,6 +169,7 @@ const ClientFeedbackPage = ({ clientId, onBack }: ClientFeedbackPageProps) => {
     })),
     ...emailLogs.map(e => {
       const parsed = parseAgentFromEmail(e.subject || "", e.snippet || "");
+      const interestLevel = parseInterestLevel(e.snippet || "");
       return {
         id: e.id,
         type: "email" as const,
@@ -145,8 +177,8 @@ const ClientFeedbackPage = ({ clientId, onBack }: ClientFeedbackPageProps) => {
         agentEmail: parsed.email,
         agentPhone: parsed.phone,
         date: e.received_at,
-        feedback: e.snippet,
-        interestLevel: null,
+        feedback: e.body_preview || e.snippet,
+        interestLevel: interestLevel,
         subject: e.subject,
       };
     }),
@@ -156,9 +188,8 @@ const ClientFeedbackPage = ({ clientId, onBack }: ClientFeedbackPageProps) => {
     return dateB - dateA;
   });
 
-  // Calculate total showings from ShowingTime emails or client record
-  const totalShowingsFromEmails = emailLogs.length + feedbackList.length;
-  const totalShowings = client?.showings_to_date ?? totalShowingsFromEmails;
+  // Calculate total showings from SHOWING CONFIRMED emails
+  const totalShowings = confirmedShowings.length || client?.showings_to_date || 0;
 
   const formatPhoneLink = (phone: string | null) => {
     if (!phone) return null;
