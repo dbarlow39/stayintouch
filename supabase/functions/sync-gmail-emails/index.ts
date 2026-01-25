@@ -362,20 +362,25 @@ async function syncAgentEmails(
     }
 
     // Extract showing agent name - look for "Buyer's Agent Details" section first
+    // ShowingTime format appears to be: "Buyer's Agent Details [FirstName] [LastName] [Phone] [Email]"
     const agentNamePatterns = [
-      /Buyer(?:'s)?\s*Agent\s*Details[:\s]*([A-Z][a-zA-Z]+(?:\s+[A-Z][a-zA-Z]+)+)/i,  // "Buyer's Agent Details: John Smith"
-      /Buyer(?:'s)?\s*Agent[:\s]+([A-Z][a-zA-Z]+(?:\s+[A-Z][a-zA-Z]+)+)/i,             // "Buyer's Agent: John Smith"  
-      /Presented\s*by[:\s]+([A-Z][a-zA-Z]+(?:\s+[A-Z][a-zA-Z]+)+)/i,                   // "Presented by: John Smith"
-      /Showing\s*Agent[:\s]+([A-Z][a-zA-Z]+(?:\s+[A-Z][a-zA-Z]+)+)/i,                  // "Showing Agent: John Smith"
-      /(?:from|by|agent)[:\s]+([A-Z][a-z]+\s+[A-Z][a-z]+)/i,
-      /([A-Z][a-z]+\s+[A-Z][a-z]+)\s+(?:showed|viewed|submitted|feedback)/i,
+      // Match name after "Buyer's Agent Details" - name is typically: FirstName LastName (2-3 capitalized words)
+      /Buyer(?:'s)?\s*Agent\s*Details\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+){1,2})(?:\s+\(?\d{3}|\s+[a-zA-Z0-9._%+-]+@)/i,
+      // Fallback: just look for 2-3 word name after "Details"  
+      /\bDetails\s+([A-Z][a-z]+\s+[A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)\s+/i,
+      /Buyer(?:'s)?\s*Agent[:\s]+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)/i,
+      /Showing\s*Agent[:\s]+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)/i,
     ];
     for (const pattern of agentNamePatterns) {
       const match = combined.match(pattern);
       if (match) {
-        result.agentName = match[1].trim();
-        console.log(`Extracted agent name "${result.agentName}" using pattern: ${pattern}`);
-        break;
+        const name = match[1].trim();
+        // Filter out false positives
+        if (name.toLowerCase() !== 'details' && !name.toLowerCase().includes('template')) {
+          result.agentName = name;
+          console.log(`Extracted agent name "${result.agentName}" using pattern: ${pattern}`);
+          break;
+        }
       }
     }
 
