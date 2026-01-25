@@ -79,28 +79,37 @@ const Account = () => {
 
   const [isSyncing, setIsSyncing] = useState(false);
 
-  const handleConnectGmail = () => {
-    const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-    const redirectUri = `${SUPABASE_URL}/functions/v1/gmail-oauth-callback`;
-    const clientId = "285788741298-r91qf5e82lv26l7qvqtabp76g3p0sjgt.apps.googleusercontent.com"; // This should match your Google OAuth client ID
-    
-    const scope = encodeURIComponent("https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/userinfo.email");
-    const state = user!.id; // Pass agent_id as state
-    
-    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${scope}&state=${state}&access_type=offline&prompt=consent`;
-    
-    // Open in popup
-    const popup = window.open(authUrl, "gmail-oauth", "width=500,height=600");
-    
-    // Listen for success message
-    const handleMessage = (event: MessageEvent) => {
-      if (event.data?.type === "gmail-oauth-success") {
-        refetchGmail();
-        toast({ title: "Gmail Connected!", description: `Connected to ${event.data.email}` });
-        window.removeEventListener("message", handleMessage);
+  const handleConnectGmail = async () => {
+    try {
+      // Get the OAuth URL from the backend (uses GOOGLE_CLIENT_ID secret)
+      const { data, error } = await supabase.functions.invoke("gmail-auth-url", {
+        body: { agent_id: user!.id },
+      });
+
+      if (error || !data?.auth_url) {
+        throw new Error(error?.message || "Failed to get auth URL");
       }
-    };
-    window.addEventListener("message", handleMessage);
+
+      // Open in popup
+      window.open(data.auth_url, "gmail-oauth", "width=500,height=600");
+
+      // Listen for success message
+      const handleMessage = (event: MessageEvent) => {
+        if (event.data?.type === "gmail-oauth-success") {
+          refetchGmail();
+          toast({ title: "Gmail Connected!", description: `Connected to ${event.data.email}` });
+          window.removeEventListener("message", handleMessage);
+        }
+      };
+      window.addEventListener("message", handleMessage);
+    } catch (err) {
+      console.error("Gmail connect error:", err);
+      toast({
+        title: "Connection Failed",
+        description: err instanceof Error ? err.message : "Could not start Gmail connection",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleSyncGmail = async () => {
