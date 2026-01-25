@@ -154,6 +154,9 @@ async function syncAgentEmails(
     .select("id, email, first_name, last_name, mls_id, street_number, street_name, city, state, zip")
     .eq("agent_id", agent_id);
 
+  console.log(`Querying clients for agent_id: ${agent_id}`);
+  console.log(`Query returned ${clients?.length || 0} clients`);
+
   const clientEmails = new Map(
     clients?.filter((c: any) => c.email).map((c: any) => [c.email!.toLowerCase(), c]) || []
   );
