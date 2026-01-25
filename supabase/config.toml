@@ -50,3 +50,6 @@ verify_jwt = false
 
 [functions.sync-gmail-emails]
 verify_jwt = false
+
+[functions.gmail-auth-url]
+verify_jwt = false
