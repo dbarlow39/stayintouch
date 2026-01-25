@@ -281,7 +281,8 @@ async function syncAgentEmails(
       .replace(/&#x27;/g, "'")  // Handle hex encoded apostrophe
       .replace(/&#x2019;/g, "'")  // Handle smart quote
       .replace(/\s+/g, ' ') // Collapse whitespace
-      .replace(/^\d{1,3}\s+(?=Feedback|ShowingTime|Sell)/i, '') // Remove leading artifact numbers like "96 "
+      .replace(/^\d{1,3}\s+(?=Feedback|ShowingTime|Sell|For\s)/i, '') // Remove leading artifact numbers like "96 Feedback"
+      .replace(/^Sell For One Percent\s+/i, '') // Remove "Sell For One Percent" prefix
       .trim();
   };
 
