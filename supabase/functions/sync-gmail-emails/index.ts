@@ -40,7 +40,16 @@ serve(async (req) => {
 
     // Get request body
     const body = await req.json().catch(() => ({}));
-    const { agent_id, sync_all_agents = false, max_results = 50 } = body;
+    const { agent_id, sync_all_agents = false, max_results = 100, days_back = null } = body;
+    
+    // Calculate date filter if days_back is provided
+    let afterDate: string | null = null;
+    if (days_back && typeof days_back === 'number') {
+      const date = new Date();
+      date.setDate(date.getDate() - days_back);
+      afterDate = Math.floor(date.getTime() / 1000).toString(); // Unix timestamp for Gmail API
+      console.log(`Filtering emails from last ${days_back} days (after: ${date.toISOString()})`);
+    }
     
     // If sync_all_agents is true, sync for all agents with connected Gmail
     let agentIds: string[] = [];
@@ -64,7 +73,7 @@ serve(async (req) => {
 
     for (const currentAgentId of agentIds) {
       try {
-        const result = await syncAgentEmails(supabase, currentAgentId, max_results, GOOGLE_CLIENT_ID!, GOOGLE_CLIENT_SECRET!);
+        const result = await syncAgentEmails(supabase, currentAgentId, max_results, GOOGLE_CLIENT_ID!, GOOGLE_CLIENT_SECRET!, afterDate);
         allResults.push({ agent_id: currentAgentId, ...result });
       } catch (err) {
         console.error(`Error syncing agent ${currentAgentId}:`, err);
@@ -101,7 +110,8 @@ async function syncAgentEmails(
   agent_id: string,
   max_results: number,
   GOOGLE_CLIENT_ID: string,
-  GOOGLE_CLIENT_SECRET: string
+  GOOGLE_CLIENT_SECRET: string,
+  afterDate: string | null = null
 ) {
   // Get agent's Gmail tokens
   const { data: tokenData, error: tokenError } = await supabase
@@ -179,18 +189,23 @@ async function syncAgentEmails(
   // Fetch emails from Gmail
   // Search for emails from/to client addresses OR ShowingTime notifications
   const clientEmailKeys = Array.from(clientEmails.keys()) as string[];
+  
+  // Add date filter if provided
+  const dateFilter = afterDate ? ` after:${afterDate}` : '';
+  
   const searchQueries = [
-    "from:noreply@showingtime.com",
-    "from:notifications@showingtime.com",
-    "subject:showing confirmed",
-    "subject:showings scheduled",
-    ...clientEmailKeys.slice(0, 15).map((email) => `from:${email} OR to:${email}`)
+    `from:noreply@showingtime.com${dateFilter}`,
+    `from:notifications@showingtime.com${dateFilter}`,
+    `subject:showing confirmed${dateFilter}`,
+    `subject:showings scheduled${dateFilter}`,
+    `subject:feedback${dateFilter}`,
+    ...clientEmailKeys.slice(0, 15).map((email) => `(from:${email} OR to:${email})${dateFilter}`)
   ];
 
   const allMessages: GmailMessage[] = [];
   const showingTimeMessageIds: Set<string> = new Set();
 
-  for (const query of searchQueries.slice(0, 6)) { // Limit queries to avoid rate limits
+  for (const query of searchQueries.slice(0, 8)) { // Increased from 6 to 8 queries
     const listUrl = `https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=${max_results}&q=${encodeURIComponent(query)}`;
     
     const listResponse = await fetch(listUrl, {
