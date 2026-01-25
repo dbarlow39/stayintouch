@@ -156,7 +156,9 @@ const ClientFeedbackPage = ({ clientId, onBack }: ClientFeedbackPageProps) => {
     return dateB - dateA;
   });
 
-  const totalShowings = client?.showings_to_date ?? allFeedback.length;
+  // Calculate total showings from ShowingTime emails or client record
+  const totalShowingsFromEmails = emailLogs.length + feedbackList.length;
+  const totalShowings = client?.showings_to_date ?? totalShowingsFromEmails;
 
   const formatPhoneLink = (phone: string | null) => {
     if (!phone) return null;
