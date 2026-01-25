@@ -83,6 +83,7 @@ const ClientFeedbackPage = ({ clientId, onBack }: ClientFeedbackPageProps) => {
         .select("*")
         .eq("client_id", clientId)
         .contains("labels", ["ShowingTime"])
+        .ilike("subject", "%FEEDBACK RECEIVED%")  // Only show feedback emails, not confirmations
         .order("received_at", { ascending: false });
       if (error) throw error;
       return data;
