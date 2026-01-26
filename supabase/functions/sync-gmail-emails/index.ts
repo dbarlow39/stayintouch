@@ -277,6 +277,7 @@ async function syncAgentEmails(
       .replace(/&lt;/g, '<')
       .replace(/&gt;/g, '>')
       .replace(/&quot;/g, '"')
+      .replace(/&#35;/g, '#')   // Handle # character entity
       .replace(/&#39;/g, "'")
       .replace(/&#x27;/g, "'")  // Handle hex encoded apostrophe
       .replace(/&#x2019;/g, "'")  // Handle smart quote
@@ -284,7 +285,7 @@ async function syncAgentEmails(
       .trim();
     
     // Remove leading artifact numbers like "96 Feedback Received" -> "Feedback Received"
-    result = result.replace(/^\d{1,3}\s+(Feedback|ShowingTime|Sell)/i, '$1');
+    result = result.replace(/^\d{1,3}\s+(Feedback|ShowingTime|Sell|Showing)/i, '$1');
     // Remove "Sell For One Percent" prefix
     result = result.replace(/^Sell For One Percent\s+/i, '');
     
@@ -323,10 +324,19 @@ async function syncAgentEmails(
     console.log(`Clean body preview: "${cleanBody.substring(0, 300)}..."`);
     
     // Extract "Total # of Showings: X" from email body
-    const totalShowingsMatch = combined.match(/Total\s*#?\s*of\s*Showings[:\s]*(\d+)/i);
-    if (totalShowingsMatch) {
-      result.showingCount = parseInt(totalShowingsMatch[1], 10);
-      console.log(`Extracted Total Showings: ${result.showingCount}`);
+    // Try multiple patterns to catch variations
+    const showingPatterns = [
+      /Total\s*#\s*of\s*Showings[:\s]*(\d+)/i,  // Standard: "Total # of Showings: 5"
+      /Total\s+of\s+Showings[:\s]*(\d+)/i,       // Without #: "Total of Showings: 5"
+      /Total\s*Showings[:\s]*(\d+)/i,            // Short: "Total Showings: 5"
+    ];
+    for (const pattern of showingPatterns) {
+      const match = combined.match(pattern);
+      if (match) {
+        result.showingCount = parseInt(match[1], 10);
+        console.log(`Extracted Total Showings: ${result.showingCount} using pattern: ${pattern}`);
+        break;
+      }
     }
 
     // Look for MLS ID - ShowingTime uses "ID# 123456" format
