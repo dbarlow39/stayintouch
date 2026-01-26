@@ -457,12 +457,14 @@ async function syncAgentEmails(
       if (q4Match) lines.push(`Rating: ${q4Match[1]}/5`);
       
       // Question 5: Comments - capture everything until "Manage Feedback" or "Appointment Details"
-      const q5Match = text.match(/5\.\s*COMMENTS?\s*\/?\s*RECOMMENDATIONS?[:\s]*([\s\S]+?)(?=Manage Feedback|Appointment Details|Buyer's Agent Details|Thanks!|$)/i);
+      const q5Match = text.match(/5\.\s*COMMENTS?\s*\/?\s*RECOMMENDATIONS?[:\s]*([\s\S]+?)(?=\s*Manage\s*Feedback|\s*Appointment\s*Details|\s*Buyer's\s*Agent|\s*Thanks!|$)/i);
       if (q5Match) {
-        const comments = q5Match[1].trim()
+        let comments = q5Match[1].trim()
           .replace(/\s+/g, ' ')
+          .replace(/Manage\s*Feedback.*$/i, '') // Remove any trailing "Manage Feedback" text
+          .trim()
           .substring(0, 500);
-        if (comments.length > 5) {
+        if (comments.length > 10) {
           lines.push(`\nComments: ${comments}`);
         }
       }
