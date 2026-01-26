@@ -185,6 +185,7 @@ async function syncAgentEmails(
   });
 
   console.log(`Found ${clientEmails.size} clients with emails, ${clientMlsIds.size} with MLS IDs, ${clientAddresses.size} with addresses`);
+  console.log(`Sample MLS IDs in map:`, Array.from(clientMlsIds.keys()).slice(0, 20));
   console.log(`Sample addresses in map:`, Array.from(clientAddresses.keys()).slice(0, 10));
 
   // Fetch emails from Gmail
@@ -563,9 +564,13 @@ async function syncAgentEmails(
       if (!matchedClient) {
         // Try MLS ID match first
         if (parsedEmail.mlsId) {
-          matchedClient = clientMlsIds.get(parsedEmail.mlsId.toLowerCase());
+          const mlsIdLower = parsedEmail.mlsId.toLowerCase().trim();
+          console.log(`Looking up MLS ID "${mlsIdLower}" in map of ${clientMlsIds.size} entries`);
+          matchedClient = clientMlsIds.get(mlsIdLower);
           if (matchedClient) {
-            console.log(`Matched by MLS ID: ${parsedEmail.mlsId}`);
+            console.log(`Matched by MLS ID: ${parsedEmail.mlsId} -> client ${(matchedClient as any).id}`);
+          } else {
+            console.log(`MLS ID "${mlsIdLower}" NOT found in map. First 10 keys: ${Array.from(clientMlsIds.keys()).slice(0, 10).join(', ')}`);
           }
         }
         
