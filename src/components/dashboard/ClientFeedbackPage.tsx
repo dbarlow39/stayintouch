@@ -74,22 +74,6 @@ const ClientFeedbackPage = ({ clientId, onBack }: ClientFeedbackPageProps) => {
     },
   });
 
-  // Also fetch ShowingTime emails for this client to show as feedback sources
-  const { data: emailLogs = [], isLoading: loadingEmails } = useQuery({
-    queryKey: ["client-showingtime-emails", clientId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("client_email_logs")
-        .select("*")
-        .eq("client_id", clientId)
-        .contains("labels", ["ShowingTime"])
-        .ilike("subject", "%FEEDBACK RECEIVED%")  // Only show feedback emails, not confirmations
-        .order("received_at", { ascending: false });
-      if (error) throw error;
-      return data;
-    },
-  });
-
   // Fetch SHOWING CONFIRMED emails to count actual showings
   const { data: confirmedShowings = [] } = useQuery({
     queryKey: ["client-confirmed-showings", clientId],
@@ -106,83 +90,18 @@ const ClientFeedbackPage = ({ clientId, onBack }: ClientFeedbackPageProps) => {
     },
   });
 
-  const isLoading = loadingClient || loadingFeedback || loadingEmails;
+  const isLoading = loadingClient || loadingFeedback;
 
-  // Parse agent info from email snippets
-  const parseAgentFromEmail = (subject: string, snippet: string): { name: string | null; phone: string | null; email: string | null } => {
-    const result = { name: null as string | null, phone: null as string | null, email: null as string | null };
-    
-    // Try to extract agent name patterns
-    const namePatterns = [
-      /(?:from|by|agent)[:\s]+([A-Z][a-z]+\s+[A-Z][a-z]+)/i,
-      /([A-Z][a-z]+\s+[A-Z][a-z]+)\s+(?:showed|viewed|feedback)/i,
-    ];
-    for (const pattern of namePatterns) {
-      const match = snippet.match(pattern);
-      if (match) {
-        result.name = match[1];
-        break;
-      }
-    }
-
-    // Try to extract phone
-    const phoneMatch = snippet.match(/(\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4})/);
-    if (phoneMatch) {
-      result.phone = phoneMatch[1];
-    }
-
-    // Try to extract email
-    const emailMatch = snippet.match(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/);
-    if (emailMatch) {
-      result.email = emailMatch[1];
-    }
-
-    return result;
-  };
-
-  // Parse interest level from feedback snippet
-  const parseInterestLevel = (snippet: string): string | null => {
-    const patterns = [
-      /interested in this listing\?\s*(Very|Not interested|Maybe)/i,
-      /client interested\?\s*(Yes|No|Maybe)/i,
-    ];
-    for (const pattern of patterns) {
-      const match = snippet.match(pattern);
-      if (match) {
-        return match[1];
-      }
-    }
-    return null;
-  };
-
-  // Combine structured feedback with email-based feedback
-  const allFeedback = [
-    ...feedbackList.map(f => ({
+  // Use only structured feedback from showing_feedback table
+  const allFeedback = feedbackList.map(f => ({
       id: f.id,
-      type: "structured" as const,
       agentName: f.showing_agent_name,
       agentEmail: f.showing_agent_email,
       agentPhone: f.showing_agent_phone,
       date: f.showing_date,
       feedback: f.feedback,
       interestLevel: f.buyer_interest_level,
-    })),
-    ...emailLogs.map(e => {
-      const parsed = parseAgentFromEmail(e.subject || "", e.snippet || "");
-      const interestLevel = parseInterestLevel(e.snippet || "");
-      return {
-        id: e.id,
-        type: "email" as const,
-        agentName: parsed.name,
-        agentEmail: parsed.email,
-        agentPhone: parsed.phone,
-        date: e.received_at,
-        feedback: e.body_preview || e.snippet,
-        interestLevel: interestLevel,
-        subject: e.subject,
-      };
-    }),
-  ].sort((a, b) => {
+    })).sort((a, b) => {
     const dateA = a.date ? new Date(a.date).getTime() : 0;
     const dateB = b.date ? new Date(b.date).getTime() : 0;
     return dateB - dateA;
@@ -357,28 +276,35 @@ const ClientFeedbackPage = ({ clientId, onBack }: ClientFeedbackPageProps) => {
               {allFeedback.map((item) => (
                 <div 
                   key={item.id} 
-                  className="border rounded-lg p-4 hover:bg-muted/50 transition-colors"
+                  className="border rounded-lg p-5 hover:bg-muted/50 transition-colors space-y-4"
                 >
-                  {/* Agent Info Header */}
-                  <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-2 mb-3">
-                    <div className="flex items-center gap-2">
-                      <User className="w-4 h-4 text-muted-foreground" />
-                      <span className="font-medium">
-                        {item.agentName || "Unknown Agent"}
-                      </span>
-                      {item.interestLevel && (
-                        <Badge 
-                          variant="outline" 
-                          className={
-                            item.interestLevel.toLowerCase().includes('very') ? 'border-green-500 text-green-700' :
-                            item.interestLevel.toLowerCase().includes('somewhat') ? 'border-yellow-500 text-yellow-700' :
-                            item.interestLevel.toLowerCase().includes('not') ? 'border-red-500 text-red-700' :
-                            'border-muted-foreground'
-                          }
-                        >
-                          {item.interestLevel}
-                        </Badge>
-                      )}
+                  {/* Header with Agent and Date */}
+                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
+                    <div>
+                      <div className="flex items-center gap-2 mb-2">
+                        <User className="w-4 h-4 text-muted-foreground" />
+                        <span className="font-semibold text-base">
+                          {item.agentName || "Unknown Agent"}
+                        </span>
+                        {item.interestLevel && (
+                          <Badge 
+                            variant="outline" 
+                            className={
+                              item.interestLevel.toLowerCase().includes('very') ? 'border-green-500 text-green-700 bg-green-50' :
+                              item.interestLevel.toLowerCase().includes('somewhat') ? 'border-yellow-500 text-yellow-700 bg-yellow-50' :
+                              item.interestLevel.toLowerCase().includes('not') ? 'border-red-500 text-red-700 bg-red-50' :
+                              'border-muted-foreground'
+                            }
+                          >
+                            {item.interestLevel}
+                          </Badge>
+                        )}
+                      </div>
+                      {/* Agent Contact Info */}
+                      <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm ml-6">
+                        {item.agentPhone && formatPhoneLink(item.agentPhone)}
+                        {item.agentEmail && formatEmailLink(item.agentEmail)}
+                      </div>
                     </div>
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <Calendar className="w-4 h-4" />
@@ -386,14 +312,8 @@ const ClientFeedbackPage = ({ clientId, onBack }: ClientFeedbackPageProps) => {
                     </div>
                   </div>
                   
-                  {/* Agent Contact Info */}
-                  <div className="flex flex-wrap gap-4 mb-3 text-sm">
-                    {item.agentPhone && formatPhoneLink(item.agentPhone)}
-                    {item.agentEmail && formatEmailLink(item.agentEmail)}
-                  </div>
-                  
-                  {/* Structured Feedback */}
-                  <div className="text-sm leading-relaxed whitespace-pre-wrap bg-muted/30 rounded p-3">
+                  {/* Feedback Content */}
+                  <div className="text-sm leading-relaxed whitespace-pre-line pl-6 border-l-2 border-muted">
                     {item.feedback || "No feedback text available."}
                   </div>
                 </div>
