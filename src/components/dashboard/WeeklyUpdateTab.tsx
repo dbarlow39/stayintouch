@@ -103,11 +103,11 @@ These numbers reflect typical seasonal patterns. Buyer activity remains selectiv
 
 🏠 Your Property Performance
 
-Your home at {street_number} {street_name} has been on the market for {zillow_days} days. During this time, we have generated significant interest:
+Your home at {street_number} {street_name} has been on the market for {zillow_days} days. During this time, we have generated significant online interest:
 
+- Total number of Showings: {showings}
 - Total online views: {zillow_views}
 - Total saves by interested buyers: {zillow_saves}
-- In-person showings to date: {showings}
 
 These engagement numbers indicate solid buyer interest in your property.
 
