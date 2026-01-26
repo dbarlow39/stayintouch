@@ -615,17 +615,26 @@ async function syncAgentEmails(
             .maybeSingle();
 
           if (!existingFeedback) {
+            // Safely parse showing date - use receivedAt as fallback if parsing fails
+            let showingDateStr = receivedAt;
+            if (parsedEmail.showingDate) {
+              const parsed = new Date(parsedEmail.showingDate);
+              if (!isNaN(parsed.getTime()) && parsed.getFullYear() > 2000 && parsed.getFullYear() < 2100) {
+                showingDateStr = parsed.toISOString();
+              }
+            }
+            
             const feedbackRecord = {
               agent_id,
               client_id: clientId,
               showing_agent_name: parsedEmail.agentName,
               showing_agent_email: parsedEmail.agentEmail,
               showing_agent_phone: parsedEmail.agentPhone,
-              showing_date: parsedEmail.showingDate ? new Date(parsedEmail.showingDate).toISOString() : receivedAt,
-              feedback: parsedEmail.feedbackText || cleanedBody.substring(0, 1000), // Use cleaned body
+              showing_date: showingDateStr,
+              feedback: parsedEmail.feedbackText || cleanedBody.substring(0, 1000),
               buyer_interest_level: parsedEmail.interestLevel,
               source_email_id: insertedEmail.id,
-              raw_email_content: rawBody.substring(0, 5000), // Store original raw for debugging
+              raw_email_content: rawBody.substring(0, 5000),
             };
 
             console.log(`Inserting feedback with agent: ${parsedEmail.agentName}`);
