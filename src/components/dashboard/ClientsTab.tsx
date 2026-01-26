@@ -148,11 +148,12 @@ const ClientsTab = ({ onSelectClientForEstimate }: ClientsTabProps) => {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const { data: clients = [], isLoading } = useQuery({
-    queryKey: ["clients", statusFilter],
+    queryKey: ["clients", statusFilter, user?.id],
     queryFn: async () => {
       let query = supabase
         .from("clients")
-        .select("*");
+        .select("*")
+        .eq("agent_id", user!.id);
       
       if (statusFilter !== "all") {
         query = query.ilike("status", statusFilter);
@@ -164,6 +165,7 @@ const ClientsTab = ({ onSelectClientForEstimate }: ClientsTabProps) => {
       if (error) throw error;
       return data as Client[];
     },
+    enabled: !!user,
   });
 
   const createMutation = useMutation({
