@@ -115,8 +115,8 @@ These engagement numbers indicate solid buyer interest in your property.
 
 Based on industry data, here is how online engagement typically translates to in-person activity:
 
-- Every 200 views → 2-4 showings
-- Every 7-8 showings → 1 offer
+- For every 200 views we should generate between 2 and 4 showings.
+- For every 7-8 showings we should generate at least 1 offer.
 
 We have generated {zillow_views} online views and {showings} in-person showings to date. Based on the conversion metrics, we anticipate continuing to generate quality buyer interest.
 
