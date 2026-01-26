@@ -74,22 +74,6 @@ const ClientFeedbackPage = ({ clientId, onBack }: ClientFeedbackPageProps) => {
     },
   });
 
-  // Fetch SHOWING CONFIRMED emails to count actual showings
-  const { data: confirmedShowings = [] } = useQuery({
-    queryKey: ["client-confirmed-showings", clientId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("client_email_logs")
-        .select("*")
-        .eq("client_id", clientId)
-        .contains("labels", ["ShowingTime"])
-        .ilike("subject", "%SHOWING CONFIRMED%")
-        .order("received_at", { ascending: false });
-      if (error) throw error;
-      return data;
-    },
-  });
-
   const isLoading = loadingClient || loadingFeedback;
 
   // Use only structured feedback from showing_feedback table
@@ -107,8 +91,8 @@ const ClientFeedbackPage = ({ clientId, onBack }: ClientFeedbackPageProps) => {
     return dateB - dateA;
   });
 
-  // Calculate total showings from SHOWING CONFIRMED emails
-  const totalShowings = confirmedShowings.length || client?.showings_to_date || 0;
+  // Use the extracted showings_to_date from the client record
+  const totalShowings = client?.showings_to_date || 0;
 
   const formatPhoneLink = (phone: string | null) => {
     if (!phone) return null;
