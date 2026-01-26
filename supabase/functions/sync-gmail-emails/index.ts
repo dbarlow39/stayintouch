@@ -224,8 +224,8 @@ async function syncAgentEmails(
 
     const isShowingTimeQuery = query.includes("showingtime") || query.includes("showing") || query.includes("feedback");
     
-    // Fetch full message details - increase limit for ShowingTime queries to capture more historical emails
-    const messageLimit = isShowingTimeQuery ? 50 : 15;
+    // Fetch full message details - use max_results for ShowingTime queries to capture all historical emails
+    const messageLimit = isShowingTimeQuery ? Math.min(max_results, 1000) : 15;
     for (const msg of messageIds.slice(0, messageLimit)) {
       // For ShowingTime emails, get full body; for others, just metadata
       const format = isShowingTimeQuery ? "full" : "metadata";
