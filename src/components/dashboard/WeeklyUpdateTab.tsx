@@ -103,10 +103,11 @@ These numbers reflect typical seasonal patterns. Buyer activity remains selectiv
 
 🏠 Your Property Performance
 
-Your home at {street_number} {street_name} has been on the market for {zillow_days} days. During this time, we have generated significant online interest:
+Your home at {street_number} {street_name} has been on the market for {zillow_days} days. During this time, we have generated significant interest:
 
 - Total online views: {zillow_views}
 - Total saves by interested buyers: {zillow_saves}
+- In-person showings to date: {showings}
 
 These engagement numbers indicate solid buyer interest in your property.
 
@@ -117,7 +118,7 @@ Based on industry data, here is how online engagement typically translates to in
 - Every 200 views → 2-4 showings
 - Every 7-8 showings → 1 offer
 
-We have generated {zillow_views} online views which means we should have between {expected_showings_min} and {expected_showings_max} in person showings and at least {expected_offers} offers at this point.
+We have generated {zillow_views} online views and {showings} in-person showings to date. Based on the conversion metrics, we anticipate continuing to generate quality buyer interest.
 
 🔮 Weekly Outlook
 
@@ -167,6 +168,7 @@ interface Client {
   zip: string | null;
   zillow_link: string | null;
   status: string | null;
+  showings_to_date: number | null;
 }
 
 interface ZillowStats {
@@ -558,7 +560,7 @@ const WeeklyUpdateTab = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("clients")
-        .select("id, first_name, last_name, email, street_number, street_name, city, state, zip, zillow_link, status")
+        .select("id, first_name, last_name, email, street_number, street_name, city, state, zip, zillow_link, status, showings_to_date")
         .eq("agent_id", user!.id)
         .ilike("status", "A")
         .order("street_name", { ascending: true });
@@ -644,6 +646,7 @@ const WeeklyUpdateTab = () => {
             zillow_views: zillowStats.views,
             zillow_saves: zillowStats.saves,
             zillow_days: zillowStats.days,
+            showings_to_date: client.showings_to_date,
           },
         }),
       }

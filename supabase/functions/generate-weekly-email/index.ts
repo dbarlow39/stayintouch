@@ -26,6 +26,7 @@ interface ClientData {
   zillow_views: number | null;
   zillow_saves: number | null;
   zillow_days: number | null;
+  showings_to_date: number | null;
 }
 
 serve(async (req) => {
@@ -102,6 +103,8 @@ serve(async (req) => {
         .replace(/\{zillow_views\}/g, String(client_data.zillow_views || 'N/A'))
         .replace(/\{zillow_saves\}/g, String(client_data.zillow_saves || 'N/A'))
         .replace(/\{zillow_days\}/g, String(client_data.zillow_days || 'N/A'))
+        .replace(/\{showings\}/g, String(client_data.showings_to_date ?? 'N/A'))
+        .replace(/\{showings_to_date\}/g, String(client_data.showings_to_date ?? 'N/A'))
         .replace(/\{expected_showings_min\}/g, String(expectedShowingsMin))
         .replace(/\{expected_showings_max\}/g, String(expectedShowingsMax))
         .replace(/\{expected_offers\}/g, String(expectedOffers));
