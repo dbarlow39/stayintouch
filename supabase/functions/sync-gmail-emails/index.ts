@@ -412,24 +412,45 @@ async function syncAgentEmails(
       }
     }
 
-    // Extract feedback text
-    const feedbackPatterns = [
-      /feedback[:\s]*["']?([^"'\n]{20,500})["']?/i,
-      /comments?[:\s]*["']?([^"'\n]{20,500})["']?/i,
-      /buyer\s*feedback[:\s]*["']?([^"'\n]{20,500})["']?/i,
-    ];
-    for (const pattern of feedbackPatterns) {
-      const match = combined.match(pattern);
-      if (match) {
-        result.feedbackText = match[1].trim();
-        break;
+    // Extract structured ShowingTime feedback (Q&A format)
+    // ShowingTime emails have 5 questions with answers:
+    // 1. Is your client interested in this listing?
+    // 2. Please rate your overall experience at this showing.
+    // 3. Your (and your client's) opinion of the price:
+    // 4. Please rate this listing (5=Best; 1=Worst):
+    // 5. COMMENTS / RECOMMENDATIONS:
+    const extractStructuredFeedback = (text: string): string | null => {
+      const lines: string[] = [];
+      
+      // Question 1: Interest level
+      const q1Match = text.match(/1\.\s*Is your client interested[^?]*\?\s*([^\n\d]{2,50})/i);
+      if (q1Match) lines.push(`Interest: ${q1Match[1].trim()}`);
+      
+      // Question 2: Experience rating
+      const q2Match = text.match(/2\.\s*(?:Please rate your overall experience|rate.*experience)[^.]*\.\s*([^\n\d]{2,50})/i);
+      if (q2Match) lines.push(`Experience: ${q2Match[1].trim()}`);
+      
+      // Question 3: Price opinion
+      const q3Match = text.match(/3\.\s*Your.*opinion of the price[:\s]*([^\n\d]{2,50})/i);
+      if (q3Match) lines.push(`Price Opinion: ${q3Match[1].trim()}`);
+      
+      // Question 4: Rating
+      const q4Match = text.match(/4\.\s*(?:Please rate this listing|rate.*listing)[^:]*:\s*(\d)/i);
+      if (q4Match) lines.push(`Rating: ${q4Match[1]}/5`);
+      
+      // Question 5: Comments
+      const q5Match = text.match(/5\.\s*COMMENTS\s*\/?\s*RECOMMENDATIONS[:\s]*([\s\S]{10,1000}?)(?=\n\n|\nAppointment Details|\nBuyer's Agent|\nManage|$)/i);
+      if (q5Match) {
+        const comments = q5Match[1].trim()
+          .replace(/\s+/g, ' ')
+          .substring(0, 500);
+        lines.push(`\n\nComments: ${comments}`);
       }
-    }
-
-    // If no structured feedback, use the clean body as feedback
-    if (!result.feedbackText && cleanBody.length > 50) {
-      result.feedbackText = cleanBody.substring(0, 500);
-    }
+      
+      return lines.length > 0 ? lines.join('\n') : null;
+    };
+    
+    result.feedbackText = extractStructuredFeedback(cleanBody);
 
     // Extract showing date
     const datePatterns = [
@@ -447,7 +468,8 @@ async function syncAgentEmails(
 
     // Extract interest level
     const interestPatterns = [
-      /interest(?:\s*level)?[:\s]*(very\s*interested|interested|not\s*interested|maybe|considering)/i,
+      /1\.\s*Is your client interested[^?]*\?\s*(Somewhat|Very|Not interested|Maybe)/i,
+      /interest(?:\s*level)?[:\s]*(Somewhat|Very|Not interested|Maybe|very\s*interested|interested|not\s*interested|considering)/i,
       /(very\s*interested|not\s*interested|strong\s*interest|mild\s*interest)/i,
     ];
     for (const pattern of interestPatterns) {
