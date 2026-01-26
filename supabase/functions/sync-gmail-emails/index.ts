@@ -322,9 +322,12 @@ async function syncAgentEmails(
     console.log(`Parsing ShowingTime email. Subject: "${subject.substring(0, 50)}..."`);
     console.log(`Clean body preview: "${cleanBody.substring(0, 300)}..."`);
     
-    // NOTE: We no longer try to extract showing count from email body
-    // as it's error-prone. Instead, we count SHOWING CONFIRMED emails per client.
-    // Keeping showingCount as null here.
+    // Extract "Total # of Showings: X" from email body
+    const totalShowingsMatch = combined.match(/Total\s*#?\s*of\s*Showings[:\s]*(\d+)/i);
+    if (totalShowingsMatch) {
+      result.showingCount = parseInt(totalShowingsMatch[1], 10);
+      console.log(`Extracted Total Showings: ${result.showingCount}`);
+    }
 
     // Look for MLS ID - ShowingTime uses "ID# 123456" format
     // Only match 6-10 digit numeric IDs to avoid tracking parameters
@@ -583,19 +586,25 @@ async function syncAgentEmails(
         }
       }
       
-      // If we found a match and have a showing count, record for update
-      // Track SHOWING CONFIRMED emails to count showings per client
-      const isShowingConfirmed = subject.toUpperCase().includes('SHOWING CONFIRMED');
-      if (matchedClient && isShowingConfirmed) {
+      // If we found a match and have a showing count from the email, record for update
+      // Use the "Total # of Showings" value from the email (most accurate)
+      if (matchedClient && parsedEmail.showingCount !== null) {
         const clientId = (matchedClient as any).id;
-        const currentCount = showingUpdates.filter(u => u.clientId === clientId).length;
-        showingUpdates.push({
-          clientId,
-          mlsId: parsedEmail.mlsId,
-          address: parsedEmail.address,
-          showingCount: currentCount + 1, // This is just a marker, we'll count later
-        });
-        console.log(`Found SHOWING CONFIRMED email for client ${clientId}`);
+        const existingUpdate = showingUpdates.find(u => u.clientId === clientId);
+        // Keep the highest showing count (most recent email should have highest)
+        if (!existingUpdate || parsedEmail.showingCount > (existingUpdate.showingCount || 0)) {
+          if (existingUpdate) {
+            existingUpdate.showingCount = parsedEmail.showingCount;
+          } else {
+            showingUpdates.push({
+              clientId,
+              mlsId: parsedEmail.mlsId,
+              address: parsedEmail.address,
+              showingCount: parsedEmail.showingCount,
+            });
+          }
+          console.log(`Found "Total # of Showings: ${parsedEmail.showingCount}" for client ${clientId}`);
+        }
       }
     }
     
@@ -711,25 +720,21 @@ async function syncAgentEmails(
     }
   }
 
-  // Count SHOWING CONFIRMED emails per client (each email = 1 showing)
-  const clientShowingCounts = new Map<string, number>();
-  for (const update of showingUpdates) {
-    const current = clientShowingCounts.get(update.clientId) || 0;
-    clientShowingCounts.set(update.clientId, current + 1);
-  }
-
+  // Update clients with "Total # of Showings" extracted from emails
   let updatedClients = 0;
-  for (const [cid, count] of clientShowingCounts.entries()) {
-    const { error: updateError } = await supabase
-      .from("clients")
-      .update({ showings_to_date: count, updated_at: new Date().toISOString() })
-      .eq("id", cid);
-    
-    if (!updateError) {
-      updatedClients++;
-      console.log(`Updated client ${cid} with ${count} showings`);
-    } else {
-      console.error(`Failed to update client ${cid}:`, updateError);
+  for (const update of showingUpdates) {
+    if (update.showingCount !== null && update.showingCount > 0) {
+      const { error: updateError } = await supabase
+        .from("clients")
+        .update({ showings_to_date: update.showingCount, updated_at: new Date().toISOString() })
+        .eq("id", update.clientId);
+      
+      if (!updateError) {
+        updatedClients++;
+        console.log(`Updated client ${update.clientId} with ${update.showingCount} showings`);
+      } else {
+        console.error(`Failed to update client ${update.clientId}:`, updateError);
+      }
     }
   }
 
