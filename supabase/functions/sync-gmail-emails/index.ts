@@ -222,10 +222,11 @@ async function syncAgentEmails(
     const listData = await listResponse.json();
     const messageIds = listData.messages || [];
 
-    const isShowingTimeQuery = query.includes("showingtime") || query.includes("showing");
+    const isShowingTimeQuery = query.includes("showingtime") || query.includes("showing") || query.includes("feedback");
     
-    // Fetch full message details
-    for (const msg of messageIds.slice(0, 15)) {
+    // Fetch full message details - increase limit for ShowingTime queries to capture more historical emails
+    const messageLimit = isShowingTimeQuery ? 50 : 15;
+    for (const msg of messageIds.slice(0, messageLimit)) {
       // For ShowingTime emails, get full body; for others, just metadata
       const format = isShowingTimeQuery ? "full" : "metadata";
       const msgUrl = isShowingTimeQuery
