@@ -605,6 +605,8 @@ async function syncAgentEmails(
         const isFeedbackEmail = subject.toUpperCase().includes('FEEDBACK RECEIVED');
         
         if (isShowingTime && clientId && parsedEmail && isFeedbackEmail) {
+          console.log(`Processing feedback for client ${clientId}, email ID: ${insertedEmail.id}`);
+          
           // Check if feedback already exists for this email
           const { data: existingFeedback } = await supabase
             .from("showing_feedback")
@@ -626,15 +628,20 @@ async function syncAgentEmails(
               raw_email_content: rawBody.substring(0, 5000), // Store original raw for debugging
             };
 
-            const { error: feedbackError } = await supabase
+            console.log(`Inserting feedback with agent: ${parsedEmail.agentName}`);
+
+            const { data: insertedFeedback, error: feedbackError } = await supabase
               .from("showing_feedback")
-              .insert(feedbackRecord);
+              .insert(feedbackRecord)
+              .select();
 
             if (feedbackError) {
-              console.error("Failed to insert feedback:", feedbackError);
+              console.error("Failed to insert feedback:", JSON.stringify(feedbackError));
             } else {
-              console.log(`Stored feedback for client ${clientId} - Agent: ${parsedEmail.agentName}, Phone: ${parsedEmail.agentPhone}`);
+              console.log(`Stored feedback for client ${clientId}. Records: ${insertedFeedback?.length || 0}`);
             }
+          } else {
+            console.log(`Feedback already exists for email ${insertedEmail.id}`);
           }
 
           showingTimeFeedback.push({
