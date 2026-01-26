@@ -754,12 +754,77 @@ async function syncAgentEmails(
     }
   }
 
+  // BACKFILL: Create feedback records for linked emails that don't have feedback yet
+  let backfilledFeedback = 0;
+  const { data: orphanedFeedbackEmails } = await supabase
+    .from("client_email_logs")
+    .select("id, client_id, subject, body_preview, received_at")
+    .eq("agent_id", agent_id)
+    .not("client_id", "is", null)
+    .ilike("subject", "%FEEDBACK RECEIVED%")
+    .order("received_at", { ascending: false })
+    .limit(100);
+
+  if (orphanedFeedbackEmails && orphanedFeedbackEmails.length > 0) {
+    console.log(`Checking ${orphanedFeedbackEmails.length} linked feedback emails for missing feedback records`);
+    
+    for (const email of orphanedFeedbackEmails) {
+      // Check if feedback already exists for this email
+      const { data: existingFeedback } = await supabase
+        .from("showing_feedback")
+        .select("id")
+        .eq("source_email_id", email.id)
+        .maybeSingle();
+
+      if (!existingFeedback) {
+        console.log(`Backfilling feedback for email ${email.id} - ${email.subject}`);
+        
+        // Get the client's agent_id for RLS compliance
+        const { data: clientData } = await supabase
+          .from("clients")
+          .select("agent_id")
+          .eq("id", email.client_id)
+          .single();
+
+        if (clientData) {
+          // Parse the feedback from body_preview
+          const bodyText = email.body_preview || "";
+          const parsedFeedback = parseShowingTimeEmail(email.subject || "", bodyText);
+          
+          const feedbackRecord = {
+            agent_id: clientData.agent_id,
+            client_id: email.client_id,
+            showing_agent_name: parsedFeedback.agentName,
+            showing_agent_email: parsedFeedback.agentEmail,
+            showing_agent_phone: parsedFeedback.agentPhone,
+            showing_date: parsedFeedback.showingDate ? new Date(parsedFeedback.showingDate).toISOString() : email.received_at,
+            feedback: parsedFeedback.feedbackText || bodyText.substring(0, 1000),
+            buyer_interest_level: parsedFeedback.interestLevel,
+            source_email_id: email.id,
+          };
+
+          const { error: insertError } = await supabase
+            .from("showing_feedback")
+            .insert(feedbackRecord);
+
+          if (!insertError) {
+            backfilledFeedback++;
+            console.log(`Backfilled feedback for client ${email.client_id}, agent: ${parsedFeedback.agentName}`);
+          } else {
+            console.error(`Failed to backfill feedback for email ${email.id}:`, insertError);
+          }
+        }
+      }
+    }
+  }
+
   return {
     success: true,
     synced_count: processedEmails.length,
     showingtime_count: showingTimeFeedback.length,
     clients_updated: updatedClients,
+    backfilled_feedback: backfilledFeedback,
     showingtime_feedback: showingTimeFeedback,
-    message: `Synced ${processedEmails.length} new emails (${showingTimeFeedback.length} ShowingTime notifications, ${updatedClients} clients updated)`,
+    message: `Synced ${processedEmails.length} new emails (${showingTimeFeedback.length} ShowingTime notifications, ${updatedClients} clients updated, ${backfilledFeedback} feedback backfilled)`,
   };
 }
