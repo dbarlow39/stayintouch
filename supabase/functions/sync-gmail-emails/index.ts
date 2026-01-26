@@ -372,8 +372,26 @@ async function syncAgentEmails(
       const match = combined.match(pattern);
       if (match) {
         let name = match[1].trim();
-        // Strip brokerage-related words from the end of the name
-        name = name.replace(/\s+(Keller|Williams|Realty|Properties|Real\s*Estate|Brokerage|BHHS|Coldwell|Banker|Century|21|RE\/MAX|ERA)$/i, '').trim();
+        // Strip brokerage-related words from anywhere in the name (not just end)
+        const brokerageWords = /\b(Keller|Williams|Realty|Properties|Real\s*Estate|Brokerage|BHHS|Coldwell|Banker|Century|21|RE\/MAX|ERA|Red|Frog|Hanna|Howard|Services)\b/gi;
+        // Only strip if not a common first/last name
+        const words = name.split(/\s+/);
+        // Keep only the first 2-3 words that look like names (capitalized, not brokerage words)
+        const nameWords: string[] = [];
+        for (const word of words) {
+          const lowerWord = word.toLowerCase();
+          if (lowerWord === 'keller' || lowerWord === 'williams' || lowerWord === 'realty' || 
+              lowerWord === 'properties' || lowerWord === 'estate' || lowerWord === 'brokerage' ||
+              lowerWord === 'bhhs' || lowerWord === 'coldwell' || lowerWord === 'banker' ||
+              lowerWord === 'century' || lowerWord === '21' || lowerWord === 'remax' ||
+              lowerWord === 'era' || lowerWord === 'services' || lowerWord === 'hanna') {
+            break; // Stop at brokerage words
+          }
+          nameWords.push(word);
+          if (nameWords.length >= 3) break; // Max 3 name parts
+        }
+        name = nameWords.join(' ').trim();
+        
         // Filter out false positives - should have at least first + last name
         if (name.toLowerCase() !== 'details' && 
             !name.toLowerCase().includes('template') && 
@@ -423,28 +441,30 @@ async function syncAgentEmails(
       const lines: string[] = [];
       
       // Question 1: Interest level
-      const q1Match = text.match(/1\.\s*Is your client interested[^?]*\?\s*([^\n\d]{2,50})/i);
+      const q1Match = text.match(/1\.\s*Is your client interested[^?]*\?\s*(Somewhat|Very|Not interested|Maybe|Yes|No)/i);
       if (q1Match) lines.push(`Interest: ${q1Match[1].trim()}`);
       
       // Question 2: Experience rating
-      const q2Match = text.match(/2\.\s*(?:Please rate your overall experience|rate.*experience)[^.]*\.\s*([^\n\d]{2,50})/i);
+      const q2Match = text.match(/2\.\s*(?:Please rate your overall experience|rate.*experience)[^.]*\.\s*(Excellent|Good|Fair|Poor)/i);
       if (q2Match) lines.push(`Experience: ${q2Match[1].trim()}`);
       
       // Question 3: Price opinion
-      const q3Match = text.match(/3\.\s*Your.*opinion of the price[:\s]*([^\n\d]{2,50})/i);
+      const q3Match = text.match(/3\.\s*Your.*opinion of the price[:\s]*(Too high|Just right|Too low|About right|Fair)/i);
       if (q3Match) lines.push(`Price Opinion: ${q3Match[1].trim()}`);
       
       // Question 4: Rating
       const q4Match = text.match(/4\.\s*(?:Please rate this listing|rate.*listing)[^:]*:\s*(\d)/i);
       if (q4Match) lines.push(`Rating: ${q4Match[1]}/5`);
       
-      // Question 5: Comments
-      const q5Match = text.match(/5\.\s*COMMENTS\s*\/?\s*RECOMMENDATIONS[:\s]*([\s\S]{10,1000}?)(?=\n\n|\nAppointment Details|\nBuyer's Agent|\nManage|$)/i);
+      // Question 5: Comments - capture everything until "Manage Feedback" or "Appointment Details"
+      const q5Match = text.match(/5\.\s*COMMENTS?\s*\/?\s*RECOMMENDATIONS?[:\s]*([\s\S]+?)(?=Manage Feedback|Appointment Details|Buyer's Agent Details|Thanks!|$)/i);
       if (q5Match) {
         const comments = q5Match[1].trim()
           .replace(/\s+/g, ' ')
           .substring(0, 500);
-        lines.push(`\n\nComments: ${comments}`);
+        if (comments.length > 5) {
+          lines.push(`\nComments: ${comments}`);
+        }
       }
       
       return lines.length > 0 ? lines.join('\n') : null;
