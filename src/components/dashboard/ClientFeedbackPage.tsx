@@ -359,14 +359,23 @@ const ClientFeedbackPage = ({ clientId, onBack }: ClientFeedbackPageProps) => {
                   key={item.id} 
                   className="border rounded-lg p-4 hover:bg-muted/50 transition-colors"
                 >
-                  <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3 mb-3">
+                  {/* Agent Info Header */}
+                  <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-2 mb-3">
                     <div className="flex items-center gap-2">
                       <User className="w-4 h-4 text-muted-foreground" />
                       <span className="font-medium">
                         {item.agentName || "Unknown Agent"}
                       </span>
                       {item.interestLevel && (
-                        <Badge variant="outline" className="ml-2">
+                        <Badge 
+                          variant="outline" 
+                          className={
+                            item.interestLevel.toLowerCase().includes('very') ? 'border-green-500 text-green-700' :
+                            item.interestLevel.toLowerCase().includes('somewhat') ? 'border-yellow-500 text-yellow-700' :
+                            item.interestLevel.toLowerCase().includes('not') ? 'border-red-500 text-red-700' :
+                            'border-muted-foreground'
+                          }
+                        >
                           {item.interestLevel}
                         </Badge>
                       )}
@@ -377,20 +386,16 @@ const ClientFeedbackPage = ({ clientId, onBack }: ClientFeedbackPageProps) => {
                     </div>
                   </div>
                   
+                  {/* Agent Contact Info */}
                   <div className="flex flex-wrap gap-4 mb-3 text-sm">
                     {item.agentPhone && formatPhoneLink(item.agentPhone)}
                     {item.agentEmail && formatEmailLink(item.agentEmail)}
                   </div>
-
-                  {'subject' in item && item.subject && (
-                    <p className="text-sm font-medium text-muted-foreground mb-1">
-                      {item.subject}
-                    </p>
-                  )}
                   
-                  <p className="text-sm leading-relaxed">
+                  {/* Structured Feedback */}
+                  <div className="text-sm leading-relaxed whitespace-pre-wrap bg-muted/30 rounded p-3">
                     {item.feedback || "No feedback text available."}
-                  </p>
+                  </div>
                 </div>
               ))}
             </div>

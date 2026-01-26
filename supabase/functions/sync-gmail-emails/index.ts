@@ -380,15 +380,15 @@ async function syncAgentEmails(
         const nameWords: string[] = [];
         for (const word of words) {
           const lowerWord = word.toLowerCase();
-          if (lowerWord === 'keller' || lowerWord === 'williams' || lowerWord === 'realty' || 
-              lowerWord === 'properties' || lowerWord === 'estate' || lowerWord === 'brokerage' ||
-              lowerWord === 'bhhs' || lowerWord === 'coldwell' || lowerWord === 'banker' ||
-              lowerWord === 'century' || lowerWord === '21' || lowerWord === 'remax' ||
-              lowerWord === 'era' || lowerWord === 'services' || lowerWord === 'hanna') {
+          // Stop at common brokerage/company words
+          if (['keller', 'williams', 'realty', 'properties', 'estate', 'brokerage',
+               'bhhs', 'coldwell', 'banker', 'century', '21', 'remax', 're/max',
+               'era', 'services', 'hanna', 'red', 'frog', 'key', 'exp', 'compass',
+               'berkshire', 'hathaway', 'sotheby', 'christie', 'weichert', 'howard'].includes(lowerWord)) {
             break; // Stop at brokerage words
           }
           nameWords.push(word);
-          if (nameWords.length >= 3) break; // Max 3 name parts
+          if (nameWords.length >= 2) break; // Max 2 name parts (First Last)
         }
         name = nameWords.join(' ').trim();
         
