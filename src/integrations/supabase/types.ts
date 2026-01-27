@@ -1146,10 +1146,12 @@ export type Database = {
           category: string
           created_at: string
           description: string | null
+          gmail_message_id: string | null
           id: string
           priority: string
           reasoning: string | null
           related_client: string | null
+          source_email_id: string | null
           status: string
           title: string
         }
@@ -1158,10 +1160,12 @@ export type Database = {
           category?: string
           created_at?: string
           description?: string | null
+          gmail_message_id?: string | null
           id?: string
           priority?: string
           reasoning?: string | null
           related_client?: string | null
+          source_email_id?: string | null
           status?: string
           title: string
         }
@@ -1170,14 +1174,24 @@ export type Database = {
           category?: string
           created_at?: string
           description?: string | null
+          gmail_message_id?: string | null
           id?: string
           priority?: string
           reasoning?: string | null
           related_client?: string | null
+          source_email_id?: string | null
           status?: string
           title?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "suggested_tasks_source_email_id_fkey"
+            columns: ["source_email_id"]
+            isOneToOne: false
+            referencedRelation: "client_email_logs"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       tasks: {
         Row: {
