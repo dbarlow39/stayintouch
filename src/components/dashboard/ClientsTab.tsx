@@ -19,6 +19,7 @@ import { cn } from "@/lib/utils";
 import logo from "@/assets/logo.jpg";
 import { InventoryImportDialog } from "./InventoryImportDialog";
 import ClientFeedbackPage from "./ClientFeedbackPage";
+import ClientDetailModal from "./ClientDetailModal";
 
 interface Client {
   id: string;
@@ -113,7 +114,7 @@ const ClientsTab = ({ onSelectClientForEstimate }: ClientsTabProps) => {
   const [open, setOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
   const [viewingClient, setViewingClient] = useState<Client | null>(null);
-  const [viewingFeedbackClientId, setViewingFeedbackClientId] = useState<string | null>(null);
+  
   const [csvMappingOpen, setCsvMappingOpen] = useState(false);
   const [csvHeaders, setCsvHeaders] = useState<string[]>([]);
   const [csvData, setCsvData] = useState<string[][]>([]);
@@ -1081,245 +1082,17 @@ const ClientsTab = ({ onSelectClientForEstimate }: ClientsTabProps) => {
         </div>
       )}
 
-      {/* Client Detail View Dialog */}
-      <Dialog open={!!viewingClient} onOpenChange={() => setViewingClient(null)}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <div className="flex items-center space-x-3 mb-2">
-              <img src={logo} alt="Sell for 1 Percent" className="h-10 w-auto" />
-              <DialogTitle>Client Details</DialogTitle>
-            </div>
-          </DialogHeader>
-          {viewingClient && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label className="text-sm font-semibold text-muted-foreground">Status</Label>
-                  <p className="text-base">{viewingClient.status?.toUpperCase() || "—"}</p>
-                </div>
-                <div>
-                  <Label className="text-sm font-semibold text-muted-foreground">MLS ID</Label>
-                  <p className="text-base">{viewingClient.mls_id || "—"}</p>
-                </div>
-              </div>
+      {/* Client Detail View Modal */}
+      <ClientDetailModal
+        client={viewingClient}
+        open={!!viewingClient}
+        onClose={() => setViewingClient(null)}
+        onEdit={(client) => {
+          setViewingClient(null);
+          handleEdit(client);
+        }}
+      />
 
-              <div className="border-t pt-4">
-                <h3 className="font-semibold mb-3">Contact Information</h3>
-                <div className="space-y-3">
-                  <div>
-                    <Label className="text-sm font-semibold text-muted-foreground">Name</Label>
-                    <p className="text-base">{[viewingClient.first_name, viewingClient.last_name].filter(Boolean).join(' ') || "—"}</p>
-                  </div>
-                  <div>
-                    <Label className="text-sm font-semibold text-muted-foreground">Email</Label>
-                    {viewingClient.email ? (
-                      <a 
-                        href={`mailto:${viewingClient.email}`}
-                        className="text-base text-primary hover:underline break-all block"
-                      >
-                        {viewingClient.email}
-                      </a>
-                    ) : (
-                      <p className="text-base">—</p>
-                    )}
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label className="text-sm font-semibold text-muted-foreground">Home Phone</Label>
-                      {viewingClient.home_phone ? (
-                        (() => {
-                          const phoneMatch = viewingClient.home_phone.match(/[\d\s\-\(\)\.]+/);
-                          const hasLetters = /[a-zA-Z]/.test(viewingClient.home_phone);
-                          const hasDigits = /\d/.test(viewingClient.home_phone);
-                          
-                          if (hasDigits && phoneMatch) {
-                            const phoneNumber = phoneMatch[0].trim();
-                            if (hasLetters) {
-                              const parts = viewingClient.home_phone.split(phoneNumber);
-                              return (
-                                <p className="text-base">
-                                  {parts[0]}
-                                  <a 
-                                    href={`tel:${phoneNumber}`}
-                                    className="text-primary hover:underline"
-                                  >
-                                    {phoneNumber}
-                                  </a>
-                                  {parts[1]}
-                                </p>
-                              );
-                            } else {
-                              return (
-                                <a 
-                                  href={`tel:${phoneNumber}`}
-                                  className="text-base text-primary hover:underline block"
-                                >
-                                  {viewingClient.home_phone}
-                                </a>
-                              );
-                            }
-                          }
-                          return <p className="text-base">{viewingClient.home_phone}</p>;
-                        })()
-                      ) : (
-                        <p className="text-base">—</p>
-                      )}
-                    </div>
-                    <div>
-                      <Label className="text-sm font-semibold text-muted-foreground">Cell Phone</Label>
-                      {viewingClient.cell_phone ? (
-                        (() => {
-                          const phoneMatch = viewingClient.cell_phone.match(/[\d\s\-\(\)\.]+/);
-                          const hasLetters = /[a-zA-Z]/.test(viewingClient.cell_phone);
-                          const hasDigits = /\d/.test(viewingClient.cell_phone);
-                          
-                          if (hasDigits && phoneMatch) {
-                            const phoneNumber = phoneMatch[0].trim();
-                            if (hasLetters) {
-                              const parts = viewingClient.cell_phone.split(phoneNumber);
-                              return (
-                                <p className="text-base">
-                                  {parts[0]}
-                                  <a 
-                                    href={`tel:${phoneNumber}`}
-                                    className="text-primary hover:underline"
-                                  >
-                                    {phoneNumber}
-                                  </a>
-                                  {parts[1]}
-                                </p>
-                              );
-                            } else {
-                              return (
-                                <a 
-                                  href={`tel:${phoneNumber}`}
-                                  className="text-base text-primary hover:underline block"
-                                >
-                                  {viewingClient.cell_phone}
-                                </a>
-                              );
-                            }
-                          }
-                          return <p className="text-base">{viewingClient.cell_phone}</p>;
-                        })()
-                      ) : (
-                        <p className="text-base">—</p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="border-t pt-4">
-                <h3 className="font-semibold mb-3">Property Information</h3>
-                <div className="space-y-3">
-                  <div>
-                    <Label className="text-sm font-semibold text-muted-foreground">Address</Label>
-                    <p className="text-base">{[viewingClient.street_number, viewingClient.street_name].filter(Boolean).join(' ') || "—"}</p>
-                  </div>
-                  <div>
-                    <Label className="text-sm font-semibold text-muted-foreground">City, State Zip</Label>
-                    <p className="text-base">{[viewingClient.city, [viewingClient.state, viewingClient.zip].filter(Boolean).join(' ')].filter(Boolean).join(', ') || "—"}</p>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label className="text-sm font-semibold text-muted-foreground">Price</Label>
-                      <p className="text-base">{viewingClient.price ? `$${viewingClient.price}` : "—"}</p>
-                    </div>
-                    <div>
-                      <Label className="text-sm font-semibold text-muted-foreground">Listing Date</Label>
-                      <p className="text-base">{viewingClient.listing_date || "—"}</p>
-                    </div>
-                  </div>
-                  <div>
-                    <Label className="text-sm font-semibold text-muted-foreground">CBS</Label>
-                    <p className="text-base">{viewingClient.cbs || "—"}</p>
-                  </div>
-                  <div>
-                    <Label className="text-sm font-semibold text-muted-foreground">Zillow Link</Label>
-                    {viewingClient.zillow_link ? (
-                      <a 
-                        href={viewingClient.zillow_link}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-base text-primary hover:underline break-all block"
-                      >
-                        {viewingClient.zillow_link}
-                      </a>
-                    ) : (
-                      <p className="text-base">—</p>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              <div className="border-t pt-4">
-                <h3 className="font-semibold mb-3">Showing Details</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label className="text-sm font-semibold text-muted-foreground">Showing Type</Label>
-                    <p className="text-base">{viewingClient.showing_type || "—"}</p>
-                  </div>
-                  <div>
-                    <Label className="text-sm font-semibold text-muted-foreground">Lock Box</Label>
-                    <p className="text-base">{viewingClient.lock_box || "—"}</p>
-                  </div>
-                  <div>
-                    <Label className="text-sm font-semibold text-muted-foreground">Combo</Label>
-                    <p className="text-base">{viewingClient.combo || "—"}</p>
-                  </div>
-                  <div>
-                    <Label className="text-sm font-semibold text-muted-foreground">Location</Label>
-                    <p className="text-base">{viewingClient.location || "—"}</p>
-                  </div>
-                  <div className="col-span-2">
-                    <Label className="text-sm font-semibold text-muted-foreground">Special Instructions</Label>
-                    <p className="text-base">{viewingClient.special_instructions || "—"}</p>
-                  </div>
-                  <div>
-                    <Label className="text-sm font-semibold text-muted-foreground">Agent</Label>
-                    <p className="text-base">{viewingClient.agent || "—"}</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex justify-end gap-2 border-t pt-4">
-                <Button variant="outline" onClick={() => setViewingClient(null)}>
-                  Close
-                </Button>
-                <Button 
-                  variant="outline"
-                  onClick={() => {
-                    setViewingFeedbackClientId(viewingClient.id);
-                    setViewingClient(null);
-                  }}
-                >
-                  <MessageSquare className="w-4 h-4 mr-2" />
-                  Review Feedback
-                </Button>
-                <Button onClick={() => {
-                  setViewingClient(null);
-                  handleEdit(viewingClient);
-                }}>
-                  Edit Client
-                </Button>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {/* Client Feedback Page */}
-      {viewingFeedbackClientId && (
-        <Dialog open={!!viewingFeedbackClientId} onOpenChange={() => setViewingFeedbackClientId(null)}>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-            <ClientFeedbackPage 
-              clientId={viewingFeedbackClientId} 
-              onBack={() => setViewingFeedbackClientId(null)} 
-            />
-          </DialogContent>
-        </Dialog>
-      )}
     </div>
   );
 };
