@@ -1140,6 +1140,45 @@ export type Database = {
           },
         ]
       }
+      suggested_tasks: {
+        Row: {
+          agent_id: string
+          category: string
+          created_at: string
+          description: string | null
+          id: string
+          priority: string
+          reasoning: string | null
+          related_client: string | null
+          status: string
+          title: string
+        }
+        Insert: {
+          agent_id: string
+          category?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          priority?: string
+          reasoning?: string | null
+          related_client?: string | null
+          status?: string
+          title: string
+        }
+        Update: {
+          agent_id?: string
+          category?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          priority?: string
+          reasoning?: string | null
+          related_client?: string | null
+          status?: string
+          title?: string
+        }
+        Relationships: []
+      }
       tasks: {
         Row: {
           agent_id: string

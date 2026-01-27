@@ -1,20 +1,22 @@
-import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Sparkles, RefreshCw, Plus, AlertCircle, Clock, Mail, CheckCircle2 } from "lucide-react";
+import { Sparkles, RefreshCw, Plus, AlertCircle, Clock, Mail, CheckCircle2, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
-interface TaskSuggestion {
+interface SuggestedTask {
+  id: string;
   title: string;
-  description: string;
-  priority: "urgent" | "high" | "medium" | "low";
-  category: "follow-up" | "action-item" | "urgent-response" | "proactive-outreach";
-  relatedClient: string | null;
-  reasoning: string;
+  description: string | null;
+  priority: string;
+  category: string;
+  related_client: string | null;
+  reasoning: string | null;
+  status: string;
+  created_at: string;
 }
 
 const priorityColors = {
@@ -42,50 +44,96 @@ const SuggestedTasksSection = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [addedTasks, setAddedTasks] = useState<Set<string>>(new Set());
 
-  const { data, isLoading, refetch, isRefetching } = useQuery({
+  // Fetch persisted suggestions from the database
+  const { data: suggestions, isLoading } = useQuery({
     queryKey: ["suggested-tasks", user?.id],
     queryFn: async () => {
-      const { data, error } = await supabase.functions.invoke('suggest-tasks-from-emails');
+      const { data, error } = await supabase
+        .from("suggested_tasks")
+        .select("*")
+        .eq("status", "pending")
+        .order("created_at", { ascending: false });
       
       if (error) throw error;
-      return data as { suggestions: TaskSuggestion[]; message?: string; error?: string };
+      return data as SuggestedTask[];
     },
     enabled: !!user,
-    staleTime: 5 * 60 * 1000, // Consider fresh for 5 minutes
-    refetchOnWindowFocus: false,
   });
 
-  const createTaskMutation = useMutation({
-    mutationFn: async (suggestion: TaskSuggestion) => {
-      const { data, error } = await supabase
+  // Refresh suggestions from AI
+  const refreshMutation = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase.functions.invoke('suggest-tasks-from-emails');
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["suggested-tasks"] });
+      if (data?.newSuggestionsCount > 0) {
+        toast({ title: `Added ${data.newSuggestionsCount} new suggestions` });
+      } else {
+        toast({ title: "No new suggestions found" });
+      }
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error refreshing suggestions", description: error.message, variant: "destructive" });
+    },
+  });
+
+  // Add suggestion as a task
+  const addTaskMutation = useMutation({
+    mutationFn: async (suggestion: SuggestedTask) => {
+      // Create the task
+      const { error: taskError } = await supabase
         .from("tasks")
         .insert([{
           title: suggestion.title,
           description: suggestion.description,
-          priority: suggestion.priority,
+          priority: suggestion.priority as "low" | "medium" | "high" | "urgent",
           agent_id: user?.id,
           status: "pending",
-        }])
-        .select()
-        .single();
+        }]);
       
-      if (error) throw error;
-      return { data, title: suggestion.title };
+      if (taskError) throw taskError;
+
+      // Mark suggestion as added
+      const { error: updateError } = await supabase
+        .from("suggested_tasks")
+        .update({ status: "added" })
+        .eq("id", suggestion.id);
+      
+      if (updateError) throw updateError;
+      
+      return suggestion.title;
     },
-    onSuccess: ({ title }) => {
+    onSuccess: (title) => {
       queryClient.invalidateQueries({ queryKey: ["tasks"] });
-      setAddedTasks(prev => new Set(prev).add(title));
-      toast({ title: "Task created", description: "The suggested task has been added to your list." });
+      queryClient.invalidateQueries({ queryKey: ["suggested-tasks"] });
+      toast({ title: "Task created", description: `"${title}" added to your tasks.` });
     },
     onError: (error: Error) => {
       toast({ title: "Error creating task", description: error.message, variant: "destructive" });
     },
   });
 
-  const suggestions = data?.suggestions || [];
-  const hasError = !!data?.error;
+  // Dismiss a suggestion
+  const dismissMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from("suggested_tasks")
+        .update({ status: "dismissed" })
+        .eq("id", id);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["suggested-tasks"] });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error dismissing suggestion", description: error.message, variant: "destructive" });
+    },
+  });
 
   if (!user) return null;
 
@@ -96,14 +144,17 @@ const SuggestedTasksSection = () => {
           <CardTitle className="text-base flex items-center gap-2">
             <Sparkles className="w-4 h-4 text-primary" />
             AI Suggested Tasks
+            {suggestions && suggestions.length > 0 && (
+              <Badge variant="secondary" className="ml-2">{suggestions.length}</Badge>
+            )}
           </CardTitle>
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => refetch()}
-            disabled={isLoading || isRefetching}
+            onClick={() => refreshMutation.mutate()}
+            disabled={isLoading || refreshMutation.isPending}
           >
-            <RefreshCw className={`w-4 h-4 mr-1 ${isRefetching ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-4 h-4 mr-1 ${refreshMutation.isPending ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
         </div>
@@ -115,78 +166,72 @@ const SuggestedTasksSection = () => {
         {isLoading ? (
           <div className="flex items-center justify-center py-8">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-            <span className="ml-3 text-sm text-muted-foreground">Analyzing your emails...</span>
+            <span className="ml-3 text-sm text-muted-foreground">Loading suggestions...</span>
           </div>
-        ) : hasError ? (
-          <div className="text-center py-6 text-muted-foreground">
-            <AlertCircle className="w-8 h-8 mx-auto mb-2 opacity-50" />
-            <p className="text-sm">{data?.error || "Unable to generate suggestions"}</p>
-            <Button variant="outline" size="sm" className="mt-3" onClick={() => refetch()}>
-              Try Again
-            </Button>
-          </div>
-        ) : suggestions.length === 0 ? (
+        ) : !suggestions || suggestions.length === 0 ? (
           <div className="text-center py-6 text-muted-foreground">
             <Mail className="w-8 h-8 mx-auto mb-2 opacity-50" />
             <p className="text-sm">No task suggestions at this time</p>
-            <p className="text-xs mt-1">Your communications are up to date!</p>
+            <p className="text-xs mt-1">Click Refresh to analyze recent emails</p>
           </div>
         ) : (
           <div className="space-y-3">
-            {suggestions.map((suggestion, index) => {
-              const CategoryIcon = categoryIcons[suggestion.category] || Clock;
-              const isAdded = addedTasks.has(suggestion.title);
+            {suggestions.map((suggestion) => {
+              const CategoryIcon = categoryIcons[suggestion.category as keyof typeof categoryIcons] || Clock;
               
               return (
                 <div
-                  key={index}
-                  className={`p-3 border rounded-lg bg-card transition-all ${
-                    isAdded ? 'opacity-50' : 'hover:border-primary/30'
-                  }`}
+                  key={suggestion.id}
+                  className="p-3 border rounded-lg bg-card hover:border-primary/30 transition-all"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1 flex-wrap">
                         <Badge variant="outline" className="text-xs gap-1">
                           <CategoryIcon className="w-3 h-3" />
-                          {categoryLabels[suggestion.category]}
+                          {categoryLabels[suggestion.category as keyof typeof categoryLabels] || suggestion.category}
                         </Badge>
-                        <Badge className={`text-xs ${priorityColors[suggestion.priority]}`}>
+                        <Badge className={`text-xs ${priorityColors[suggestion.priority as keyof typeof priorityColors] || priorityColors.medium}`}>
                           {suggestion.priority}
                         </Badge>
-                        {suggestion.relatedClient && (
+                        {suggestion.related_client && (
                           <span className="text-xs text-muted-foreground">
-                            • {suggestion.relatedClient}
+                            • {suggestion.related_client}
                           </span>
                         )}
                       </div>
                       <p className="font-medium text-sm">{suggestion.title}</p>
-                      <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                        {suggestion.description}
-                      </p>
-                      <p className="text-xs text-muted-foreground/70 mt-1 italic">
-                        {suggestion.reasoning}
-                      </p>
-                    </div>
-                    <Button
-                      size="sm"
-                      variant={isAdded ? "ghost" : "outline"}
-                      disabled={isAdded || createTaskMutation.isPending}
-                      onClick={() => createTaskMutation.mutate(suggestion)}
-                      className="shrink-0"
-                    >
-                      {isAdded ? (
-                        <>
-                          <CheckCircle2 className="w-4 h-4 mr-1" />
-                          Added
-                        </>
-                      ) : (
-                        <>
-                          <Plus className="w-4 h-4 mr-1" />
-                          Add
-                        </>
+                      {suggestion.description && (
+                        <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                          {suggestion.description}
+                        </p>
                       )}
-                    </Button>
+                      {suggestion.reasoning && (
+                        <p className="text-xs text-muted-foreground/70 mt-1 italic">
+                          {suggestion.reasoning}
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex gap-1 shrink-0">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={addTaskMutation.isPending}
+                        onClick={() => addTaskMutation.mutate(suggestion)}
+                      >
+                        <Plus className="w-4 h-4 mr-1" />
+                        Add
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        disabled={dismissMutation.isPending}
+                        onClick={() => dismissMutation.mutate(suggestion.id)}
+                        title="Dismiss suggestion"
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </div>
                   </div>
                 </div>
               );
