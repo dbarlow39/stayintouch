@@ -12,7 +12,7 @@ interface TaskSuggestion {
   title: string;
   description: string;
   priority: "urgent" | "high" | "medium" | "low";
-  category: "follow-up" | "action-item" | "urgent-response";
+  category: "follow-up" | "action-item" | "urgent-response" | "proactive-outreach";
   relatedClient: string | null;
   reasoning: string;
 }
@@ -28,12 +28,14 @@ const categoryIcons = {
   "follow-up": Clock,
   "action-item": CheckCircle2,
   "urgent-response": AlertCircle,
+  "proactive-outreach": Mail,
 };
 
 const categoryLabels = {
   "follow-up": "Follow-up",
   "action-item": "Action Item",
   "urgent-response": "Urgent",
+  "proactive-outreach": "Outreach",
 };
 
 const SuggestedTasksSection = () => {

@@ -46,9 +46,9 @@ serve(async (req) => {
 
     console.log('User authenticated:', user.id);
 
-    // Fetch recent emails (last 7 days) with client info
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    // Fetch recent emails (last 30 days) with client info
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
     const { data: emails, error: emailsError } = await supabaseClient
       .from('client_email_logs')
@@ -64,9 +64,9 @@ serve(async (req) => {
         client_id
       `)
       .eq('agent_id', user.id)
-      .gte('received_at', sevenDaysAgo.toISOString())
+      .gte('received_at', thirtyDaysAgo.toISOString())
       .order('received_at', { ascending: false })
-      .limit(50);
+      .limit(100);
 
     if (emailsError) {
       console.error('Error fetching emails:', emailsError);
@@ -136,34 +136,51 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: `You are an AI assistant for a real estate agent. Analyze their email communications and suggest actionable tasks they should complete. Focus on:
+            content: `You are an AI assistant for a real estate agent. Analyze their email communications thoroughly and suggest actionable tasks they should complete. Be aggressive in finding tasks - it's better to suggest more than fewer.
 
-1. **Follow-up reminders**: Clients who sent emails but may not have received a response, or conversations that need follow-up
-2. **Action items from emails**: Specific requests mentioned in emails (documents to send, showings to schedule, questions to answer)
-3. **Urgent responses needed**: Time-sensitive matters requiring immediate attention
+Focus on these categories:
 
-Today's date is ${today}. Consider email recency when determining priority.
+1. **Follow-up reminders**: 
+   - Incoming emails without a clear outgoing response within 24-48 hours
+   - Conversations that seem incomplete or need continuation
+   - Clients who asked questions that may not have been fully answered
 
-Return ONLY unique, actionable tasks. Do not suggest tasks that are vague or unclear. Each task should be specific and achievable.`
+2. **Action items from emails**: 
+   - Specific requests mentioned in emails (documents to send, showings to schedule, questions to answer)
+   - Commitments the agent made that need tracking
+   - Tasks delegated by clients or mentioned as needed
+
+3. **Urgent responses needed**: 
+   - Time-sensitive matters (offers, deadlines, showings)
+   - Emails marked with urgency or containing urgent language
+   - Recent unanswered incoming emails (within last 48 hours)
+
+4. **Proactive outreach**:
+   - Clients who haven't been contacted recently
+   - Follow-ups on previous discussions that may have stalled
+
+Today's date is ${today}. Prioritize based on recency and urgency.
+
+IMPORTANT: Return at least 3-8 actionable tasks. Be specific and include client names when possible. Each task should be something the agent can act on immediately.`
           },
           {
             role: 'user',
-            content: `Analyze these recent email communications and suggest up to 5 specific tasks:
+            content: `Analyze these email communications from the last 30 days and suggest 5-8 specific, actionable tasks:
 
 ${JSON.stringify(emailsForAnalysis, null, 2)}
 
-Existing tasks (avoid duplicates): ${Array.from(existingTaskTitles).join(', ')}
+Existing tasks to avoid duplicating: ${Array.from(existingTaskTitles).join(', ')}
 
 Return JSON in this exact format:
 {
   "suggestions": [
     {
-      "title": "Brief, action-oriented task title",
-      "description": "Specific details about what needs to be done",
+      "title": "Brief, action-oriented task title (e.g., 'Follow up with John Smith about offer status')",
+      "description": "Specific details about what needs to be done and why",
       "priority": "urgent" | "high" | "medium" | "low",
-      "category": "follow-up" | "action-item" | "urgent-response",
-      "relatedClient": "Client name if applicable",
-      "reasoning": "Why this task is suggested based on the emails"
+      "category": "follow-up" | "action-item" | "urgent-response" | "proactive-outreach",
+      "relatedClient": "Client name if applicable, or null",
+      "reasoning": "Brief explanation of why this task is needed based on the email content"
     }
   ]
 }`
