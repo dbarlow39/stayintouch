@@ -139,7 +139,9 @@ const SuggestedTasksSection = () => {
 
   const openGmailEmail = (gmailMessageId: string) => {
     // Gmail URL format to open a specific email
-    const gmailUrl = `https://mail.google.com/mail/u/0/#inbox/${gmailMessageId}`;
+    // Using #all is more reliable than #inbox because the message might be archived
+    // or labeled (not strictly in the Inbox).
+    const gmailUrl = `https://mail.google.com/mail/u/0/#all/${gmailMessageId}`;
     const win = window.open(gmailUrl, "_blank", "noopener,noreferrer");
 
     // In embedded previews, popups can be blocked by browser/iframe policies.
