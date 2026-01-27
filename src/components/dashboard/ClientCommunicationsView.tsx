@@ -47,21 +47,16 @@ const ClientCommunicationsView = ({ clientEmail }: ClientCommunicationsViewProps
       
       if (error) throw error;
       
-      // Filter out ShowingTime emails
+      // Filter out emails sent FROM ShowingTime (but keep client-forwarded emails)
       const filteredEmails = (data as ClientEmail[]).filter(email => {
         const fromLower = email.from_email.toLowerCase();
-        const subjectLower = (email.subject || "").toLowerCase();
         
-        // Exclude ShowingTime system emails
-        const isShowingTimeEmail = 
+        // Only exclude if the sender is ShowingTime
+        const isFromShowingTime = 
           fromLower.includes("showingtime") ||
-          fromLower.includes("showing.com") ||
-          subjectLower.includes("showing confirmed") ||
-          subjectLower.includes("showing cancelled") ||
-          subjectLower.includes("showing feedback") ||
-          subjectLower.includes("appointment feedback");
+          fromLower.includes("showing.com");
         
-        return !isShowingTimeEmail;
+        return !isFromShowingTime;
       });
       
       return filteredEmails;
