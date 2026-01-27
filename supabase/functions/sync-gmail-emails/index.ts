@@ -167,9 +167,20 @@ async function syncAgentEmails(
   console.log(`Querying clients for agent_id: ${agent_id}`);
   console.log(`Query returned ${clients?.length || 0} clients`);
 
-  const clientEmails = new Map(
-    clients?.filter((c: any) => c.email).map((c: any) => [c.email!.toLowerCase(), c]) || []
-  );
+  // Build a fast lookup map from *individual* email addresses -> client
+  // (clients.email may contain comma/semicolon-separated addresses)
+  const clientEmails = new Map<string, any>();
+  clients?.forEach((c: any) => {
+    if (!c.email) return;
+    const parts = String(c.email)
+      .split(/[;,]/g)
+      .map((p) => p.trim().toLowerCase())
+      .filter(Boolean);
+    for (const email of parts) {
+      // Last write wins if duplicates exist; that's fine for our matching.
+      clientEmails.set(email, c);
+    }
+  });
 
   // Create address-to-client mapping for ShowingTime matching
   const clientAddresses = new Map<string, any>();
@@ -189,89 +200,96 @@ async function syncAgentEmails(
   console.log(`Sample addresses in map:`, Array.from(clientAddresses.keys()).slice(0, 10));
 
   // Fetch emails from Gmail
-  // Build a comprehensive search: ShowingTime emails + ALL client emails
-  const clientEmailKeys = Array.from(clientEmails.keys()) as string[];
-  
-  // Add date filter if provided
-  const dateFilter = afterDate ? ` after:${afterDate}` : '';
-  
-  // Build search queries - include ShowingTime AND broader client email search
-  const searchQueries: string[] = [
-    // ShowingTime specific searches
-    `from:showingtime.com${dateFilter}`,
-    `from:callcenter@showingtime.com${dateFilter}`,
-  ];
-  
-  // Add individual client email searches - process ALL clients, not just first 15
-  // Group clients into batches to create OR queries
-  const batchSize = 5;
-  for (let i = 0; i < clientEmailKeys.length; i += batchSize) {
-    const batch = clientEmailKeys.slice(i, i + batchSize);
-    // Handle comma-separated emails by splitting them
-    const expandedEmails: string[] = [];
-    batch.forEach(email => {
-      email.split(',').forEach(e => {
-        const trimmed = e.trim();
-        if (trimmed) expandedEmails.push(trimmed);
-      });
-    });
-    if (expandedEmails.length > 0) {
-      const orQuery = expandedEmails.map(e => `from:${e} OR to:${e}`).join(' OR ');
-      searchQueries.push(`(${orQuery})${dateFilter}`);
-    }
-  }
+  // NOTE: The previous implementation created one Gmail search query per client batch,
+  // which can easily exceed runtime limits and cause the browser to report "Failed to fetch".
+  // Instead, fetch a bounded set of recent messages (Inbox+Sent) and match locally.
+
+  const effectiveMaxResults = Math.min(Number(max_results) || 100, 200);
+  const dateFilter = afterDate ? ` after:${afterDate}` : "";
 
   const allMessages: GmailMessage[] = [];
   const showingTimeMessageIds: Set<string> = new Set();
   const seenMessageIds: Set<string> = new Set();
 
-  console.log(`Running ${searchQueries.length} search queries for ${clientEmailKeys.length} client emails`);
+  const listQueries: Array<{ name: string; q: string; isShowingTime: boolean }> = [
+    {
+      name: "showingtime",
+      q: `(from:showingtime.com OR from:callcenter@showingtime.com)${dateFilter}`,
+      isShowingTime: true,
+    },
+    {
+      name: "recent",
+      q: `(in:inbox OR in:sent)${dateFilter}`,
+      isShowingTime: false,
+    },
+  ];
 
-  for (const query of searchQueries) {
-    const listUrl = `https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=${max_results}&q=${encodeURIComponent(query)}`;
-    
+  const idsToFetch: Array<{ id: string; isShowingTime: boolean }> = [];
+
+  for (const { name, q, isShowingTime } of listQueries) {
+    const listUrl = `https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=${effectiveMaxResults}&q=${encodeURIComponent(q)}`;
+
     const listResponse = await fetch(listUrl, {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
 
     if (!listResponse.ok) {
       const errorText = await listResponse.text();
-      console.error("Gmail list error for query:", query.substring(0, 50), errorText);
+      console.error(`Gmail list error (${name}):`, errorText);
       continue;
     }
 
     const listData = await listResponse.json();
-    const messageIds = listData.messages || [];
-    
-    console.log(`Query "${query.substring(0, 40)}..." returned ${messageIds.length} messages`);
+    const messageIds = (listData.messages || []) as Array<{ id: string }>;
+    console.log(`Query "${name}" returned ${messageIds.length} message ids`);
 
-    const isShowingTimeQuery = query.includes("showingtime.com");
-    
-    // Fetch message details
-    const messageLimit = Math.min(max_results, 100);
-    for (const msg of messageIds.slice(0, messageLimit)) {
-      // Skip if we've already processed this message
+    for (const msg of messageIds) {
       if (seenMessageIds.has(msg.id)) continue;
       seenMessageIds.add(msg.id);
-      
-      // For ShowingTime emails, get full body; for others, just metadata
-      const format = isShowingTimeQuery ? "full" : "metadata";
-      const msgUrl = isShowingTimeQuery
-        ? `https://gmail.googleapis.com/gmail/v1/users/me/messages/${msg.id}?format=${format}`
-        : `https://gmail.googleapis.com/gmail/v1/users/me/messages/${msg.id}?format=metadata&metadataHeaders=From&metadataHeaders=To&metadataHeaders=Subject&metadataHeaders=Date`;
-      
+      idsToFetch.push({ id: msg.id, isShowingTime });
+    }
+  }
+
+  // Simple concurrency limiter to keep runtime down
+  const mapLimit = async <T, R>(items: T[], limit: number, fn: (item: T) => Promise<R>): Promise<R[]> => {
+    const results: R[] = [];
+    const executing = new Set<Promise<void>>();
+    for (const item of items) {
+      const p = (async () => {
+        results.push(await fn(item));
+      })();
+      executing.add(p);
+      p.finally(() => executing.delete(p));
+      if (executing.size >= limit) {
+        await Promise.race(executing);
+      }
+    }
+    await Promise.all(executing);
+    return results;
+  };
+
+  const fetched = await mapLimit(
+    idsToFetch,
+    8,
+    async ({ id, isShowingTime }) => {
+      const msgUrl = isShowingTime
+        ? `https://gmail.googleapis.com/gmail/v1/users/me/messages/${id}?format=full`
+        : `https://gmail.googleapis.com/gmail/v1/users/me/messages/${id}?format=metadata&metadataHeaders=From&metadataHeaders=To&metadataHeaders=Cc&metadataHeaders=Subject&metadataHeaders=Date`;
+
       const msgResponse = await fetch(msgUrl, {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
 
-      if (msgResponse.ok) {
-        const msgData = await msgResponse.json();
-        allMessages.push(msgData);
-        if (isShowingTimeQuery) {
-          showingTimeMessageIds.add(msg.id);
-        }
-      }
+      if (!msgResponse.ok) return null;
+
+      const msgData = (await msgResponse.json()) as GmailMessage;
+      if (isShowingTime) showingTimeMessageIds.add(id);
+      return msgData;
     }
+  );
+
+  for (const msg of fetched) {
+    if (msg) allMessages.push(msg);
   }
 
   console.log(`Fetched ${allMessages.length} messages from Gmail (${showingTimeMessageIds.size} ShowingTime)`);
@@ -557,6 +575,7 @@ async function syncAgentEmails(
     
     const fromEmail = getHeader("From");
     const toEmail = getHeader("To");
+    const ccEmail = getHeader("Cc");
     const subject = getHeader("Subject");
     const receivedAt = new Date(parseInt(msg.internalDate)).toISOString();
 
@@ -566,8 +585,22 @@ async function syncAgentEmails(
       return match ? match[1].toLowerCase() : str.toLowerCase();
     };
 
-    const fromAddr = extractEmail(fromEmail);
-    const toAddr = extractEmail(toEmail);
+    // Extract ALL email addresses from headers (To/Cc often contain multiple addresses)
+    const extractEmails = (str: string): string[] => {
+      if (!str) return [];
+      const matches = str.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi);
+      if (matches && matches.length > 0) {
+        return matches.map((m) => m.toLowerCase());
+      }
+      const single = extractEmail(str);
+      return single ? [single] : [];
+    };
+
+    const fromAddrs = extractEmails(fromEmail);
+    const toAddrs = [...extractEmails(toEmail), ...extractEmails(ccEmail)];
+
+    const fromAddr = fromAddrs[0] || extractEmail(fromEmail);
+    const toAddr = toAddrs[0] || extractEmail(toEmail);
 
     // Check if this is a ShowingTime email - ONLY check sender, not subject
     // This ensures client-forwarded emails with ShowingTime content are not treated as ShowingTime emails
@@ -576,7 +609,15 @@ async function syncAgentEmails(
     
     // Find matching client by email
     let clientId = null;
-    let matchedClient = clientEmails.get(fromAddr) || clientEmails.get(toAddr);
+    const matchByAny = (emails: string[]) => {
+      for (const e of emails) {
+        const match = clientEmails.get(e);
+        if (match) return match;
+      }
+      return null;
+    };
+
+    let matchedClient = matchByAny(fromAddrs) || matchByAny(toAddrs) || clientEmails.get(fromAddr) || clientEmails.get(toAddr);
     
     // For ShowingTime emails, try to match by address or MLS ID and extract feedback
     let parsedEmail: ReturnType<typeof parseShowingTimeEmail> | null = null;
