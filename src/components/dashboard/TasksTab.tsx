@@ -9,11 +9,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
-import { CheckCircle2, Circle, Clock, Plus } from "lucide-react";
+import { CheckCircle2, Circle, Clock, Plus, Check } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth";
 import SuggestedTasksSection from "./SuggestedTasksSection";
+import ArchivedTasksDialog from "./ArchivedTasksDialog";
 
 interface Task {
   id: string;
@@ -24,6 +24,7 @@ interface Task {
   due_date: string | null;
   completed_at: string | null;
   created_at: string;
+  is_archived: boolean;
 }
 
 const priorityColors = {
@@ -51,6 +52,7 @@ const TasksTab = () => {
       const { data, error } = await supabase
         .from("tasks")
         .select("*")
+        .eq("is_archived", false)
         .order("due_date", { ascending: true, nullsFirst: false })
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -83,22 +85,25 @@ const TasksTab = () => {
     },
   });
 
-  const toggleTaskMutation = useMutation({
-    mutationFn: async ({ id, completed }: { id: string; completed: boolean }) => {
+  const archiveTaskMutation = useMutation({
+    mutationFn: async (id: string) => {
       const { error } = await supabase
         .from("tasks")
         .update({ 
-          status: completed ? "completed" : "pending",
-          completed_at: completed ? new Date().toISOString() : null,
+          status: "completed",
+          completed_at: new Date().toISOString(),
+          is_archived: true,
         })
         .eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["tasks"] });
+      queryClient.invalidateQueries({ queryKey: ["archived-tasks"] });
+      toast({ title: "Task archived" });
     },
     onError: (error: Error) => {
-      toast({ title: "Error updating task", description: error.message, variant: "destructive" });
+      toast({ title: "Error archiving task", description: error.message, variant: "destructive" });
     },
   });
 
@@ -220,23 +225,15 @@ const TasksTab = () => {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="w-12"></TableHead>
                       <TableHead>Task</TableHead>
                       <TableHead>Priority</TableHead>
                       <TableHead>Due Date</TableHead>
+                      <TableHead className="w-24">Action</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {pendingTasks.map((task) => (
                       <TableRow key={task.id}>
-                        <TableCell>
-                          <Checkbox
-                            checked={false}
-                            onCheckedChange={(checked) => 
-                              toggleTaskMutation.mutate({ id: task.id, completed: checked as boolean })
-                            }
-                          />
-                        </TableCell>
                         <TableCell>
                           <div>
                             <p className="font-medium">{task.title}</p>
@@ -262,6 +259,16 @@ const TasksTab = () => {
                             <span className="text-muted-foreground">—</span>
                           )}
                         </TableCell>
+                        <TableCell>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => archiveTaskMutation.mutate(task.id)}
+                          >
+                            <Check className="w-4 h-4 mr-1" />
+                            Done
+                          </Button>
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -270,42 +277,12 @@ const TasksTab = () => {
             </div>
           )}
 
-          {completedTasks.length > 0 && (
-            <div>
-              <h4 className="text-sm font-semibold mb-3 flex items-center gap-2 text-muted-foreground">
-                <CheckCircle2 className="w-4 h-4" />
-                Completed Tasks ({completedTasks.length})
-              </h4>
-              <div className="border rounded-lg opacity-60">
-                <Table>
-                  <TableBody>
-                    {completedTasks.map((task) => (
-                      <TableRow key={task.id}>
-                        <TableCell className="w-12">
-                          <Checkbox
-                            checked={true}
-                            onCheckedChange={(checked) => 
-                              toggleTaskMutation.mutate({ id: task.id, completed: checked as boolean })
-                            }
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <p className="line-through text-muted-foreground">{task.title}</p>
-                        </TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
-                          {task.completed_at && (
-                            <span>Completed {new Date(task.completed_at).toLocaleDateString()}</span>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            </div>
-          )}
         </div>
       )}
+
+      <div className="mt-6 pt-6 border-t">
+        <ArchivedTasksDialog />
+      </div>
     </div>
   );
 };
