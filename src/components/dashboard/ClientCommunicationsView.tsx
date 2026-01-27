@@ -30,11 +30,19 @@ const ClientCommunicationsView = ({ clientEmail }: ClientCommunicationsViewProps
     queryFn: async () => {
       if (!clientEmail) return [];
       
+      // Handle comma-separated emails (e.g., "bob@gmail.com,jane@gmail.com")
+      const emailList = clientEmail.split(",").map(e => e.trim()).filter(Boolean);
+      
+      // Build OR conditions for all email addresses
+      const orConditions = emailList
+        .map(email => `from_email.ilike.%${email}%,to_email.ilike.%${email}%`)
+        .join(",");
+      
       const { data, error } = await supabase
         .from("client_email_logs")
         .select("*")
         .eq("agent_id", user!.id)
-        .or(`from_email.ilike.%${clientEmail}%,to_email.ilike.%${clientEmail}%`)
+        .or(orConditions)
         .order("received_at", { ascending: false });
       
       if (error) throw error;
