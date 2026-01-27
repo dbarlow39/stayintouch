@@ -4,7 +4,7 @@ import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Sparkles, RefreshCw, Plus, AlertCircle, Clock, Mail, CheckCircle2, X } from "lucide-react";
+import { Sparkles, RefreshCw, Plus, AlertCircle, Clock, Mail, CheckCircle2, Check } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface SuggestedTask {
@@ -227,9 +227,9 @@ const SuggestedTasksSection = () => {
                         variant="ghost"
                         disabled={dismissMutation.isPending}
                         onClick={() => dismissMutation.mutate(suggestion.id)}
-                        title="Dismiss suggestion"
                       >
-                        <X className="w-4 h-4" />
+                        <Check className="w-4 h-4 mr-1" />
+                        Done
                       </Button>
                     </div>
                   </div>
