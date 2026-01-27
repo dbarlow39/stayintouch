@@ -13,6 +13,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { CheckCircle2, Circle, Clock, Plus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth";
+import SuggestedTasksSection from "./SuggestedTasksSection";
 
 interface Task {
   id: string;
@@ -125,6 +126,8 @@ const TasksTab = () => {
 
   return (
     <div className="space-y-6">
+      <SuggestedTasksSection />
+      
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-lg font-semibold">Task Management</h3>
