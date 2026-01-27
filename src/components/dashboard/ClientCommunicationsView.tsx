@@ -46,7 +46,25 @@ const ClientCommunicationsView = ({ clientEmail }: ClientCommunicationsViewProps
         .order("received_at", { ascending: false });
       
       if (error) throw error;
-      return data as ClientEmail[];
+      
+      // Filter out ShowingTime emails
+      const filteredEmails = (data as ClientEmail[]).filter(email => {
+        const fromLower = email.from_email.toLowerCase();
+        const subjectLower = (email.subject || "").toLowerCase();
+        
+        // Exclude ShowingTime system emails
+        const isShowingTimeEmail = 
+          fromLower.includes("showingtime") ||
+          fromLower.includes("showing.com") ||
+          subjectLower.includes("showing confirmed") ||
+          subjectLower.includes("showing cancelled") ||
+          subjectLower.includes("showing feedback") ||
+          subjectLower.includes("appointment feedback");
+        
+        return !isShowingTimeEmail;
+      });
+      
+      return filteredEmails;
     },
     enabled: !!clientEmail && !!user,
   });
