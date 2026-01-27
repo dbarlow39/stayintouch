@@ -147,10 +147,9 @@ const SuggestedTasksSection = () => {
       return;
     }
 
-    // Gmail URL format to open a specific email
-    // Using #all is more reliable than #inbox because the message might be archived
-    // or labeled (not strictly in the Inbox).
-    const gmailUrl = `https://mail.google.com/mail/u/0/#all/${encodeURIComponent(id)}`;
+    // Gmail web UI can open a thread/message using #inbox/ or #all/ with the ID.
+    // The ID must match Gmail's internal format. If this doesn't work, we fall back to search.
+    const gmailUrl = `https://mail.google.com/mail/u/0/#inbox/${id}`;
     const win = window.open(gmailUrl, "_blank", "noopener,noreferrer");
 
     // In embedded previews, popups can be blocked by browser/iframe policies.
