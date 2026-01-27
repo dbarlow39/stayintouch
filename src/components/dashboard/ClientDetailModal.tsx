@@ -15,11 +15,13 @@ import {
   FileText,
   Pencil,
   MessageSquare,
+  Mail,
   X,
   Save,
 } from "lucide-react";
 import logo from "@/assets/logo.jpg";
 import ClientFeedbackPage from "./ClientFeedbackPage";
+import ClientCommunicationsView from "./ClientCommunicationsView";
 
 interface Client {
   id: string;
@@ -65,7 +67,7 @@ interface ClientDetailModalProps {
   onEdit: (client: Client) => void;
 }
 
-type TabView = "details" | "notes" | "feedback";
+type TabView = "details" | "notes" | "communications" | "feedback";
 
 const ClientDetailModal = ({ client, open, onClose, onEdit }: ClientDetailModalProps) => {
   const { user } = useAuth();
@@ -237,6 +239,19 @@ const ClientDetailModal = ({ client, open, onClose, onEdit }: ClientDetailModalP
               >
                 <FileText className="h-4 w-4" />
                 Notes
+              </button>
+
+              {/* Communications */}
+              <button
+                onClick={() => setActiveTab("communications")}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors ${
+                  activeTab === "communications"
+                    ? "bg-primary text-primary-foreground"
+                    : "hover:bg-muted text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <Mail className="h-4 w-4" />
+                Communications
               </button>
 
               {/* Feedback */}
@@ -505,6 +520,10 @@ const ClientDetailModal = ({ client, open, onClose, onEdit }: ClientDetailModalP
                     )}
                   </div>
                 </div>
+              )}
+
+              {activeTab === "communications" && (
+                <ClientCommunicationsView clientEmail={client.email} />
               )}
 
               {activeTab === "feedback" && (
