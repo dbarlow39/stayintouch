@@ -189,25 +189,45 @@ async function syncAgentEmails(
   console.log(`Sample addresses in map:`, Array.from(clientAddresses.keys()).slice(0, 10));
 
   // Fetch emails from Gmail
-  // Search for emails from/to client addresses OR ShowingTime notifications
+  // Build a comprehensive search: ShowingTime emails + ALL client emails
   const clientEmailKeys = Array.from(clientEmails.keys()) as string[];
   
   // Add date filter if provided
   const dateFilter = afterDate ? ` after:${afterDate}` : '';
   
-  const searchQueries = [
-    `from:noreply@showingtime.com${dateFilter}`,
-    `from:notifications@showingtime.com${dateFilter}`,
-    `subject:showing confirmed${dateFilter}`,
-    `subject:showings scheduled${dateFilter}`,
-    `subject:feedback${dateFilter}`,
-    ...clientEmailKeys.slice(0, 15).map((email) => `(from:${email} OR to:${email})${dateFilter}`)
+  // Build search queries - include ShowingTime AND broader client email search
+  const searchQueries: string[] = [
+    // ShowingTime specific searches
+    `from:showingtime.com${dateFilter}`,
+    `from:callcenter@showingtime.com${dateFilter}`,
   ];
+  
+  // Add individual client email searches - process ALL clients, not just first 15
+  // Group clients into batches to create OR queries
+  const batchSize = 5;
+  for (let i = 0; i < clientEmailKeys.length; i += batchSize) {
+    const batch = clientEmailKeys.slice(i, i + batchSize);
+    // Handle comma-separated emails by splitting them
+    const expandedEmails: string[] = [];
+    batch.forEach(email => {
+      email.split(',').forEach(e => {
+        const trimmed = e.trim();
+        if (trimmed) expandedEmails.push(trimmed);
+      });
+    });
+    if (expandedEmails.length > 0) {
+      const orQuery = expandedEmails.map(e => `from:${e} OR to:${e}`).join(' OR ');
+      searchQueries.push(`(${orQuery})${dateFilter}`);
+    }
+  }
 
   const allMessages: GmailMessage[] = [];
   const showingTimeMessageIds: Set<string> = new Set();
+  const seenMessageIds: Set<string> = new Set();
 
-  for (const query of searchQueries.slice(0, 8)) { // Increased from 6 to 8 queries
+  console.log(`Running ${searchQueries.length} search queries for ${clientEmailKeys.length} client emails`);
+
+  for (const query of searchQueries) {
     const listUrl = `https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=${max_results}&q=${encodeURIComponent(query)}`;
     
     const listResponse = await fetch(listUrl, {
@@ -216,18 +236,24 @@ async function syncAgentEmails(
 
     if (!listResponse.ok) {
       const errorText = await listResponse.text();
-      console.error("Gmail list error:", errorText);
+      console.error("Gmail list error for query:", query.substring(0, 50), errorText);
       continue;
     }
 
     const listData = await listResponse.json();
     const messageIds = listData.messages || [];
-
-    const isShowingTimeQuery = query.includes("showingtime") || query.includes("showing") || query.includes("feedback");
     
-    // Fetch full message details - use max_results for ShowingTime queries to capture all historical emails
-    const messageLimit = isShowingTimeQuery ? Math.min(max_results, 1000) : 15;
+    console.log(`Query "${query.substring(0, 40)}..." returned ${messageIds.length} messages`);
+
+    const isShowingTimeQuery = query.includes("showingtime.com");
+    
+    // Fetch message details
+    const messageLimit = Math.min(max_results, 100);
     for (const msg of messageIds.slice(0, messageLimit)) {
+      // Skip if we've already processed this message
+      if (seenMessageIds.has(msg.id)) continue;
+      seenMessageIds.add(msg.id);
+      
       // For ShowingTime emails, get full body; for others, just metadata
       const format = isShowingTimeQuery ? "full" : "metadata";
       const msgUrl = isShowingTimeQuery
@@ -543,9 +569,9 @@ async function syncAgentEmails(
     const fromAddr = extractEmail(fromEmail);
     const toAddr = extractEmail(toEmail);
 
-    // Check if this is a ShowingTime email
+    // Check if this is a ShowingTime email - ONLY check sender, not subject
+    // This ensures client-forwarded emails with ShowingTime content are not treated as ShowingTime emails
     const isShowingTime = fromAddr.includes("showingtime.com") || 
-      subject.toLowerCase().includes("showing") ||
       showingTimeMessageIds.has(msg.id);
     
     // Find matching client by email
