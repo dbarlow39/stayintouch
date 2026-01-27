@@ -137,11 +137,20 @@ const SuggestedTasksSection = () => {
     },
   });
 
-  const openGmailEmail = (gmailMessageId: string) => {
+  const openGmailEmail = (gmailMessageId?: string | null) => {
+    const id = (gmailMessageId ?? "").trim();
+    if (!id) {
+      toast({
+        title: "No email linked",
+        description: "This suggestion wasn't linked to a specific Gmail message.",
+      });
+      return;
+    }
+
     // Gmail URL format to open a specific email
     // Using #all is more reliable than #inbox because the message might be archived
     // or labeled (not strictly in the Inbox).
-    const gmailUrl = `https://mail.google.com/mail/u/0/#all/${gmailMessageId}`;
+    const gmailUrl = `https://mail.google.com/mail/u/0/#all/${encodeURIComponent(id)}`;
     const win = window.open(gmailUrl, "_blank", "noopener,noreferrer");
 
     // In embedded previews, popups can be blocked by browser/iframe policies.
@@ -197,7 +206,7 @@ const SuggestedTasksSection = () => {
           <div className="space-y-3">
             {suggestions.map((suggestion) => {
               const CategoryIcon = categoryIcons[suggestion.category as keyof typeof categoryIcons] || Clock;
-              const hasGmailLink = Boolean(suggestion.gmail_message_id);
+              const hasGmailLink = Boolean(suggestion.gmail_message_id?.trim());
               
               return (
                 <div
