@@ -201,25 +201,20 @@ const ClientDetailModal = ({ client, open, onClose, onEdit }: ClientDetailModalP
             </div>
 
             <nav className="flex-1 p-2 space-y-1">
-              {navItems.map((item) => (
-                <button
-                  key={item.id}
-                  onClick={() => setActiveTab(item.id)}
-                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors ${
-                    activeTab === item.id
-                      ? "bg-primary text-primary-foreground"
-                      : "hover:bg-muted text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  <item.icon className="h-4 w-4" />
-                  {item.label}
-                </button>
-              ))}
-            </nav>
+              {/* Details */}
+              <button
+                onClick={() => setActiveTab("details")}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors ${
+                  activeTab === "details"
+                    ? "bg-primary text-primary-foreground"
+                    : "hover:bg-muted text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <User className="h-4 w-4" />
+                Details
+              </button>
 
-            <Separator />
-
-            <div className="p-2 space-y-1">
+              {/* Edit Client */}
               <button
                 onClick={() => {
                   onClose();
@@ -230,6 +225,34 @@ const ClientDetailModal = ({ client, open, onClose, onEdit }: ClientDetailModalP
                 <Pencil className="h-4 w-4" />
                 Edit Client
               </button>
+
+              {/* Notes */}
+              <button
+                onClick={() => setActiveTab("notes")}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors ${
+                  activeTab === "notes"
+                    ? "bg-primary text-primary-foreground"
+                    : "hover:bg-muted text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <FileText className="h-4 w-4" />
+                Notes
+              </button>
+
+              {/* Feedback */}
+              <button
+                onClick={() => setActiveTab("feedback")}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors ${
+                  activeTab === "feedback"
+                    ? "bg-primary text-primary-foreground"
+                    : "hover:bg-muted text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <MessageSquare className="h-4 w-4" />
+                Feedback
+              </button>
+
+              {/* Close */}
               <button
                 onClick={onClose}
                 className="w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
@@ -237,7 +260,7 @@ const ClientDetailModal = ({ client, open, onClose, onEdit }: ClientDetailModalP
                 <X className="h-4 w-4" />
                 Close
               </button>
-            </div>
+            </nav>
           </div>
 
           {/* Main Content Area */}
