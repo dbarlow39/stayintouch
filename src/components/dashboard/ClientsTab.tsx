@@ -1087,9 +1087,8 @@ const ClientsTab = ({ onSelectClientForEstimate }: ClientsTabProps) => {
         client={viewingClient}
         open={!!viewingClient}
         onClose={() => setViewingClient(null)}
-        onEdit={(client) => {
-          setViewingClient(null);
-          handleEdit(client);
+        onClientUpdated={() => {
+          queryClient.invalidateQueries({ queryKey: ["clients"] });
         }}
       />
 

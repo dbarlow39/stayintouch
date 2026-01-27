@@ -22,6 +22,7 @@ import {
 import logo from "@/assets/logo.jpg";
 import ClientFeedbackPage from "./ClientFeedbackPage";
 import ClientCommunicationsView from "./ClientCommunicationsView";
+import ClientEditForm from "./ClientEditForm";
 
 interface Client {
   id: string;
@@ -64,18 +65,25 @@ interface ClientDetailModalProps {
   client: Client | null;
   open: boolean;
   onClose: () => void;
-  onEdit: (client: Client) => void;
+  onClientUpdated?: () => void;
 }
 
-type TabView = "details" | "notes" | "communications" | "feedback";
+type TabView = "details" | "edit" | "notes" | "communications" | "feedback";
 
-const ClientDetailModal = ({ client, open, onClose, onEdit }: ClientDetailModalProps) => {
+const ClientDetailModal = ({ client, open, onClose, onClientUpdated }: ClientDetailModalProps) => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<TabView>("details");
   const [newNote, setNewNote] = useState("");
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [editingContent, setEditingContent] = useState("");
+  const [currentClient, setCurrentClient] = useState<Client | null>(null);
+
+  // Keep currentClient in sync with prop, but allow local updates
+  if (client && (!currentClient || currentClient.id !== client.id)) {
+    setCurrentClient(client);
+    setActiveTab("details");
+  }
   // Fetch notes for this client
   const { data: notes = [], isLoading: notesLoading } = useQuery({
     queryKey: ["client-notes", client?.id],
@@ -218,11 +226,12 @@ const ClientDetailModal = ({ client, open, onClose, onEdit }: ClientDetailModalP
 
               {/* Edit Client */}
               <button
-                onClick={() => {
-                  onClose();
-                  onEdit(client);
-                }}
-                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                onClick={() => setActiveTab("edit")}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors ${
+                  activeTab === "edit"
+                    ? "bg-primary text-primary-foreground"
+                    : "hover:bg-muted text-muted-foreground hover:text-foreground"
+                }`}
               >
                 <Pencil className="h-4 w-4" />
                 Edit Client
@@ -421,6 +430,19 @@ const ClientDetailModal = ({ client, open, onClose, onEdit }: ClientDetailModalP
                     </div>
                   </div>
                 </div>
+              )}
+
+              {activeTab === "edit" && currentClient && (
+                <ClientEditForm
+                  client={currentClient}
+                  onSuccess={() => {
+                    setActiveTab("details");
+                    onClientUpdated?.();
+                    // Refetch the client data to update the modal
+                    queryClient.invalidateQueries({ queryKey: ["clients"] });
+                  }}
+                  onCancel={() => setActiveTab("details")}
+                />
               )}
 
               {activeTab === "notes" && (
