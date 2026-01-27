@@ -118,7 +118,9 @@ Based on industry data, here is how online engagement typically translates to in
 - For every 200 views we should generate between 2 and 4 showings.
 - For every 7-8 showings we should generate at least 1 offer.
 
-We have generated {zillow_views} online views and {showings} in-person showings to date. Based on the conversion metrics, we anticipate continuing to generate quality buyer interest.
+So far we have generated {zillow_views} online views and {showings} in-person showings to date. Based on the conversion metrics, we should have between {expected_showings_min} and {expected_showings_max} showings.
+
+{performance_analysis}
 
 🔮 Weekly Outlook
 
