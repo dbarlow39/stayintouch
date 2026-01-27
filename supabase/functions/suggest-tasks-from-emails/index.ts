@@ -46,6 +46,17 @@ serve(async (req) => {
 
     console.log('User authenticated:', user.id);
 
+    // Fetch existing pending suggested tasks to avoid duplicates
+    const { data: existingSuggestions } = await supabaseClient
+      .from('suggested_tasks')
+      .select('title')
+      .eq('agent_id', user.id)
+      .eq('status', 'pending');
+
+    const existingSuggestionTitles = new Set(
+      existingSuggestions?.map(s => s.title.toLowerCase()) || []
+    );
+
     // Fetch recent emails (last 7 days) with client info
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
@@ -94,6 +105,9 @@ serve(async (req) => {
       .neq('status', 'completed');
 
     const existingTaskTitles = new Set(existingTasks?.map(t => t.title.toLowerCase()) || []);
+    
+    // Combine all existing titles to avoid duplicates
+    const allExistingTitles = new Set([...existingTaskTitles, ...existingSuggestionTitles]);
 
     // Format emails for AI analysis
     const emailsForAnalysis: EmailForAnalysis[] = (emails || []).map(email => ({
@@ -110,7 +124,7 @@ serve(async (req) => {
 
     if (emailsForAnalysis.length === 0) {
       return new Response(JSON.stringify({ 
-        suggestions: [],
+        newSuggestionsCount: 0,
         message: "No recent emails to analyze"
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -165,11 +179,11 @@ IMPORTANT: Return at least 3-8 actionable tasks. Be specific and include client 
           },
           {
             role: 'user',
-            content: `Analyze these email communications from the last 30 days and suggest 5-8 specific, actionable tasks:
+            content: `Analyze these email communications from the last 7 days and suggest 5-8 specific, actionable tasks:
 
 ${JSON.stringify(emailsForAnalysis, null, 2)}
 
-Existing tasks to avoid duplicating: ${Array.from(existingTaskTitles).join(', ')}
+Existing tasks/suggestions to avoid duplicating: ${Array.from(allExistingTitles).join(', ')}
 
 Return JSON in this exact format:
 {
@@ -212,8 +226,42 @@ Return JSON in this exact format:
 
     const aiData = await aiResponse.json();
     const result = JSON.parse(aiData.choices[0].message.content);
+    
+    // Filter out any suggestions that match existing titles
+    const newSuggestions = (result.suggestions || []).filter(
+      (s: { title: string }) => !allExistingTitles.has(s.title.toLowerCase())
+    );
 
-    return new Response(JSON.stringify(result), {
+    // Save new suggestions to the database
+    if (newSuggestions.length > 0) {
+      const suggestionsToInsert = newSuggestions.map((s: any) => ({
+        agent_id: user.id,
+        title: s.title,
+        description: s.description,
+        priority: s.priority,
+        category: s.category,
+        related_client: s.relatedClient,
+        reasoning: s.reasoning,
+        status: 'pending',
+      }));
+
+      const { error: insertError } = await supabaseClient
+        .from('suggested_tasks')
+        .insert(suggestionsToInsert);
+
+      if (insertError) {
+        console.error('Error inserting suggestions:', insertError);
+      } else {
+        console.log(`Inserted ${newSuggestions.length} new suggestions`);
+      }
+    }
+
+    return new Response(JSON.stringify({ 
+      newSuggestionsCount: newSuggestions.length,
+      message: newSuggestions.length > 0 
+        ? `Added ${newSuggestions.length} new suggestions` 
+        : 'No new suggestions found'
+    }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
@@ -221,7 +269,7 @@ Return JSON in this exact format:
     console.error('Error in suggest-tasks-from-emails:', error);
     return new Response(JSON.stringify({ 
       error: error instanceof Error ? error.message : 'Unknown error',
-      suggestions: []
+      newSuggestionsCount: 0
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
