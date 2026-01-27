@@ -54,11 +54,11 @@ serve(async (req) => {
     const propertyAddress = `${client_data.street_number} ${client_data.street_name}, ${client_data.city}, ${client_data.state} ${client_data.zip}`;
     
     // Calculate expected showings and offers based on views
-    // Formula: min = views/100 * 2, max = views/100 * 4
+    // Formula: min = views/200 * 2, max = views/200 * 4
     const views = client_data.zillow_views || 0;
     const showings = client_data.showings_to_date || 0;
-    const expectedShowingsMin = Math.round((views / 100) * 2);
-    const expectedShowingsMax = Math.round((views / 100) * 4);
+    const expectedShowingsMin = Math.round((views / 200) * 2);
+    const expectedShowingsMax = Math.round((views / 200) * 4);
     const expectedOffers = Math.floor(expectedShowingsMax / 8);
     
     // Determine performance scenario based on showings vs expected range
