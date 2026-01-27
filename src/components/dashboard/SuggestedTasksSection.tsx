@@ -147,12 +147,12 @@ const SuggestedTasksSection = () => {
       return;
     }
 
-    // Gmail web UI can open a thread/message using #inbox/ or #all/ with the ID.
-    // The ID must match Gmail's internal format. If this doesn't work, we fall back to search.
-    const gmailUrl = `https://mail.google.com/mail/u/0/#inbox/${id}`;
+    // Gmail API returns hex message IDs, but the web UI uses a different format.
+    // Using the rfc822msgid search is the most reliable way to find a specific message.
+    // Format: #search/rfc822msgid:<message_id>
+    const gmailUrl = `https://mail.google.com/mail/u/0/#search/rfc822msgid%3A${encodeURIComponent(id)}`;
     const win = window.open(gmailUrl, "_blank", "noopener,noreferrer");
 
-    // In embedded previews, popups can be blocked by browser/iframe policies.
     if (!win) {
       toast({
         title: "Couldn't open Gmail",
