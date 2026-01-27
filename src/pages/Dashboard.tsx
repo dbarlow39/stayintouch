@@ -153,13 +153,13 @@ const Dashboard = () => {
           
             <CardHeader>
               <TabsList className="w-full justify-start grid grid-cols-3 lg:flex">
-                <TabsTrigger value="assistant">
-                  <Sparkles className="w-4 h-4 mr-2" />
-                  AI Assistant
-                </TabsTrigger>
                 <TabsTrigger value="clients">
                   <Users className="w-4 h-4 mr-2" />
                   Clients
+                </TabsTrigger>
+                <TabsTrigger value="deals">
+                  <Briefcase className="w-4 h-4 mr-2" />
+                  Working Deals
                 </TabsTrigger>
                 <TabsTrigger value="leads">
                   <UserPlus className="w-4 h-4 mr-2" />
@@ -169,9 +169,9 @@ const Dashboard = () => {
                   <Calendar className="w-4 h-4 mr-2" />
                   Weekly Update
                 </TabsTrigger>
-                <TabsTrigger value="deals">
-                  <Briefcase className="w-4 h-4 mr-2" />
-                  Working Deals
+                <TabsTrigger value="assistant">
+                  <Sparkles className="w-4 h-4 mr-2" />
+                  AI Assistant
                 </TabsTrigger>
                 <TabsTrigger value="tasks">
                   <CheckSquare className="w-4 h-4 mr-2" />
