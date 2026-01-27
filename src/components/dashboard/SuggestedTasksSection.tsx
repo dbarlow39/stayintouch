@@ -140,7 +140,16 @@ const SuggestedTasksSection = () => {
   const openGmailEmail = (gmailMessageId: string) => {
     // Gmail URL format to open a specific email
     const gmailUrl = `https://mail.google.com/mail/u/0/#inbox/${gmailMessageId}`;
-    window.open(gmailUrl, '_blank');
+    const win = window.open(gmailUrl, "_blank", "noopener,noreferrer");
+
+    // In embedded previews, popups can be blocked by browser/iframe policies.
+    if (!win) {
+      toast({
+        title: "Couldn't open Gmail",
+        description: "Pop-ups may be blocked in the preview. Open the app in a new tab and try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   if (!user) return null;
@@ -186,11 +195,28 @@ const SuggestedTasksSection = () => {
           <div className="space-y-3">
             {suggestions.map((suggestion) => {
               const CategoryIcon = categoryIcons[suggestion.category as keyof typeof categoryIcons] || Clock;
+              const hasGmailLink = Boolean(suggestion.gmail_message_id);
               
               return (
                 <div
                   key={suggestion.id}
-                  className="p-3 border rounded-lg bg-card hover:border-primary/30 transition-all"
+                  role={hasGmailLink ? "button" : undefined}
+                  tabIndex={hasGmailLink ? 0 : undefined}
+                  onClick={() => {
+                    if (!hasGmailLink) return;
+                    openGmailEmail(suggestion.gmail_message_id!);
+                  }}
+                  onKeyDown={(e) => {
+                    if (!hasGmailLink) return;
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      openGmailEmail(suggestion.gmail_message_id!);
+                    }
+                  }}
+                  className={
+                    `p-3 border rounded-lg bg-card hover:border-primary/30 transition-all ` +
+                    (hasGmailLink ? "cursor-pointer focus:outline-none focus:ring-2 focus:ring-ring" : "")
+                  }
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1 min-w-0">
@@ -221,7 +247,10 @@ const SuggestedTasksSection = () => {
                       )}
                       {suggestion.gmail_message_id && (
                         <button
-                          onClick={() => openGmailEmail(suggestion.gmail_message_id!)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openGmailEmail(suggestion.gmail_message_id!);
+                          }}
                           className="flex items-center gap-1 text-xs text-primary hover:underline mt-2"
                         >
                           <ExternalLink className="w-3 h-3" />
@@ -234,7 +263,10 @@ const SuggestedTasksSection = () => {
                         size="sm"
                         variant="outline"
                         disabled={addTaskMutation.isPending}
-                        onClick={() => addTaskMutation.mutate(suggestion)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          addTaskMutation.mutate(suggestion);
+                        }}
                       >
                         <Plus className="w-4 h-4 mr-1" />
                         Add
@@ -243,7 +275,10 @@ const SuggestedTasksSection = () => {
                         size="sm"
                         variant="ghost"
                         disabled={dismissMutation.isPending}
-                        onClick={() => dismissMutation.mutate(suggestion.id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          dismissMutation.mutate(suggestion.id);
+                        }}
                       >
                         <Check className="w-4 h-4 mr-1" />
                         Done
