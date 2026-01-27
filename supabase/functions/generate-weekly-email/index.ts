@@ -54,10 +54,25 @@ serve(async (req) => {
     const propertyAddress = `${client_data.street_number} ${client_data.street_name}, ${client_data.city}, ${client_data.state} ${client_data.zip}`;
     
     // Calculate expected showings and offers based on views
+    // Formula: min = views/100 * 2, max = views/100 * 4
     const views = client_data.zillow_views || 0;
-    const expectedShowingsMin = Math.floor(views / 200) * 2;
-    const expectedShowingsMax = Math.floor(views / 200) * 4;
+    const showings = client_data.showings_to_date || 0;
+    const expectedShowingsMin = Math.round((views / 100) * 2);
+    const expectedShowingsMax = Math.round((views / 100) * 4);
     const expectedOffers = Math.floor(expectedShowingsMax / 8);
+    
+    // Determine performance scenario based on showings vs expected range
+    let performanceAnalysis = '';
+    if (showings < expectedShowingsMin) {
+      // Scenario 1: Underperforming
+      performanceAnalysis = 'Your property is under performing to the number of views that are being generated which normally means there is a disconnect between what buyers are seeing online and deciding not to schedule a showing. This almost always is based on the buyer not believing the house is worth the price being asked.';
+    } else if (showings > expectedShowingsMax) {
+      // Scenario 2: Overperforming
+      performanceAnalysis = 'Your property is over performing as compared to the number of online views we are generating. Because your home is not yet in contract may mean there are other issues going on and should be addressed. Most likely causes are cosmetic issues that buyers identify when touring the home. Let\'s look deeper at feedback to try and identify the problem.';
+    } else {
+      // Scenario 3: On schedule
+      performanceAnalysis = 'We are right on schedule, we are generating the right number of in person showings as related to the number of online views. Our next step is to look at the number of contracts we have received versus the number of showings, remember we typically generate 1 contract for every 7 to 8 showings.';
+    }
 
     // Check if Zillow data is available
     const hasZillowData = client_data.zillow_views !== null && client_data.zillow_views !== undefined;
@@ -107,7 +122,8 @@ serve(async (req) => {
         .replace(/\{showings_to_date\}/g, String(client_data.showings_to_date ?? 'N/A'))
         .replace(/\{expected_showings_min\}/g, String(expectedShowingsMin))
         .replace(/\{expected_showings_max\}/g, String(expectedShowingsMax))
-        .replace(/\{expected_offers\}/g, String(expectedOffers));
+        .replace(/\{expected_offers\}/g, String(expectedOffers))
+        .replace(/\{performance_analysis\}/g, performanceAnalysis);
       
       // Clean up any double blank lines left after section removal
       processedTemplate = processedTemplate.replace(/\n{3,}/g, '\n\n');
