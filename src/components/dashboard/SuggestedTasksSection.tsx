@@ -4,7 +4,7 @@ import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Sparkles, RefreshCw, Plus, AlertCircle, Clock, Mail, CheckCircle2, Check } from "lucide-react";
+import { Sparkles, RefreshCw, Plus, AlertCircle, Clock, Mail, CheckCircle2, Check, ExternalLink } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface SuggestedTask {
@@ -17,6 +17,8 @@ interface SuggestedTask {
   reasoning: string | null;
   status: string;
   created_at: string;
+  source_email_id: string | null;
+  gmail_message_id: string | null;
 }
 
 const priorityColors = {
@@ -135,6 +137,12 @@ const SuggestedTasksSection = () => {
     },
   });
 
+  const openGmailEmail = (gmailMessageId: string) => {
+    // Gmail URL format to open a specific email
+    const gmailUrl = `https://mail.google.com/mail/u/0/#inbox/${gmailMessageId}`;
+    window.open(gmailUrl, '_blank');
+  };
+
   if (!user) return null;
 
   return (
@@ -210,6 +218,15 @@ const SuggestedTasksSection = () => {
                         <p className="text-xs text-muted-foreground/70 mt-1 italic">
                           {suggestion.reasoning}
                         </p>
+                      )}
+                      {suggestion.gmail_message_id && (
+                        <button
+                          onClick={() => openGmailEmail(suggestion.gmail_message_id!)}
+                          className="flex items-center gap-1 text-xs text-primary hover:underline mt-2"
+                        >
+                          <ExternalLink className="w-3 h-3" />
+                          Open in Gmail
+                        </button>
                       )}
                     </div>
                     <div className="flex gap-1 shrink-0">

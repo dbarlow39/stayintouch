@@ -8,6 +8,7 @@ const corsHeaders = {
 
 interface EmailForAnalysis {
   id: string;
+  gmail_message_id: string | null;
   subject: string | null;
   snippet: string | null;
   body_preview: string | null;
@@ -65,6 +66,7 @@ serve(async (req) => {
       .from('client_email_logs')
       .select(`
         id,
+        gmail_message_id,
         subject,
         snippet,
         body_preview,
@@ -109,9 +111,15 @@ serve(async (req) => {
     // Combine all existing titles to avoid duplicates
     const allExistingTitles = new Set([...existingTaskTitles, ...existingSuggestionTitles]);
 
+    // Create a map of email IDs for quick lookup
+    const emailMap = new Map(
+      (emails || []).map(e => [e.id, { gmail_message_id: e.gmail_message_id }])
+    );
+
     // Format emails for AI analysis
     const emailsForAnalysis: EmailForAnalysis[] = (emails || []).map(email => ({
       id: email.id,
+      gmail_message_id: email.gmail_message_id,
       subject: email.subject,
       snippet: email.snippet,
       body_preview: email.body_preview,
@@ -194,7 +202,8 @@ Return JSON in this exact format:
       "priority": "urgent" | "high" | "medium" | "low",
       "category": "follow-up" | "action-item" | "urgent-response" | "proactive-outreach",
       "relatedClient": "Client name if applicable, or null",
-      "reasoning": "Brief explanation of why this task is needed based on the email content"
+      "reasoning": "Brief explanation of why this task is needed based on the email content",
+      "sourceEmailId": "The 'id' field of the most relevant email this task relates to, or null if not specific to one email"
     }
   ]
 }`
@@ -232,18 +241,25 @@ Return JSON in this exact format:
       (s: { title: string }) => !allExistingTitles.has(s.title.toLowerCase())
     );
 
-    // Save new suggestions to the database
+    // Save new suggestions to the database with source email references
     if (newSuggestions.length > 0) {
-      const suggestionsToInsert = newSuggestions.map((s: any) => ({
-        agent_id: user.id,
-        title: s.title,
-        description: s.description,
-        priority: s.priority,
-        category: s.category,
-        related_client: s.relatedClient,
-        reasoning: s.reasoning,
-        status: 'pending',
-      }));
+      const suggestionsToInsert = newSuggestions.map((s: any) => {
+        const sourceEmailId = s.sourceEmailId || null;
+        const emailInfo = sourceEmailId ? emailMap.get(sourceEmailId) : null;
+        
+        return {
+          agent_id: user.id,
+          title: s.title,
+          description: s.description,
+          priority: s.priority,
+          category: s.category,
+          related_client: s.relatedClient,
+          reasoning: s.reasoning,
+          status: 'pending',
+          source_email_id: sourceEmailId,
+          gmail_message_id: emailInfo?.gmail_message_id || null,
+        };
+      });
 
       const { error: insertError } = await supabaseClient
         .from('suggested_tasks')
