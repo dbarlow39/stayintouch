@@ -16,8 +16,6 @@ import {
   Pencil,
   MessageSquare,
   X,
-  Plus,
-  Trash2,
   Save,
 } from "lucide-react";
 import logo from "@/assets/logo.jpg";
@@ -74,7 +72,8 @@ const ClientDetailModal = ({ client, open, onClose, onEdit }: ClientDetailModalP
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<TabView>("details");
   const [newNote, setNewNote] = useState("");
-
+  const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
+  const [editingContent, setEditingContent] = useState("");
   // Fetch notes for this client
   const { data: notes = [], isLoading: notesLoading } = useQuery({
     queryKey: ["client-notes", client?.id],
@@ -110,21 +109,25 @@ const ClientDetailModal = ({ client, open, onClose, onEdit }: ClientDetailModalP
     },
   });
 
-  // Delete note mutation
-  const deleteNoteMutation = useMutation({
-    mutationFn: async (noteId: string) => {
-      const { error } = await supabase.from("client_notes").delete().eq("id", noteId);
+  // Update note mutation
+  const updateNoteMutation = useMutation({
+    mutationFn: async ({ noteId, content }: { noteId: string; content: string }) => {
+      const { error } = await supabase
+        .from("client_notes")
+        .update({ content })
+        .eq("id", noteId);
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["client-notes", client?.id] });
-      toast.success("Note deleted");
+      setEditingNoteId(null);
+      setEditingContent("");
+      toast.success("Note updated");
     },
     onError: () => {
-      toast.error("Failed to delete note");
+      toast.error("Failed to update note");
     },
   });
-
   const handleAddNote = () => {
     if (!newNote.trim()) {
       toast.error("Please enter a note");
@@ -133,10 +136,19 @@ const ClientDetailModal = ({ client, open, onClose, onEdit }: ClientDetailModalP
     addNoteMutation.mutate(newNote.trim());
   };
 
-  const handleDeleteNote = (noteId: string) => {
-    if (confirm("Are you sure you want to delete this note?")) {
-      deleteNoteMutation.mutate(noteId);
-    }
+  const handleEditNote = (note: ClientNote) => {
+    setEditingNoteId(note.id);
+    setEditingContent(note.content);
+  };
+
+  const handleSaveEdit = () => {
+    if (!editingContent.trim() || !editingNoteId) return;
+    updateNoteMutation.mutate({ noteId: editingNoteId, content: editingContent.trim() });
+  };
+
+  const handleCancelEdit = () => {
+    setEditingNoteId(null);
+    setEditingContent("");
   };
 
   const renderPhoneLink = (phone: string | undefined) => {
@@ -418,22 +430,52 @@ const ClientDetailModal = ({ client, open, onClose, onEdit }: ClientDetailModalP
                             key={note.id}
                             className="p-4 border rounded-lg bg-card hover:bg-muted/50 transition-colors"
                           >
-                            <div className="flex items-start justify-between gap-4">
-                              <div className="flex-1">
-                                <p className="text-sm whitespace-pre-wrap">{note.content}</p>
-                                <p className="text-xs text-muted-foreground mt-2">
-                                  {format(new Date(note.created_at), "MMM d, yyyy 'at' h:mm a")}
-                                </p>
+                            {editingNoteId === note.id ? (
+                              <div className="space-y-3">
+                                <Textarea
+                                  value={editingContent}
+                                  onChange={(e) => setEditingContent(e.target.value)}
+                                  rows={3}
+                                />
+                                <div className="flex gap-2">
+                                  <Button
+                                    size="sm"
+                                    onClick={handleSaveEdit}
+                                    disabled={updateNoteMutation.isPending || !editingContent.trim()}
+                                  >
+                                    <Save className="mr-2 h-4 w-4" />
+                                    Save
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={handleCancelEdit}
+                                  >
+                                    <X className="mr-2 h-4 w-4" />
+                                    Cancel
+                                  </Button>
+                                </div>
                               </div>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleDeleteNote(note.id)}
-                                disabled={deleteNoteMutation.isPending}
-                              >
-                                <Trash2 className="h-4 w-4 text-destructive" />
-                              </Button>
-                            </div>
+                            ) : (
+                              <div className="flex items-start justify-between gap-4">
+                                <div className="flex-1">
+                                  <p className="text-sm whitespace-pre-wrap">{note.content}</p>
+                                  <p className="text-xs text-muted-foreground mt-2">
+                                    {format(new Date(note.created_at), "MMM d, yyyy 'at' h:mm a")}
+                                    {note.updated_at !== note.created_at && (
+                                      <span className="ml-2">(edited {format(new Date(note.updated_at), "MMM d, yyyy")})</span>
+                                    )}
+                                  </p>
+                                </div>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleEditNote(note)}
+                                >
+                                  <Pencil className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            )}
                           </div>
                         ))}
                       </div>
