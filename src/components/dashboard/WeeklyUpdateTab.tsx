@@ -770,11 +770,77 @@ const WeeklyUpdateTab = () => {
     setIsSendingTest(true);
 
     try {
-      // Use agent's own name for test email so they see what their clients would receive
-      const agentFirstName = agentProfile?.first_name || 'Test';
-      const agentLastName = agentProfile?.last_name || 'Agent';
+      // Fetch a sample client from the database to use real data in the test email
+      const { data: sampleClients, error: clientError } = await supabase
+        .from('clients')
+        .select('first_name, last_name, street_number, street_name, city, state, zip, showings_to_date, zillow_link')
+        .eq('agent_id', user?.id)
+        .eq('status', 'Active')
+        .limit(10);
 
-      // Generate a test email using the template with agent's own name and sample data
+      if (clientError) {
+        console.error('Error fetching sample client:', clientError);
+      }
+
+      // Pick a random client from the results, or use fallback data
+      const sampleClient = sampleClients && sampleClients.length > 0
+        ? sampleClients[Math.floor(Math.random() * sampleClients.length)]
+        : null;
+
+      // Fetch Zillow stats for the sample client if they have a link
+      let zillowStats: ZillowStats = { views: null, saves: null, days: null };
+      if (sampleClient?.zillow_link) {
+        try {
+          const { data: session } = await supabase.auth.getSession();
+          const zillowResponse = await fetch(
+            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/parse-zillow`,
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+                'Authorization': `Bearer ${session?.session?.access_token}`,
+              },
+              body: JSON.stringify({ zillow_url: sampleClient.zillow_link }),
+            }
+          );
+          if (zillowResponse.ok) {
+            const zillowData = await zillowResponse.json();
+            zillowStats = { views: zillowData.views, saves: zillowData.saves, days: zillowData.days };
+          }
+        } catch (error) {
+          console.error('Error fetching Zillow stats for test email:', error);
+        }
+      }
+
+      // Use real client data if available, otherwise use fallback values
+      const clientData = sampleClient ? {
+        first_name: sampleClient.first_name || 'Test',
+        last_name: sampleClient.last_name || 'Client',
+        street_number: sampleClient.street_number || '123',
+        street_name: sampleClient.street_name || 'Sample Street',
+        city: sampleClient.city || 'Columbus',
+        state: sampleClient.state || 'OH',
+        zip: sampleClient.zip || '43215',
+        zillow_views: zillowStats.views,
+        zillow_saves: zillowStats.saves,
+        zillow_days: zillowStats.days,
+        showings_to_date: sampleClient.showings_to_date ?? null,
+      } : {
+        first_name: agentProfile?.first_name || 'Test',
+        last_name: agentProfile?.last_name || 'Agent',
+        street_number: '123',
+        street_name: 'Sample Street',
+        city: 'Columbus',
+        state: 'OH',
+        zip: '43215',
+        zillow_views: 1250,
+        zillow_saves: 45,
+        zillow_days: 28,
+        showings_to_date: 8,
+      };
+
+      // Generate a test email using the template with real client data
       const response = await supabase.functions.invoke('generate-weekly-email', {
         body: {
           template: emailTemplate,
@@ -787,18 +853,7 @@ const WeeklyUpdateTab = () => {
             price_trend: marketData.price_trend,
             price_reductions: marketData.price_reductions,
           },
-          clientData: {
-            first_name: agentFirstName,
-            last_name: agentLastName,
-            street_number: '123',
-            street_name: 'Sample Street',
-            city: 'Columbus',
-            state: 'OH',
-            zip: '43215',
-            zillow_views: 1250,
-            zillow_saves: 45,
-            zillow_days: 28,
-          },
+          clientData,
         },
       });
 
