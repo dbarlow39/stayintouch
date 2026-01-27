@@ -46,9 +46,9 @@ serve(async (req) => {
 
     console.log('User authenticated:', user.id);
 
-    // Fetch recent emails (last 30 days) with client info
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    // Fetch recent emails (last 7 days) with client info
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
     const { data: emails, error: emailsError } = await supabaseClient
       .from('client_email_logs')
@@ -64,7 +64,7 @@ serve(async (req) => {
         client_id
       `)
       .eq('agent_id', user.id)
-      .gte('received_at', thirtyDaysAgo.toISOString())
+      .gte('received_at', sevenDaysAgo.toISOString())
       .order('received_at', { ascending: false })
       .limit(100);
 
