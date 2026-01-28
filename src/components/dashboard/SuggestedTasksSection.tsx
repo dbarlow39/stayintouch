@@ -59,7 +59,7 @@ const SuggestedTasksSection = () => {
       const { data, error } = await supabase
         .from("suggested_tasks")
         .select(
-          "*, client_email_logs!suggested_tasks_source_email_id_fkey(subject, thread_id, from_email, received_at)"
+          "*, client_email_logs!suggested_tasks_source_email_id_fkey(subject, thread_id, from_email, received_at, gmail_message_id)"
         )
         .eq("status", "pending")
         .order("created_at", { ascending: false });
@@ -73,6 +73,8 @@ const SuggestedTasksSection = () => {
         thread_id: item.client_email_logs?.thread_id || null,
         email_from: item.client_email_logs?.from_email || null,
         email_received_at: item.client_email_logs?.received_at || null,
+        // Prefer suggested_tasks.gmail_message_id, but fall back to the source email log id
+        gmail_message_id: item.gmail_message_id || item.client_email_logs?.gmail_message_id || null,
         client_email_logs: undefined, // Clean up the nested object
       })) as SuggestedTask[];
     },
@@ -154,6 +156,22 @@ const SuggestedTasksSection = () => {
   });
 
   const openGmailEmail = (suggestion: SuggestedTask) => {
+    const messageId = (suggestion.gmail_message_id ?? "").trim();
+    // Best effort: when we have the Gmail message id, this is the most reliable way
+    // to open the exact email already expanded.
+    if (messageId) {
+      const url = `https://mail.google.com/mail/#inbox/${encodeURIComponent(messageId)}`;
+      const win = window.open(url, "_blank", "noopener,noreferrer");
+      if (!win) {
+        toast({
+          title: "Couldn't open Gmail",
+          description: "Pop-ups may be blocked in the preview. Open the app in a new tab and try again.",
+          variant: "destructive",
+        });
+      }
+      return;
+    }
+
     const threadId = (suggestion.thread_id ?? "").trim();
     
     // Try direct thread link first using thread_id
