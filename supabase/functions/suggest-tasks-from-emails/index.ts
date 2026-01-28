@@ -181,6 +181,10 @@ Focus on these categories:
    - Clients who haven't been contacted recently
    - Follow-ups on previous discussions that may have stalled
 
+DEPRIORITIZE RULES (mark as "low" priority or skip entirely):
+- Voicemail transcription failures: Emails containing "We're sorry. We were unable to transcribe this message. Please check your voicemail." should NOT be urgent - these are routine voicemail notifications, not actionable items.
+- Automated system notifications that don't require a response.
+
 Today's date is ${today}. Prioritize based on recency and urgency.
 
 IMPORTANT: Return at least 3-8 actionable tasks. Be specific and include client names when possible. Each task should be something the agent can act on immediately.`
