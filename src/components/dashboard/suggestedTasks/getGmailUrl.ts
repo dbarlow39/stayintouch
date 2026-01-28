@@ -14,7 +14,8 @@ export function getSuggestedTaskGmailUrl(suggestion: SuggestedTask): string | nu
     // Check if it's a hex ID (Gmail API format) vs already a new-UI token
     const isHexId = /^[0-9a-f]{15,16}$/i.test(messageId);
     if (isHexId) {
-      const url = gmailUrlForLegacyHex(messageId);
+      // Prefer message token; fall back to thread token if needed.
+      const url = gmailUrlForLegacyHex(messageId, "auto");
       if (url) return url;
     } else {
       // Already a new-UI token format (e.g., "FMfcgz...")
@@ -24,7 +25,7 @@ export function getSuggestedTaskGmailUrl(suggestion: SuggestedTask): string | nu
 
   const threadId = (suggestion.thread_id ?? "").trim();
   if (threadId) {
-    const directUrl = gmailUrlForLegacyHex(threadId);
+    const directUrl = gmailUrlForLegacyHex(threadId, "thread");
     if (directUrl) return directUrl;
   }
 
