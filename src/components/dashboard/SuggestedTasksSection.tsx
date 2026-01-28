@@ -200,7 +200,7 @@ const SuggestedTasksSection = () => {
       return;
     }
 
-    const gmailUrl = `https://mail.google.com/mail/u/0/#search/${encodeURIComponent(query)}`;
+    const gmailUrl = `https://mail.google.com/mail/#search/${encodeURIComponent(query)}`;
     const win = window.open(gmailUrl, "_blank", "noopener,noreferrer");
     if (!win) {
       toast({

@@ -91,6 +91,10 @@ export function gmailNewUiTokenFromLegacyHex(legacyHex: string): string | null {
 export function gmailUrlForLegacyHex(legacyHex: string, userIndex = 0): string | null {
   const token = gmailNewUiTokenFromLegacyHex(legacyHex);
   if (!token) return null;
-  // Use #all/ instead of #inbox/ since the message might be archived or in another folder
-  return `https://mail.google.com/mail/u/${userIndex}/#all/${token}`;
+  // Use #all/ instead of #inbox/ since the message might be archived or in another folder.
+  // Important: avoid forcing /u/0 because users may have multiple Gmail accounts and the
+  // connected account might be /u/1 (or more), causing "conversation could not be loaded".
+  // We keep the `userIndex` param for backwards compatibility but do not use it.
+  void userIndex;
+  return `https://mail.google.com/mail/#all/${token}`;
 }
