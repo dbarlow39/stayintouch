@@ -72,11 +72,15 @@ function base64EncodeAscii(input: string): string {
  * a Gmail new UI view token (e.g. `FMfcgz...`) usable in `#all/{token}`.
  *
  * IMPORTANT:
- * - Gmail exposes both message IDs and thread IDs as 15–16 char hex strings.
- * - Deep-link tokens sometimes differ depending on whether you have a message-id
- *   or a thread-id.
- *
- * We allow callers to choose the prefix and keep `thread` as the default.
+ * - Gmail “new UI” view tokens are an obfuscated form of the legacy hex view token.
+ * - Per ArsenalRecon GmailURLDecoder research, decoding a new token yields
+ *   `thread-f:{decimalLegacy}` (or `msg-f:{decimalLegacy}`), where the decimal value
+ *   is the legacy hex interpreted as an integer.
+ * - When *encoding* (legacy → new), Gmail effectively base64-encodes a payload
+ *   that omits the leading `thread-` prefix:
+ *     - thread view: `f:{decimalLegacy}`
+ *     - message view: `msg-f:{decimalLegacy}`
+ *   then removes base64 padding and applies a reduced-charset transform.
  */
 export function gmailNewUiTokenFromLegacyHex(
   legacyHex: string,
@@ -88,11 +92,10 @@ export function gmailNewUiTokenFromLegacyHex(
   try {
     const decimal = BigInt(`0x${hex}`).toString(10);
 
-    // Best-effort: Gmail token formats are not guaranteed stable across rollouts.
-    // Common forms include:
-    // - thread-f:{decimal}
-    // - msg-f:{decimal}
-    const decoded = `${kind === "msg" ? "msg-f" : "thread-f"}:${decimal}`;
+    // Encoding payload (see docstring above):
+    // - thread tokens encode `f:{decimal}`
+    // - message tokens encode `msg-f:{decimal}`
+    const decoded = kind === "msg" ? `msg-f:${decimal}` : `f:${decimal}`;
     const b64 = base64EncodeAscii(decoded).replace(/=+$/g, "");
     return transform(b64, CHARSET_FULL, CHARSET_REDUCED);
   } catch {
