@@ -88,5 +88,6 @@ export function gmailNewUiTokenFromLegacyHex(legacyHex: string): string | null {
 export function gmailUrlForLegacyHex(legacyHex: string, userIndex = 0): string | null {
   const token = gmailNewUiTokenFromLegacyHex(legacyHex);
   if (!token) return null;
-  return `https://mail.google.com/mail/u/${userIndex}/#inbox/${token}`;
+  // Use #all/ instead of #inbox/ since the message might be archived or in another folder
+  return `https://mail.google.com/mail/u/${userIndex}/#all/${token}`;
 }
