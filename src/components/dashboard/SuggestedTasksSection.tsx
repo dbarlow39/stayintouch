@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Sparkles, RefreshCw, Plus, AlertCircle, Clock, Mail, CheckCircle2, Check, ExternalLink } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { gmailUrlForLegacyHex } from "@/utils/gmailDeepLink";
 
 interface SuggestedTask {
   id: string;
@@ -144,9 +145,19 @@ const SuggestedTasksSection = () => {
     },
   });
 
-  const openGmailEmail = (emailSubject?: string | null) => {
+  const openGmailEmail = (gmailMessageId?: string | null, emailSubject?: string | null) => {
+    const legacyHex = (gmailMessageId ?? "").trim();
     const subject = (emailSubject ?? "").trim();
-    if (!subject) {
+
+    // Best case: generate the Gmail new-UI token (FMfcg...) from our stored hex ID
+    // so Gmail opens the message already expanded.
+    const directUrl = legacyHex ? gmailUrlForLegacyHex(legacyHex, 0) : null;
+    const fallbackUrl = subject
+      ? `https://mail.google.com/mail/u/0/#search/${encodeURIComponent(`subject:"${subject}"`)}`
+      : null;
+
+    const gmailUrl = directUrl ?? fallbackUrl;
+    if (!gmailUrl) {
       toast({
         title: "No email linked",
         description: "This suggestion wasn't linked to a specific email.",
@@ -154,12 +165,7 @@ const SuggestedTasksSection = () => {
       return;
     }
 
-    // Gmail API message IDs don't work directly in web URLs.
-    // Use subject search which reliably finds the email.
-    const searchQuery = `subject:"${subject}"`;
-    const gmailUrl = `https://mail.google.com/mail/u/0/#search/${encodeURIComponent(searchQuery)}`;
     const win = window.open(gmailUrl, "_blank", "noopener,noreferrer");
-
     if (!win) {
       toast({
         title: "Couldn't open Gmail",
@@ -212,7 +218,7 @@ const SuggestedTasksSection = () => {
           <div className="space-y-3">
             {suggestions.map((suggestion) => {
               const CategoryIcon = categoryIcons[suggestion.category as keyof typeof categoryIcons] || Clock;
-              const hasEmailLink = Boolean(suggestion.email_subject?.trim());
+              const hasEmailLink = Boolean(suggestion.gmail_message_id?.trim() || suggestion.email_subject?.trim());
               
               return (
                 <div
@@ -221,13 +227,13 @@ const SuggestedTasksSection = () => {
                   tabIndex={hasEmailLink ? 0 : undefined}
                   onClick={() => {
                     if (!hasEmailLink) return;
-                    openGmailEmail(suggestion.email_subject);
+                    openGmailEmail(suggestion.gmail_message_id, suggestion.email_subject);
                   }}
                   onKeyDown={(e) => {
                     if (!hasEmailLink) return;
                     if (e.key === "Enter" || e.key === " ") {
                       e.preventDefault();
-                      openGmailEmail(suggestion.email_subject);
+                      openGmailEmail(suggestion.gmail_message_id, suggestion.email_subject);
                     }
                   }}
                   className={
@@ -266,7 +272,7 @@ const SuggestedTasksSection = () => {
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            openGmailEmail(suggestion.email_subject);
+                            openGmailEmail(suggestion.gmail_message_id, suggestion.email_subject);
                           }}
                           className="flex items-center gap-1 text-xs text-primary hover:underline mt-2"
                         >
