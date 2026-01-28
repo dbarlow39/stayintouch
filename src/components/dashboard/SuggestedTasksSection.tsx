@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Sparkles, RefreshCw, Plus, AlertCircle, Clock, Mail, CheckCircle2, Check, ExternalLink } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { gmailUrlForLegacyHex } from "@/utils/gmailDeepLink";
+import { addDays, format } from "date-fns";
 
 interface SuggestedTask {
   id: string;
@@ -22,6 +22,8 @@ interface SuggestedTask {
   gmail_message_id: string | null;
   email_subject?: string | null;
   thread_id?: string | null;
+  email_from?: string | null;
+  email_received_at?: string | null;
 }
 
 const priorityColors = {
@@ -56,7 +58,9 @@ const SuggestedTasksSection = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("suggested_tasks")
-        .select("*, client_email_logs!suggested_tasks_source_email_id_fkey(subject, thread_id)")
+        .select(
+          "*, client_email_logs!suggested_tasks_source_email_id_fkey(subject, thread_id, from_email, received_at)"
+        )
         .eq("status", "pending")
         .order("created_at", { ascending: false });
       
@@ -67,6 +71,8 @@ const SuggestedTasksSection = () => {
         ...item,
         email_subject: item.client_email_logs?.subject || null,
         thread_id: item.client_email_logs?.thread_id || null,
+        email_from: item.client_email_logs?.from_email || null,
+        email_received_at: item.client_email_logs?.received_at || null,
         client_email_logs: undefined, // Clean up the nested object
       })) as SuggestedTask[];
     },
@@ -147,35 +153,37 @@ const SuggestedTasksSection = () => {
     },
   });
 
-  const openGmailEmail = (threadId?: string | null, emailSubject?: string | null) => {
-    const legacyHex = (threadId ?? "").trim();
-    const subject = (emailSubject ?? "").trim();
+  const openGmailEmail = (suggestion: SuggestedTask) => {
+    const subject = (suggestion.email_subject ?? "").trim();
+    const fromEmail = (suggestion.email_from ?? "").trim();
+    const receivedAt = (suggestion.email_received_at ?? "").trim();
 
-    // Gmail's FMfcg... tokens use thread-f:{thread_id_decimal}, so we need the thread_id
-    // (not message_id) to open the conversation directly expanded.
-    const directUrl = legacyHex ? gmailUrlForLegacyHex(legacyHex, 0) : null;
-    
-    // Debug: show what we're generating vs expected
-    const generatedToken = directUrl?.split("/").pop() ?? "(none)";
-    console.log("=== Gmail Link Debug ===");
-    console.log("Input hex:", legacyHex);
-    console.log("Generated token:", generatedToken);
-    console.log("Expected token:", "FMfcgzQfBZhznmWvShgGNQCqGLmmtlzg");
-    console.log("Match:", generatedToken === "FMfcgzQfBZhznmWvShgGNQCqGLmmtlzg");
-    console.log("Full URL:", directUrl);
-    
-    const fallbackUrl = subject
-      ? `https://mail.google.com/mail/u/0/#search/${encodeURIComponent(`subject:"${subject}"`)}`
-      : null;
+    // Gmail deep-link tokens (FMfcg...) are not stable across accounts/rollouts.
+    // Instead, we open a targeted Gmail search using metadata we already store.
+    const parts: string[] = [];
+    if (fromEmail) parts.push(`from:${fromEmail}`);
+    if (subject) parts.push(`subject:"${subject.replace(/\"/g, "\\\"")}"`);
 
-    const gmailUrl = directUrl ?? fallbackUrl;
-    if (!gmailUrl) {
+    if (receivedAt) {
+      const d = new Date(receivedAt);
+      if (!Number.isNaN(d.getTime())) {
+        const after = format(addDays(d, -1), "yyyy/MM/dd");
+        const before = format(addDays(d, 1), "yyyy/MM/dd");
+        parts.push(`after:${after}`);
+        parts.push(`before:${before}`);
+      }
+    }
+
+    const query = parts.join(" ").trim();
+    if (!query) {
       toast({
         title: "No email linked",
         description: "This suggestion wasn't linked to a specific email.",
       });
       return;
     }
+
+    const gmailUrl = `https://mail.google.com/mail/u/0/#search/${encodeURIComponent(query)}`;
 
     const win = window.open(gmailUrl, "_blank", "noopener,noreferrer");
     if (!win) {
@@ -230,7 +238,11 @@ const SuggestedTasksSection = () => {
           <div className="space-y-3">
             {suggestions.map((suggestion) => {
               const CategoryIcon = categoryIcons[suggestion.category as keyof typeof categoryIcons] || Clock;
-              const hasEmailLink = Boolean(suggestion.thread_id?.trim() || suggestion.email_subject?.trim());
+              const hasEmailLink = Boolean(
+                suggestion.email_subject?.trim() ||
+                  suggestion.email_from?.trim() ||
+                  suggestion.email_received_at?.trim()
+              );
               
               return (
                 <div
@@ -239,13 +251,13 @@ const SuggestedTasksSection = () => {
                   tabIndex={hasEmailLink ? 0 : undefined}
                   onClick={() => {
                     if (!hasEmailLink) return;
-                    openGmailEmail(suggestion.thread_id, suggestion.email_subject);
+                    openGmailEmail(suggestion);
                   }}
                   onKeyDown={(e) => {
                     if (!hasEmailLink) return;
                     if (e.key === "Enter" || e.key === " ") {
                       e.preventDefault();
-                      openGmailEmail(suggestion.thread_id, suggestion.email_subject);
+                      openGmailEmail(suggestion);
                     }
                   }}
                   className={
@@ -284,7 +296,7 @@ const SuggestedTasksSection = () => {
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            openGmailEmail(suggestion.thread_id, suggestion.email_subject);
+                            openGmailEmail(suggestion);
                           }}
                           className="flex items-center gap-1 text-xs text-primary hover:underline mt-2"
                         >
