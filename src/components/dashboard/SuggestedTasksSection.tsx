@@ -6,25 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Sparkles, RefreshCw, Plus, AlertCircle, Clock, Mail, CheckCircle2, Check, ExternalLink } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { addDays, format } from "date-fns";
-import { gmailUrlForLegacyHex } from "@/utils/gmailDeepLink";
-interface SuggestedTask {
-  id: string;
-  title: string;
-  description: string | null;
-  priority: string;
-  category: string;
-  related_client: string | null;
-  reasoning: string | null;
-  status: string;
-  created_at: string;
-  source_email_id: string | null;
-  gmail_message_id: string | null;
-  email_subject?: string | null;
-  thread_id?: string | null;
-  email_from?: string | null;
-  email_received_at?: string | null;
-}
+import { getSuggestedTaskGmailUrl } from "@/components/dashboard/suggestedTasks/getGmailUrl";
+import type { SuggestedTask } from "@/components/dashboard/suggestedTasks/types";
 
 const priorityColors = {
   low: "bg-secondary/50 text-secondary-foreground",
@@ -156,61 +139,8 @@ const SuggestedTasksSection = () => {
   });
 
   const openGmailEmail = (suggestion: SuggestedTask) => {
-    const messageId = (suggestion.gmail_message_id ?? "").trim();
-    // Best effort: when we have the Gmail message id, this is the most reliable way
-    // to open the exact email already expanded.
-    if (messageId) {
-      const url = `https://mail.google.com/mail/#inbox/${encodeURIComponent(messageId)}`;
-      const win = window.open(url, "_blank", "noopener,noreferrer");
-      if (!win) {
-        toast({
-          title: "Couldn't open Gmail",
-          description: "Pop-ups may be blocked in the preview. Open the app in a new tab and try again.",
-          variant: "destructive",
-        });
-      }
-      return;
-    }
-
-    const threadId = (suggestion.thread_id ?? "").trim();
-    
-    // Try direct thread link first using thread_id
-    if (threadId) {
-      const directUrl = gmailUrlForLegacyHex(threadId);
-      if (directUrl) {
-        const win = window.open(directUrl, "_blank", "noopener,noreferrer");
-        if (!win) {
-          toast({
-            title: "Couldn't open Gmail",
-            description: "Pop-ups may be blocked in the preview. Open the app in a new tab and try again.",
-            variant: "destructive",
-          });
-        }
-        return;
-      }
-    }
-
-    // Fallback to search-based approach
-    const subject = (suggestion.email_subject ?? "").trim();
-    const fromEmail = (suggestion.email_from ?? "").trim();
-    const receivedAt = (suggestion.email_received_at ?? "").trim();
-
-    const parts: string[] = [];
-    if (fromEmail) parts.push(`from:${fromEmail}`);
-    if (subject) parts.push(`subject:"${subject.replace(/"/g, '\\"')}"`);
-
-    if (receivedAt) {
-      const d = new Date(receivedAt);
-      if (!Number.isNaN(d.getTime())) {
-        const after = format(addDays(d, -1), "yyyy/MM/dd");
-        const before = format(addDays(d, 1), "yyyy/MM/dd");
-        parts.push(`after:${after}`);
-        parts.push(`before:${before}`);
-      }
-    }
-
-    const query = parts.join(" ").trim();
-    if (!query) {
+    const url = getSuggestedTaskGmailUrl(suggestion);
+    if (!url) {
       toast({
         title: "No email linked",
         description: "This suggestion wasn't linked to a specific email.",
@@ -218,14 +148,18 @@ const SuggestedTasksSection = () => {
       return;
     }
 
-    const gmailUrl = `https://mail.google.com/mail/#search/${encodeURIComponent(query)}`;
-    const win = window.open(gmailUrl, "_blank", "noopener,noreferrer");
+    const win = window.open(url, "_blank", "noopener,noreferrer");
     if (!win) {
       toast({
-        title: "Couldn't open Gmail",
-        description: "Pop-ups may be blocked in the preview. Open the app in a new tab and try again.",
+        title: "Pop-ups blocked",
+        description: "Opening Gmail in this tab instead (preview limitation).",
         variant: "destructive",
       });
+
+      // Fallback for sandboxed/blocked popups: navigate in the current tab.
+      setTimeout(() => {
+        window.location.href = url;
+      }, 50);
     }
   };
 
@@ -272,13 +206,7 @@ const SuggestedTasksSection = () => {
           <div className="space-y-3">
             {suggestions.map((suggestion) => {
               const CategoryIcon = categoryIcons[suggestion.category as keyof typeof categoryIcons] || Clock;
-              const hasEmailLink = Boolean(
-                suggestion.gmail_message_id?.trim() ||
-                  suggestion.thread_id?.trim() ||
-                  suggestion.email_subject?.trim() ||
-                  suggestion.email_from?.trim() ||
-                  suggestion.email_received_at?.trim()
-              );
+              const hasEmailLink = Boolean(getSuggestedTaskGmailUrl(suggestion));
               
               return (
                 <div
