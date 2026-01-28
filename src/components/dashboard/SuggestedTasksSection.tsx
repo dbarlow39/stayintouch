@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Sparkles, RefreshCw, Plus, AlertCircle, Clock, Mail, CheckCircle2, Check, ExternalLink } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { getSuggestedTaskGmailUrl } from "@/components/dashboard/suggestedTasks/getGmailUrl";
+import { gmailNewUiTokenFromLegacyHex, gmailUrlForLegacyHex } from "@/utils/gmailDeepLink";
 import type { SuggestedTask } from "@/components/dashboard/suggestedTasks/types";
 
 const priorityColors = {
@@ -141,6 +142,49 @@ const SuggestedTasksSection = () => {
 
   const openGmailEmail = (suggestion: SuggestedTask) => {
     const url = getSuggestedTaskGmailUrl(suggestion);
+
+    // Verbose debug: only logs on click (not during render).
+    if (import.meta.env.DEV) {
+      const msgId = (suggestion.gmail_message_id ?? "").trim();
+      const threadId = (suggestion.thread_id ?? "").trim();
+      const isHex = (v: string) => /^[0-9a-f]{15,16}$/i.test(v);
+
+      const msgTokens = msgId && isHex(msgId)
+        ? {
+            thread: gmailNewUiTokenFromLegacyHex(msgId, "thread"),
+            msg: gmailNewUiTokenFromLegacyHex(msgId, "msg"),
+          }
+        : null;
+
+      const threadTokens = threadId && isHex(threadId)
+        ? {
+            thread: gmailNewUiTokenFromLegacyHex(threadId, "thread"),
+            msg: gmailNewUiTokenFromLegacyHex(threadId, "msg"),
+          }
+        : null;
+
+      // eslint-disable-next-line no-console
+      console.groupCollapsed(`[GmailLink][SuggestedTask:${suggestion.id}] ${suggestion.title}`);
+      // eslint-disable-next-line no-console
+      console.log({
+        gmail_message_id: suggestion.gmail_message_id ?? null,
+        thread_id: suggestion.thread_id ?? null,
+        email_subject: (suggestion as any).email_subject ?? null,
+        email_from: (suggestion as any).email_from ?? null,
+        email_received_at: (suggestion as any).email_received_at ?? null,
+      });
+      // eslint-disable-next-line no-console
+      console.log({
+        chosenUrl: url,
+        msgTokens,
+        threadTokens,
+        msgAutoUrl: msgId && isHex(msgId) ? gmailUrlForLegacyHex(msgId, "auto") : null,
+        threadAutoUrl: threadId && isHex(threadId) ? gmailUrlForLegacyHex(threadId, "auto") : null,
+      });
+      // eslint-disable-next-line no-console
+      console.groupEnd();
+    }
+
     if (!url) {
       toast({
         title: "No email linked",
