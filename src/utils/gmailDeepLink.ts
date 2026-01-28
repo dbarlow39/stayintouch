@@ -100,9 +100,19 @@ export function gmailNewUiTokenFromLegacyHex(
   }
 }
 
-export function gmailUrlForLegacyHex(
+function gmailBaseUrl(accountIndex?: number | null): string {
+  // When a user has multiple Google accounts signed in, Gmail routes like /mail/u/0/
+  // are the only reliable way to target the correct mailbox.
+  if (typeof accountIndex === "number" && Number.isFinite(accountIndex)) {
+    return `https://mail.google.com/mail/u/${accountIndex}/`;
+  }
+  return "https://mail.google.com/mail/";
+}
+
+export function gmailUrlForLegacyHexWithAccount(
   legacyHex: string,
-  userIndexOrKind: number | "thread" | "msg" | "auto" = 0
+  userIndexOrKind: number | "thread" | "msg" | "auto" = 0,
+  accountIndex?: number | null
 ): string | null {
   // Backwards compatibility: older callers passed a userIndex.
   if (typeof userIndexOrKind === "number") void userIndexOrKind;
@@ -117,9 +127,14 @@ export function gmailUrlForLegacyHex(
     if (token) break;
   }
   if (!token) return null;
-  // Use #all/ instead of #inbox/ since the message might be archived or in another folder.
-  // Important: avoid forcing /u/0 because users may have multiple Gmail accounts and the
-  // connected account might be /u/1 (or more), causing "conversation could not be loaded".
-  // We keep the `userIndexOrKind` number form for backwards compatibility but do not use it.
-  return `https://mail.google.com/mail/#all/${token}`;
+
+  // Use #all/ since the message might be archived or in another folder.
+  return `${gmailBaseUrl(accountIndex)}#all/${token}`;
+}
+
+export function gmailUrlForLegacyHex(
+  legacyHex: string,
+  userIndexOrKind: number | "thread" | "msg" | "auto" = 0
+): string | null {
+  return gmailUrlForLegacyHexWithAccount(legacyHex, userIndexOrKind, undefined);
 }
