@@ -80,7 +80,9 @@ export function gmailNewUiTokenFromLegacyHex(legacyHex: string): string | null {
 
   try {
     const decimal = BigInt(`0x${hex}`).toString(10);
-    const decoded = `thread-f:${decimal}`;
+    
+    // Gmail encodes just "f:{decimal}" - the decoder prepends "thread-" when decoding
+    const decoded = `f:${decimal}`;
     const b64 = base64EncodeAscii(decoded).replace(/=+$/g, "");
     const token = transform(b64, CHARSET_FULL, CHARSET_REDUCED);
     
