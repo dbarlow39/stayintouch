@@ -273,7 +273,9 @@ const SuggestedTasksSection = () => {
             {suggestions.map((suggestion) => {
               const CategoryIcon = categoryIcons[suggestion.category as keyof typeof categoryIcons] || Clock;
               const hasEmailLink = Boolean(
-                suggestion.email_subject?.trim() ||
+                suggestion.gmail_message_id?.trim() ||
+                  suggestion.thread_id?.trim() ||
+                  suggestion.email_subject?.trim() ||
                   suggestion.email_from?.trim() ||
                   suggestion.email_received_at?.trim()
               );
