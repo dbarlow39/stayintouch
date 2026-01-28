@@ -21,6 +21,7 @@ interface SuggestedTask {
   source_email_id: string | null;
   gmail_message_id: string | null;
   email_subject?: string | null;
+  thread_id?: string | null;
 }
 
 const priorityColors = {
@@ -55,16 +56,17 @@ const SuggestedTasksSection = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("suggested_tasks")
-        .select("*, client_email_logs!suggested_tasks_source_email_id_fkey(subject)")
+        .select("*, client_email_logs!suggested_tasks_source_email_id_fkey(subject, thread_id)")
         .eq("status", "pending")
         .order("created_at", { ascending: false });
       
       if (error) throw error;
       
-      // Map the joined data to include email_subject
+      // Map the joined data to include email_subject and thread_id
       return (data || []).map((item: any) => ({
         ...item,
         email_subject: item.client_email_logs?.subject || null,
+        thread_id: item.client_email_logs?.thread_id || null,
         client_email_logs: undefined, // Clean up the nested object
       })) as SuggestedTask[];
     },
@@ -145,12 +147,12 @@ const SuggestedTasksSection = () => {
     },
   });
 
-  const openGmailEmail = (gmailMessageId?: string | null, emailSubject?: string | null) => {
-    const legacyHex = (gmailMessageId ?? "").trim();
+  const openGmailEmail = (threadId?: string | null, emailSubject?: string | null) => {
+    const legacyHex = (threadId ?? "").trim();
     const subject = (emailSubject ?? "").trim();
 
-    // Best case: generate the Gmail new-UI token (FMfcg...) from our stored hex ID
-    // so Gmail opens the message already expanded.
+    // Gmail's FMfcg... tokens use thread-f:{thread_id_decimal}, so we need the thread_id
+    // (not message_id) to open the conversation directly expanded.
     const directUrl = legacyHex ? gmailUrlForLegacyHex(legacyHex, 0) : null;
     const fallbackUrl = subject
       ? `https://mail.google.com/mail/u/0/#search/${encodeURIComponent(`subject:"${subject}"`)}`
@@ -218,7 +220,7 @@ const SuggestedTasksSection = () => {
           <div className="space-y-3">
             {suggestions.map((suggestion) => {
               const CategoryIcon = categoryIcons[suggestion.category as keyof typeof categoryIcons] || Clock;
-              const hasEmailLink = Boolean(suggestion.gmail_message_id?.trim() || suggestion.email_subject?.trim());
+              const hasEmailLink = Boolean(suggestion.thread_id?.trim() || suggestion.email_subject?.trim());
               
               return (
                 <div
@@ -227,13 +229,13 @@ const SuggestedTasksSection = () => {
                   tabIndex={hasEmailLink ? 0 : undefined}
                   onClick={() => {
                     if (!hasEmailLink) return;
-                    openGmailEmail(suggestion.gmail_message_id, suggestion.email_subject);
+                    openGmailEmail(suggestion.thread_id, suggestion.email_subject);
                   }}
                   onKeyDown={(e) => {
                     if (!hasEmailLink) return;
                     if (e.key === "Enter" || e.key === " ") {
                       e.preventDefault();
-                      openGmailEmail(suggestion.gmail_message_id, suggestion.email_subject);
+                      openGmailEmail(suggestion.thread_id, suggestion.email_subject);
                     }
                   }}
                   className={
@@ -272,7 +274,7 @@ const SuggestedTasksSection = () => {
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            openGmailEmail(suggestion.gmail_message_id, suggestion.email_subject);
+                            openGmailEmail(suggestion.thread_id, suggestion.email_subject);
                           }}
                           className="flex items-center gap-1 text-xs text-primary hover:underline mt-2"
                         >
