@@ -154,6 +154,9 @@ const SuggestedTasksSection = () => {
     // Gmail's FMfcg... tokens use thread-f:{thread_id_decimal}, so we need the thread_id
     // (not message_id) to open the conversation directly expanded.
     const directUrl = legacyHex ? gmailUrlForLegacyHex(legacyHex, 0) : null;
+    
+    // Debug: log the conversion result
+    console.log("[Gmail Link Debug]", { threadId: legacyHex, generatedUrl: directUrl, expectedToken: "FMfcgzQfBZhznmWvShgGNQCqGLmmtlzg" });
     const fallbackUrl = subject
       ? `https://mail.google.com/mail/u/0/#search/${encodeURIComponent(`subject:"${subject}"`)}`
       : null;
