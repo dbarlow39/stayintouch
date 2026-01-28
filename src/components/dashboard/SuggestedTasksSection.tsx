@@ -155,8 +155,15 @@ const SuggestedTasksSection = () => {
     // (not message_id) to open the conversation directly expanded.
     const directUrl = legacyHex ? gmailUrlForLegacyHex(legacyHex, 0) : null;
     
-    // Debug: log the conversion result
-    console.log("[Gmail Link Debug]", { threadId: legacyHex, generatedUrl: directUrl, expectedToken: "FMfcgzQfBZhznmWvShgGNQCqGLmmtlzg" });
+    // Debug: show what we're generating vs expected
+    const generatedToken = directUrl?.split("/").pop() ?? "(none)";
+    console.log("=== Gmail Link Debug ===");
+    console.log("Input hex:", legacyHex);
+    console.log("Generated token:", generatedToken);
+    console.log("Expected token:", "FMfcgzQfBZhznmWvShgGNQCqGLmmtlzg");
+    console.log("Match:", generatedToken === "FMfcgzQfBZhznmWvShgGNQCqGLmmtlzg");
+    console.log("Full URL:", directUrl);
+    
     const fallbackUrl = subject
       ? `https://mail.google.com/mail/u/0/#search/${encodeURIComponent(`subject:"${subject}"`)}`
       : null;
