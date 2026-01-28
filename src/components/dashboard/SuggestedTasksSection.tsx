@@ -5,11 +5,12 @@ import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Sparkles, RefreshCw, Plus, AlertCircle, Clock, Mail, CheckCircle2, Check, ExternalLink } from "lucide-react";
+import { Sparkles, RefreshCw, Plus, AlertCircle, Clock, Mail, CheckCircle2, Check } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { getSuggestedTaskGmailUrl } from "@/components/dashboard/suggestedTasks/getGmailUrl";
+import { getSuggestedTaskGmailSearchUrl, getSuggestedTaskGmailUrl } from "@/components/dashboard/suggestedTasks/getGmailUrl";
 import { gmailNewUiTokenFromLegacyHex, gmailUrlForLegacyHex } from "@/utils/gmailDeepLink";
 import type { SuggestedTask } from "@/components/dashboard/suggestedTasks/types";
+import { GmailOpenMenu } from "@/components/dashboard/suggestedTasks/GmailOpenMenu";
 
 const priorityColors = {
   low: "bg-secondary/50 text-secondary-foreground",
@@ -140,8 +141,14 @@ const SuggestedTasksSection = () => {
     },
   });
 
-  const openGmailEmail = (suggestion: SuggestedTask) => {
-    const url = getSuggestedTaskGmailUrl(suggestion);
+  const openGmailEmail = (
+    suggestion: SuggestedTask,
+    opts: { accountIndex: number | null; mode: "direct" | "search" } = { accountIndex: 0, mode: "direct" }
+  ) => {
+    const url =
+      opts.mode === "search"
+        ? getSuggestedTaskGmailSearchUrl(suggestion, { accountIndex: opts.accountIndex })
+        : getSuggestedTaskGmailUrl(suggestion, { accountIndex: opts.accountIndex });
 
     // Verbose debug: only logs on click (not during render).
     if (import.meta.env.DEV) {
@@ -176,6 +183,7 @@ const SuggestedTasksSection = () => {
       // eslint-disable-next-line no-console
       console.log({
         chosenUrl: url,
+        chosenMode: opts,
         msgTokens,
         threadTokens,
         msgAutoUrl: msgId && isHex(msgId) ? gmailUrlForLegacyHex(msgId, "auto") : null,
@@ -283,15 +291,15 @@ const SuggestedTasksSection = () => {
                   key={suggestion.id}
                   role={hasEmailLink ? "button" : undefined}
                   tabIndex={hasEmailLink ? 0 : undefined}
-                  onClick={() => {
+                   onClick={() => {
                     if (!hasEmailLink) return;
-                    openGmailEmail(suggestion);
+                     openGmailEmail(suggestion, { accountIndex: 0, mode: "direct" });
                   }}
                   onKeyDown={(e) => {
                     if (!hasEmailLink) return;
                     if (e.key === "Enter" || e.key === " ") {
                       e.preventDefault();
-                      openGmailEmail(suggestion);
+                       openGmailEmail(suggestion, { accountIndex: 0, mode: "direct" });
                     }
                   }}
                   className={
@@ -326,18 +334,13 @@ const SuggestedTasksSection = () => {
                           {suggestion.reasoning}
                         </p>
                       )}
-                      {hasEmailLink && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            openGmailEmail(suggestion);
-                          }}
-                          className="flex items-center gap-1 text-xs text-primary hover:underline mt-2"
-                        >
-                          <ExternalLink className="w-3 h-3" />
-                          Open in Gmail
-                        </button>
-                      )}
+                       {hasEmailLink && (
+                         <div className="mt-2">
+                           <GmailOpenMenu
+                             onOpen={(o) => openGmailEmail(suggestion, o)}
+                           />
+                         </div>
+                       )}
                     </div>
                     <div className="flex gap-1 shrink-0">
                       <Button
