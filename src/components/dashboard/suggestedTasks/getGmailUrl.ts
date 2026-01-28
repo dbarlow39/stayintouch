@@ -14,15 +14,11 @@ export function getSuggestedTaskGmailUrl(suggestion: SuggestedTask): string | nu
     // Check if it's a hex ID (Gmail API format) vs already a new-UI token
     const isHexId = /^[0-9a-f]{15,16}$/i.test(messageId);
     if (isHexId) {
-      // If this is actually a message-id, msg-f links tend to work better.
-      // If it's a thread-id, thread-f is usually the right choice.
-      // We can't reliably distinguish, so try msg first (when using messageId)
-      // then fall back to thread.
-      const msgUrl = gmailUrlForLegacyHex(messageId, "msg");
-      if (msgUrl) return msgUrl;
-
-      const threadUrl = gmailUrlForLegacyHex(messageId, "thread");
-      if (threadUrl) return threadUrl;
+      // We can't reliably distinguish message-id vs thread-id just from the hex.
+      // Use auto mode: prefer thread token first (generally best for opening the conversation),
+      // then fall back to msg.
+      const url = gmailUrlForLegacyHex(messageId, "auto");
+      if (url) return url;
     } else {
       // Already a new-UI token format (e.g., "FMfcgz...")
       return `https://mail.google.com/mail/#all/${encodeURIComponent(messageId)}`;
@@ -31,13 +27,9 @@ export function getSuggestedTaskGmailUrl(suggestion: SuggestedTask): string | nu
 
   const threadId = (suggestion.thread_id ?? "").trim();
   if (threadId) {
-    // For explicit thread ids, prefer thread-f.
-    const directUrl = gmailUrlForLegacyHex(threadId, "thread");
+    // Prefer thread token, but allow msg fallback when stored data is inconsistent.
+    const directUrl = gmailUrlForLegacyHex(threadId, "auto");
     if (directUrl) return directUrl;
-
-    // Best-effort fallback: in case the stored value is actually a message id.
-    const msgFallback = gmailUrlForLegacyHex(threadId, "msg");
-    if (msgFallback) return msgFallback;
   }
 
   const subject = (suggestion.email_subject ?? "").trim();
