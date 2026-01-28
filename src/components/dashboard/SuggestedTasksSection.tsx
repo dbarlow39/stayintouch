@@ -19,6 +19,7 @@ interface SuggestedTask {
   created_at: string;
   source_email_id: string | null;
   gmail_message_id: string | null;
+  email_subject?: string | null;
 }
 
 const priorityColors = {
@@ -47,18 +48,24 @@ const SuggestedTasksSection = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Fetch persisted suggestions from the database
+  // Fetch persisted suggestions from the database with email subject for Gmail links
   const { data: suggestions, isLoading } = useQuery({
     queryKey: ["suggested-tasks", user?.id],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("suggested_tasks")
-        .select("*")
+        .select("*, client_email_logs!suggested_tasks_source_email_id_fkey(subject)")
         .eq("status", "pending")
         .order("created_at", { ascending: false });
       
       if (error) throw error;
-      return data as SuggestedTask[];
+      
+      // Map the joined data to include email_subject
+      return (data || []).map((item: any) => ({
+        ...item,
+        email_subject: item.client_email_logs?.subject || null,
+        client_email_logs: undefined, // Clean up the nested object
+      })) as SuggestedTask[];
     },
     enabled: !!user,
   });
@@ -137,20 +144,20 @@ const SuggestedTasksSection = () => {
     },
   });
 
-  const openGmailEmail = (gmailMessageId?: string | null) => {
-    const id = (gmailMessageId ?? "").trim();
-    if (!id) {
+  const openGmailEmail = (emailSubject?: string | null) => {
+    const subject = (emailSubject ?? "").trim();
+    if (!subject) {
       toast({
         title: "No email linked",
-        description: "This suggestion wasn't linked to a specific Gmail message.",
+        description: "This suggestion wasn't linked to a specific email.",
       });
       return;
     }
 
-    // Gmail API returns hex message IDs, but the web UI uses a different format.
-    // Using the rfc822msgid search is the most reliable way to find a specific message.
-    // Format: #search/rfc822msgid:<message_id>
-    const gmailUrl = `https://mail.google.com/mail/u/0/#search/rfc822msgid%3A${encodeURIComponent(id)}`;
+    // Gmail API message IDs don't work directly in web URLs.
+    // Use subject search which reliably finds the email.
+    const searchQuery = `subject:"${subject}"`;
+    const gmailUrl = `https://mail.google.com/mail/u/0/#search/${encodeURIComponent(searchQuery)}`;
     const win = window.open(gmailUrl, "_blank", "noopener,noreferrer");
 
     if (!win) {
@@ -205,27 +212,27 @@ const SuggestedTasksSection = () => {
           <div className="space-y-3">
             {suggestions.map((suggestion) => {
               const CategoryIcon = categoryIcons[suggestion.category as keyof typeof categoryIcons] || Clock;
-              const hasGmailLink = Boolean(suggestion.gmail_message_id?.trim());
+              const hasEmailLink = Boolean(suggestion.email_subject?.trim());
               
               return (
                 <div
                   key={suggestion.id}
-                  role={hasGmailLink ? "button" : undefined}
-                  tabIndex={hasGmailLink ? 0 : undefined}
+                  role={hasEmailLink ? "button" : undefined}
+                  tabIndex={hasEmailLink ? 0 : undefined}
                   onClick={() => {
-                    if (!hasGmailLink) return;
-                    openGmailEmail(suggestion.gmail_message_id!);
+                    if (!hasEmailLink) return;
+                    openGmailEmail(suggestion.email_subject);
                   }}
                   onKeyDown={(e) => {
-                    if (!hasGmailLink) return;
+                    if (!hasEmailLink) return;
                     if (e.key === "Enter" || e.key === " ") {
                       e.preventDefault();
-                      openGmailEmail(suggestion.gmail_message_id!);
+                      openGmailEmail(suggestion.email_subject);
                     }
                   }}
                   className={
                     `p-3 border rounded-lg bg-card hover:border-primary/30 transition-all ` +
-                    (hasGmailLink ? "cursor-pointer focus:outline-none focus:ring-2 focus:ring-ring" : "")
+                    (hasEmailLink ? "cursor-pointer focus:outline-none focus:ring-2 focus:ring-ring" : "")
                   }
                 >
                   <div className="flex items-start justify-between gap-3">
@@ -255,11 +262,11 @@ const SuggestedTasksSection = () => {
                           {suggestion.reasoning}
                         </p>
                       )}
-                      {suggestion.gmail_message_id && (
+                      {hasEmailLink && (
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            openGmailEmail(suggestion.gmail_message_id!);
+                            openGmailEmail(suggestion.email_subject);
                           }}
                           className="flex items-center gap-1 text-xs text-primary hover:underline mt-2"
                         >
