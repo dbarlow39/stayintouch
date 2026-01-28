@@ -73,14 +73,29 @@ function base64EncodeAscii(input: string): string {
  */
 export function gmailNewUiTokenFromLegacyHex(legacyHex: string): string | null {
   const hex = (legacyHex ?? "").trim();
-  if (!/^[0-9a-f]{15,16}$/i.test(hex)) return null;
+  if (!/^[0-9a-f]{15,16}$/i.test(hex)) {
+    console.log("[Gmail Token] Invalid hex format:", hex);
+    return null;
+  }
 
   try {
     const decimal = BigInt(`0x${hex}`).toString(10);
     const decoded = `thread-f:${decimal}`;
     const b64 = base64EncodeAscii(decoded).replace(/=+$/g, "");
-    return transform(b64, CHARSET_FULL, CHARSET_REDUCED);
-  } catch {
+    const token = transform(b64, CHARSET_FULL, CHARSET_REDUCED);
+    
+    console.log("[Gmail Token Debug]");
+    console.log("  Input hex:", hex);
+    console.log("  Decimal:", decimal);
+    console.log("  Decoded string:", decoded);
+    console.log("  Base64:", b64);
+    console.log("  Final token:", token);
+    console.log("  Expected:", "FMfcgzQfBZhznmWvShgGNQCqGLmmtlzg");
+    console.log("  Match:", token === "FMfcgzQfBZhznmWvShgGNQCqGLmmtlzg");
+    
+    return token;
+  } catch (e) {
+    console.error("[Gmail Token] Error:", e);
     return null;
   }
 }
