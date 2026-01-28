@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Sparkles, RefreshCw, Plus, AlertCircle, Clock, Mail, CheckCircle2, Check, ExternalLink } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { addDays, format } from "date-fns";
-
+import { gmailUrlForLegacyHex } from "@/utils/gmailDeepLink";
 interface SuggestedTask {
   id: string;
   title: string;
@@ -154,15 +154,32 @@ const SuggestedTasksSection = () => {
   });
 
   const openGmailEmail = (suggestion: SuggestedTask) => {
+    const threadId = (suggestion.thread_id ?? "").trim();
+    
+    // Try direct thread link first using thread_id
+    if (threadId) {
+      const directUrl = gmailUrlForLegacyHex(threadId);
+      if (directUrl) {
+        const win = window.open(directUrl, "_blank", "noopener,noreferrer");
+        if (!win) {
+          toast({
+            title: "Couldn't open Gmail",
+            description: "Pop-ups may be blocked in the preview. Open the app in a new tab and try again.",
+            variant: "destructive",
+          });
+        }
+        return;
+      }
+    }
+
+    // Fallback to search-based approach
     const subject = (suggestion.email_subject ?? "").trim();
     const fromEmail = (suggestion.email_from ?? "").trim();
     const receivedAt = (suggestion.email_received_at ?? "").trim();
 
-    // Gmail deep-link tokens (FMfcg...) are not stable across accounts/rollouts.
-    // Instead, we open a targeted Gmail search using metadata we already store.
     const parts: string[] = [];
     if (fromEmail) parts.push(`from:${fromEmail}`);
-    if (subject) parts.push(`subject:"${subject.replace(/\"/g, "\\\"")}"`);
+    if (subject) parts.push(`subject:"${subject.replace(/"/g, '\\"')}"`);
 
     if (receivedAt) {
       const d = new Date(receivedAt);
@@ -184,7 +201,6 @@ const SuggestedTasksSection = () => {
     }
 
     const gmailUrl = `https://mail.google.com/mail/u/0/#search/${encodeURIComponent(query)}`;
-
     const win = window.open(gmailUrl, "_blank", "noopener,noreferrer");
     if (!win) {
       toast({
