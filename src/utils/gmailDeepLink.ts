@@ -69,9 +69,19 @@ function base64EncodeAscii(input: string): string {
 
 /**
  * Convert a legacy Gmail view token (hex from Gmail API, e.g. `19c01b...`) into
- * a Gmail new UI view token (e.g. `FMfcgz...`) usable in `#inbox/{token}`.
+ * a Gmail new UI view token (e.g. `FMfcgz...`) usable in `#all/{token}`.
+ *
+ * IMPORTANT:
+ * - Gmail exposes both message IDs and thread IDs as 15–16 char hex strings.
+ * - Deep-link tokens sometimes differ depending on whether you have a message-id
+ *   or a thread-id.
+ *
+ * We allow callers to choose the prefix and keep `thread` as the default.
  */
-export function gmailNewUiTokenFromLegacyHex(legacyHex: string): string | null {
+export function gmailNewUiTokenFromLegacyHex(
+  legacyHex: string,
+  kind: "thread" | "msg" = "thread"
+): string | null {
   const hex = (legacyHex ?? "").trim();
   if (!/^[0-9a-f]{15,16}$/i.test(hex)) return null;
 
@@ -79,8 +89,10 @@ export function gmailNewUiTokenFromLegacyHex(legacyHex: string): string | null {
     const decimal = BigInt(`0x${hex}`).toString(10);
 
     // Best-effort: Gmail token formats are not guaranteed stable across rollouts.
-    // This matches the common "thread-f:{decimal}" form described by ArsenalRecon.
-    const decoded = `thread-f:${decimal}`;
+    // Common forms include:
+    // - thread-f:{decimal}
+    // - msg-f:{decimal}
+    const decoded = `${kind === "msg" ? "msg-f" : "thread-f"}:${decimal}`;
     const b64 = base64EncodeAscii(decoded).replace(/=+$/g, "");
     return transform(b64, CHARSET_FULL, CHARSET_REDUCED);
   } catch {
@@ -88,13 +100,26 @@ export function gmailNewUiTokenFromLegacyHex(legacyHex: string): string | null {
   }
 }
 
-export function gmailUrlForLegacyHex(legacyHex: string, userIndex = 0): string | null {
-  const token = gmailNewUiTokenFromLegacyHex(legacyHex);
+export function gmailUrlForLegacyHex(
+  legacyHex: string,
+  userIndexOrKind: number | "thread" | "msg" | "auto" = 0
+): string | null {
+  // Backwards compatibility: older callers passed a userIndex.
+  if (typeof userIndexOrKind === "number") void userIndexOrKind;
+
+  const kind = typeof userIndexOrKind === "string" ? userIndexOrKind : "thread";
+  const kindsToTry: Array<"thread" | "msg"> =
+    kind === "auto" ? ["thread", "msg"] : [kind];
+
+  let token: string | null = null;
+  for (const k of kindsToTry) {
+    token = gmailNewUiTokenFromLegacyHex(legacyHex, k);
+    if (token) break;
+  }
   if (!token) return null;
   // Use #all/ instead of #inbox/ since the message might be archived or in another folder.
   // Important: avoid forcing /u/0 because users may have multiple Gmail accounts and the
   // connected account might be /u/1 (or more), causing "conversation could not be loaded".
-  // We keep the `userIndex` param for backwards compatibility but do not use it.
-  void userIndex;
+  // We keep the `userIndexOrKind` number form for backwards compatibility but do not use it.
   return `https://mail.google.com/mail/#all/${token}`;
 }
