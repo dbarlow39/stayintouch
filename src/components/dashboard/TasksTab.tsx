@@ -9,11 +9,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle2, Circle, Clock, Plus, Check } from "lucide-react";
+import { CheckCircle2, Circle, Clock, Plus, Check, Mail } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth";
 import SuggestedTasksSection from "./SuggestedTasksSection";
 import ArchivedTasksDialog from "./ArchivedTasksDialog";
+
+// Generate Gmail search URL from task title
+const getGmailSearchUrl = (taskTitle: string): string => {
+  // Extract potential client name or key terms from task title
+  const searchQuery = encodeURIComponent(taskTitle);
+  return `https://mail.google.com/mail/u/0/#search/${searchQuery}`;
+};
 
 interface Task {
   id: string;
@@ -233,13 +240,23 @@ const TasksTab = () => {
                   </TableHeader>
                   <TableBody>
                     {pendingTasks.map((task) => (
-                      <TableRow key={task.id}>
+                      <TableRow 
+                        key={task.id}
+                        className="cursor-pointer hover:bg-muted/50"
+                        onClick={() => {
+                          const url = getGmailSearchUrl(task.title);
+                          window.open(url, "_blank", "noopener,noreferrer");
+                        }}
+                      >
                         <TableCell>
-                          <div>
-                            <p className="font-medium">{task.title}</p>
-                            {task.description && (
-                              <p className="text-sm text-muted-foreground line-clamp-1">{task.description}</p>
-                            )}
+                          <div className="flex items-start gap-2">
+                            <Mail className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
+                            <div>
+                              <p className="font-medium">{task.title}</p>
+                              {task.description && (
+                                <p className="text-sm text-muted-foreground line-clamp-1">{task.description}</p>
+                              )}
+                            </div>
                           </div>
                         </TableCell>
                         <TableCell>
@@ -263,7 +280,10 @@ const TasksTab = () => {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => archiveTaskMutation.mutate(task.id)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              archiveTaskMutation.mutate(task.id);
+                            }}
                           >
                             <Check className="w-4 h-4 mr-1" />
                             Done
