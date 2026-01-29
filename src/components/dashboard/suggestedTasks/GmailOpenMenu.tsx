@@ -18,7 +18,7 @@ export function GmailOpenMenu({ onOpen }: Props) {
         className="h-auto p-0 text-xs text-primary hover:bg-transparent hover:underline"
         onClick={(e) => {
           e.stopPropagation();
-          onOpen({ accountIndex: null, mode: "direct" });
+          onOpen({ accountIndex: 0, mode: "direct" });
         }}
       >
         <ExternalLink className="h-3 w-3 mr-1" />
@@ -32,7 +32,7 @@ export function GmailOpenMenu({ onOpen }: Props) {
         className="h-auto p-0 text-xs text-muted-foreground hover:bg-transparent hover:underline hover:text-primary"
         onClick={(e) => {
           e.stopPropagation();
-          onOpen({ accountIndex: null, mode: "search" });
+          onOpen({ accountIndex: 0, mode: "search" });
         }}
       >
         <Search className="h-3 w-3 mr-1" />
