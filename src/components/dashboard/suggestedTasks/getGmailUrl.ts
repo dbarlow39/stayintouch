@@ -59,42 +59,36 @@ export function getSuggestedTaskGmailUrl(
   suggestion: SuggestedTask,
   opts: GmailUrlOptions = { accountIndex: 0 }
 ): string | null {
-  // Try message ID first (more specific), then thread ID
   const messageId = (suggestion.gmail_message_id ?? "").trim();
   if (messageId) {
-    // Prefer Gmail new-UI token deep links; fall back to direct inbox links.
     if (isLegacyHexId(messageId)) {
-      // Gmail uses thread tokens (FMfcgz...) for deep links, not message tokens.
+      // Try thread token first
       const threadUrl = asNewUiTokenUrl(messageId, "thread", opts.accountIndex);
       if (threadUrl) return threadUrl;
-
-      // Fallback to msg token if thread fails
+      
+      // Try message token
       const msgUrl = asNewUiTokenUrl(messageId, "msg", opts.accountIndex);
       if (msgUrl) return msgUrl;
-
-      return `${gmailBaseUrl(opts.accountIndex)}#inbox/${messageId}`;
+    } else {
+      // Already a token, use it directly
+      return `${gmailBaseUrl(opts.accountIndex)}#all/${encodeURIComponent(messageId)}`;
     }
-
-    // If it's already a Gmail new-UI token, use it directly.
-    return `${gmailBaseUrl(opts.accountIndex)}#all/${encodeURIComponent(messageId)}`;
   }
-
+  
   const threadId = (suggestion.thread_id ?? "").trim();
   if (threadId) {
     if (isLegacyHexId(threadId)) {
-      // Thread ids should deep-link as threads first.
       const threadUrl = asNewUiTokenUrl(threadId, "thread", opts.accountIndex);
       if (threadUrl) return threadUrl;
-
+      
       const msgUrl = asNewUiTokenUrl(threadId, "msg", opts.accountIndex);
       if (msgUrl) return msgUrl;
-
-      return `${gmailBaseUrl(opts.accountIndex)}#inbox/${threadId}`;
+    } else {
+      return `${gmailBaseUrl(opts.accountIndex)}#all/${encodeURIComponent(threadId)}`;
     }
-
-    return `${gmailBaseUrl(opts.accountIndex)}#all/${encodeURIComponent(threadId)}`;
   }
-
+  
+  // Use search as final fallback
   return buildSearchUrl(suggestion, opts);
 }
 
