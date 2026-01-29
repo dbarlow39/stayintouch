@@ -164,7 +164,6 @@ serve(async (req) => {
 
 **STRICT FILTERING - IGNORE THESE COMPLETELY:**
 - Personal financial emails (PayPal, bank statements, credit cards, subscriptions)
-- Voicemail transcription notifications (Vonage, Google Voice, etc.)
 - Missed call notifications (unless from a known client)
 - Marketing/promotional emails (CE courses, newsletters, webinars, industry events)
 - Automated system notifications (calendar reminders, password resets)
@@ -179,6 +178,7 @@ serve(async (req) => {
 - ShowingTime feedback ONLY if buyer is "Very Interested" or feedback is clearly positive (e.g., wants to make an offer, loved the property)
 - dotloop/DocuSign documents needing review or signature
 - Urgent client questions or concerns
+- **Voicemail notifications** (Vonage, Google Voice, etc.) - these often contain client messages that need follow-up
 
 Focus on these categories:
 
