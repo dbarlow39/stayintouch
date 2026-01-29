@@ -77,7 +77,7 @@ function asNewUiTokenUrl(
  */
 export function getSuggestedTaskGmailUrl(
   suggestion: SuggestedTask,
-  opts: GmailUrlOptions = { accountIndex: 0 }
+  opts: GmailUrlOptions = { accountIndex: null }
 ): string | null {
   // Most reliable: use a search URL (mirrors what Gmail ends up doing in many cases).
   // This avoids blank pages when token links don't resolve for certain message/thread IDs.
@@ -119,7 +119,7 @@ export function getSuggestedTaskGmailUrl(
 /** Always returns a Gmail search URL when we have enough metadata. */
 export function getSuggestedTaskGmailSearchUrl(
   suggestion: SuggestedTask,
-  opts: GmailUrlOptions = { accountIndex: 0 }
+  opts: GmailUrlOptions = { accountIndex: null }
 ): string | null {
   return buildSearchUrl(suggestion, opts);
 }
