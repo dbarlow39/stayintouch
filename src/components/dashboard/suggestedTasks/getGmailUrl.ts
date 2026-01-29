@@ -21,11 +21,18 @@ function buildSearchUrl(suggestion: SuggestedTask, opts?: GmailUrlOptions): stri
 
   const parts: string[] = [];
   
-  // Extract email address from "Name (via service)" <email@domain.com> format
+  // Extract both display name and actual email for ShowingTime compatibility
   if (fromEmail) {
     const emailMatch = fromEmail.match(/<([^>]+)>/);
-    const cleanEmail = emailMatch ? emailMatch[1] : fromEmail;
-    parts.push(`from:${cleanEmail}`);
+    const displayMatch = fromEmail.match(/^"?([^"<]+)"?\s*</);
+    
+    if (emailMatch && displayMatch) {
+      // Has both - search for either one
+      parts.push(`(from:${emailMatch[1]} OR from:${displayMatch[1].trim()})`);
+    } else {
+      const cleanEmail = emailMatch ? emailMatch[1] : fromEmail;
+      parts.push(`from:${cleanEmail}`);
+    }
   }
   
   // Extract property address or distinctive keywords from subject
