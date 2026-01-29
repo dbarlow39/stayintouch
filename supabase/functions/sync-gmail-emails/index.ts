@@ -591,7 +591,24 @@ async function syncAgentEmails(
     const toEmail = getHeader("To");
     const ccEmail = getHeader("Cc");
     const subject = getHeader("Subject");
-    const receivedAt = new Date(parseInt(msg.internalDate)).toISOString();
+    
+    // Parse the email's actual date from Gmail API
+    // Gmail internalDate is milliseconds since epoch as a string
+    // Also check for Date header as fallback
+    let receivedAt: string;
+    if (msg.internalDate) {
+      const timestamp = parseInt(msg.internalDate, 10);
+      receivedAt = new Date(timestamp).toISOString();
+      // Log for debugging date issues
+      if (subject.includes("Royal Oak") || subject.includes("dotloop")) {
+        console.log(`[DATE DEBUG] Message "${subject.substring(0, 50)}..." - internalDate: ${msg.internalDate}, parsed: ${receivedAt}`);
+      }
+    } else {
+      // Fallback to Date header if internalDate not present
+      const dateHeader = getHeader("Date");
+      receivedAt = dateHeader ? new Date(dateHeader).toISOString() : new Date().toISOString();
+      console.log(`[DATE DEBUG] No internalDate for "${subject.substring(0, 50)}...", using Date header: ${dateHeader}, parsed: ${receivedAt}`);
+    }
 
     // Extract email address from "Name <email>" format
     const extractEmail = (str: string) => {
