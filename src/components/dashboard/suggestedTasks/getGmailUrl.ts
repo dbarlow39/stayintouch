@@ -28,13 +28,37 @@ function buildSearchUrl(suggestion: SuggestedTask, opts?: GmailUrlOptions): stri
     parts.push(`from:${cleanEmail}`);
   }
   
-  if (subject) parts.push(`subject:"${subject.replace(/"/g, '\\"')}"`);
+  // Extract property address or distinctive keywords from subject
+  if (subject) {
+    // Look for address pattern (number + street name)
+    const addressMatch = subject.match(/\b\d+\s+[A-Za-z\s]+(?:Dr|Drive|St|Street|Ave|Avenue|Rd|Road|Ln|Lane|Ct|Court|Way|Blvd|Boulevard)\b/i);
+    if (addressMatch) {
+      // Found an address - use it for flexible matching (shows all emails about this property)
+      parts.push(addressMatch[0]);
+    } else {
+      // No address found - extract distinctive keywords
+      const keywords = subject
+        .replace(/^(re:|fwd?:|RE:|FWD?:)\s*/gi, '')
+        .split(/\s+/)
+        .filter(word => 
+          word.length > 3 && 
+          !/^(please|review|documents?|for|the|and|with|has|signed|from|via)$/i.test(word)
+        )
+        .slice(0, 5) // Take up to 5 distinctive words
+        .join(' ');
+      
+      if (keywords) {
+        parts.push(keywords);
+      }
+    }
+  }
 
+  // Add date to narrow down results (wider range for more tolerance)
   if (receivedAt) {
     const d = new Date(receivedAt);
     if (!Number.isNaN(d.getTime())) {
-      const after = format(addDays(d, -1), "yyyy/MM/dd");
-      const before = format(addDays(d, 1), "yyyy/MM/dd");
+      const after = format(addDays(d, -3), "yyyy/MM/dd");
+      const before = format(addDays(d, 3), "yyyy/MM/dd");
       parts.push(`after:${after}`);
       parts.push(`before:${before}`);
     }

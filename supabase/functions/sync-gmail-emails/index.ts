@@ -288,7 +288,7 @@ async function syncAgentEmails(
     async ({ id, isShowingTime }) => {
       const msgUrl = isShowingTime
         ? `https://gmail.googleapis.com/gmail/v1/users/me/messages/${id}?format=full`
-        : `https://gmail.googleapis.com/gmail/v1/users/me/messages/${id}?format=metadata&metadataHeaders=From&metadataHeaders=To&metadataHeaders=Cc&metadataHeaders=Subject&metadataHeaders=Date`;
+        : `https://gmail.googleapis.com/gmail/v1/users/me/messages/${id}?format=full`;
 
       const msgResponse = await fetch(msgUrl, {
         headers: { Authorization: `Bearer ${accessToken}` },
