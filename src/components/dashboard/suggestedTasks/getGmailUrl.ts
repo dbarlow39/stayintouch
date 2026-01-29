@@ -53,17 +53,6 @@ function buildSearchUrl(suggestion: SuggestedTask, opts?: GmailUrlOptions): stri
     }
   }
 
-  // Add date to narrow down results (wider range for more tolerance)
-  if (receivedAt) {
-    const d = new Date(receivedAt);
-    if (!Number.isNaN(d.getTime())) {
-      const after = format(addDays(d, -3), "yyyy/MM/dd");
-      const before = format(addDays(d, 3), "yyyy/MM/dd");
-      parts.push(`after:${after}`);
-      parts.push(`before:${before}`);
-    }
-  }
-
   const query = parts.join(" ").trim();
   if (!query) return null;
   return `${gmailBaseUrl(opts?.accountIndex)}#search/${encodeURIComponent(query)}`;
