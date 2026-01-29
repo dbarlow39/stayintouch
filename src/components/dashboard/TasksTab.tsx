@@ -234,6 +234,7 @@ const TasksTab = () => {
                     <TableRow>
                       <TableHead>Task</TableHead>
                       <TableHead>Priority</TableHead>
+                      <TableHead>Received</TableHead>
                       <TableHead>Due Date</TableHead>
                       <TableHead className="w-24">Action</TableHead>
                     </TableRow>
@@ -263,6 +264,14 @@ const TasksTab = () => {
                           <Badge className={priorityColors[task.priority as keyof typeof priorityColors]}>
                             {task.priority}
                           </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="text-sm">
+                            {new Date(task.created_at).toLocaleDateString()}
+                            <span className="text-xs text-muted-foreground ml-1">
+                              {new Date(task.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                          </div>
                         </TableCell>
                         <TableCell>
                           {task.due_date ? (
