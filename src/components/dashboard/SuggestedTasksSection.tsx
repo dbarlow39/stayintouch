@@ -310,6 +310,11 @@ const SuggestedTasksSection = () => {
                             • {suggestion.related_client}
                           </span>
                         )}
+                        {suggestion.email_from && (
+                          <span className="text-xs text-muted-foreground">
+                            • {suggestion.email_from}
+                          </span>
+                        )}
                         {suggestion.email_received_at && (
                           <span className="text-xs text-muted-foreground">
                             • {new Date(suggestion.email_received_at).toLocaleDateString()} {new Date(suggestion.email_received_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
