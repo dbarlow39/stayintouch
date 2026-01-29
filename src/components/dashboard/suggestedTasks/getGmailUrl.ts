@@ -67,6 +67,16 @@ function buildSearchUrl(suggestion: SuggestedTask, opts?: GmailUrlOptions): stri
     }
   }
 
+  // Add specific date to find the exact email
+  if (receivedAt) {
+    const d = new Date(receivedAt);
+    if (!Number.isNaN(d.getTime())) {
+      const dateStr = format(d, "yyyy/MM/dd");
+      parts.push(`after:${dateStr}`);
+      parts.push(`before:${format(addDays(d, 1), "yyyy/MM/dd")}`);
+    }
+  }
+
   const query = parts.join(" ").trim();
   if (!query) return null;
   return `${gmailBaseUrl(opts?.accountIndex)}#search/${encodeURIComponent(query)}`;
