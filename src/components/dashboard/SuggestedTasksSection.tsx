@@ -5,12 +5,26 @@ import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Sparkles, RefreshCw, Plus, AlertCircle, Clock, Mail, CheckCircle2, Check } from "lucide-react";
+import { Sparkles, RefreshCw, AlertCircle, Clock, Mail, CheckCircle2, Check, ListTodo } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { getSuggestedTaskGmailSearchUrl, getSuggestedTaskGmailUrl } from "@/components/dashboard/suggestedTasks/getGmailUrl";
 import { gmailNewUiTokenFromLegacyHex, gmailUrlForLegacyHex } from "@/utils/gmailDeepLink";
 import type { SuggestedTask } from "@/components/dashboard/suggestedTasks/types";
 import { GmailOpenMenu } from "@/components/dashboard/suggestedTasks/GmailOpenMenu";
+
+interface PendingTask {
+  id: string;
+  title: string;
+  description: string | null;
+  priority: string;
+  status: string;
+  due_date: string | null;
+}
+
+interface SuggestedTasksSectionProps {
+  pendingTasks?: PendingTask[];
+  onArchiveTask?: (id: string) => void;
+}
 
 const priorityColors = {
   low: "bg-secondary/50 text-secondary-foreground",
@@ -24,6 +38,7 @@ const categoryIcons = {
   "action-item": CheckCircle2,
   "urgent-response": AlertCircle,
   "proactive-outreach": Mail,
+  "manual": ListTodo,
 };
 
 const categoryLabels = {
@@ -31,9 +46,10 @@ const categoryLabels = {
   "action-item": "Action Item",
   "urgent-response": "Urgent",
   "proactive-outreach": "Outreach",
+  "manual": "Manual",
 };
 
-const SuggestedTasksSection = () => {
+const SuggestedTasksSection = ({ pendingTasks = [], onArchiveTask }: SuggestedTasksSectionProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -59,9 +75,8 @@ const SuggestedTasksSection = () => {
         thread_id: item.client_email_logs?.thread_id || null,
         email_from: item.client_email_logs?.from_email || null,
         email_received_at: item.client_email_logs?.received_at || null,
-        // Prefer suggested_tasks.gmail_message_id, but fall back to the source email log id
         gmail_message_id: item.gmail_message_id || item.client_email_logs?.gmail_message_id || null,
-        client_email_logs: undefined, // Clean up the nested object
+        client_email_logs: undefined,
       })) as SuggestedTask[];
     },
     enabled: !!user,
@@ -84,42 +99,6 @@ const SuggestedTasksSection = () => {
     },
     onError: (error: Error) => {
       toast({ title: "Error refreshing suggestions", description: error.message, variant: "destructive" });
-    },
-  });
-
-  // Add suggestion as a task
-  const addTaskMutation = useMutation({
-    mutationFn: async (suggestion: SuggestedTask) => {
-      // Create the task
-      const { error: taskError } = await supabase
-        .from("tasks")
-        .insert([{
-          title: suggestion.title,
-          description: suggestion.description,
-          priority: suggestion.priority as "low" | "medium" | "high" | "urgent",
-          agent_id: user?.id,
-          status: "pending",
-        }]);
-      
-      if (taskError) throw taskError;
-
-      // Mark suggestion as added
-      const { error: updateError } = await supabase
-        .from("suggested_tasks")
-        .update({ status: "added" })
-        .eq("id", suggestion.id);
-      
-      if (updateError) throw updateError;
-      
-      return suggestion.title;
-    },
-    onSuccess: (title) => {
-      queryClient.invalidateQueries({ queryKey: ["tasks"] });
-      queryClient.invalidateQueries({ queryKey: ["suggested-tasks"] });
-      toast({ title: "Task created", description: `"${title}" added to your tasks.` });
-    },
-    onError: (error: Error) => {
-      toast({ title: "Error creating task", description: error.message, variant: "destructive" });
     },
   });
 
@@ -150,7 +129,6 @@ const SuggestedTasksSection = () => {
         ? getSuggestedTaskGmailSearchUrl(suggestion, { accountIndex: opts.accountIndex })
         : getSuggestedTaskGmailUrl(suggestion, { accountIndex: opts.accountIndex });
 
-    // Verbose debug: only logs on click (not during render).
     if (import.meta.env.DEV) {
       const msgId = (suggestion.gmail_message_id ?? "").trim();
       const threadId = (suggestion.thread_id ?? "").trim();
@@ -170,9 +148,7 @@ const SuggestedTasksSection = () => {
           }
         : null;
 
-      // eslint-disable-next-line no-console
       console.groupCollapsed(`[GmailLink][SuggestedTask:${suggestion.id}] ${suggestion.title}`);
-      // eslint-disable-next-line no-console
       console.log({
         gmail_message_id: suggestion.gmail_message_id ?? null,
         thread_id: suggestion.thread_id ?? null,
@@ -180,7 +156,6 @@ const SuggestedTasksSection = () => {
         email_from: (suggestion as any).email_from ?? null,
         email_received_at: (suggestion as any).email_received_at ?? null,
       });
-      // eslint-disable-next-line no-console
       console.log({
         chosenUrl: url,
         chosenMode: opts,
@@ -189,7 +164,6 @@ const SuggestedTasksSection = () => {
         msgAutoUrl: msgId && isHex(msgId) ? gmailUrlForLegacyHex(msgId, "auto") : null,
         threadAutoUrl: threadId && isHex(threadId) ? gmailUrlForLegacyHex(threadId, "auto") : null,
       });
-      // eslint-disable-next-line no-console
       console.groupEnd();
     }
 
@@ -204,7 +178,7 @@ const SuggestedTasksSection = () => {
     window.open(url, "_blank", "noopener,noreferrer");
   };
 
-  // Subscribe to realtime inserts on suggested_tasks to auto-refresh when sync adds new suggestions
+  // Subscribe to realtime inserts on suggested_tasks
   useEffect(() => {
     if (!user) return;
 
@@ -231,15 +205,22 @@ const SuggestedTasksSection = () => {
 
   if (!user) return null;
 
+  const totalCount = (suggestions?.length || 0) + pendingTasks.length;
+
+  const isOverdue = (dueDate: string | null) => {
+    if (!dueDate) return false;
+    return new Date(dueDate) < new Date() && new Date(dueDate).toDateString() !== new Date().toDateString();
+  };
+
   return (
     <Card className="shadow-soft mb-6 border-primary/20">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="text-base flex items-center gap-2">
             <Sparkles className="w-4 h-4 text-primary" />
-            AI Suggested Tasks
-            {suggestions && suggestions.length > 0 && (
-              <Badge variant="secondary" className="ml-2">{suggestions.length}</Badge>
+            Tasks
+            {totalCount > 0 && (
+              <Badge variant="secondary" className="ml-2">{totalCount}</Badge>
             )}
           </CardTitle>
           <Button
@@ -249,45 +230,46 @@ const SuggestedTasksSection = () => {
             disabled={isLoading || refreshMutation.isPending}
           >
             <RefreshCw className={`w-4 h-4 mr-1 ${refreshMutation.isPending ? 'animate-spin' : ''}`} />
-            Refresh
+            Refresh AI
           </Button>
         </div>
         <p className="text-xs text-muted-foreground">
-          Based on your recent email communications
+          AI suggestions from emails and your manual tasks
         </p>
       </CardHeader>
       <CardContent>
         {isLoading ? (
           <div className="flex items-center justify-center py-8">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-            <span className="ml-3 text-sm text-muted-foreground">Loading suggestions...</span>
+            <span className="ml-3 text-sm text-muted-foreground">Loading tasks...</span>
           </div>
-        ) : !suggestions || suggestions.length === 0 ? (
+        ) : totalCount === 0 ? (
           <div className="text-center py-6 text-muted-foreground">
             <Mail className="w-8 h-8 mx-auto mb-2 opacity-50" />
-            <p className="text-sm">No task suggestions at this time</p>
-            <p className="text-xs mt-1">Click Refresh to analyze recent emails</p>
+            <p className="text-sm">No tasks at this time</p>
+            <p className="text-xs mt-1">Click Refresh AI to analyze recent emails or add a manual task</p>
           </div>
         ) : (
           <div className="space-y-3">
-            {suggestions.map((suggestion) => {
+            {/* AI Suggested Tasks */}
+            {suggestions?.map((suggestion) => {
               const CategoryIcon = categoryIcons[suggestion.category as keyof typeof categoryIcons] || Clock;
               const hasEmailLink = Boolean(getSuggestedTaskGmailUrl(suggestion));
               
               return (
                 <div
-                  key={suggestion.id}
+                  key={`suggestion-${suggestion.id}`}
                   role={hasEmailLink ? "button" : undefined}
                   tabIndex={hasEmailLink ? 0 : undefined}
-                   onClick={() => {
+                  onClick={() => {
                     if (!hasEmailLink) return;
-                     openGmailEmail(suggestion, { accountIndex: 0, mode: "direct" });
+                    openGmailEmail(suggestion, { accountIndex: 0, mode: "direct" });
                   }}
                   onKeyDown={(e) => {
                     if (!hasEmailLink) return;
                     if (e.key === "Enter" || e.key === " ") {
                       e.preventDefault();
-                       openGmailEmail(suggestion, { accountIndex: 0, mode: "direct" });
+                      openGmailEmail(suggestion, { accountIndex: 0, mode: "direct" });
                     }
                   }}
                   className={
@@ -327,13 +309,13 @@ const SuggestedTasksSection = () => {
                           {suggestion.reasoning}
                         </p>
                       )}
-                       {hasEmailLink && (
-                         <div className="mt-2">
-                           <GmailOpenMenu
-                             onOpen={(o) => openGmailEmail(suggestion, o)}
-                           />
-                         </div>
-                       )}
+                      {hasEmailLink && (
+                        <div className="mt-2">
+                          <GmailOpenMenu
+                            onOpen={(o) => openGmailEmail(suggestion, o)}
+                          />
+                        </div>
+                      )}
                     </div>
                     <div className="flex gap-1 shrink-0">
                       <Button
@@ -353,6 +335,49 @@ const SuggestedTasksSection = () => {
                 </div>
               );
             })}
+
+            {/* Manual Pending Tasks */}
+            {pendingTasks.map((task) => (
+              <div
+                key={`task-${task.id}`}
+                className="p-3 border rounded-lg bg-card hover:border-primary/30 transition-all"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1 flex-wrap">
+                      <Badge variant="outline" className="text-xs gap-1">
+                        <ListTodo className="w-3 h-3" />
+                        Manual
+                      </Badge>
+                      <Badge className={`text-xs ${priorityColors[task.priority as keyof typeof priorityColors] || priorityColors.medium}`}>
+                        {task.priority}
+                      </Badge>
+                      {task.due_date && (
+                        <span className={`text-xs ${isOverdue(task.due_date) ? "text-destructive font-medium" : "text-muted-foreground"}`}>
+                          • Due: {new Date(task.due_date).toLocaleDateString()} {new Date(task.due_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      )}
+                    </div>
+                    <p className="font-medium text-sm">{task.title}</p>
+                    {task.description && (
+                      <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                        {task.description}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex gap-1 shrink-0">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => onArchiveTask?.(task.id)}
+                    >
+                      <Check className="w-4 h-4 mr-1" />
+                      Done
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </CardContent>
