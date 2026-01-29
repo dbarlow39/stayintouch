@@ -53,7 +53,7 @@ const SuggestedTasksSection = () => {
       if (error) throw error;
       
       // Map the joined data to include email_subject and thread_id
-      return (data || []).map((item: any) => ({
+      const mapped = (data || []).map((item: any) => ({
         ...item,
         email_subject: item.client_email_logs?.subject || null,
         thread_id: item.client_email_logs?.thread_id || null,
@@ -63,6 +63,13 @@ const SuggestedTasksSection = () => {
         gmail_message_id: item.gmail_message_id || item.client_email_logs?.gmail_message_id || null,
         client_email_logs: undefined, // Clean up the nested object
       })) as SuggestedTask[];
+      
+      // Sort by email received date, newest first
+      return mapped.sort((a, b) => {
+        const dateA = a.email_received_at ? new Date(a.email_received_at).getTime() : 0;
+        const dateB = b.email_received_at ? new Date(b.email_received_at).getTime() : 0;
+        return dateB - dateA; // Descending (newest first)
+      });
     },
     enabled: !!user,
   });
