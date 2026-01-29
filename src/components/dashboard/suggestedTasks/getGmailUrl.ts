@@ -38,6 +38,18 @@ function buildSearchUrl(suggestion: SuggestedTask, opts?: GmailUrlOptions): stri
   return `${gmailBaseUrl(opts?.accountIndex)}#search/${encodeURIComponent(query)}`;
 }
 
+function isLegacyHexId(value: string): boolean {
+  return /^[0-9a-f]{15,16}$/i.test(value);
+}
+
+function asNewUiTokenUrl(
+  legacyHex: string,
+  kind: "thread" | "msg" | "auto",
+  accountIndex?: number | null
+): string | null {
+  return gmailUrlForLegacyHexWithAccount(legacyHex, kind, accountIndex);
+}
+
 /**
  * Best-effort Gmail URL for a suggested task.
  * Uses the raw Gmail API message/thread ID directly in the URL.
@@ -50,13 +62,36 @@ export function getSuggestedTaskGmailUrl(
   // Try message ID first (more specific), then thread ID
   const messageId = (suggestion.gmail_message_id ?? "").trim();
   if (messageId) {
-    // Use the raw hex ID directly - Gmail routes these correctly
-    return `${gmailBaseUrl(opts.accountIndex)}#inbox/${messageId}`;
+    // Prefer Gmail new-UI token deep links; fall back to direct inbox links.
+    if (isLegacyHexId(messageId)) {
+      // When stored value represents a message id, prefer msg kind first.
+      const msgUrl = asNewUiTokenUrl(messageId, "msg", opts.accountIndex);
+      if (msgUrl) return msgUrl;
+
+      const threadUrl = asNewUiTokenUrl(messageId, "thread", opts.accountIndex);
+      if (threadUrl) return threadUrl;
+
+      return `${gmailBaseUrl(opts.accountIndex)}#inbox/${messageId}`;
+    }
+
+    // If it's already a Gmail new-UI token, use it directly.
+    return `${gmailBaseUrl(opts.accountIndex)}#all/${encodeURIComponent(messageId)}`;
   }
 
   const threadId = (suggestion.thread_id ?? "").trim();
   if (threadId) {
-    return `${gmailBaseUrl(opts.accountIndex)}#inbox/${threadId}`;
+    if (isLegacyHexId(threadId)) {
+      // Thread ids should deep-link as threads first.
+      const threadUrl = asNewUiTokenUrl(threadId, "thread", opts.accountIndex);
+      if (threadUrl) return threadUrl;
+
+      const msgUrl = asNewUiTokenUrl(threadId, "msg", opts.accountIndex);
+      if (msgUrl) return msgUrl;
+
+      return `${gmailBaseUrl(opts.accountIndex)}#inbox/${threadId}`;
+    }
+
+    return `${gmailBaseUrl(opts.accountIndex)}#all/${encodeURIComponent(threadId)}`;
   }
 
   return buildSearchUrl(suggestion, opts);
