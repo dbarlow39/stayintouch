@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,11 +7,31 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Plus, Check, Clock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth";
 import SuggestedTasksSection from "./SuggestedTasksSection";
 import ArchivedTasksDialog from "./ArchivedTasksDialog";
+
+interface Task {
+  id: string;
+  title: string;
+  description: string | null;
+  priority: string;
+  status: string;
+  due_date: string | null;
+  completed_at: string | null;
+  created_at: string;
+  is_archived: boolean;
+}
+
+const priorityColors = {
+  low: "bg-secondary/50 text-secondary-foreground",
+  medium: "bg-accent/10 text-accent-foreground",
+  high: "bg-primary/10 text-primary",
+  urgent: "bg-destructive/10 text-destructive",
+};
 
 const TasksTab = () => {
   const { user } = useAuth();
@@ -23,6 +43,20 @@ const TasksTab = () => {
     description: "",
     priority: "medium",
     due_date: "",
+  });
+
+  const { data: tasks } = useQuery({
+    queryKey: ["tasks"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("tasks")
+        .select("*")
+        .eq("is_archived", false)
+        .order("due_date", { ascending: true, nullsFirst: false })
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data as Task[];
+    },
   });
 
   const createMutation = useMutation({
@@ -50,6 +84,28 @@ const TasksTab = () => {
     },
   });
 
+  const archiveTaskMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from("tasks")
+        .update({ 
+          status: "completed",
+          completed_at: new Date().toISOString(),
+          is_archived: true,
+        })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["tasks"] });
+      queryClient.invalidateQueries({ queryKey: ["archived-tasks"] });
+      toast({ title: "Task archived" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error archiving task", description: error.message, variant: "destructive" });
+    },
+  });
+
   const resetForm = () => {
     setFormData({
       title: "",
@@ -64,14 +120,21 @@ const TasksTab = () => {
     createMutation.mutate(formData);
   };
 
+  const isOverdue = (dueDate: string | null) => {
+    if (!dueDate) return false;
+    return new Date(dueDate) < new Date() && new Date(dueDate).toDateString() !== new Date().toDateString();
+  };
+
+  const pendingTasks = tasks?.filter(t => t.status !== "completed") || [];
+
   return (
     <div className="space-y-6">
-      <SuggestedTasksSection />
+      <SuggestedTasksSection pendingTasks={pendingTasks} onArchiveTask={(id) => archiveTaskMutation.mutate(id)} />
 
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-semibold">Manual Tasks</h3>
-          <p className="text-sm text-muted-foreground">Add your own tasks</p>
+          <h3 className="text-lg font-semibold">Add Manual Task</h3>
+          <p className="text-sm text-muted-foreground">Create your own tasks</p>
         </div>
         <Dialog open={open} onOpenChange={(isOpen) => { setOpen(isOpen); if (!isOpen) resetForm(); }}>
           <DialogTrigger asChild>
