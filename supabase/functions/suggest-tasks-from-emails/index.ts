@@ -169,12 +169,14 @@ serve(async (req) => {
 - Marketing/promotional emails (CE courses, newsletters, webinars, industry events)
 - Automated system notifications (calendar reminders, password resets)
 - Any email NOT directly related to a real estate transaction or client communication
+- **Showing Confirmed emails** - these are routine notifications, do NOT create tasks for them
+- **Standard/negative feedback reports** - ONLY suggest a task for feedback if it contains POSITIVE or VERY INTERESTED buyer sentiment. Skip all neutral, negative, or "not interested" feedback reports entirely.
 
 **ONLY SUGGEST TASKS FOR:**
 - Direct client communications requiring response (buyers, sellers, their agents)
 - Property showings, offers, contracts, inspections, closings
 - Title company, lender, or attorney communications about active deals
-- ShowingTime feedback that needs follow-up with sellers
+- ShowingTime feedback ONLY if buyer is "Very Interested" or feedback is clearly positive (e.g., wants to make an offer, loved the property)
 - dotloop/DocuSign documents needing review or signature
 - Urgent client questions or concerns
 
@@ -186,18 +188,17 @@ Focus on these categories:
 
 2. **Action items from emails**: 
    - Document reviews (dotloop, DocuSign)
-   - Showing feedback to share with clients
+   - POSITIVE showing feedback only (buyer interested, wants to make offer) to share with clients
    - Offers to present or respond to
    - Inspection/repair negotiations
 
 3. **Urgent responses needed**: 
    - Time-sensitive offers or counteroffers
-   - Showing requests requiring confirmation
    - Contract deadlines
 
 Today's date is ${today}. Only include tasks directly related to real estate clients and transactions.
 
-IMPORTANT: Quality over quantity. Only return 3-6 highly relevant, actionable tasks for active client matters. Skip anything personal or administrative.`
+IMPORTANT: Quality over quantity. Only return 3-6 highly relevant, actionable tasks for active client matters. Skip anything personal, administrative, showing confirmations, or negative/neutral feedback.`
           },
           {
             role: 'user',
