@@ -62,6 +62,7 @@ serve(async (req) => {
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
+    // Only fetch emails that are linked to a client (have a client_id)
     const { data: emails, error: emailsError } = await supabaseClient
       .from('client_email_logs')
       .select(`
@@ -77,6 +78,7 @@ serve(async (req) => {
         client_id
       `)
       .eq('agent_id', user.id)
+      .not('client_id', 'is', null)  // Only emails linked to clients
       .gte('received_at', sevenDaysAgo.toISOString())
       .order('received_at', { ascending: false })
       .limit(100);
