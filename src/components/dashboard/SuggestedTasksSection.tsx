@@ -201,19 +201,7 @@ const SuggestedTasksSection = () => {
       return;
     }
 
-    const win = window.open(url, "_blank", "noopener,noreferrer");
-    if (!win) {
-      toast({
-        title: "Pop-ups blocked",
-        description: "Opening Gmail in this tab instead (preview limitation).",
-        variant: "destructive",
-      });
-
-      // Fallback for sandboxed/blocked popups: navigate in the current tab.
-      setTimeout(() => {
-        window.location.href = url;
-      }, 50);
-    }
+    window.open(url, "_blank", "noopener,noreferrer");
   };
 
   // Subscribe to realtime inserts on suggested_tasks to auto-refresh when sync adds new suggestions
