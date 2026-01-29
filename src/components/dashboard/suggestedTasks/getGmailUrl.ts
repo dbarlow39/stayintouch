@@ -20,7 +20,14 @@ function buildSearchUrl(suggestion: SuggestedTask, opts?: GmailUrlOptions): stri
   const receivedAt = (suggestion.email_received_at ?? "").trim();
 
   const parts: string[] = [];
-  if (fromEmail) parts.push(`from:${fromEmail}`);
+  
+  // Extract email address from "Name (via service)" <email@domain.com> format
+  if (fromEmail) {
+    const emailMatch = fromEmail.match(/<([^>]+)>/);
+    const cleanEmail = emailMatch ? emailMatch[1] : fromEmail;
+    parts.push(`from:${cleanEmail}`);
+  }
+  
   if (subject) parts.push(`subject:"${subject.replace(/"/g, '\\"')}"`);
 
   if (receivedAt) {
