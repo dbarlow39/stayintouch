@@ -40,10 +40,17 @@ function buildSearchUrl(suggestion: SuggestedTask, opts?: GmailUrlOptions): stri
     // Look for address pattern (number + street name)
     const addressMatch = subject.match(/\b\d+\s+[A-Za-z\s]+(?:Dr|Drive|St|Street|Ave|Avenue|Rd|Road|Ln|Lane|Ct|Court|Way|Blvd|Boulevard)\b/i);
     if (addressMatch) {
-      // Found an address - use it for flexible matching (shows all emails about this property)
       parts.push(addressMatch[0]);
-    } else {
-      // No address found - extract distinctive keywords
+    }
+    
+    // Also add email type to narrow results (FEEDBACK, SHOWING CONFIRMED, etc.)
+    const typeMatch = subject.match(/(FEEDBACK RECEIVED|SHOWING CONFIRMED|SHOWING REQUESTED|AGENT REFERRED)/i);
+    if (typeMatch) {
+      parts.push(typeMatch[1]);
+    }
+    
+    // If no address found, extract distinctive keywords as fallback
+    if (!addressMatch) {
       const keywords = subject
         .replace(/^(re:|fwd?:|RE:|FWD?:)\s*/gi, '')
         .split(/\s+/)
