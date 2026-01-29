@@ -69,7 +69,7 @@ serve(async (req) => {
       );
     }
 
-    const allResults: Array<{ agent_id: string; synced_count?: number; showingtime_count?: number; tasks_created?: number; error?: string }> = [];
+    const allResults: Array<{ agent_id: string; synced_count?: number; showingtime_count?: number; tasks_created?: number; suggestions_created?: number; error?: string }> = [];
 
     for (const currentAgentId of agentIds) {
       try {
@@ -77,6 +77,7 @@ serve(async (req) => {
         
         // After syncing emails, auto-generate and create high-priority tasks
         let tasksCreated = 0;
+        let suggestionsCreated = 0;
         if (result.synced_count && result.synced_count > 0) {
           try {
             tasksCreated = await autoCreateTasksFromEmails(supabase, currentAgentId);
@@ -84,9 +85,17 @@ serve(async (req) => {
           } catch (taskErr) {
             console.error(`Error creating tasks for agent ${currentAgentId}:`, taskErr);
           }
+          
+          // Also generate suggested tasks for the suggestions UI
+          try {
+            suggestionsCreated = await autoCreateSuggestedTasks(supabase, currentAgentId);
+            console.log(`Auto-created ${suggestionsCreated} suggested tasks for agent ${currentAgentId}`);
+          } catch (suggErr) {
+            console.error(`Error creating suggested tasks for agent ${currentAgentId}:`, suggErr);
+          }
         }
         
-        allResults.push({ agent_id: currentAgentId, ...result, tasks_created: tasksCreated });
+        allResults.push({ agent_id: currentAgentId, ...result, tasks_created: tasksCreated, suggestions_created: suggestionsCreated });
       } catch (err) {
         console.error(`Error syncing agent ${currentAgentId}:`, err);
         allResults.push({ agent_id: currentAgentId, error: err instanceof Error ? err.message : "Unknown error" });
@@ -96,6 +105,7 @@ serve(async (req) => {
     const totalSynced = allResults.reduce((sum, r) => sum + (r.synced_count ?? 0), 0);
     const totalShowingTime = allResults.reduce((sum, r) => sum + (r.showingtime_count ?? 0), 0);
     const totalTasksCreated = allResults.reduce((sum, r) => sum + (r.tasks_created ?? 0), 0);
+    const totalSuggestionsCreated = allResults.reduce((sum, r) => sum + (r.suggestions_created ?? 0), 0);
 
     return new Response(
       JSON.stringify({
@@ -104,7 +114,8 @@ serve(async (req) => {
         synced_count: totalSynced,
         showingtime_count: totalShowingTime,
         tasks_created: totalTasksCreated,
-        message: `Synced ${totalSynced} emails for ${agentIds.length} agent(s), created ${totalTasksCreated} tasks`,
+        suggestions_created: totalSuggestionsCreated,
+        message: `Synced ${totalSynced} emails for ${agentIds.length} agent(s), created ${totalTasksCreated} tasks and ${totalSuggestionsCreated} suggestions`,
         details: allResults,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -1070,4 +1081,222 @@ Return JSON: { "suggestions": [{ "title": string, "description": string, "priori
   }
 
   return tasksToCreate.length;
+}
+
+// Auto-create suggested tasks (for the AI Suggestions UI) from email analysis
+async function autoCreateSuggestedTasks(supabase: any, agentId: string): Promise<number> {
+  const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+  if (!LOVABLE_API_KEY) {
+    console.log('LOVABLE_API_KEY not configured, skipping suggested task creation');
+    return 0;
+  }
+
+  // Fetch existing pending suggested tasks to avoid duplicates
+  const { data: existingSuggestions } = await supabase
+    .from('suggested_tasks')
+    .select('title')
+    .eq('agent_id', agentId)
+    .eq('status', 'pending');
+
+  const existingSuggestionTitles = new Set(
+    existingSuggestions?.map((s: any) => s.title.toLowerCase()) || []
+  );
+
+  // Fetch recent emails (last 7 days) that are linked to clients
+  const sevenDaysAgo = new Date();
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+  const { data: emails, error: emailsError } = await supabase
+    .from('client_email_logs')
+    .select(`
+      id, gmail_message_id, subject, snippet, body_preview,
+      direction, from_email, to_email, received_at, client_id
+    `)
+    .eq('agent_id', agentId)
+    .not('client_id', 'is', null)
+    .gte('received_at', sevenDaysAgo.toISOString())
+    .order('received_at', { ascending: false })
+    .limit(100);
+
+  if (emailsError || !emails || emails.length === 0) {
+    console.log('No recent client emails to analyze for suggestions');
+    return 0;
+  }
+
+  // Get client names
+  const clientIds = [...new Set(emails.map((e: any) => e.client_id).filter(Boolean))];
+  const { data: clients } = await supabase
+    .from('clients')
+    .select('id, first_name, last_name')
+    .in('id', clientIds);
+
+  const clientNameMap = new Map(
+    clients?.map((c: any) => [c.id, `${c.first_name || ''} ${c.last_name || ''}`.trim()]) || []
+  );
+
+  // Get existing pending tasks
+  const { data: existingTasks } = await supabase
+    .from('tasks')
+    .select('title')
+    .eq('agent_id', agentId)
+    .neq('status', 'completed');
+
+  const existingTaskTitles = new Set(existingTasks?.map((t: any) => t.title.toLowerCase()) || []);
+  const allExistingTitles = new Set([...existingTaskTitles, ...existingSuggestionTitles]);
+
+  // Create email map for source references
+  const emailMap = new Map<string, { gmail_message_id: string | null }>(
+    emails.map((e: any) => [e.id, { gmail_message_id: e.gmail_message_id }])
+  );
+
+  // Format emails for AI
+  const emailsForAnalysis = emails.map((email: any) => ({
+    id: email.id,
+    gmail_message_id: email.gmail_message_id,
+    subject: email.subject,
+    snippet: email.snippet,
+    body_preview: email.body_preview,
+    direction: email.direction,
+    from_email: email.from_email,
+    to_email: email.to_email,
+    received_at: email.received_at,
+    client_name: email.client_id ? clientNameMap.get(email.client_id) || null : null,
+  }));
+
+  const today = new Date().toISOString().split('T')[0];
+
+  const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'google/gemini-3-flash-preview',
+      messages: [
+        {
+          role: 'system',
+          content: `You are an AI assistant for a real estate agent. Analyze their email communications and suggest actionable tasks ONLY for client-related real estate matters.
+
+**STRICT FILTERING - IGNORE THESE COMPLETELY:**
+- Personal financial emails (PayPal, bank statements, credit cards, subscriptions)
+- Voicemail transcription notifications (Vonage, Google Voice, etc.)
+- Missed call notifications (unless from a known client)
+- Marketing/promotional emails (CE courses, newsletters, webinars, industry events)
+- Automated system notifications (calendar reminders, password resets)
+- Any email NOT directly related to a real estate transaction or client communication
+
+**ONLY SUGGEST TASKS FOR:**
+- Direct client communications requiring response (buyers, sellers, their agents)
+- Property showings, offers, contracts, inspections, closings
+- Title company, lender, or attorney communications about active deals
+- ShowingTime feedback that needs follow-up with sellers
+- dotloop/DocuSign documents needing review or signature
+- Urgent client questions or concerns
+- Counter-offer negotiations requiring action
+
+Focus on these categories:
+
+1. **Follow-up reminders**: 
+   - Incoming client emails without a response within 24-48 hours
+   - Conversations with buyers/sellers that need continuation
+
+2. **Action items from emails**: 
+   - Document reviews (dotloop, DocuSign)
+   - Showing feedback to share with clients
+   - Offers to present or respond to
+   - Counter-offers requiring response
+   - Inspection/repair negotiations
+
+3. **Urgent responses needed**: 
+   - Time-sensitive offers or counteroffers
+   - Showing requests requiring confirmation
+   - Contract deadlines
+
+Today's date is ${today}. Only include tasks directly related to real estate clients and transactions.
+
+IMPORTANT: Quality over quantity. Only return 3-6 highly relevant, actionable tasks for active client matters. Skip anything personal or administrative.`
+        },
+        {
+          role: 'user',
+          content: `Analyze these email communications from the last 7 days and suggest 5-8 specific, actionable tasks:
+
+${JSON.stringify(emailsForAnalysis, null, 2)}
+
+Existing tasks/suggestions to avoid duplicating: ${Array.from(allExistingTitles).join(', ')}
+
+Return JSON in this exact format:
+{
+  "suggestions": [
+    {
+      "title": "Brief, action-oriented task title (e.g., 'Follow up with John Smith about offer status')",
+      "description": "Specific details about what needs to be done and why",
+      "priority": "urgent" | "high" | "medium" | "low",
+      "category": "follow-up" | "action-item" | "urgent-response" | "proactive-outreach",
+      "relatedClient": "Client name if applicable, or null",
+      "reasoning": "Brief explanation of why this task is needed based on the email content",
+      "sourceEmailId": "The 'id' field of the most relevant email this task relates to, or null if not specific to one email"
+    }
+  ]
+}`
+        }
+      ],
+      response_format: { type: "json_object" }
+    }),
+  });
+
+  if (!aiResponse.ok) {
+    console.error('AI Gateway error for suggested tasks:', aiResponse.status);
+    return 0;
+  }
+
+  const aiData = await aiResponse.json();
+  let suggestions: Array<any> = [];
+  
+  try {
+    const result = JSON.parse(aiData.choices[0].message.content);
+    suggestions = result.suggestions || [];
+  } catch (parseErr) {
+    console.error('Failed to parse AI response for suggestions:', parseErr);
+    return 0;
+  }
+
+  // Filter out duplicates
+  const newSuggestions = suggestions.filter(
+    (s: { title: string }) => !allExistingTitles.has(s.title.toLowerCase())
+  );
+
+  if (newSuggestions.length === 0) {
+    return 0;
+  }
+
+  // Insert new suggestions with source email references
+  const suggestionsToInsert = newSuggestions.map((s: any) => {
+    const sourceEmailId = s.sourceEmailId || null;
+    const emailInfo = sourceEmailId ? emailMap.get(sourceEmailId) : null;
+    
+    return {
+      agent_id: agentId,
+      title: s.title,
+      description: s.description,
+      priority: s.priority,
+      category: s.category,
+      related_client: s.relatedClient,
+      reasoning: s.reasoning,
+      status: 'pending',
+      source_email_id: sourceEmailId,
+      gmail_message_id: emailInfo?.gmail_message_id || null,
+    };
+  });
+
+  const { error: insertError } = await supabase
+    .from('suggested_tasks')
+    .insert(suggestionsToInsert);
+
+  if (insertError) {
+    console.error('Error inserting suggested tasks:', insertError);
+    return 0;
+  }
+
+  return newSuggestions.length;
 }
