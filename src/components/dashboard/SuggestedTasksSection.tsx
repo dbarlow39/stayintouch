@@ -281,13 +281,13 @@ const SuggestedTasksSection = () => {
                   tabIndex={hasEmailLink ? 0 : undefined}
                    onClick={() => {
                     if (!hasEmailLink) return;
-                     openGmailEmail(suggestion, { accountIndex: 0, mode: "direct" });
+                     openGmailEmail(suggestion, { accountIndex: null, mode: "direct" });
                   }}
                   onKeyDown={(e) => {
                     if (!hasEmailLink) return;
                     if (e.key === "Enter" || e.key === " ") {
                       e.preventDefault();
-                       openGmailEmail(suggestion, { accountIndex: 0, mode: "direct" });
+                       openGmailEmail(suggestion, { accountIndex: null, mode: "direct" });
                     }
                   }}
                   className={
