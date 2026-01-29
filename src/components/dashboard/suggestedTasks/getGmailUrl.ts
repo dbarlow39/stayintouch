@@ -59,6 +59,11 @@ export function getSuggestedTaskGmailUrl(
   suggestion: SuggestedTask,
   opts: GmailUrlOptions = { accountIndex: 0 }
 ): string | null {
+  // Most reliable: use a search URL (mirrors what Gmail ends up doing in many cases).
+  // This avoids blank pages when token links don't resolve for certain message/thread IDs.
+  const searchUrl = buildSearchUrl(suggestion, opts);
+  if (searchUrl) return searchUrl;
+
   const messageId = (suggestion.gmail_message_id ?? "").trim();
   if (messageId) {
     if (isLegacyHexId(messageId)) {
@@ -87,9 +92,8 @@ export function getSuggestedTaskGmailUrl(
       return `${gmailBaseUrl(opts.accountIndex)}#all/${encodeURIComponent(threadId)}`;
     }
   }
-  
-  // Use search as final fallback
-  return buildSearchUrl(suggestion, opts);
+
+  return null;
 }
 
 /** Always returns a Gmail search URL when we have enough metadata. */
