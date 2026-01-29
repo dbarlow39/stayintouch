@@ -53,11 +53,13 @@ export function getSuggestedTaskGmailUrl(
     // Check if it's a hex ID (Gmail API format) vs already a new-UI token
     const isHexId = /^[0-9a-f]{15,16}$/i.test(messageId);
     if (isHexId) {
-      // We can't reliably distinguish message-id vs thread-id just from the hex.
-      // Use auto mode: prefer thread token first (generally best for opening the conversation),
-      // then fall back to msg.
-      const url = gmailUrlForLegacyHexWithAccount(messageId, "auto", opts.accountIndex);
-      if (url) return url;
+      // When we explicitly have a *message* id, prefer msg token first.
+      // If the stored value is actually a thread id (data inconsistency), fall back to thread.
+      const msgUrl = gmailUrlForLegacyHexWithAccount(messageId, "msg", opts.accountIndex);
+      if (msgUrl) return msgUrl;
+
+      const threadUrl = gmailUrlForLegacyHexWithAccount(messageId, "thread", opts.accountIndex);
+      if (threadUrl) return threadUrl;
     } else {
       // Already a new-UI token format (e.g., "FMfcgz...")
       return `${gmailBaseUrl(opts.accountIndex)}#all/${encodeURIComponent(messageId)}`;
@@ -67,8 +69,11 @@ export function getSuggestedTaskGmailUrl(
   const threadId = (suggestion.thread_id ?? "").trim();
   if (threadId) {
     // Prefer thread token, but allow msg fallback when stored data is inconsistent.
-    const directUrl = gmailUrlForLegacyHexWithAccount(threadId, "auto", opts.accountIndex);
-    if (directUrl) return directUrl;
+    const threadUrl = gmailUrlForLegacyHexWithAccount(threadId, "thread", opts.accountIndex);
+    if (threadUrl) return threadUrl;
+
+    const msgUrl = gmailUrlForLegacyHexWithAccount(threadId, "msg", opts.accountIndex);
+    if (msgUrl) return msgUrl;
   }
 
   return buildSearchUrl(suggestion, opts);
