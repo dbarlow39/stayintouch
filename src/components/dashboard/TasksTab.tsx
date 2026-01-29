@@ -7,8 +7,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Check, Clock } from "lucide-react";
+import { CheckCircle2, Circle, Clock, Plus, Check } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth";
 import SuggestedTasksSection from "./SuggestedTasksSection";
@@ -27,10 +28,10 @@ interface Task {
 }
 
 const priorityColors = {
-  low: "bg-secondary/50 text-secondary-foreground",
-  medium: "bg-accent/10 text-accent-foreground",
-  high: "bg-primary/10 text-primary",
-  urgent: "bg-destructive/10 text-destructive",
+  low: "bg-secondary/50 text-secondary-foreground border-border",
+  medium: "bg-accent/10 text-accent-foreground border-accent/20",
+  high: "bg-primary/10 text-primary border-primary/20",
+  urgent: "bg-destructive/10 text-destructive border-destructive/20",
 };
 
 const TasksTab = () => {
@@ -45,7 +46,7 @@ const TasksTab = () => {
     due_date: "",
   });
 
-  const { data: tasks } = useQuery({
+  const { data: tasks, isLoading } = useQuery({
     queryKey: ["tasks"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -126,15 +127,16 @@ const TasksTab = () => {
   };
 
   const pendingTasks = tasks?.filter(t => t.status !== "completed") || [];
+  const completedTasks = tasks?.filter(t => t.status === "completed") || [];
 
   return (
     <div className="space-y-6">
-      <SuggestedTasksSection pendingTasks={pendingTasks} onArchiveTask={(id) => archiveTaskMutation.mutate(id)} />
-
+      <SuggestedTasksSection />
+      
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-semibold">Add Manual Task</h3>
-          <p className="text-sm text-muted-foreground">Create your own tasks</p>
+          <h3 className="text-lg font-semibold">Task Management</h3>
+          <p className="text-sm text-muted-foreground">Stay organized with your tasks</p>
         </div>
         <Dialog open={open} onOpenChange={(isOpen) => { setOpen(isOpen); if (!isOpen) resetForm(); }}>
           <DialogTrigger asChild>
@@ -204,7 +206,81 @@ const TasksTab = () => {
         </Dialog>
       </div>
 
-      <div className="pt-4 border-t">
+      {isLoading ? (
+        <div className="text-center py-12 text-muted-foreground">Loading tasks...</div>
+      ) : !tasks || tasks.length === 0 ? (
+        <div className="text-center py-12 text-muted-foreground">
+          <Clock className="w-12 h-12 mx-auto mb-4 opacity-50" />
+          <p>No tasks yet. Create your first task to get organized.</p>
+        </div>
+      ) : (
+        <div className="space-y-6">
+          {pendingTasks.length > 0 && (
+            <div>
+              <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                <Circle className="w-4 h-4" />
+                Pending Tasks ({pendingTasks.length})
+              </h4>
+              <div className="border rounded-lg">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Task</TableHead>
+                      <TableHead>Priority</TableHead>
+                      <TableHead>Due Date</TableHead>
+                      <TableHead className="w-24">Action</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {pendingTasks.map((task) => (
+                      <TableRow key={task.id}>
+                        <TableCell>
+                          <div>
+                            <p className="font-medium">{task.title}</p>
+                            {task.description && (
+                              <p className="text-sm text-muted-foreground line-clamp-1">{task.description}</p>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge className={priorityColors[task.priority as keyof typeof priorityColors]}>
+                            {task.priority}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          {task.due_date ? (
+                            <div className={isOverdue(task.due_date) ? "text-destructive font-medium" : ""}>
+                              {new Date(task.due_date).toLocaleDateString()}
+                              <span className="text-xs ml-1">
+                                {new Date(task.due_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => archiveTaskMutation.mutate(task.id)}
+                          >
+                            <Check className="w-4 h-4 mr-1" />
+                            Done
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+          )}
+
+        </div>
+      )}
+
+      <div className="mt-6 pt-6 border-t">
         <ArchivedTasksDialog />
       </div>
     </div>
