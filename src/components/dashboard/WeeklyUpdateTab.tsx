@@ -771,11 +771,13 @@ const WeeklyUpdateTab = () => {
 
     try {
       // Fetch a sample client from the database to use real data in the test email
+      // Filter for active clients (status 'A') with a valid Zillow link
       const { data: sampleClients, error: clientError } = await supabase
         .from('clients')
         .select('first_name, last_name, street_number, street_name, city, state, zip, showings_to_date, zillow_link')
         .eq('agent_id', user?.id)
-        .eq('status', 'Active')
+        .ilike('status', 'A')
+        .not('zillow_link', 'is', null)
         .limit(10);
 
       if (clientError) {
