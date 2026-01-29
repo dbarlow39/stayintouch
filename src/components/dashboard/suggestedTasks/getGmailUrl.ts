@@ -64,12 +64,13 @@ export function getSuggestedTaskGmailUrl(
   if (messageId) {
     // Prefer Gmail new-UI token deep links; fall back to direct inbox links.
     if (isLegacyHexId(messageId)) {
-      // When stored value represents a message id, prefer msg kind first.
-      const msgUrl = asNewUiTokenUrl(messageId, "msg", opts.accountIndex);
-      if (msgUrl) return msgUrl;
-
+      // Gmail uses thread tokens (FMfcgz...) for deep links, not message tokens.
       const threadUrl = asNewUiTokenUrl(messageId, "thread", opts.accountIndex);
       if (threadUrl) return threadUrl;
+
+      // Fallback to msg token if thread fails
+      const msgUrl = asNewUiTokenUrl(messageId, "msg", opts.accountIndex);
+      if (msgUrl) return msgUrl;
 
       return `${gmailBaseUrl(opts.accountIndex)}#inbox/${messageId}`;
     }
