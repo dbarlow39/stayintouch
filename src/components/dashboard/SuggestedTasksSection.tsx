@@ -333,18 +333,6 @@ const SuggestedTasksSection = () => {
                     <div className="flex gap-1 shrink-0">
                       <Button
                         size="sm"
-                        variant="outline"
-                        disabled={addTaskMutation.isPending}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          addTaskMutation.mutate(suggestion);
-                        }}
-                      >
-                        <Plus className="w-4 h-4 mr-1" />
-                        Add
-                      </Button>
-                      <Button
-                        size="sm"
                         variant="ghost"
                         disabled={dismissMutation.isPending}
                         onClick={(e) => {
