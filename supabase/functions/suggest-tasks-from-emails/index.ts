@@ -49,13 +49,19 @@ serve(async (req) => {
 
     // Fetch existing suggested tasks (pending, dismissed, added) to avoid duplicates
     // Include ALL statuses so dismissed tasks don't get recreated
+    // Also fetch gmail_message_id to prevent same email from generating multiple suggestions
     const { data: existingSuggestions } = await supabaseClient
       .from('suggested_tasks')
-      .select('title')
+      .select('title, gmail_message_id')
       .eq('agent_id', user.id);
 
     const existingSuggestionTitles = new Set(
       existingSuggestions?.map(s => s.title.toLowerCase()) || []
+    );
+    
+    // Track processed gmail message IDs to prevent duplicate suggestions from same email
+    const processedGmailMessageIds = new Set(
+      existingSuggestions?.map(s => s.gmail_message_id).filter(Boolean) || []
     );
 
     // Fetch recent emails (last 7 days) with client info
@@ -252,9 +258,22 @@ Return JSON in this exact format:
     const aiData = await aiResponse.json();
     const result = JSON.parse(aiData.choices[0].message.content);
     
-    // Filter out any suggestions that match existing titles
+    // Filter out any suggestions that match existing titles OR reference already-processed emails
     const newSuggestions = (result.suggestions || []).filter(
-      (s: { title: string }) => !allExistingTitles.has(s.title.toLowerCase())
+      (s: { title: string; sourceEmailId?: string | null }) => {
+        // Check if title already exists
+        if (allExistingTitles.has(s.title.toLowerCase())) return false;
+        
+        // Check if this email has already been processed into a suggestion
+        if (s.sourceEmailId) {
+          const emailInfo = emailMap.get(s.sourceEmailId);
+          if (emailInfo?.gmail_message_id && processedGmailMessageIds.has(emailInfo.gmail_message_id)) {
+            return false;
+          }
+        }
+        
+        return true;
+      }
     );
 
     // Save new suggestions to the database with source email references
