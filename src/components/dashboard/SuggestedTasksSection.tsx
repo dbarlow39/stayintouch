@@ -162,7 +162,9 @@ const SuggestedTasksSection = () => {
       if (error) throw error;
     },
     onSuccess: () => {
+      // Invalidate both suggested-tasks and suggestion-titles to update all related lists
       queryClient.invalidateQueries({ queryKey: ["suggested-tasks"] });
+      queryClient.invalidateQueries({ queryKey: ["suggestion-titles"] });
     },
     onError: (error: Error) => {
       toast({ title: "Error dismissing suggestion", description: error.message, variant: "destructive" });
