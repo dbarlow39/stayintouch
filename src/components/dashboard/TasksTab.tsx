@@ -53,8 +53,22 @@ const TasksTab = () => {
     due_date: "",
   });
 
+  // Fetch pending suggestion titles to exclude from task list
+  const { data: suggestionTitles } = useQuery({
+    queryKey: ["suggestion-titles"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("suggested_tasks")
+        .select("title")
+        .eq("status", "pending");
+      
+      if (error) throw error;
+      return new Set((data || []).map(s => s.title.toLowerCase().trim()));
+    },
+  });
+
   const { data: tasks, isLoading } = useQuery({
-    queryKey: ["tasks"],
+    queryKey: ["tasks", suggestionTitles],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("tasks")
@@ -63,8 +77,15 @@ const TasksTab = () => {
         .order("due_date", { ascending: true, nullsFirst: false })
         .order("created_at", { ascending: false });
       if (error) throw error;
-      return data as Task[];
+      
+      // Filter out tasks that match pending suggestions
+      const filtered = suggestionTitles
+        ? (data as Task[]).filter(t => !suggestionTitles.has(t.title.toLowerCase().trim()))
+        : (data as Task[]);
+      
+      return filtered;
     },
+    enabled: suggestionTitles !== undefined,
   });
 
   const createMutation = useMutation({

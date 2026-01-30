@@ -38,9 +38,25 @@ const SuggestedTasksSection = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  // Fetch existing pending task titles to filter out duplicates
+  const { data: existingTaskTitles } = useQuery({
+    queryKey: ["task-titles", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("tasks")
+        .select("title")
+        .eq("is_archived", false)
+        .neq("status", "completed");
+      
+      if (error) throw error;
+      return new Set((data || []).map(t => t.title.toLowerCase().trim()));
+    },
+    enabled: !!user,
+  });
+
   // Fetch persisted suggestions from the database with email subject for Gmail links
   const { data: suggestions, isLoading } = useQuery({
-    queryKey: ["suggested-tasks", user?.id],
+    queryKey: ["suggested-tasks", user?.id, existingTaskTitles],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("suggested_tasks")
@@ -64,14 +80,19 @@ const SuggestedTasksSection = () => {
         client_email_logs: undefined, // Clean up the nested object
       })) as SuggestedTask[];
       
+      // Filter out suggestions that already exist as pending tasks
+      const filtered = existingTaskTitles 
+        ? mapped.filter(s => !existingTaskTitles.has(s.title.toLowerCase().trim()))
+        : mapped;
+      
       // Sort by email received date, newest first
-      return mapped.sort((a, b) => {
+      return filtered.sort((a, b) => {
         const dateA = a.email_received_at ? new Date(a.email_received_at).getTime() : 0;
         const dateB = b.email_received_at ? new Date(b.email_received_at).getTime() : 0;
         return dateB - dateA; // Descending (newest first)
       });
     },
-    enabled: !!user,
+    enabled: !!user && existingTaskTitles !== undefined,
   });
 
   // Refresh suggestions from AI
