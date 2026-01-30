@@ -47,12 +47,12 @@ serve(async (req) => {
 
     console.log('User authenticated:', user.id);
 
-    // Fetch existing pending suggested tasks to avoid duplicates
+    // Fetch existing suggested tasks (pending, dismissed, added) to avoid duplicates
+    // Include ALL statuses so dismissed tasks don't get recreated
     const { data: existingSuggestions } = await supabaseClient
       .from('suggested_tasks')
       .select('title')
-      .eq('agent_id', user.id)
-      .eq('status', 'pending');
+      .eq('agent_id', user.id);
 
     const existingSuggestionTitles = new Set(
       existingSuggestions?.map(s => s.title.toLowerCase()) || []
