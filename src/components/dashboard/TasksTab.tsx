@@ -127,11 +127,12 @@ const TasksTab = () => {
         task_type: 'manual' as const,
       }));
       
-      // Merge: AI suggestions first (newest first), then manual tasks (newest first)
-      // Sort all by created_at descending
-      const merged = [...suggestedTasks, ...manualTasks].sort((a, b) => 
-        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-      );
+      // Merge and sort by date received (email_received_at for AI tasks, created_at for manual)
+      const merged = [...suggestedTasks, ...manualTasks].sort((a, b) => {
+        const dateA = new Date(a.email_received_at || a.created_at).getTime();
+        const dateB = new Date(b.email_received_at || b.created_at).getTime();
+        return dateB - dateA; // newest first
+      });
       
       return merged;
     },
