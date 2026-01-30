@@ -258,43 +258,35 @@ serve(async (req) => {
             role: 'system',
             content: `You are an AI assistant for a real estate agent. Analyze their email communications and suggest actionable tasks ONLY for client-related real estate matters.
 
+**EMAILS FROM KNOWN CLIENTS (HIGHEST PRIORITY):**
+${emailsForAnalysis.filter(e => e.client_name).length} emails in this batch are from known clients in the database. PRIORITIZE THESE FIRST.
+
 **STRICT FILTERING - IGNORE THESE COMPLETELY:**
-- Personal financial emails (PayPal, bank statements, credit cards, subscriptions)
-- Missed call notifications (unless from a known client)
-- Marketing/promotional emails (CE courses, newsletters, webinars, industry events)
-- Automated system notifications (calendar reminders, password resets)
-- Any email NOT directly related to a real estate transaction or client communication
-- **Showing Confirmed emails** - these are routine notifications, do NOT create tasks for them
-- **Standard/negative feedback reports** - ONLY suggest a task for feedback if it contains POSITIVE or VERY INTERESTED buyer sentiment. Skip all neutral, negative, or "not interested" feedback reports entirely.
+- Personal financial emails (already filtered, but double-check)
+- Voicemail transcription notifications
+- Marketing/promotional emails  
+- Automated system notifications
+- Any email NOT directly related to a real estate transaction
 
 **ONLY SUGGEST TASKS FOR:**
-- Direct client communications requiring response (buyers, sellers, their agents)
-- Property showings, offers, contracts, inspections, closings
-- Title company, lender, or attorney communications about active deals
-- ShowingTime feedback ONLY if buyer is "Very Interested" or feedback is clearly positive (e.g., wants to make an offer, loved the property)
-- dotloop/DocuSign documents needing review or signature
-- Urgent client questions or concerns
-- **Voicemail notifications** (Vonage, Google Voice, etc.) - these often contain client messages that need follow-up
+1. Direct communications from known clients (client_name is not null) - HIGHEST PRIORITY
+2. Property showings, offers, contracts, inspections, closings
+3. ShowingTime feedback that needs follow-up with sellers
+4. dotloop/DocuSign documents needing review or signature
+5. Communications from other agents about your clients' properties
+
+**Prioritization Rules:**
+- Known client emails → urgent or high priority
+- ShowingTime feedback for listings → high priority
+- Transaction documents (offers, contracts) → urgent priority
+- Other real estate communications → medium priority
 
 Focus on these categories:
+1. Follow-up reminders for unanswered client emails (24-48 hours)
+2. Action items from emails (documents, showings, offers)
+3. Urgent responses needed (time-sensitive matters)
 
-1. **Follow-up reminders**: 
-   - Incoming client emails without a response within 24-48 hours
-   - Conversations with buyers/sellers that need continuation
-
-2. **Action items from emails**: 
-   - Document reviews (dotloop, DocuSign)
-   - POSITIVE showing feedback only (buyer interested, wants to make offer) to share with clients
-   - Offers to present or respond to
-   - Inspection/repair negotiations
-
-3. **Urgent responses needed**: 
-   - Time-sensitive offers or counteroffers
-   - Contract deadlines
-
-Today's date is ${today}. Only include tasks directly related to real estate clients and transactions.
-
-IMPORTANT: Quality over quantity. Only return 3-6 highly relevant, actionable tasks for active client matters. Skip anything personal, administrative, showing confirmations, or negative/neutral feedback.`
+Today's date is ${today}. Return 3-6 highly relevant, actionable tasks. Focus on known clients first.`
           },
           {
             role: 'user',
