@@ -13,6 +13,7 @@ import { CheckCircle2, Circle, Clock, Plus, Check, Mail, RefreshCw, Sparkles } f
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth";
 import ArchivedTasksDialog from "./ArchivedTasksDialog";
+import { formatDistanceToNow } from "date-fns";
 
 // Generate Gmail search URL from task title
 const getGmailSearchUrl = (taskTitle: string): string => {
@@ -76,6 +77,24 @@ const TasksTab = () => {
     description: "",
     priority: "medium",
     due_date: "",
+  });
+
+  // Query last sync time from client_email_logs
+  const { data: lastSyncTime } = useQuery({
+    queryKey: ["last-sync-time", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("client_email_logs")
+        .select("created_at")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .single();
+      
+      if (error && error.code !== 'PGRST116') throw error; // PGRST116 = no rows
+      return data?.created_at || null;
+    },
+    enabled: !!user,
+    refetchInterval: 30_000,
   });
 
   // Unified query: fetch both regular tasks AND AI suggested tasks
@@ -295,90 +314,97 @@ const TasksTab = () => {
             {aiSuggestedCount === 0 && manualCount === 0 && "Stay organized with your tasks"}
           </p>
         </div>
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            onClick={() => syncGmailMutation.mutate()}
-            disabled={isSyncing || syncGmailMutation.isPending}
-          >
-            {isSyncing || syncGmailMutation.isPending ? (
-              <>
-                <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                Syncing...
-              </>
-            ) : (
-              <>
-                <RefreshCw className="w-4 h-4 mr-2" />
-                Sync Gmail
-              </>
-            )}
-          </Button>
-          <Dialog open={open} onOpenChange={(isOpen) => { setOpen(isOpen); if (!isOpen) resetForm(); }}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="w-4 h-4 mr-2" />
-                Add Task
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-2xl">
-              <DialogHeader>
-                <DialogTitle>Create New Task</DialogTitle>
-              </DialogHeader>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="title">Task Title *</Label>
-                  <Input
-                    id="title"
-                    placeholder="Follow up with client"
-                    value={formData.title}
-                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="description">Description</Label>
-                  <Textarea
-                    id="description"
-                    rows={3}
-                    placeholder="Add task details..."
-                    value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
+        <div className="flex flex-col items-end gap-1">
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={() => syncGmailMutation.mutate()}
+              disabled={isSyncing || syncGmailMutation.isPending}
+            >
+              {isSyncing || syncGmailMutation.isPending ? (
+                <>
+                  <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                  Syncing...
+                </>
+              ) : (
+                <>
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  Sync Gmail
+                </>
+              )}
+            </Button>
+            <Dialog open={open} onOpenChange={(isOpen) => { setOpen(isOpen); if (!isOpen) resetForm(); }}>
+              <DialogTrigger asChild>
+                <Button>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Task
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-2xl">
+                <DialogHeader>
+                  <DialogTitle>Create New Task</DialogTitle>
+                </DialogHeader>
+                <form onSubmit={handleSubmit} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="priority">Priority</Label>
-                    <Select value={formData.priority} onValueChange={(value) => setFormData({ ...formData, priority: value })}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="low">Low</SelectItem>
-                        <SelectItem value="medium">Medium</SelectItem>
-                        <SelectItem value="high">High</SelectItem>
-                        <SelectItem value="urgent">Urgent</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="due_date">Due Date</Label>
+                    <Label htmlFor="title">Task Title *</Label>
                     <Input
-                      id="due_date"
-                      type="datetime-local"
-                      value={formData.due_date}
-                      onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
+                      id="title"
+                      placeholder="Follow up with client"
+                      value={formData.title}
+                      onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                      required
                     />
                   </div>
-                </div>
-                <div className="flex justify-end space-x-2">
-                  <Button type="button" variant="outline" onClick={() => setOpen(false)}>
-                    Cancel
-                  </Button>
-                  <Button type="submit">Create Task</Button>
-                </div>
-              </form>
-            </DialogContent>
-          </Dialog>
+                  <div className="space-y-2">
+                    <Label htmlFor="description">Description</Label>
+                    <Textarea
+                      id="description"
+                      rows={3}
+                      placeholder="Add task details..."
+                      value={formData.description}
+                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="priority">Priority</Label>
+                      <Select value={formData.priority} onValueChange={(value) => setFormData({ ...formData, priority: value })}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="low">Low</SelectItem>
+                          <SelectItem value="medium">Medium</SelectItem>
+                          <SelectItem value="high">High</SelectItem>
+                          <SelectItem value="urgent">Urgent</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="due_date">Due Date</Label>
+                      <Input
+                        id="due_date"
+                        type="datetime-local"
+                        value={formData.due_date}
+                        onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                  <div className="flex justify-end space-x-2">
+                    <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+                      Cancel
+                    </Button>
+                    <Button type="submit">Create Task</Button>
+                  </div>
+                </form>
+              </DialogContent>
+            </Dialog>
+          </div>
+          {lastSyncTime && (
+            <p className="text-xs text-muted-foreground">
+              Last synced {formatDistanceToNow(new Date(lastSyncTime), { addSuffix: true })}
+            </p>
+          )}
         </div>
       </div>
 
