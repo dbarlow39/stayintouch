@@ -402,7 +402,7 @@ const TasksTab = () => {
           </div>
           {lastSyncTime && (
             <p className="text-xs text-muted-foreground">
-              Last synced {formatDistanceToNow(new Date(lastSyncTime), { addSuffix: true })}
+              Last synced {formatDistanceToNow(new Date(lastSyncTime), { addSuffix: true })} at {new Date(lastSyncTime).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true })}
             </p>
           )}
         </div>
