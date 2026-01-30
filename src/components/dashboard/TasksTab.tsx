@@ -12,7 +12,6 @@ import { Badge } from "@/components/ui/badge";
 import { CheckCircle2, Circle, Clock, Plus, Check, Mail } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth";
-import SuggestedTasksSection from "./SuggestedTasksSection";
 import ArchivedTasksDialog from "./ArchivedTasksDialog";
 
 // Generate Gmail search URL from task title
@@ -159,8 +158,6 @@ const TasksTab = () => {
 
   return (
     <div className="space-y-6">
-      <SuggestedTasksSection />
-      
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-lg font-semibold">Task Management</h3>
