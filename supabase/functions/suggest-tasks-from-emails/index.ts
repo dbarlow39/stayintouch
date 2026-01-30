@@ -51,6 +51,16 @@ function isRelevantEmail(email: EmailForAnalysis, clientEmails: Set<string>): bo
     return false;
   }
   
+  // EXCLUDE: ShowingTime showing confirmations/requests (we only want FEEDBACK)
+  const showingConfirmKeywords = ['showing confirmed', 'showing requested', 'showing cancelled', 
+    'agent referred', 'appointment confirmed'];
+  if (showingConfirmKeywords.some(keyword => subject.includes(keyword))) {
+    // Only include if it's a FEEDBACK email
+    if (!subject.toLowerCase().includes('feedback received')) {
+      return false;
+    }
+  }
+  
   // INCLUDE: Emails from known clients (HIGH PRIORITY)
   const fromEmail = from.match(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/)?.[1] || '';
   if (clientEmails.has(fromEmail)) {
