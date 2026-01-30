@@ -93,6 +93,10 @@ const SuggestedTasksSection = () => {
       });
     },
     enabled: !!user && existingTaskTitles !== undefined,
+    // Fallback: keep the list fresh even if realtime delivery is delayed or blocked.
+    // (Realtime remains enabled below; this just guarantees eventual consistency.)
+    refetchInterval: 30_000,
+    refetchIntervalInBackground: false,
   });
 
   // Refresh suggestions from AI
