@@ -19,6 +19,56 @@ interface EmailForAnalysis {
   client_name: string | null;
 }
 
+function isRelevantEmail(email: EmailForAnalysis, clientEmails: Set<string>): boolean {
+  const from = email.from_email.toLowerCase();
+  const subject = (email.subject || '').toLowerCase();
+  const body = (email.body_preview || '').toLowerCase();
+  
+  // EXCLUDE: Personal financial emails
+  const financialKeywords = ['paypal', 'venmo', 'zelle', 'bank statement', 'credit card', 
+    'subscription', 'payment received', 'invoice', 'receipt', 'billing'];
+  if (financialKeywords.some(keyword => from.includes(keyword) || subject.includes(keyword))) {
+    return false;
+  }
+  
+  // EXCLUDE: Voicemail/phone notifications
+  const phoneKeywords = ['voicemail', 'missed call', 'vonage', 'google voice', 'ringcentral'];
+  if (phoneKeywords.some(keyword => from.includes(keyword) || subject.includes(keyword))) {
+    return false;
+  }
+  
+  // EXCLUDE: Marketing/CE courses
+  const marketingKeywords = ['continuing education', 'webinar', 'newsletter', 'ce course',
+    'unsubscribe', 'promotional', 'marketing'];
+  if (marketingKeywords.some(keyword => subject.includes(keyword) || body.includes(keyword))) {
+    return false;
+  }
+  
+  // EXCLUDE: System notifications
+  const systemKeywords = ['password reset', 'verify your email', 'calendar reminder', 
+    'security alert', 'login attempt'];
+  if (systemKeywords.some(keyword => subject.includes(keyword))) {
+    return false;
+  }
+  
+  // INCLUDE: Emails from known clients (HIGH PRIORITY)
+  const fromEmail = from.match(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/)?.[1] || '';
+  if (clientEmails.has(fromEmail)) {
+    return true;
+  }
+  
+  // INCLUDE: Real estate related emails
+  const realEstateKeywords = ['showing', 'offer', 'contract', 'inspection', 'closing',
+    'dotloop', 'docusign', 'mls', 'listing', 'buyer', 'seller', 'property',
+    'showingtime', 'feedback', 'home', 'house', 'real estate', 'mortgage', 'lender',
+    'title company', 'escrow', 'appraisal'];
+  if (realEstateKeywords.some(keyword => from.includes(keyword) || subject.includes(keyword) || body.includes(keyword))) {
+    return true;
+  }
+  
+  return false;
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -98,15 +148,24 @@ serve(async (req) => {
     // Get unique client IDs
     const clientIds = [...new Set(emails?.map(e => e.client_id).filter(Boolean))];
     
-    // Fetch client names
+    // Fetch client names and emails
     const { data: clients } = await supabaseClient
       .from('clients')
-      .select('id, first_name, last_name')
+      .select('id, first_name, last_name, email')
       .in('id', clientIds);
 
     const clientNameMap = new Map(
       clients?.map(c => [c.id, `${c.first_name || ''} ${c.last_name || ''}`.trim()]) || []
     );
+
+    // Build set of all client emails for pre-filtering
+    const clientEmails = new Set<string>();
+    clients?.forEach(client => {
+      if (client.email) {
+        const emails = client.email.split(/[;,]/).map((e: string) => e.trim().toLowerCase());
+        emails.forEach((e: string) => clientEmails.add(e));
+      }
+    });
 
     // Fetch existing pending tasks to avoid duplicates
     const { data: existingTasks } = await supabaseClient
@@ -125,19 +184,23 @@ serve(async (req) => {
       (emails || []).map(e => [e.id, { gmail_message_id: e.gmail_message_id }])
     );
 
-    // Format emails for AI analysis
-    const emailsForAnalysis: EmailForAnalysis[] = (emails || []).map(email => ({
-      id: email.id,
-      gmail_message_id: email.gmail_message_id,
-      subject: email.subject,
-      snippet: email.snippet,
-      body_preview: email.body_preview,
-      direction: email.direction,
-      from_email: email.from_email,
-      to_email: email.to_email,
-      received_at: email.received_at,
-      client_name: email.client_id ? clientNameMap.get(email.client_id) || null : null,
-    }));
+    // Format emails for AI analysis and pre-filter irrelevant ones
+    const emailsForAnalysis: EmailForAnalysis[] = (emails || [])
+      .map(email => ({
+        id: email.id,
+        gmail_message_id: email.gmail_message_id,
+        subject: email.subject,
+        snippet: email.snippet,
+        body_preview: email.body_preview,
+        direction: email.direction,
+        from_email: email.from_email,
+        to_email: email.to_email,
+        received_at: email.received_at,
+        client_name: email.client_id ? clientNameMap.get(email.client_id) || null : null,
+      }))
+      .filter(email => isRelevantEmail(email, clientEmails));
+
+    console.log(`Filtered to ${emailsForAnalysis.length} relevant emails from ${emails?.length || 0} total`);
 
     if (emailsForAnalysis.length === 0) {
       return new Response(JSON.stringify({ 
