@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle2, Circle, Clock, Plus, Check, Mail, RefreshCw, Sparkles, X } from "lucide-react";
+import { CheckCircle2, Circle, Clock, Plus, Check, Mail, RefreshCw, Sparkles } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth";
 import ArchivedTasksDialog from "./ArchivedTasksDialog";
@@ -517,16 +517,17 @@ const TasksTab = () => {
                                   <Plus className="w-4 h-4" />
                                 </Button>
                                 <Button
-                                  variant="ghost"
+                                  variant="outline"
                                   size="sm"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     dismissSuggestionMutation.mutate(task.id);
                                   }}
                                   disabled={dismissSuggestionMutation.isPending}
-                                  title="Dismiss"
+                                  title="Done - dismiss suggestion"
                                 >
-                                  <X className="w-4 h-4" />
+                                  <Check className="w-4 h-4 mr-1" />
+                                  Done
                                 </Button>
                               </>
                             ) : (
