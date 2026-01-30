@@ -69,6 +69,32 @@ function isRelevantEmail(email: EmailForAnalysis, clientEmails: Set<string>): bo
   return false;
 }
 
+function isSimilarTask(newTitle: string, existingTitles: Set<string>): boolean {
+  const normalize = (str: string) => str.toLowerCase()
+    .replace(/[^\w\s]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  
+  const newNormalized = normalize(newTitle);
+  
+  for (const existing of existingTitles) {
+    const existingNormalized = normalize(existing);
+    
+    // Check if titles are very similar (>70% word overlap)
+    const words1 = new Set(newNormalized.split(' '));
+    const words2 = new Set(existingNormalized.split(' '));
+    const intersection = new Set([...words1].filter(x => words2.has(x)));
+    const union = new Set([...words1, ...words2]);
+    const similarity = intersection.size / union.size;
+    
+    if (similarity > 0.7) {
+      return true;
+    }
+  }
+  
+  return false;
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -321,11 +347,14 @@ Return JSON in this exact format:
     const aiData = await aiResponse.json();
     const result = JSON.parse(aiData.choices[0].message.content);
     
-    // Filter out any suggestions that match existing titles OR reference already-processed emails
+    // Filter out any suggestions that match existing titles, are similar, OR reference already-processed emails
     const newSuggestions = (result.suggestions || []).filter(
       (s: { title: string; sourceEmailId?: string | null }) => {
-        // Check if title already exists
+        // Check if title already exists (exact match)
         if (allExistingTitles.has(s.title.toLowerCase())) return false;
+        
+        // Check if title is similar to existing (fuzzy match)
+        if (isSimilarTask(s.title, allExistingTitles)) return false;
         
         // Check if this email has already been processed into a suggestion
         if (s.sourceEmailId) {
