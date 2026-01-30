@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle2, Circle, Clock, Plus, Check, Mail } from "lucide-react";
+import { CheckCircle2, Circle, Clock, Plus, Check, Mail, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth";
 import ArchivedTasksDialog from "./ArchivedTasksDialog";
@@ -45,6 +45,7 @@ const TasksTab = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -134,6 +135,40 @@ const TasksTab = () => {
     },
   });
 
+  const syncGmailMutation = useMutation({
+    mutationFn: async () => {
+      setIsSyncing(true);
+      try {
+        const { data, error } = await supabase.functions.invoke('sync-gmail-emails', {
+          body: { 
+            agent_id: user?.id, 
+            days_back: 21, 
+            max_results: 500 
+          }
+        });
+        
+        if (error) throw error;
+        return data;
+      } finally {
+        setIsSyncing(false);
+      }
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["suggested-tasks"] });
+      toast({ 
+        title: "Gmail Synced!", 
+        description: `Synced ${data?.synced_count || 0} emails. ${data?.showingtime_count || 0} ShowingTime notifications found.`
+      });
+    },
+    onError: (error: Error) => {
+      toast({ 
+        title: "Sync Failed", 
+        description: error.message, 
+        variant: "destructive" 
+      });
+    },
+  });
+
   const resetForm = () => {
     setFormData({
       title: "",
@@ -163,13 +198,31 @@ const TasksTab = () => {
           <h3 className="text-lg font-semibold">Task Management</h3>
           <p className="text-sm text-muted-foreground">Stay organized with your tasks</p>
         </div>
-        <Dialog open={open} onOpenChange={(isOpen) => { setOpen(isOpen); if (!isOpen) resetForm(); }}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="w-4 h-4 mr-2" />
-              Add Task
-            </Button>
-          </DialogTrigger>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={() => syncGmailMutation.mutate()}
+            disabled={isSyncing || syncGmailMutation.isPending}
+          >
+            {isSyncing || syncGmailMutation.isPending ? (
+              <>
+                <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                Syncing...
+              </>
+            ) : (
+              <>
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Sync Gmail
+              </>
+            )}
+          </Button>
+          <Dialog open={open} onOpenChange={(isOpen) => { setOpen(isOpen); if (!isOpen) resetForm(); }}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="w-4 h-4 mr-2" />
+                Add Task
+              </Button>
+            </DialogTrigger>
           <DialogContent className="max-w-2xl">
             <DialogHeader>
               <DialogTitle>Create New Task</DialogTitle>
@@ -224,11 +277,12 @@ const TasksTab = () => {
                 <Button type="button" variant="outline" onClick={() => setOpen(false)}>
                   Cancel
                 </Button>
-                <Button type="submit">Create Task</Button>
+            <Button type="submit">Create Task</Button>
               </div>
             </form>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       {isLoading ? (
