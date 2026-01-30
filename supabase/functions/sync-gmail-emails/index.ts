@@ -75,18 +75,9 @@ serve(async (req) => {
       try {
         const result = await syncAgentEmails(supabase, currentAgentId, max_results, GOOGLE_CLIENT_ID!, GOOGLE_CLIENT_SECRET!, afterDate);
         
-        // After syncing emails, auto-generate and create high-priority tasks
-        let tasksCreated = 0;
+        // After syncing emails, auto-generate suggested tasks for the suggestions UI
         let suggestionsCreated = 0;
         if (result.synced_count && result.synced_count > 0) {
-          try {
-            tasksCreated = await autoCreateTasksFromEmails(supabase, currentAgentId);
-            console.log(`Auto-created ${tasksCreated} tasks for agent ${currentAgentId}`);
-          } catch (taskErr) {
-            console.error(`Error creating tasks for agent ${currentAgentId}:`, taskErr);
-          }
-          
-          // Also generate suggested tasks for the suggestions UI
           try {
             suggestionsCreated = await autoCreateSuggestedTasks(supabase, currentAgentId);
             console.log(`Auto-created ${suggestionsCreated} suggested tasks for agent ${currentAgentId}`);
@@ -95,7 +86,7 @@ serve(async (req) => {
           }
         }
         
-        allResults.push({ agent_id: currentAgentId, ...result, tasks_created: tasksCreated, suggestions_created: suggestionsCreated });
+        allResults.push({ agent_id: currentAgentId, ...result, suggestions_created: suggestionsCreated });
       } catch (err) {
         console.error(`Error syncing agent ${currentAgentId}:`, err);
         allResults.push({ agent_id: currentAgentId, error: err instanceof Error ? err.message : "Unknown error" });
@@ -936,151 +927,6 @@ async function syncAgentEmails(
     showingtime_feedback: showingTimeFeedback,
     message: `Synced ${processedEmails.length} new emails (${showingTimeFeedback.length} ShowingTime notifications, ${updatedClients} clients updated, ${backfilledFeedback} feedback backfilled)`,
   };
-}
-
-// Auto-create high-priority tasks from AI analysis of recent emails
-async function autoCreateTasksFromEmails(supabase: any, agentId: string): Promise<number> {
-  const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-  if (!LOVABLE_API_KEY) {
-    console.log('LOVABLE_API_KEY not configured, skipping auto task creation');
-    return 0;
-  }
-
-  // Fetch recent emails (last 7 days)
-  const sevenDaysAgo = new Date();
-  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-
-  const { data: emails, error: emailsError } = await supabase
-    .from('client_email_logs')
-    .select(`
-      id, subject, snippet, body_preview, direction,
-      from_email, to_email, received_at, client_id
-    `)
-    .eq('agent_id', agentId)
-    .gte('received_at', sevenDaysAgo.toISOString())
-    .order('received_at', { ascending: false })
-    .limit(100);
-
-  if (emailsError || !emails || emails.length === 0) {
-    console.log('No recent emails to analyze for task creation');
-    return 0;
-  }
-
-  // Get client names for context
-  const clientIds = [...new Set(emails.map((e: any) => e.client_id).filter(Boolean))];
-  const { data: clients } = await supabase
-    .from('clients')
-    .select('id, first_name, last_name')
-    .in('id', clientIds);
-
-  const clientNameMap = new Map(
-    clients?.map((c: any) => [c.id, `${c.first_name || ''} ${c.last_name || ''}`.trim()]) || []
-  );
-
-  // Get existing pending tasks to avoid duplicates
-  const { data: existingTasks } = await supabase
-    .from('tasks')
-    .select('title')
-    .eq('agent_id', agentId)
-    .neq('status', 'completed');
-
-  const existingTaskTitles = new Set(
-    existingTasks?.map((t: any) => t.title.toLowerCase()) || []
-  );
-
-  // Format emails for AI analysis
-  const emailsForAnalysis = emails.map((email: any) => ({
-    id: email.id,
-    subject: email.subject,
-    snippet: email.snippet,
-    body_preview: email.body_preview,
-    direction: email.direction,
-    from_email: email.from_email,
-    to_email: email.to_email,
-    received_at: email.received_at,
-    client_name: email.client_id ? clientNameMap.get(email.client_id) || null : null,
-  }));
-
-  const today = new Date().toISOString().split('T')[0];
-
-  // Call Lovable AI for task suggestions
-  const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: 'google/gemini-3-flash-preview',
-      messages: [
-        {
-          role: 'system',
-          content: `You are an AI assistant for a real estate agent. Analyze their email communications and identify ONLY urgent or high-priority tasks that need immediate attention. Be conservative - only suggest tasks that are clearly time-sensitive or important.
-
-Focus on:
-1. Unanswered incoming emails from the last 48 hours
-2. Clear action items or commitments mentioned in emails
-3. Time-sensitive matters (offers, deadlines, showings)
-
-Today's date is ${today}. Only return tasks with priority "urgent" or "high".`
-        },
-        {
-          role: 'user',
-          content: `Analyze these emails and suggest up to 3 urgent/high-priority tasks:
-
-${JSON.stringify(emailsForAnalysis.slice(0, 50), null, 2)}
-
-Existing tasks to avoid: ${Array.from(existingTaskTitles).join(', ')}
-
-Return JSON: { "suggestions": [{ "title": string, "description": string, "priority": "urgent"|"high" }] }`
-        }
-      ],
-      response_format: { type: "json_object" }
-    }),
-  });
-
-  if (!aiResponse.ok) {
-    console.error('AI Gateway error for auto task creation:', aiResponse.status);
-    return 0;
-  }
-
-  const aiData = await aiResponse.json();
-  let suggestions: Array<{ title: string; description: string; priority: string }> = [];
-  
-  try {
-    const result = JSON.parse(aiData.choices[0].message.content);
-    suggestions = result.suggestions || [];
-  } catch (parseErr) {
-    console.error('Failed to parse AI response:', parseErr);
-    return 0;
-  }
-
-  // Filter to only urgent/high priority and check for duplicates
-  const tasksToCreate = suggestions
-    .filter(s => ['urgent', 'high'].includes(s.priority))
-    .filter(s => !existingTaskTitles.has(s.title.toLowerCase()));
-
-  if (tasksToCreate.length === 0) {
-    return 0;
-  }
-
-  // Insert new tasks
-  const { error: insertError } = await supabase
-    .from('tasks')
-    .insert(tasksToCreate.map(task => ({
-      agent_id: agentId,
-      title: task.title,
-      description: `[Auto-created] ${task.description}`,
-      priority: task.priority,
-      status: 'pending',
-    })));
-
-  if (insertError) {
-    console.error('Error inserting auto-created tasks:', insertError);
-    return 0;
-  }
-
-  return tasksToCreate.length;
 }
 
 // Auto-create suggested tasks (for the AI Suggestions UI) from email analysis
