@@ -188,40 +188,6 @@ const TasksTab = () => {
     },
   });
 
-  // Add AI suggestion to regular tasks
-  const addToTasksMutation = useMutation({
-    mutationFn: async (suggestion: UnifiedTask) => {
-      // Create the task
-      const { error: taskError } = await supabase
-        .from("tasks")
-        .insert([{
-          title: suggestion.title,
-          description: suggestion.description,
-          priority: suggestion.priority as "low" | "medium" | "high" | "urgent",
-          agent_id: user?.id,
-          status: "pending",
-        }]);
-      
-      if (taskError) throw taskError;
-
-      // Mark suggestion as added
-      const { error: updateError } = await supabase
-        .from("suggested_tasks")
-        .update({ status: "added" })
-        .eq("id", suggestion.id);
-      
-      if (updateError) throw updateError;
-      
-      return suggestion.title;
-    },
-    onSuccess: (title) => {
-      queryClient.invalidateQueries({ queryKey: ["all-tasks"] });
-      toast({ title: "Task created", description: `"${title}" added to your tasks.` });
-    },
-    onError: (error: Error) => {
-      toast({ title: "Error creating task", description: error.message, variant: "destructive" });
-    },
-  });
 
   // Dismiss AI suggestion
   const dismissSuggestionMutation = useMutation({
@@ -503,33 +469,18 @@ const TasksTab = () => {
                         <TableCell>
                           <div className="flex gap-1">
                             {task.task_type === 'ai-suggested' ? (
-                              <>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    addToTasksMutation.mutate(task);
-                                  }}
-                                  disabled={addToTasksMutation.isPending}
-                                  title="Add to tasks"
-                                >
-                                  <Plus className="w-4 h-4" />
-                                </Button>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    dismissSuggestionMutation.mutate(task.id);
-                                  }}
-                                  disabled={dismissSuggestionMutation.isPending}
-                                  title="Done - dismiss suggestion"
-                                >
-                                  <Check className="w-4 h-4 mr-1" />
-                                  Done
-                                </Button>
-                              </>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  dismissSuggestionMutation.mutate(task.id);
+                                }}
+                                disabled={dismissSuggestionMutation.isPending}
+                              >
+                                <Check className="w-4 h-4 mr-1" />
+                                Done
+                              </Button>
                             ) : (
                               <Button
                                 variant="outline"
