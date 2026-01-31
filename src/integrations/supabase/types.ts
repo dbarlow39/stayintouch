@@ -1142,46 +1142,61 @@ export type Database = {
       }
       suggested_tasks: {
         Row: {
+          action_needed: string | null
           agent_id: string
           category: string
           created_at: string
           description: string | null
+          email_summary: string | null
           gmail_message_id: string | null
           id: string
           priority: string
           reasoning: string | null
           related_client: string | null
+          sender: string | null
+          snoozed_until: string | null
           source_email_id: string | null
           status: string
           title: string
+          triage_category: string | null
         }
         Insert: {
+          action_needed?: string | null
           agent_id: string
           category?: string
           created_at?: string
           description?: string | null
+          email_summary?: string | null
           gmail_message_id?: string | null
           id?: string
           priority?: string
           reasoning?: string | null
           related_client?: string | null
+          sender?: string | null
+          snoozed_until?: string | null
           source_email_id?: string | null
           status?: string
           title: string
+          triage_category?: string | null
         }
         Update: {
+          action_needed?: string | null
           agent_id?: string
           category?: string
           created_at?: string
           description?: string | null
+          email_summary?: string | null
           gmail_message_id?: string | null
           id?: string
           priority?: string
           reasoning?: string | null
           related_client?: string | null
+          sender?: string | null
+          snoozed_until?: string | null
           source_email_id?: string | null
           status?: string
           title?: string
+          triage_category?: string | null
         }
         Relationships: [
           {
