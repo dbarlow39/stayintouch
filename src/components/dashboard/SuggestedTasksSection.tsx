@@ -259,14 +259,9 @@ const SuggestedTasksSection = () => {
               <Badge variant="secondary" className="ml-2">{totalCount}</Badge>
             )}
           </CardTitle>
-          <div className="flex items-center gap-2">
-            {lastRefreshTime && (
-              <span className="text-xs text-muted-foreground">
-                Updated {formatDistanceToNow(lastRefreshTime, { addSuffix: true })}
-              </span>
-            )}
+          <div className="flex flex-col items-end gap-1">
             <Button
-              variant="ghost"
+              variant="outline"
               size="sm"
               onClick={() => refreshMutation.mutate()}
               disabled={isLoading || refreshMutation.isPending}
@@ -274,6 +269,11 @@ const SuggestedTasksSection = () => {
               <RefreshCw className={`w-4 h-4 mr-1 ${refreshMutation.isPending ? 'animate-spin' : ''}`} />
               Refresh
             </Button>
+            {lastRefreshTime && (
+              <span className="text-xs text-muted-foreground text-center">
+                Updated {formatDistanceToNow(lastRefreshTime, { addSuffix: true })}
+              </span>
+            )}
           </div>
         </div>
         <p className="text-xs text-muted-foreground">
