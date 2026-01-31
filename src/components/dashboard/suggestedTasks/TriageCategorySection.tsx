@@ -104,6 +104,22 @@ export const TriageCategorySection = ({
         {items.map((item) => {
           const hasEmailLink = Boolean(getSuggestedTaskGmailUrl(item));
           
+          // Extract sender name from email_from (e.g., "John Doe <john@example.com>" -> "John Doe")
+          const senderDisplay = item.sender || (() => {
+            if (!item.email_from) return null;
+            const match = item.email_from.match(/^([^<]+)</);
+            return match ? match[1].trim() : item.email_from.split('@')[0];
+          })();
+          
+          // Format the received time nicely
+          const receivedDate = item.email_received_at ? new Date(item.email_received_at) : null;
+          const formattedDate = receivedDate
+            ? `${receivedDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} at ${receivedDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+            : null;
+          
+          // Use email_summary, fall back to description, then action_needed
+          const summaryText = item.email_summary || item.description || item.action_needed;
+          
           return (
             <div
               key={item.id}
@@ -123,36 +139,43 @@ export const TriageCategorySection = ({
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1 flex-wrap">
+                  {/* Header row: badge + sender + timestamp */}
+                  <div className="flex items-center gap-2 mb-1.5 flex-wrap">
                     <Badge variant="outline" className={`text-xs ${config.badgeClass}`}>
                       {config.label}
                     </Badge>
-                    {item.sender && (
-                      <span className="text-xs text-muted-foreground font-medium">
-                        {item.sender}
+                    {senderDisplay && (
+                      <span className="text-xs font-semibold text-foreground">
+                        {senderDisplay}
                       </span>
                     )}
-                    {item.email_received_at && (
+                    {formattedDate && (
                       <span className="text-xs text-muted-foreground">
-                        • {new Date(item.email_received_at).toLocaleDateString()}{" "}
-                        {new Date(item.email_received_at).toLocaleTimeString([], {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
+                        • {formattedDate}
                       </span>
                     )}
                   </div>
                   
-                  <p className="font-medium text-sm">{item.title}</p>
-                  
-                  {item.email_summary && (
-                    <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                      {item.email_summary}
+                  {/* Email subject line */}
+                  {item.email_subject && (
+                    <p className="text-xs text-muted-foreground mb-1 truncate">
+                      <span className="font-medium">Subject:</span> {item.email_subject}
                     </p>
                   )}
                   
-                  {item.action_needed && (
-                    <p className="text-xs text-primary/80 mt-1 font-medium">
+                  {/* Task title (action-oriented) */}
+                  <p className="font-medium text-sm text-foreground">{item.title}</p>
+                  
+                  {/* Summary / description */}
+                  {summaryText && (
+                    <p className="text-xs text-muted-foreground mt-1.5 line-clamp-3">
+                      {summaryText}
+                    </p>
+                  )}
+                  
+                  {/* Action needed callout (if different from summary) */}
+                  {item.action_needed && item.action_needed !== summaryText && (
+                    <p className="text-xs text-primary/80 mt-1.5 font-medium">
                       → {item.action_needed}
                     </p>
                   )}
