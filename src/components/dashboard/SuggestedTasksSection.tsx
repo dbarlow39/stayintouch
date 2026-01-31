@@ -1,37 +1,17 @@
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Sparkles, RefreshCw, Plus, AlertCircle, Clock, Mail, CheckCircle2, Check } from "lucide-react";
+import { Sparkles, RefreshCw, Mail } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { getSuggestedTaskGmailSearchUrl, getSuggestedTaskGmailUrl } from "@/components/dashboard/suggestedTasks/getGmailUrl";
 import { gmailNewUiTokenFromLegacyHex, gmailUrlForLegacyHex } from "@/utils/gmailDeepLink";
-import type { SuggestedTask } from "@/components/dashboard/suggestedTasks/types";
-import { GmailOpenMenu } from "@/components/dashboard/suggestedTasks/GmailOpenMenu";
-
-const priorityColors = {
-  low: "bg-secondary/50 text-secondary-foreground",
-  medium: "bg-accent/10 text-accent-foreground",
-  high: "bg-primary/10 text-primary",
-  urgent: "bg-destructive/10 text-destructive",
-};
-
-const categoryIcons = {
-  "follow-up": Clock,
-  "action-item": CheckCircle2,
-  "urgent-response": AlertCircle,
-  "proactive-outreach": Mail,
-};
-
-const categoryLabels = {
-  "follow-up": "Follow-up",
-  "action-item": "Action Item",
-  "urgent-response": "Urgent",
-  "proactive-outreach": "Outreach",
-};
+import type { SuggestedTask, TriageCategory, TriageStats } from "@/components/dashboard/suggestedTasks/types";
+import { EmailDigestSummary } from "@/components/dashboard/suggestedTasks/EmailDigestSummary";
+import { TriageCategorySection } from "@/components/dashboard/suggestedTasks/TriageCategorySection";
 
 const SuggestedTasksSection = () => {
   const { user } = useAuth();
@@ -54,50 +34,71 @@ const SuggestedTasksSection = () => {
     enabled: !!user,
   });
 
-  // Fetch persisted suggestions from the database with email subject for Gmail links
+  // Fetch persisted suggestions with email data
   const { data: suggestions, isLoading } = useQuery({
     queryKey: ["suggested-tasks", user?.id, existingTaskTitles],
     queryFn: async () => {
+      const now = new Date().toISOString();
+      
       const { data, error } = await supabase
         .from("suggested_tasks")
         .select(
           "*, client_email_logs!suggested_tasks_source_email_id_fkey(subject, thread_id, from_email, received_at, gmail_message_id)"
         )
         .eq("status", "pending")
+        .or(`snoozed_until.is.null,snoozed_until.lt.${now}`)
         .order("created_at", { ascending: false });
       
       if (error) throw error;
       
-      // Map the joined data to include email_subject and thread_id
       const mapped = (data || []).map((item: any) => ({
         ...item,
         email_subject: item.client_email_logs?.subject || null,
         thread_id: item.client_email_logs?.thread_id || null,
         email_from: item.client_email_logs?.from_email || null,
         email_received_at: item.client_email_logs?.received_at || null,
-        // Prefer suggested_tasks.gmail_message_id, but fall back to the source email log id
         gmail_message_id: item.gmail_message_id || item.client_email_logs?.gmail_message_id || null,
-        client_email_logs: undefined, // Clean up the nested object
+        client_email_logs: undefined,
       })) as SuggestedTask[];
       
-      // Filter out suggestions that already exist as pending tasks
       const filtered = existingTaskTitles 
         ? mapped.filter(s => !existingTaskTitles.has(s.title.toLowerCase().trim()))
         : mapped;
       
-      // Sort by email received date, newest first
       return filtered.sort((a, b) => {
         const dateA = a.email_received_at ? new Date(a.email_received_at).getTime() : 0;
         const dateB = b.email_received_at ? new Date(b.email_received_at).getTime() : 0;
-        return dateB - dateA; // Descending (newest first)
+        return dateB - dateA;
       });
     },
     enabled: !!user && existingTaskTitles !== undefined,
-    // Fallback: keep the list fresh even if realtime delivery is delayed or blocked.
-    // (Realtime remains enabled below; this just guarantees eventual consistency.)
     refetchInterval: 30_000,
     refetchIntervalInBackground: false,
   });
+
+  // Calculate triage stats
+  const triageStats: TriageStats = useMemo(() => {
+    if (!suggestions) return { urgent: 0, important: 0, fyi: 0, ignore: 0 };
+    
+    return {
+      urgent: suggestions.filter(s => s.triage_category === 'urgent').length,
+      important: suggestions.filter(s => s.triage_category === 'important').length,
+      fyi: suggestions.filter(s => s.triage_category === 'fyi').length,
+      ignore: suggestions.filter(s => s.triage_category === 'ignore').length,
+    };
+  }, [suggestions]);
+
+  // Group suggestions by triage category
+  const groupedSuggestions = useMemo(() => {
+    if (!suggestions) return { urgent: [], important: [], fyi: [], ignore: [] };
+    
+    return {
+      urgent: suggestions.filter(s => s.triage_category === 'urgent'),
+      important: suggestions.filter(s => s.triage_category === 'important' || !s.triage_category),
+      fyi: suggestions.filter(s => s.triage_category === 'fyi'),
+      ignore: suggestions.filter(s => s.triage_category === 'ignore'),
+    };
+  }, [suggestions]);
 
   // Refresh suggestions from AI
   const refreshMutation = useMutation({
@@ -109,49 +110,18 @@ const SuggestedTasksSection = () => {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["suggested-tasks"] });
       if (data?.newSuggestionsCount > 0) {
-        toast({ title: `Added ${data.newSuggestionsCount} new suggestions` });
+        toast({ 
+          title: `Added ${data.newSuggestionsCount} new items`,
+          description: data.stats 
+            ? `${data.stats.urgent} urgent, ${data.stats.important} important, ${data.stats.fyi} FYI`
+            : undefined
+        });
       } else {
-        toast({ title: "No new suggestions found" });
+        toast({ title: "No new emails to triage" });
       }
     },
     onError: (error: Error) => {
-      toast({ title: "Error refreshing suggestions", description: error.message, variant: "destructive" });
-    },
-  });
-
-  // Add suggestion as a task
-  const addTaskMutation = useMutation({
-    mutationFn: async (suggestion: SuggestedTask) => {
-      // Create the task
-      const { error: taskError } = await supabase
-        .from("tasks")
-        .insert([{
-          title: suggestion.title,
-          description: suggestion.description,
-          priority: suggestion.priority as "low" | "medium" | "high" | "urgent",
-          agent_id: user?.id,
-          status: "pending",
-        }]);
-      
-      if (taskError) throw taskError;
-
-      // Mark suggestion as added
-      const { error: updateError } = await supabase
-        .from("suggested_tasks")
-        .update({ status: "added" })
-        .eq("id", suggestion.id);
-      
-      if (updateError) throw updateError;
-      
-      return suggestion.title;
-    },
-    onSuccess: (title) => {
-      queryClient.invalidateQueries({ queryKey: ["tasks"] });
-      queryClient.invalidateQueries({ queryKey: ["suggested-tasks"] });
-      toast({ title: "Task created", description: `"${title}" added to your tasks.` });
-    },
-    onError: (error: Error) => {
-      toast({ title: "Error creating task", description: error.message, variant: "destructive" });
+      toast({ title: "Error refreshing", description: error.message, variant: "destructive" });
     },
   });
 
@@ -166,12 +136,52 @@ const SuggestedTasksSection = () => {
       if (error) throw error;
     },
     onSuccess: () => {
-      // Invalidate both suggested-tasks and suggestion-titles to update all related lists
       queryClient.invalidateQueries({ queryKey: ["suggested-tasks"] });
-      queryClient.invalidateQueries({ queryKey: ["suggestion-titles"] });
     },
     onError: (error: Error) => {
-      toast({ title: "Error dismissing suggestion", description: error.message, variant: "destructive" });
+      toast({ title: "Error dismissing", description: error.message, variant: "destructive" });
+    },
+  });
+
+  // Snooze a suggestion until tomorrow
+  const snoozeMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      tomorrow.setHours(9, 0, 0, 0);
+      
+      const { error } = await supabase
+        .from("suggested_tasks")
+        .update({ snoozed_until: tomorrow.toISOString() })
+        .eq("id", id);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["suggested-tasks"] });
+      toast({ title: "Snoozed until tomorrow 9 AM" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error snoozing", description: error.message, variant: "destructive" });
+    },
+  });
+
+  // Mark all as read/done
+  const markAllReadMutation = useMutation({
+    mutationFn: async (ids: string[]) => {
+      const { error } = await supabase
+        .from("suggested_tasks")
+        .update({ status: "dismissed" })
+        .in("id", ids);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["suggested-tasks"] });
+      toast({ title: "All marked as done" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
     },
   });
 
@@ -184,49 +194,6 @@ const SuggestedTasksSection = () => {
         ? getSuggestedTaskGmailSearchUrl(suggestion, { accountIndex: opts.accountIndex })
         : getSuggestedTaskGmailUrl(suggestion, { accountIndex: opts.accountIndex });
 
-    // Verbose debug: only logs on click (not during render).
-    if (import.meta.env.DEV) {
-      const msgId = (suggestion.gmail_message_id ?? "").trim();
-      const threadId = (suggestion.thread_id ?? "").trim();
-      const isHex = (v: string) => /^[0-9a-f]{15,16}$/i.test(v);
-
-      const msgTokens = msgId && isHex(msgId)
-        ? {
-            thread: gmailNewUiTokenFromLegacyHex(msgId, "thread"),
-            msg: gmailNewUiTokenFromLegacyHex(msgId, "msg"),
-          }
-        : null;
-
-      const threadTokens = threadId && isHex(threadId)
-        ? {
-            thread: gmailNewUiTokenFromLegacyHex(threadId, "thread"),
-            msg: gmailNewUiTokenFromLegacyHex(threadId, "msg"),
-          }
-        : null;
-
-      // eslint-disable-next-line no-console
-      console.groupCollapsed(`[GmailLink][SuggestedTask:${suggestion.id}] ${suggestion.title}`);
-      // eslint-disable-next-line no-console
-      console.log({
-        gmail_message_id: suggestion.gmail_message_id ?? null,
-        thread_id: suggestion.thread_id ?? null,
-        email_subject: (suggestion as any).email_subject ?? null,
-        email_from: (suggestion as any).email_from ?? null,
-        email_received_at: (suggestion as any).email_received_at ?? null,
-      });
-      // eslint-disable-next-line no-console
-      console.log({
-        chosenUrl: url,
-        chosenMode: opts,
-        msgTokens,
-        threadTokens,
-        msgAutoUrl: msgId && isHex(msgId) ? gmailUrlForLegacyHex(msgId, "auto") : null,
-        threadAutoUrl: threadId && isHex(threadId) ? gmailUrlForLegacyHex(threadId, "auto") : null,
-      });
-      // eslint-disable-next-line no-console
-      console.groupEnd();
-    }
-
     if (!url) {
       toast({
         title: "No email linked",
@@ -238,7 +205,7 @@ const SuggestedTasksSection = () => {
     window.open(url, "_blank", "noopener,noreferrer");
   };
 
-  // Subscribe to realtime inserts on suggested_tasks to auto-refresh when sync adds new suggestions
+  // Subscribe to realtime updates
   useEffect(() => {
     if (!user) return;
 
@@ -265,15 +232,19 @@ const SuggestedTasksSection = () => {
 
   if (!user) return null;
 
+  const hasUrgentOrImportant = triageStats.urgent > 0 || triageStats.important > 0;
+  const showFyi = hasUrgentOrImportant || triageStats.fyi > 0;
+  const totalCount = (suggestions?.length || 0);
+
   return (
     <Card className="shadow-soft mb-6 border-primary/20">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="text-base flex items-center gap-2">
             <Sparkles className="w-4 h-4 text-primary" />
-            AI Suggested Tasks
-            {suggestions && suggestions.length > 0 && (
-              <Badge variant="secondary" className="ml-2">{suggestions.length}</Badge>
+            Email Digest
+            {totalCount > 0 && (
+              <Badge variant="secondary" className="ml-2">{totalCount}</Badge>
             )}
           </CardTitle>
           <Button
@@ -287,112 +258,71 @@ const SuggestedTasksSection = () => {
           </Button>
         </div>
         <p className="text-xs text-muted-foreground">
-          Based on your recent email communications
+          AI-powered email triage based on your communications
         </p>
       </CardHeader>
       <CardContent>
         {isLoading ? (
           <div className="flex items-center justify-center py-8">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-            <span className="ml-3 text-sm text-muted-foreground">Loading suggestions...</span>
+            <span className="ml-3 text-sm text-muted-foreground">Analyzing emails...</span>
           </div>
         ) : !suggestions || suggestions.length === 0 ? (
           <div className="text-center py-6 text-muted-foreground">
             <Mail className="w-8 h-8 mx-auto mb-2 opacity-50" />
-            <p className="text-sm">No task suggestions at this time</p>
+            <p className="text-sm">No emails to triage</p>
             <p className="text-xs mt-1">Click Refresh to analyze recent emails</p>
           </div>
         ) : (
-          <div className="space-y-3">
-            {suggestions.map((suggestion) => {
-              const CategoryIcon = categoryIcons[suggestion.category as keyof typeof categoryIcons] || Clock;
-              const hasEmailLink = Boolean(getSuggestedTaskGmailUrl(suggestion));
-              
-              return (
-                <div
-                  key={suggestion.id}
-                  role={hasEmailLink ? "button" : undefined}
-                  tabIndex={hasEmailLink ? 0 : undefined}
-                   onClick={() => {
-                    if (!hasEmailLink) return;
-                     openGmailEmail(suggestion, { accountIndex: null, mode: "direct" });
-                  }}
-                  onKeyDown={(e) => {
-                    if (!hasEmailLink) return;
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
-                       openGmailEmail(suggestion, { accountIndex: null, mode: "direct" });
-                    }
-                  }}
-                  className={
-                    `p-3 border rounded-lg bg-card hover:border-primary/30 transition-all ` +
-                    (hasEmailLink ? "cursor-pointer focus:outline-none focus:ring-2 focus:ring-ring" : "")
-                  }
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1 flex-wrap">
-                        <Badge variant="outline" className="text-xs gap-1">
-                          <CategoryIcon className="w-3 h-3" />
-                          {categoryLabels[suggestion.category as keyof typeof categoryLabels] || suggestion.category}
-                        </Badge>
-                        <Badge className={`text-xs ${priorityColors[suggestion.priority as keyof typeof priorityColors] || priorityColors.medium}`}>
-                          {suggestion.priority}
-                        </Badge>
-                        {suggestion.related_client && (
-                          <span className="text-xs text-muted-foreground">
-                            • {suggestion.related_client}
-                          </span>
-                        )}
-                        {suggestion.email_from && (
-                          <span className="text-xs text-muted-foreground">
-                            • {suggestion.email_from}
-                          </span>
-                        )}
-                        {suggestion.email_received_at && (
-                          <span className="text-xs text-muted-foreground">
-                            • {new Date(suggestion.email_received_at).toLocaleDateString()} {new Date(suggestion.email_received_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                          </span>
-                        )}
-                      </div>
-                      <p className="font-medium text-sm">{suggestion.title}</p>
-                      {suggestion.description && (
-                        <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                          {suggestion.description}
-                        </p>
-                      )}
-                      {suggestion.reasoning && (
-                        <p className="text-xs text-muted-foreground/70 mt-1 italic">
-                          {suggestion.reasoning}
-                        </p>
-                      )}
-                       {hasEmailLink && (
-                         <div className="mt-2">
-                           <GmailOpenMenu
-                             onOpen={(o) => openGmailEmail(suggestion, o)}
-                           />
-                         </div>
-                       )}
-                    </div>
-                    <div className="flex gap-1 shrink-0">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        disabled={dismissMutation.isPending}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          dismissMutation.mutate(suggestion.id);
-                        }}
-                      >
-                        <Check className="w-4 h-4 mr-1" />
-                        Done
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+          <>
+            <EmailDigestSummary stats={triageStats} isLoading={isLoading} />
+            
+            <TriageCategorySection
+              category="urgent"
+              items={groupedSuggestions.urgent}
+              defaultOpen={true}
+              onDismiss={(id) => dismissMutation.mutate(id)}
+              onSnooze={(id) => snoozeMutation.mutate(id)}
+              onMarkAllRead={(ids) => markAllReadMutation.mutate(ids)}
+              onOpenEmail={openGmailEmail}
+              isDismissing={dismissMutation.isPending}
+            />
+            
+            <TriageCategorySection
+              category="important"
+              items={groupedSuggestions.important}
+              defaultOpen={true}
+              onDismiss={(id) => dismissMutation.mutate(id)}
+              onSnooze={(id) => snoozeMutation.mutate(id)}
+              onMarkAllRead={(ids) => markAllReadMutation.mutate(ids)}
+              onOpenEmail={openGmailEmail}
+              isDismissing={dismissMutation.isPending}
+            />
+            
+            {showFyi && (
+              <TriageCategorySection
+                category="fyi"
+                items={groupedSuggestions.fyi}
+                defaultOpen={!hasUrgentOrImportant}
+                onDismiss={(id) => dismissMutation.mutate(id)}
+                onSnooze={(id) => snoozeMutation.mutate(id)}
+                onMarkAllRead={(ids) => markAllReadMutation.mutate(ids)}
+                onOpenEmail={openGmailEmail}
+                isDismissing={dismissMutation.isPending}
+              />
+            )}
+            
+            <TriageCategorySection
+              category="ignore"
+              items={groupedSuggestions.ignore}
+              defaultOpen={false}
+              onDismiss={(id) => dismissMutation.mutate(id)}
+              onSnooze={(id) => snoozeMutation.mutate(id)}
+              onMarkAllRead={(ids) => markAllReadMutation.mutate(ids)}
+              onOpenEmail={openGmailEmail}
+              isDismissing={dismissMutation.isPending}
+            />
+          </>
         )}
       </CardContent>
     </Card>

@@ -20,6 +20,17 @@ interface EmailForAnalysis {
   client_name: string | null;
 }
 
+interface TriagedEmail {
+  title: string;
+  email_summary: string;
+  sender: string;
+  action_needed: string;
+  priority: 'urgent' | 'high' | 'medium' | 'low';
+  triage_category: 'urgent' | 'important' | 'fyi' | 'ignore';
+  reasoning: string | null;
+  sourceEmailId: string | null;
+}
+
 function isRelevantEmail(email: EmailForAnalysis, clientEmails: Set<string>): boolean {
   const from = email.from_email.toLowerCase();
   const subject = (email.subject || '').toLowerCase();
@@ -55,9 +66,8 @@ function isRelevantEmail(email: EmailForAnalysis, clientEmails: Set<string>): bo
   // EXCLUDE: ShowingTime emails - ONLY include FEEDBACK
   if (from.includes('showingtime.com') || from.includes('showing.com')) {
     const feedbackKeywords = ['feedback received'];
-    // Only keep feedback emails
     if (!feedbackKeywords.some(keyword => subject.includes(keyword))) {
-      return false; // Skip all non-feedback ShowingTime emails
+      return false;
     }
   }
   
@@ -66,7 +76,7 @@ function isRelevantEmail(email: EmailForAnalysis, clientEmails: Set<string>): bo
       subject.includes('voicemail') || subject.includes('new call')) {
     const fromEmail = from.match(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/)?.[1] || '';
     if (!clientEmails.has(fromEmail)) {
-      return false; // Skip call notifications unless from known client
+      return false;
     }
   }
   
@@ -99,7 +109,6 @@ function isSimilarTask(newTitle: string, existingTitles: Set<string>): boolean {
   for (const existing of existingTitles) {
     const existingNormalized = normalize(existing);
     
-    // Check if titles are very similar (>70% word overlap)
     const words1 = new Set(newNormalized.split(' '));
     const words2 = new Set(existingNormalized.split(' '));
     const intersection = new Set([...words1].filter(x => words2.has(x)));
@@ -115,27 +124,21 @@ function isSimilarTask(newTitle: string, existingTitles: Set<string>): boolean {
 }
 
 function areTasksAboutSameTopic(task1: string, task2: string): boolean {
-  // Extract key entities (names, addresses, properties)
   const extractEntities = (str: string) => {
     const entities = new Set<string>();
     
-    // Extract addresses
     const addressMatch = str.match(/\d+\s+[A-Za-z\s]+(?:Dr|Drive|St|Street|Ave|Avenue|Rd|Road|Blvd|Boulevard|Ln|Lane|Ct|Court|Way|Pl|Place)/gi);
     if (addressMatch) addressMatch.forEach(a => entities.add(a.toLowerCase().trim()));
     
-    // Extract phone numbers (10-11 digits)
     const phoneMatch = str.match(/\+?\d{10,11}/g);
     if (phoneMatch) phoneMatch.forEach(p => entities.add(p));
     
-    // Extract MLS IDs (8-10 digit numbers)
     const mlsMatch = str.match(/\b\d{8,10}\b/g);
     if (mlsMatch) mlsMatch.forEach(m => entities.add(m));
     
-    // Extract dollar amounts
     const dollarMatch = str.match(/\$[\d,]{3,}/g);
     if (dollarMatch) dollarMatch.forEach(d => entities.add(d.replace(/,/g, '')));
     
-    // Extract proper names (two capitalized words together)
     const nameMatch = str.match(/[A-Z][a-z]+\s+[A-Z][a-z]+/g);
     if (nameMatch) nameMatch.forEach(n => entities.add(n.toLowerCase()));
     
@@ -145,7 +148,6 @@ function areTasksAboutSameTopic(task1: string, task2: string): boolean {
   const entities1 = extractEntities(task1);
   const entities2 = extractEntities(task2);
   
-  // If they share ANY entity (address, phone, MLS ID, price, name), they're about the same thing
   for (const entity of entities1) {
     if (entities2.has(entity)) {
       return true;
@@ -156,10 +158,12 @@ function areTasksAboutSameTopic(task1: string, task2: string): boolean {
 }
 
 // Process suggestions for a single agent
-async function processAgentSuggestions(agentId: string, supabaseClient: any): Promise<number> {
+async function processAgentSuggestions(agentId: string, supabaseClient: any): Promise<{ 
+  newSuggestionsCount: number;
+  stats: { urgent: number; important: number; fyi: number; ignore: number };
+}> {
   console.log(`Processing suggestions for agent: ${agentId}`);
   
-  // Fetch existing suggested tasks (pending, dismissed, added) to avoid duplicates
   const { data: existingSuggestions } = await supabaseClient
     .from('suggested_tasks')
     .select('title, gmail_message_id')
@@ -173,7 +177,6 @@ async function processAgentSuggestions(agentId: string, supabaseClient: any): Pr
     (existingSuggestions || []).map((s: any) => s.gmail_message_id as string).filter(Boolean)
   );
 
-  // Fetch recent emails (last 7 days) with client info
   const sevenDaysAgo = new Date();
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
@@ -236,7 +239,6 @@ async function processAgentSuggestions(agentId: string, supabaseClient: any): Pr
     (emails || []).map((e: any) => [e.id, { gmail_message_id: e.gmail_message_id, thread_id: e.thread_id }])
   );
 
-  // First filter for relevant emails
   const relevantEmails: EmailForAnalysis[] = (emails || [])
     .map((email: any) => ({
       id: email.id,
@@ -255,7 +257,6 @@ async function processAgentSuggestions(agentId: string, supabaseClient: any): Pr
 
   console.log(`Agent ${agentId}: Filtered to ${relevantEmails.length} relevant emails from ${emails?.length || 0} total`);
 
-  // Group emails by thread_id to avoid duplicate tasks for same conversation
   const emailsByThread = new Map<string, EmailForAnalysis[]>();
   relevantEmails.forEach(email => {
     const threadId = email.thread_id || email.id;
@@ -265,9 +266,7 @@ async function processAgentSuggestions(agentId: string, supabaseClient: any): Pr
     emailsByThread.get(threadId)!.push(email);
   });
 
-  // Only analyze the MOST RECENT email from each thread
   const uniqueEmails = Array.from(emailsByThread.values()).map(thread => {
-    // Sort by received_at descending, take the first (most recent)
     return thread.sort((a, b) => 
       new Date(b.received_at).getTime() - new Date(a.received_at).getTime()
     )[0];
@@ -276,7 +275,7 @@ async function processAgentSuggestions(agentId: string, supabaseClient: any): Pr
   console.log(`Agent ${agentId}: Reduced ${relevantEmails.length} emails to ${uniqueEmails.length} unique threads`);
 
   if (uniqueEmails.length === 0) {
-    return 0;
+    return { newSuggestionsCount: 0, stats: { urgent: 0, important: 0, fyi: 0, ignore: 0 } };
   }
 
   const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
@@ -297,40 +296,55 @@ async function processAgentSuggestions(agentId: string, supabaseClient: any): Pr
       messages: [
         {
           role: 'system',
-          content: `You are an AI assistant for a real estate agent. Be EXTREMELY selective - only suggest tasks for HIGH-PRIORITY, URGENT matters.
+          content: `You are an intelligent email triage assistant for a real estate agent. Categorize each email into one of four triage categories and create actionable summaries.
 
-**CRITICAL: Only suggest 2-3 tasks MAXIMUM per analysis**
+**TRIAGE CATEGORIES:**
 
-**ONLY CREATE TASKS FOR:**
-1. UNANSWERED client questions from known clients (high priority)
-2. ShowingTime FEEDBACK that needs to be shared with sellers (high priority)
-3. Offers, contracts, or closing deadlines requiring immediate action (urgent)
-4. Document signatures needed within 48 hours (urgent)
+1. **URGENT** - Needs immediate attention (within hours)
+   - Client questions awaiting response
+   - Contract deadlines today/tomorrow
+   - Offer responses needed
+   - Critical document signatures
+   - Inspection issues requiring immediate action
 
-**NEVER CREATE TASKS FOR:**
-- ShowingTime showing confirmations (already scheduled, no action needed)
-- Internal email conversations (threads with >3 back-and-forth replies)
-- FYI/informational emails
-- Emails where the agent has already responded
-- Call notifications or voicemails (handle separately)
-- Routine coordination emails
-- Emails where no response is expected
-- Marketing or promotional emails
-- System notifications
+2. **IMPORTANT** - Should handle today
+   - Follow-ups needed within 24-48 hours
+   - ShowingTime feedback to share with sellers
+   - New leads requiring initial contact
+   - Scheduling requests
+   - Document reviews
 
-**TASK QUALITY RULES:**
-- If an email thread has multiple messages, only create ONE task for the entire conversation
-- If multiple emails are about the same topic, create ONE consolidated task
-- Never create duplicate tasks with slightly different wording
-- Default to NO TASK unless action is clearly urgent and time-sensitive
+3. **FYI** - Informational, no immediate action
+   - Showing confirmations (already scheduled)
+   - Status updates
+   - CC'd emails
+   - General announcements
+   - Routine coordination
 
-Focus on URGENT matters only. Quality over quantity.
+4. **IGNORE** - Can be filtered out
+   - Marketing emails
+   - Spam
+   - Promotional content
+   - System notifications
+   - Newsletters
+   - Auto-responses
+
+**OUTPUT FORMAT:**
+For each email, provide:
+- title: Brief, action-oriented task (e.g., "Respond to John Smith's counter-offer question")
+- email_summary: 1-2 sentence summary of what the email is about
+- sender: Name of the sender (extract from email or use client_name)
+- action_needed: Clear statement of what the agent should do
+- priority: "urgent" | "high" | "medium" | "low"
+- triage_category: "urgent" | "important" | "fyi" | "ignore"
+- reasoning: Brief explanation of why this categorization
+- sourceEmailId: The email's id field
 
 Today's date is ${today}.`
         },
         {
           role: 'user',
-          content: `Analyze these email communications and suggest 2-3 MAXIMUM specific, urgent, actionable tasks:
+          content: `Analyze and triage these email communications:
 
 ${JSON.stringify(uniqueEmails, null, 2)}
 
@@ -338,15 +352,16 @@ Existing tasks/suggestions to avoid duplicating: ${Array.from(allExistingTitles)
 
 Return JSON in this exact format:
 {
-  "suggestions": [
+  "triaged_emails": [
     {
-      "title": "Brief, action-oriented task title (e.g., 'Follow up with John Smith about offer status')",
-      "description": "Specific details about what needs to be done and why",
+      "title": "Brief, action-oriented task title",
+      "email_summary": "1-2 sentence summary of the email content",
+      "sender": "Person or company name",
+      "action_needed": "What the agent needs to do",
       "priority": "urgent" | "high" | "medium" | "low",
-      "category": "follow-up" | "action-item" | "urgent-response" | "proactive-outreach",
-      "relatedClient": "Client name if applicable, or null",
-      "reasoning": "Brief explanation of why this task is needed based on the email content",
-      "sourceEmailId": "The 'id' field of the most relevant email this task relates to, or null if not specific to one email"
+      "triage_category": "urgent" | "important" | "fyi" | "ignore",
+      "reasoning": "Why this email was categorized this way",
+      "sourceEmailId": "The email id from the input"
     }
   ]
 }`
@@ -361,7 +376,7 @@ Return JSON in this exact format:
     console.error('AI Gateway error:', aiResponse.status, errorText);
     
     if (aiResponse.status === 429 || aiResponse.status === 402) {
-      return 0; // Skip this agent on rate limit/payment issues
+      return { newSuggestionsCount: 0, stats: { urgent: 0, important: 0, fyi: 0, ignore: 0 } };
     }
     
     throw new Error(`AI Gateway error: ${aiResponse.status}`);
@@ -370,22 +385,26 @@ Return JSON in this exact format:
   const aiData = await aiResponse.json();
   const result = JSON.parse(aiData.choices[0].message.content);
   
-  // Filter duplicates with improved detection
-  const filteredSuggestions = (result.suggestions || []).filter(
-    (s: { title: string; sourceEmailId?: string | null }) => {
-      // Check exact match
+  const triagedEmails: TriagedEmail[] = result.triaged_emails || [];
+  
+  // Filter duplicates
+  const filteredSuggestions = triagedEmails.filter(
+    (s: TriagedEmail) => {
+      // Skip "ignore" category - don't save these
+      if (s.triage_category === 'ignore') {
+        return false;
+      }
+      
       if (allExistingTitles.has(s.title.toLowerCase())) {
         console.log(`Skipping exact duplicate: "${s.title}"`);
         return false;
       }
       
-      // Check fuzzy similarity
       if (isSimilarTask(s.title, allExistingTitles)) {
         console.log(`Skipping similar task: "${s.title}"`);
         return false;
       }
       
-      // Check if about same topic (same address/phone/price/name)
       for (const existing of allExistingTitles) {
         if (areTasksAboutSameTopic(s.title, existing)) {
           console.log(`Skipping duplicate topic: "${s.title}" similar to "${existing}"`);
@@ -393,7 +412,6 @@ Return JSON in this exact format:
         }
       }
       
-      // Check gmail_message_id
       if (s.sourceEmailId) {
         const emailInfo = emailMap.get(s.sourceEmailId);
         if (emailInfo?.gmail_message_id && processedGmailMessageIds.has(emailInfo.gmail_message_id)) {
@@ -406,28 +424,34 @@ Return JSON in this exact format:
     }
   );
 
-  // Limit to top 3 by priority
-  const priorityOrder: Record<string, number> = { urgent: 0, high: 1, medium: 2, low: 3 };
-  const finalSuggestions = filteredSuggestions
-    .sort((a: any, b: any) => {
-      return (priorityOrder[a.priority] ?? 3) - (priorityOrder[b.priority] ?? 3);
-    })
-    .slice(0, 3); // MAXIMUM 3 tasks
+  // Count stats (including ignored for reporting)
+  const stats = {
+    urgent: triagedEmails.filter(e => e.triage_category === 'urgent').length,
+    important: triagedEmails.filter(e => e.triage_category === 'important').length,
+    fyi: triagedEmails.filter(e => e.triage_category === 'fyi').length,
+    ignore: triagedEmails.filter(e => e.triage_category === 'ignore').length,
+  };
 
-  console.log(`Agent ${agentId}: Final suggestions: ${finalSuggestions.length} of ${filteredSuggestions.length} after limiting to top 3`);
+  console.log(`Agent ${agentId}: Triage stats - Urgent: ${stats.urgent}, Important: ${stats.important}, FYI: ${stats.fyi}, Ignored: ${stats.ignore}`);
+  console.log(`Agent ${agentId}: After filtering: ${filteredSuggestions.length} suggestions to insert`);
 
-  if (finalSuggestions.length > 0) {
-    const suggestionsToInsert = finalSuggestions.map((s: any) => {
+  if (filteredSuggestions.length > 0) {
+    const suggestionsToInsert = filteredSuggestions.map((s: TriagedEmail) => {
       const sourceEmailId = s.sourceEmailId || null;
       const emailInfo = sourceEmailId ? emailMap.get(sourceEmailId) : null;
       
       return {
         agent_id: agentId,
         title: s.title,
-        description: s.description,
+        description: s.action_needed,
+        email_summary: s.email_summary,
+        sender: s.sender,
+        action_needed: s.action_needed,
         priority: s.priority,
-        category: s.category,
-        related_client: s.relatedClient,
+        triage_category: s.triage_category,
+        category: s.triage_category === 'urgent' ? 'urgent-response' : 
+                  s.triage_category === 'important' ? 'action-item' : 'follow-up',
+        related_client: s.sender,
         reasoning: s.reasoning,
         status: 'pending',
         source_email_id: sourceEmailId,
@@ -442,11 +466,11 @@ Return JSON in this exact format:
     if (insertError) {
       console.error('Error inserting suggestions:', insertError);
     } else {
-      console.log(`Agent ${agentId}: Inserted ${finalSuggestions.length} new suggestions`);
+      console.log(`Agent ${agentId}: Inserted ${filteredSuggestions.length} new suggestions`);
     }
   }
 
-  return finalSuggestions.length;
+  return { newSuggestionsCount: filteredSuggestions.length, stats };
 }
 
 serve(async (req) => {
@@ -463,7 +487,6 @@ serve(async (req) => {
     const token = authHeader.replace('Bearer ', '');
     const { process_all_agents } = await req.json().catch(() => ({}));
 
-    // Use service role client for processing all agents
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       process_all_agents 
@@ -475,7 +498,6 @@ serve(async (req) => {
     let agentIds: string[] = [];
 
     if (process_all_agents) {
-      // Cron mode: process all agents with Gmail tokens
       console.log('Running in cron mode: processing all agents');
       
       const { data: tokens, error: tokensError } = await supabaseClient
@@ -490,7 +512,6 @@ serve(async (req) => {
       agentIds = [...new Set(tokens?.map(t => t.agent_id) || [])];
       console.log(`Found ${agentIds.length} agents with Gmail connected`);
     } else {
-      // Manual mode: process single authenticated user
       const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token);
       
       if (authError || !user) {
@@ -503,20 +524,25 @@ serve(async (req) => {
     }
 
     let totalNewSuggestions = 0;
+    const totalStats = { urgent: 0, important: 0, fyi: 0, ignore: 0 };
 
     for (const agentId of agentIds) {
       try {
-        const count = await processAgentSuggestions(agentId, supabaseClient);
-        totalNewSuggestions += count;
+        const { newSuggestionsCount, stats } = await processAgentSuggestions(agentId, supabaseClient);
+        totalNewSuggestions += newSuggestionsCount;
+        totalStats.urgent += stats.urgent;
+        totalStats.important += stats.important;
+        totalStats.fyi += stats.fyi;
+        totalStats.ignore += stats.ignore;
       } catch (error) {
         console.error(`Error processing agent ${agentId}:`, error);
-        // Continue with other agents
       }
     }
 
     return new Response(JSON.stringify({ 
       newSuggestionsCount: totalNewSuggestions,
       agentsProcessed: agentIds.length,
+      stats: totalStats,
       message: totalNewSuggestions > 0 
         ? `Added ${totalNewSuggestions} new suggestions across ${agentIds.length} agents` 
         : 'No new suggestions found'
