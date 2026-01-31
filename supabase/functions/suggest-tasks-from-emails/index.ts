@@ -273,7 +273,22 @@ async function processAgentSuggestions(agentId: string, supabaseClient: any): Pr
     (emails || []).map((e: any) => [e.id, { gmail_message_id: e.gmail_message_id, thread_id: e.thread_id }])
   );
 
+  // CRITICAL: Filter out emails that already have a suggestion (pending OR dismissed)
+  // This prevents the AI from generating new suggestions for already-processed emails
   const relevantEmails: EmailForAnalysis[] = (emails || [])
+    .filter((email: any) => {
+      // Skip if we already have a suggestion for this exact email
+      if (processedSourceEmailIds.has(email.id)) {
+        console.log(`Skipping email already in suggested_tasks: ${email.subject?.substring(0, 50)}`);
+        return false;
+      }
+      // Skip if we already processed this gmail_message_id
+      if (email.gmail_message_id && processedGmailMessageIds.has(email.gmail_message_id)) {
+        console.log(`Skipping email with known gmail_message_id: ${email.subject?.substring(0, 50)}`);
+        return false;
+      }
+      return true;
+    })
     .map((email: any) => ({
       id: email.id,
       gmail_message_id: email.gmail_message_id,
