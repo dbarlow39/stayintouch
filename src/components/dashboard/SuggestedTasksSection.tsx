@@ -46,7 +46,7 @@ const SuggestedTasksSection = () => {
           "*, client_email_logs!suggested_tasks_source_email_id_fkey(subject, thread_id, from_email, received_at, gmail_message_id)"
         )
         .eq("status", "pending")
-        .or(`snoozed_until.is.null,snoozed_until.lt.${now}`)
+        .or(`snoozed_until.is.null,snoozed_until.lte.${now}`)
         .order("created_at", { ascending: false });
       
       if (error) throw error;
