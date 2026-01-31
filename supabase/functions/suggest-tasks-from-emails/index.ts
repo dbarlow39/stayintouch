@@ -64,11 +64,20 @@ function isRelevantEmail(email: EmailForAnalysis, clientEmails: Set<string>): bo
   }
   
   // EXCLUDE: ShowingTime emails - ONLY include FEEDBACK
+  // Showing requests, showing summaries, appointment confirmations should be ignored
   if (from.includes('showingtime.com') || from.includes('showing.com')) {
     const feedbackKeywords = ['feedback received'];
+    // Only include if it's a feedback email
     if (!feedbackKeywords.some(keyword => subject.includes(keyword))) {
       return false;
     }
+  }
+  
+  // EXCLUDE: Showing summary/request emails even if not from ShowingTime domain
+  const showingExcludeKeywords = ['showing summary', 'showing request', 'showing confirmation', 
+    'appointment confirmed', 'appointment scheduled', 'showing scheduled'];
+  if (showingExcludeKeywords.some(keyword => subject.includes(keyword))) {
+    return false;
   }
   
   // EXCLUDE: Call notification emails (unless from known client)
