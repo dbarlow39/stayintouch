@@ -272,7 +272,8 @@ const SuggestedTasksSection = () => {
             </Button>
             {lastRefreshTime && (
               <span className="text-xs text-muted-foreground text-center">
-                Updated {formatDistanceToNow(lastRefreshTime, { addSuffix: true })}
+                Updated {formatDistanceToNow(lastRefreshTime, { addSuffix: true })} at{' '}
+                {lastRefreshTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
               </span>
             )}
           </div>
