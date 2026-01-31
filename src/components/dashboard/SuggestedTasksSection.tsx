@@ -23,11 +23,12 @@ const SuggestedTasksSection = () => {
   const { data: existingTaskTitles } = useQuery({
     queryKey: ["task-titles", user?.id],
     queryFn: async () => {
+      if (!user) return new Set<string>();
       const { data, error } = await supabase
         .from("tasks")
         .select("title")
-        .eq("is_archived", false)
-        .neq("status", "completed");
+        .eq("agent_id", user.id)
+        .limit(500);
       
       if (error) throw error;
       return new Set((data || []).map(t => t.title.toLowerCase().trim()));
