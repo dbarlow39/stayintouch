@@ -63,19 +63,39 @@ function isRelevantEmail(email: EmailForAnalysis, clientEmails: Set<string>): bo
     return false;
   }
   
-  // EXCLUDE: ShowingTime emails - ONLY include FEEDBACK
-  // Showing requests, showing summaries, appointment confirmations should be ignored
-  if (from.includes('showingtime.com') || from.includes('showing.com')) {
-    const feedbackKeywords = ['feedback received'];
-    // Only include if it's a feedback email
-    if (!feedbackKeywords.some(keyword => subject.includes(keyword))) {
+  // EXCLUDE: ShowingTime emails - ONLY include FEEDBACK RECEIVED
+  // Showing requests, confirmations, and "please provide feedback" requests should be ignored.
+  const isShowingTimeSender =
+    from.includes('showingtime.com') ||
+    from.includes('showing.com') ||
+    from.includes('showingtime') ||
+    subject.includes('showingtime');
+
+  if (isShowingTimeSender) {
+    const feedbackReceivedKeywords = ['feedback received'];
+    if (!feedbackReceivedKeywords.some(keyword => subject.includes(keyword))) {
       return false;
     }
   }
   
-  // EXCLUDE: Showing summary/request emails even if not from ShowingTime domain
-  const showingExcludeKeywords = ['showing summary', 'showing request', 'showing confirmation', 
-    'appointment confirmed', 'appointment scheduled', 'showing scheduled'];
+  // EXCLUDE: Showing request/confirmation emails even if not from ShowingTime domain
+  // (These have been creating noisy suggestions like "Confirm showing details".)
+  const showingExcludeKeywords = [
+    'showing summary',
+    'showing request',
+    'showing confirmation',
+    'appointment confirmed',
+    'appointment scheduled',
+    'showing scheduled',
+    'confirm showing',
+    'confirm showing details',
+    'showing details',
+    'showing instructions',
+    'request to show',
+    'request showing',
+    'collect showing feedback',
+    'please provide feedback',
+  ];
   if (showingExcludeKeywords.some(keyword => subject.includes(keyword))) {
     return false;
   }
@@ -175,7 +195,7 @@ async function processAgentSuggestions(agentId: string, supabaseClient: any): Pr
   
   const { data: existingSuggestions } = await supabaseClient
     .from('suggested_tasks')
-    .select('title, gmail_message_id')
+    .select('title, gmail_message_id, source_email_id')
     .eq('agent_id', agentId);
 
   const existingSuggestionTitles = new Set<string>(
@@ -184,6 +204,10 @@ async function processAgentSuggestions(agentId: string, supabaseClient: any): Pr
   
   const processedGmailMessageIds = new Set<string>(
     (existingSuggestions || []).map((s: any) => s.gmail_message_id as string).filter(Boolean)
+  );
+
+  const processedSourceEmailIds = new Set<string>(
+    (existingSuggestions || []).map((s: any) => s.source_email_id as string).filter(Boolean)
   );
 
   const sevenDaysAgo = new Date();
@@ -235,11 +259,12 @@ async function processAgentSuggestions(agentId: string, supabaseClient: any): Pr
     }
   });
 
+  // Include archived/completed tasks too, so items you marked done don't reappear as new suggestions.
   const { data: existingTasks } = await supabaseClient
     .from('tasks')
-    .select('title, description')
+    .select('title, description, status, is_archived')
     .eq('agent_id', agentId)
-    .neq('status', 'completed');
+    .limit(500);
 
   const existingTaskTitles = new Set<string>((existingTasks || []).map((t: any) => (t.title as string).toLowerCase()));
   const allExistingTitles = new Set<string>([...existingTaskTitles, ...existingSuggestionTitles]);
@@ -399,8 +424,19 @@ Return JSON in this exact format:
   // Filter duplicates
   const filteredSuggestions = triagedEmails.filter(
     (s: TriagedEmail) => {
+      // If the model didn't return a valid sourceEmailId, skip it.
+      if (!s.sourceEmailId || !emailMap.has(s.sourceEmailId)) {
+        return false;
+      }
+
       // Skip "ignore" category - don't save these
       if (s.triage_category === 'ignore') {
+        return false;
+      }
+
+      // If we've already processed this exact email log, don't re-add it.
+      if (processedSourceEmailIds.has(s.sourceEmailId)) {
+        console.log(`Skipping already processed source email: "${s.title}"`);
         return false;
       }
       
