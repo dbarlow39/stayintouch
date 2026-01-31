@@ -13,6 +13,7 @@ import { CheckCircle2, Circle, Clock, Plus, Check, Mail, RefreshCw, Sparkles } f
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth";
 import ArchivedTasksDialog from "./ArchivedTasksDialog";
+import SuggestedTasksSection from "./SuggestedTasksSection";
 import { formatDistanceToNow } from "date-fns";
 
 // Generate Gmail search URL from task title
@@ -298,6 +299,9 @@ const TasksTab = () => {
 
   return (
     <div className="space-y-6">
+      {/* Email Digest Section */}
+      <SuggestedTasksSection />
+      
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-lg font-semibold">Task Management</h3>
