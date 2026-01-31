@@ -9,6 +9,7 @@ const corsHeaders = {
 interface EmailForAnalysis {
   id: string;
   gmail_message_id: string | null;
+  thread_id: string | null;
   subject: string | null;
   snippet: string | null;
   body_preview: string | null;
@@ -51,13 +52,21 @@ function isRelevantEmail(email: EmailForAnalysis, clientEmails: Set<string>): bo
     return false;
   }
   
-  // EXCLUDE: ShowingTime showing confirmations/requests (we only want FEEDBACK)
-  const showingConfirmKeywords = ['showing confirmed', 'showing requested', 'showing cancelled', 
-    'agent referred', 'appointment confirmed'];
-  if (showingConfirmKeywords.some(keyword => subject.includes(keyword))) {
-    // Only include if it's a FEEDBACK email
-    if (!subject.toLowerCase().includes('feedback received')) {
-      return false;
+  // EXCLUDE: ShowingTime emails - ONLY include FEEDBACK
+  if (from.includes('showingtime.com') || from.includes('showing.com')) {
+    const feedbackKeywords = ['feedback received'];
+    // Only keep feedback emails
+    if (!feedbackKeywords.some(keyword => subject.includes(keyword))) {
+      return false; // Skip all non-feedback ShowingTime emails
+    }
+  }
+  
+  // EXCLUDE: Call notification emails (unless from known client)
+  if (subject.includes('call summary') || subject.includes('missed call') || 
+      subject.includes('voicemail') || subject.includes('new call')) {
+    const fromEmail = from.match(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/)?.[1] || '';
+    if (!clientEmails.has(fromEmail)) {
+      return false; // Skip call notifications unless from known client
     }
   }
   
@@ -70,7 +79,7 @@ function isRelevantEmail(email: EmailForAnalysis, clientEmails: Set<string>): bo
   // INCLUDE: Real estate related emails
   const realEstateKeywords = ['showing', 'offer', 'contract', 'inspection', 'closing',
     'dotloop', 'docusign', 'mls', 'listing', 'buyer', 'seller', 'property',
-    'showingtime', 'feedback', 'home', 'house', 'real estate', 'mortgage', 'lender',
+    'feedback', 'home', 'house', 'real estate', 'mortgage', 'lender',
     'title company', 'escrow', 'appraisal'];
   if (realEstateKeywords.some(keyword => from.includes(keyword) || subject.includes(keyword) || body.includes(keyword))) {
     return true;
@@ -105,6 +114,47 @@ function isSimilarTask(newTitle: string, existingTitles: Set<string>): boolean {
   return false;
 }
 
+function areTasksAboutSameTopic(task1: string, task2: string): boolean {
+  // Extract key entities (names, addresses, properties)
+  const extractEntities = (str: string) => {
+    const entities = new Set<string>();
+    
+    // Extract addresses
+    const addressMatch = str.match(/\d+\s+[A-Za-z\s]+(?:Dr|Drive|St|Street|Ave|Avenue|Rd|Road|Blvd|Boulevard|Ln|Lane|Ct|Court|Way|Pl|Place)/gi);
+    if (addressMatch) addressMatch.forEach(a => entities.add(a.toLowerCase().trim()));
+    
+    // Extract phone numbers (10-11 digits)
+    const phoneMatch = str.match(/\+?\d{10,11}/g);
+    if (phoneMatch) phoneMatch.forEach(p => entities.add(p));
+    
+    // Extract MLS IDs (8-10 digit numbers)
+    const mlsMatch = str.match(/\b\d{8,10}\b/g);
+    if (mlsMatch) mlsMatch.forEach(m => entities.add(m));
+    
+    // Extract dollar amounts
+    const dollarMatch = str.match(/\$[\d,]{3,}/g);
+    if (dollarMatch) dollarMatch.forEach(d => entities.add(d.replace(/,/g, '')));
+    
+    // Extract proper names (two capitalized words together)
+    const nameMatch = str.match(/[A-Z][a-z]+\s+[A-Z][a-z]+/g);
+    if (nameMatch) nameMatch.forEach(n => entities.add(n.toLowerCase()));
+    
+    return entities;
+  };
+  
+  const entities1 = extractEntities(task1);
+  const entities2 = extractEntities(task2);
+  
+  // If they share ANY entity (address, phone, MLS ID, price, name), they're about the same thing
+  for (const entity of entities1) {
+    if (entities2.has(entity)) {
+      return true;
+    }
+  }
+  
+  return false;
+}
+
 // Process suggestions for a single agent
 async function processAgentSuggestions(agentId: string, supabaseClient: any): Promise<number> {
   console.log(`Processing suggestions for agent: ${agentId}`);
@@ -132,6 +182,7 @@ async function processAgentSuggestions(agentId: string, supabaseClient: any): Pr
     .select(`
       id,
       gmail_message_id,
+      thread_id,
       subject,
       snippet,
       body_preview,
@@ -181,14 +232,16 @@ async function processAgentSuggestions(agentId: string, supabaseClient: any): Pr
   const existingTaskTitles = new Set<string>((existingTasks || []).map((t: any) => (t.title as string).toLowerCase()));
   const allExistingTitles = new Set<string>([...existingTaskTitles, ...existingSuggestionTitles]);
 
-  const emailMap = new Map<string, { gmail_message_id: string | null }>(
-    (emails || []).map((e: any) => [e.id, { gmail_message_id: e.gmail_message_id }])
+  const emailMap = new Map<string, { gmail_message_id: string | null; thread_id: string | null }>(
+    (emails || []).map((e: any) => [e.id, { gmail_message_id: e.gmail_message_id, thread_id: e.thread_id }])
   );
 
-  const emailsForAnalysis: EmailForAnalysis[] = (emails || [])
+  // First filter for relevant emails
+  const relevantEmails: EmailForAnalysis[] = (emails || [])
     .map((email: any) => ({
       id: email.id,
       gmail_message_id: email.gmail_message_id,
+      thread_id: email.thread_id,
       subject: email.subject,
       snippet: email.snippet,
       body_preview: email.body_preview,
@@ -200,9 +253,29 @@ async function processAgentSuggestions(agentId: string, supabaseClient: any): Pr
     }))
     .filter((email: EmailForAnalysis) => isRelevantEmail(email, clientEmails));
 
-  console.log(`Agent ${agentId}: Filtered to ${emailsForAnalysis.length} relevant emails from ${emails?.length || 0} total`);
+  console.log(`Agent ${agentId}: Filtered to ${relevantEmails.length} relevant emails from ${emails?.length || 0} total`);
 
-  if (emailsForAnalysis.length === 0) {
+  // Group emails by thread_id to avoid duplicate tasks for same conversation
+  const emailsByThread = new Map<string, EmailForAnalysis[]>();
+  relevantEmails.forEach(email => {
+    const threadId = email.thread_id || email.id;
+    if (!emailsByThread.has(threadId)) {
+      emailsByThread.set(threadId, []);
+    }
+    emailsByThread.get(threadId)!.push(email);
+  });
+
+  // Only analyze the MOST RECENT email from each thread
+  const uniqueEmails = Array.from(emailsByThread.values()).map(thread => {
+    // Sort by received_at descending, take the first (most recent)
+    return thread.sort((a, b) => 
+      new Date(b.received_at).getTime() - new Date(a.received_at).getTime()
+    )[0];
+  });
+
+  console.log(`Agent ${agentId}: Reduced ${relevantEmails.length} emails to ${uniqueEmails.length} unique threads`);
+
+  if (uniqueEmails.length === 0) {
     return 0;
   }
 
@@ -224,43 +297,42 @@ async function processAgentSuggestions(agentId: string, supabaseClient: any): Pr
       messages: [
         {
           role: 'system',
-          content: `You are an AI assistant for a real estate agent. Analyze their email communications and suggest actionable tasks ONLY for client-related real estate matters.
+          content: `You are an AI assistant for a real estate agent. Be EXTREMELY selective - only suggest tasks for HIGH-PRIORITY, URGENT matters.
 
-**EMAILS FROM KNOWN CLIENTS (HIGHEST PRIORITY):**
-${emailsForAnalysis.filter(e => e.client_name).length} emails in this batch are from known clients in the database. PRIORITIZE THESE FIRST.
+**CRITICAL: Only suggest 2-3 tasks MAXIMUM per analysis**
 
-**STRICT FILTERING - IGNORE THESE COMPLETELY:**
-- Personal financial emails (already filtered, but double-check)
-- Voicemail transcription notifications
-- Marketing/promotional emails  
-- Automated system notifications
-- Any email NOT directly related to a real estate transaction
+**ONLY CREATE TASKS FOR:**
+1. UNANSWERED client questions from known clients (high priority)
+2. ShowingTime FEEDBACK that needs to be shared with sellers (high priority)
+3. Offers, contracts, or closing deadlines requiring immediate action (urgent)
+4. Document signatures needed within 48 hours (urgent)
 
-**ONLY SUGGEST TASKS FOR:**
-1. Direct communications from known clients (client_name is not null) - HIGHEST PRIORITY
-2. Property showings, offers, contracts, inspections, closings
-3. ShowingTime feedback that needs follow-up with sellers
-4. dotloop/DocuSign documents needing review or signature
-5. Communications from other agents about your clients' properties
+**NEVER CREATE TASKS FOR:**
+- ShowingTime showing confirmations (already scheduled, no action needed)
+- Internal email conversations (threads with >3 back-and-forth replies)
+- FYI/informational emails
+- Emails where the agent has already responded
+- Call notifications or voicemails (handle separately)
+- Routine coordination emails
+- Emails where no response is expected
+- Marketing or promotional emails
+- System notifications
 
-**Prioritization Rules:**
-- Known client emails → urgent or high priority
-- ShowingTime feedback for listings → high priority
-- Transaction documents (offers, contracts) → urgent priority
-- Other real estate communications → medium priority
+**TASK QUALITY RULES:**
+- If an email thread has multiple messages, only create ONE task for the entire conversation
+- If multiple emails are about the same topic, create ONE consolidated task
+- Never create duplicate tasks with slightly different wording
+- Default to NO TASK unless action is clearly urgent and time-sensitive
 
-Focus on these categories:
-1. Follow-up reminders for unanswered client emails (24-48 hours)
-2. Action items from emails (documents, showings, offers)
-3. Urgent responses needed (time-sensitive matters)
+Focus on URGENT matters only. Quality over quantity.
 
-Today's date is ${today}. Return 3-6 highly relevant, actionable tasks. Focus on known clients first.`
+Today's date is ${today}.`
         },
         {
           role: 'user',
-          content: `Analyze these email communications from the last 7 days and suggest 5-8 specific, actionable tasks:
+          content: `Analyze these email communications and suggest 2-3 MAXIMUM specific, urgent, actionable tasks:
 
-${JSON.stringify(emailsForAnalysis, null, 2)}
+${JSON.stringify(uniqueEmails, null, 2)}
 
 Existing tasks/suggestions to avoid duplicating: ${Array.from(allExistingTitles).join(', ')}
 
@@ -298,14 +370,34 @@ Return JSON in this exact format:
   const aiData = await aiResponse.json();
   const result = JSON.parse(aiData.choices[0].message.content);
   
-  const newSuggestions = (result.suggestions || []).filter(
+  // Filter duplicates with improved detection
+  const filteredSuggestions = (result.suggestions || []).filter(
     (s: { title: string; sourceEmailId?: string | null }) => {
-      if (allExistingTitles.has(s.title.toLowerCase())) return false;
-      if (isSimilarTask(s.title, allExistingTitles)) return false;
+      // Check exact match
+      if (allExistingTitles.has(s.title.toLowerCase())) {
+        console.log(`Skipping exact duplicate: "${s.title}"`);
+        return false;
+      }
       
+      // Check fuzzy similarity
+      if (isSimilarTask(s.title, allExistingTitles)) {
+        console.log(`Skipping similar task: "${s.title}"`);
+        return false;
+      }
+      
+      // Check if about same topic (same address/phone/price/name)
+      for (const existing of allExistingTitles) {
+        if (areTasksAboutSameTopic(s.title, existing)) {
+          console.log(`Skipping duplicate topic: "${s.title}" similar to "${existing}"`);
+          return false;
+        }
+      }
+      
+      // Check gmail_message_id
       if (s.sourceEmailId) {
         const emailInfo = emailMap.get(s.sourceEmailId);
         if (emailInfo?.gmail_message_id && processedGmailMessageIds.has(emailInfo.gmail_message_id)) {
+          console.log(`Skipping already processed email: "${s.title}"`);
           return false;
         }
       }
@@ -314,8 +406,18 @@ Return JSON in this exact format:
     }
   );
 
-  if (newSuggestions.length > 0) {
-    const suggestionsToInsert = newSuggestions.map((s: any) => {
+  // Limit to top 3 by priority
+  const priorityOrder: Record<string, number> = { urgent: 0, high: 1, medium: 2, low: 3 };
+  const finalSuggestions = filteredSuggestions
+    .sort((a: any, b: any) => {
+      return (priorityOrder[a.priority] ?? 3) - (priorityOrder[b.priority] ?? 3);
+    })
+    .slice(0, 3); // MAXIMUM 3 tasks
+
+  console.log(`Agent ${agentId}: Final suggestions: ${finalSuggestions.length} of ${filteredSuggestions.length} after limiting to top 3`);
+
+  if (finalSuggestions.length > 0) {
+    const suggestionsToInsert = finalSuggestions.map((s: any) => {
       const sourceEmailId = s.sourceEmailId || null;
       const emailInfo = sourceEmailId ? emailMap.get(sourceEmailId) : null;
       
@@ -340,11 +442,11 @@ Return JSON in this exact format:
     if (insertError) {
       console.error('Error inserting suggestions:', insertError);
     } else {
-      console.log(`Agent ${agentId}: Inserted ${newSuggestions.length} new suggestions`);
+      console.log(`Agent ${agentId}: Inserted ${finalSuggestions.length} new suggestions`);
     }
   }
 
-  return newSuggestions.length;
+  return finalSuggestions.length;
 }
 
 serve(async (req) => {
