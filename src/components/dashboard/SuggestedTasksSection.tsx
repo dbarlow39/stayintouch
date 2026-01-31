@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Sparkles, RefreshCw, Mail } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { formatDistanceToNow } from "date-fns";
 import { getSuggestedTaskGmailSearchUrl, getSuggestedTaskGmailUrl } from "@/components/dashboard/suggestedTasks/getGmailUrl";
 import { gmailNewUiTokenFromLegacyHex, gmailUrlForLegacyHex } from "@/utils/gmailDeepLink";
 import type { SuggestedTask, TriageCategory, TriageStats } from "@/components/dashboard/suggestedTasks/types";
@@ -34,8 +35,11 @@ const SuggestedTasksSection = () => {
     enabled: !!user,
   });
 
+  // Track last refresh time
+  const [lastRefreshTime, setLastRefreshTime] = useState<Date | null>(null);
+
   // Fetch persisted suggestions with email data
-  const { data: suggestions, isLoading } = useQuery({
+  const { data: suggestions, isLoading, dataUpdatedAt } = useQuery({
     queryKey: ["suggested-tasks", user?.id, existingTaskTitles],
     queryFn: async () => {
       const now = new Date().toISOString();
@@ -76,6 +80,13 @@ const SuggestedTasksSection = () => {
     refetchIntervalInBackground: false,
   });
 
+  // Update last refresh time when data updates
+  useEffect(() => {
+    if (dataUpdatedAt) {
+      setLastRefreshTime(new Date(dataUpdatedAt));
+    }
+  }, [dataUpdatedAt]);
+
   // Calculate triage stats
   const triageStats: TriageStats = useMemo(() => {
     if (!suggestions) return { urgent: 0, important: 0, fyi: 0, ignore: 0 };
@@ -109,6 +120,7 @@ const SuggestedTasksSection = () => {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["suggested-tasks"] });
+      setLastRefreshTime(new Date());
       if (data?.newSuggestionsCount > 0) {
         toast({ 
           title: `Added ${data.newSuggestionsCount} new items`,
@@ -247,18 +259,25 @@ const SuggestedTasksSection = () => {
               <Badge variant="secondary" className="ml-2">{totalCount}</Badge>
             )}
           </CardTitle>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => refreshMutation.mutate()}
-            disabled={isLoading || refreshMutation.isPending}
-          >
-            <RefreshCw className={`w-4 h-4 mr-1 ${refreshMutation.isPending ? 'animate-spin' : ''}`} />
-            Refresh
-          </Button>
+          <div className="flex items-center gap-2">
+            {lastRefreshTime && (
+              <span className="text-xs text-muted-foreground">
+                Updated {formatDistanceToNow(lastRefreshTime, { addSuffix: true })}
+              </span>
+            )}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => refreshMutation.mutate()}
+              disabled={isLoading || refreshMutation.isPending}
+            >
+              <RefreshCw className={`w-4 h-4 mr-1 ${refreshMutation.isPending ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
+          </div>
         </div>
         <p className="text-xs text-muted-foreground">
-          AI-powered email triage based on your communications
+          AI-powered email triage • Auto-syncs every 15 minutes
         </p>
       </CardHeader>
       <CardContent>
