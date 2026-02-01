@@ -1049,7 +1049,25 @@ const ClientsTab = ({ onSelectClientForEstimate }: ClientsTabProps) => {
                       </a>
                     ) : "—"}
                   </TableCell>
-                  <TableCell>{client.cell_phone || "—"}</TableCell>
+                  <TableCell>
+                    {client.cell_phone ? (
+                      (() => {
+                        const digits = client.cell_phone.replace(/\D/g, '');
+                        if (digits.length >= 3) {
+                          return (
+                            <a 
+                              href={`tel:${digits}`}
+                              onClick={(e) => e.stopPropagation()}
+                              className="text-primary hover:underline"
+                            >
+                              {client.cell_phone}
+                            </a>
+                          );
+                        }
+                        return <span>{client.cell_phone}</span>;
+                      })()
+                    ) : "—"}
+                  </TableCell>
                   <TableCell>{client.showings_to_date ?? "—"}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
