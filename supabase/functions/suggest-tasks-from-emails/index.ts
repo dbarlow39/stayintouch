@@ -201,6 +201,16 @@ async function processAgentSuggestions(agentId: string, supabaseClient: any): Pr
 }> {
   console.log(`Processing suggestions for agent: ${agentId}`);
   
+  // Fetch agent's profile to get their name for personalized prompts
+  const { data: profile } = await supabaseClient
+    .from('profiles')
+    .select('first_name, full_name')
+    .eq('id', agentId)
+    .single();
+  
+  const agentName = profile?.first_name || profile?.full_name?.split(' ')[0] || 'the agent';
+  console.log(`Processing for agent: ${agentName}`);
+  
   // Fetch existing suggested tasks (BOTH pending AND dismissed) to avoid duplicates
   const { data: existingSuggestions } = await supabaseClient
     .from('suggested_tasks')
@@ -353,9 +363,9 @@ async function processAgentSuggestions(agentId: string, supabaseClient: any): Pr
       messages: [
         {
           role: 'system',
-          content: `You are a HIGHLY SELECTIVE triage assistant for a real estate agent named Dave. Your job is to act like a smart filter that shows ONLY the 3-5 emails from today that actually need Dave's personal action.
+          content: `You are a HIGHLY SELECTIVE triage assistant for a real estate agent named ${agentName}. Your job is to act like a smart filter that shows ONLY the 3-5 emails from today that actually need ${agentName}'s personal action.
 
-**YOUR GOAL:** Dave should look at this once per day and immediately know: "These are the 3-5 things I MUST handle today."
+**YOUR GOAL:** ${agentName} should look at this once per day and immediately know: "These are the 3-5 things I MUST handle today."
 
 **CRITICAL: BE EXTREMELY SELECTIVE**
 - Maximum 5 tasks per analysis. If there are more, show ONLY the most urgent.
@@ -365,33 +375,33 @@ async function processAgentSuggestions(agentId: string, supabaseClient: any): Pr
 **DO NOT CREATE TASKS FOR:**
 ❌ Confirmations or acknowledgments ("Got it", "Thanks", "Confirmed")
 ❌ FYI updates or status updates (things moving along normally)
-❌ Conversations between other people (even if Dave is CC'd)
+❌ Conversations between other people (even if ${agentName} is CC'd)
 ❌ Routine coordination that's already in progress
-❌ Follow-up emails in threads where Dave already responded
+❌ Follow-up emails in threads where ${agentName} already responded
 ❌ ShowingTime confirmations, scheduling, or routine showing notifications
 ❌ Marketing, newsletters, promotional content
 ❌ System notifications, auto-responses
 ❌ Emails where someone else is handling it
-❌ Updates that don't require Dave's decision
-❌ Replies in a conversation (unless they contain a NEW question for Dave)
+❌ Updates that don't require ${agentName}'s decision
+❌ Replies in a conversation (unless they contain a NEW question for ${agentName})
 
 **ONLY CREATE TASKS FOR:**
-✅ Direct questions TO Dave that haven't been answered
-✅ Client requests specifically waiting for Dave's response
-✅ Deadlines in the next 48 hours that need Dave's decision
-✅ NEW problems or issues that require Dave's attention
+✅ Direct questions TO ${agentName} that haven't been answered
+✅ Client requests specifically waiting for ${agentName}'s response
+✅ Deadlines in the next 48 hours that need ${agentName}'s decision
+✅ NEW problems or issues that require ${agentName}'s attention
 ✅ Urgent contract/offer situations requiring immediate action
 ✅ Critical showingtime feedback that needs to be shared with sellers NOW
 
 **TRIAGE CATEGORIES (use sparingly):**
 
 1. **URGENT** - Must respond TODAY (use rarely - max 1-2 per day)
-   - Unanswered client questions waiting for Dave's response
+   - Unanswered client questions waiting for ${agentName}'s response
    - Contract deadlines within 24 hours
    - Critical issues needing immediate decision
 
 2. **IMPORTANT** - Should handle today (use selectively - max 2-3 per day)
-   - Questions that need Dave's answer within 48 hours
+   - Questions that need ${agentName}'s answer within 48 hours
    - ShowingTime feedback to share with sellers
    - New leads needing first contact
 
@@ -400,7 +410,7 @@ async function processAgentSuggestions(agentId: string, supabaseClient: any): Pr
 4. **IGNORE** - Skip these entirely. Don't create tasks.
 
 **OUTPUT RULES:**
-- Return EMPTY array if no emails truly need Dave's action
+- Return EMPTY array if no emails truly need ${agentName}'s action
 - Maximum 5 items total, but prefer 3 or fewer
 - Consolidate related emails about the same topic into ONE task
 - If an email is just part of ongoing coordination, SKIP IT
@@ -409,7 +419,7 @@ Today's date is ${today}.`
         },
         {
           role: 'user',
-          content: `Analyze these emails and return ONLY items that genuinely need Dave's personal action TODAY:
+          content: `Analyze these emails and return ONLY items that genuinely need ${agentName}'s personal action TODAY:
 
 ${JSON.stringify(uniqueEmails, null, 2)}
 
@@ -417,8 +427,8 @@ Existing tasks/suggestions (to avoid duplicates): ${Array.from(allExistingTitles
 
 REMEMBER: 
 - Be EXTREMELY selective. Most emails should NOT create a task.
-- Only surface things where Dave personally needs to take action.
-- Return an EMPTY array if nothing truly needs Dave's attention.
+- Only surface things where ${agentName} personally needs to take action.
+- Return an EMPTY array if nothing truly needs ${agentName}'s attention.
 - Maximum 5 items, prefer 3 or fewer.
 - Every item MUST have sourceEmailId matching an email 'id' above.
 
@@ -429,10 +439,10 @@ Return JSON:
       "title": "Action-oriented task (e.g., 'Reply to John's counter-offer question')",
       "email_summary": "1-2 sentence summary",
       "sender": "Sender name",
-      "action_needed": "What Dave needs to do",
+      "action_needed": "What ${agentName} needs to do",
       "priority": "urgent" | "high" | "medium" | "low",
       "triage_category": "urgent" | "important",
-      "reasoning": "Why this needs Dave's action TODAY",
+      "reasoning": "Why this needs ${agentName}'s action TODAY",
       "sourceEmailId": "REQUIRED - exact 'id' from email input"
     }
   ]
