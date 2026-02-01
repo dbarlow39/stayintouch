@@ -124,7 +124,7 @@ const Account = () => {
 
       toast({
         title: "Gmail Synced!",
-        description: data.message || `Synced ${data.synced_count} emails`,
+        description: `${data.message || `Synced ${data.synced_count} emails`}${data?._version ? ` (backend: ${data._version})` : ""}`,
       });
       
       if (data.showingtime_count > 0) {

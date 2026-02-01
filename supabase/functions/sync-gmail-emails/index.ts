@@ -1,6 +1,9 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+// Bump this when deploying to positively identify which code is running.
+const VERSION = "sync-gmail-emails@2026-02-01.1";
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -31,6 +34,8 @@ serve(async (req) => {
   }
 
   try {
+    console.log(`[DISMISSED FIX] ${VERSION} invoked at ${new Date().toISOString()}`);
+
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const GOOGLE_CLIENT_ID = Deno.env.get("GOOGLE_CLIENT_ID");
@@ -101,6 +106,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
+        _version: VERSION,
         agents_processed: agentIds.length,
         synced_count: totalSynced,
         showingtime_count: totalShowingTime,
@@ -115,7 +121,10 @@ serve(async (req) => {
   } catch (err) {
     console.error("Gmail sync error:", err);
     return new Response(
-      JSON.stringify({ error: err instanceof Error ? err.message : "Unknown error" }),
+      JSON.stringify({
+        error: err instanceof Error ? err.message : "Unknown error",
+        _version: VERSION,
+      }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
