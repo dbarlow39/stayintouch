@@ -93,6 +93,12 @@ const EstimatedNetTab = ({ selectedClient, onClearSelectedClient }: EstimatedNet
     loadClientEstimate();
   }, [selectedClient, onClearSelectedClient, user]);
 
+  // Helper to extract street name from address (removes leading numbers)
+  const extractStreetName = (address: string): string => {
+    // Remove leading numbers and spaces (e.g., "123 Main St" -> "Main St")
+    return address.replace(/^\d+\s*/, '').toLowerCase();
+  };
+
   // Fetch saved estimates
   const { data: estimates = [], isLoading } = useQuery({
     queryKey: ["estimated-net-properties", user?.id],
@@ -100,11 +106,16 @@ const EstimatedNetTab = ({ selectedClient, onClearSelectedClient }: EstimatedNet
       const { data, error } = await supabase
         .from("estimated_net_properties")
         .select("*")
-        .eq("agent_id", user!.id)
-        .order("street_address", { ascending: true });
+        .eq("agent_id", user!.id);
       
       if (error) throw error;
-      return data as EstimatedNetProperty[];
+      
+      // Sort by street name (excluding the street number)
+      return (data as EstimatedNetProperty[]).sort((a, b) => {
+        const nameA = extractStreetName(a.street_address || '');
+        const nameB = extractStreetName(b.street_address || '');
+        return nameA.localeCompare(nameB);
+      });
     },
     enabled: !!user,
   });
