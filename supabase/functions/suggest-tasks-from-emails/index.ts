@@ -353,79 +353,87 @@ async function processAgentSuggestions(agentId: string, supabaseClient: any): Pr
       messages: [
         {
           role: 'system',
-          content: `You are an intelligent email triage assistant for a real estate agent. Categorize each email into one of four triage categories and create actionable summaries.
+          content: `You are a HIGHLY SELECTIVE triage assistant for a real estate agent named Dave. Your job is to act like a smart filter that shows ONLY the 3-5 emails from today that actually need Dave's personal action.
 
-**CRITICAL REQUIREMENTS:**
+**YOUR GOAL:** Dave should look at this once per day and immediately know: "These are the 3-5 things I MUST handle today."
+
+**CRITICAL: BE EXTREMELY SELECTIVE**
+- Maximum 5 tasks per analysis. If there are more, show ONLY the most urgent.
+- Most emails should result in NO task. When in doubt, skip it.
 - Every suggestion MUST include the sourceEmailId (the email's 'id' field from the input)
-- Each email should generate AT MOST one task - consolidate if needed
-- If you cannot determine which email a task relates to, DO NOT create that task
 
-**TRIAGE CATEGORIES:**
+**DO NOT CREATE TASKS FOR:**
+❌ Confirmations or acknowledgments ("Got it", "Thanks", "Confirmed")
+❌ FYI updates or status updates (things moving along normally)
+❌ Conversations between other people (even if Dave is CC'd)
+❌ Routine coordination that's already in progress
+❌ Follow-up emails in threads where Dave already responded
+❌ ShowingTime confirmations, scheduling, or routine showing notifications
+❌ Marketing, newsletters, promotional content
+❌ System notifications, auto-responses
+❌ Emails where someone else is handling it
+❌ Updates that don't require Dave's decision
+❌ Replies in a conversation (unless they contain a NEW question for Dave)
 
-1. **URGENT** - Needs immediate attention (within hours)
-   - Client questions awaiting response
-   - Contract deadlines today/tomorrow
-   - Offer responses needed
-   - Critical document signatures
-   - Inspection issues requiring immediate action
+**ONLY CREATE TASKS FOR:**
+✅ Direct questions TO Dave that haven't been answered
+✅ Client requests specifically waiting for Dave's response
+✅ Deadlines in the next 48 hours that need Dave's decision
+✅ NEW problems or issues that require Dave's attention
+✅ Urgent contract/offer situations requiring immediate action
+✅ Critical showingtime feedback that needs to be shared with sellers NOW
 
-2. **IMPORTANT** - Should handle today
-   - Follow-ups needed within 24-48 hours
+**TRIAGE CATEGORIES (use sparingly):**
+
+1. **URGENT** - Must respond TODAY (use rarely - max 1-2 per day)
+   - Unanswered client questions waiting for Dave's response
+   - Contract deadlines within 24 hours
+   - Critical issues needing immediate decision
+
+2. **IMPORTANT** - Should handle today (use selectively - max 2-3 per day)
+   - Questions that need Dave's answer within 48 hours
    - ShowingTime feedback to share with sellers
-   - New leads requiring initial contact
-   - Scheduling requests
-   - Document reviews
+   - New leads needing first contact
 
-3. **FYI** - Informational, no immediate action
-   - Showing confirmations (already scheduled)
-   - Status updates
-   - CC'd emails
-   - General announcements
-   - Routine coordination
+3. **FYI** - Skip these entirely. Don't create tasks for FYI items.
 
-4. **IGNORE** - Can be filtered out
-   - Marketing emails
-   - Spam
-   - Promotional content
-   - System notifications
-   - Newsletters
-   - Auto-responses
+4. **IGNORE** - Skip these entirely. Don't create tasks.
 
-**OUTPUT FORMAT:**
-For each email, provide EXACTLY ONE entry with:
-- title: Brief, action-oriented task (e.g., "Respond to John Smith's counter-offer question")
-- email_summary: 1-2 sentence summary of what the email is about
-- sender: Name of the sender (extract from email or use client_name)
-- action_needed: Clear statement of what the agent should do
-- priority: "urgent" | "high" | "medium" | "low"
-- triage_category: "urgent" | "important" | "fyi" | "ignore"
-- reasoning: Brief explanation of why this categorization
-- sourceEmailId: REQUIRED - The email's 'id' field (MUST be an exact match to prevent duplicates)
+**OUTPUT RULES:**
+- Return EMPTY array if no emails truly need Dave's action
+- Maximum 5 items total, but prefer 3 or fewer
+- Consolidate related emails about the same topic into ONE task
+- If an email is just part of ongoing coordination, SKIP IT
 
 Today's date is ${today}.`
         },
         {
           role: 'user',
-          content: `Analyze and triage these email communications:
+          content: `Analyze these emails and return ONLY items that genuinely need Dave's personal action TODAY:
 
 ${JSON.stringify(uniqueEmails, null, 2)}
 
-Existing tasks/suggestions to avoid duplicating: ${Array.from(allExistingTitles).join(', ')}
+Existing tasks/suggestions (to avoid duplicates): ${Array.from(allExistingTitles).join(', ')}
 
-IMPORTANT: Every suggestion MUST have a sourceEmailId that exactly matches one of the email 'id' fields above. This is required to prevent duplicates.
+REMEMBER: 
+- Be EXTREMELY selective. Most emails should NOT create a task.
+- Only surface things where Dave personally needs to take action.
+- Return an EMPTY array if nothing truly needs Dave's attention.
+- Maximum 5 items, prefer 3 or fewer.
+- Every item MUST have sourceEmailId matching an email 'id' above.
 
-Return JSON in this exact format:
+Return JSON:
 {
   "triaged_emails": [
     {
-      "title": "Brief, action-oriented task title",
-      "email_summary": "1-2 sentence summary of the email content",
-      "sender": "Person or company name",
-      "action_needed": "What the agent needs to do",
+      "title": "Action-oriented task (e.g., 'Reply to John's counter-offer question')",
+      "email_summary": "1-2 sentence summary",
+      "sender": "Sender name",
+      "action_needed": "What Dave needs to do",
       "priority": "urgent" | "high" | "medium" | "low",
-      "triage_category": "urgent" | "important" | "fyi" | "ignore",
-      "reasoning": "Why this email was categorized this way",
-      "sourceEmailId": "REQUIRED - The exact 'id' field from the email input"
+      "triage_category": "urgent" | "important",
+      "reasoning": "Why this needs Dave's action TODAY",
+      "sourceEmailId": "REQUIRED - exact 'id' from email input"
     }
   ]
 }`
