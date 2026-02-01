@@ -20,6 +20,7 @@ import logo from "@/assets/logo.jpg";
 import { InventoryImportDialog } from "./InventoryImportDialog";
 import ClientFeedbackPage from "./ClientFeedbackPage";
 import ClientDetailModal from "./ClientDetailModal";
+import { getEmailLink } from "@/utils/emailClientUtils";
 
 interface Client {
   id: string;
@@ -1041,8 +1042,10 @@ const ClientsTab = ({ onSelectClientForEstimate }: ClientsTabProps) => {
                   <TableCell>
                     {client.email ? (
                       <a 
-                        href={`mailto:${client.email}`}
+                        href={getEmailLink(client.email)}
                         onClick={(e) => e.stopPropagation()}
+                        target="_blank"
+                        rel="noopener noreferrer"
                         className="text-primary hover:underline"
                       >
                         {client.email}
