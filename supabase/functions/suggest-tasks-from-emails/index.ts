@@ -186,6 +186,14 @@ function areTasksAboutSameTopic(task1: string, task2: string): boolean {
   return false;
 }
 
+function isEmailAlreadyProcessed(
+  emailId: string, 
+  dismissedIds: Set<string>, 
+  processedIds: Set<string>
+): boolean {
+  return dismissedIds.has(emailId) || processedIds.has(emailId);
+}
+
 // Process suggestions for a single agent
 async function processAgentSuggestions(agentId: string, supabaseClient: any): Promise<{ 
   newSuggestionsCount: number;
@@ -455,6 +463,9 @@ Return JSON in this exact format:
   
   const triagedEmails: TriagedEmail[] = result.triaged_emails || [];
   
+  // Track which emails we've already processed in THIS run
+  const runProcessedEmailIds = new Set<string>();
+  
   // Filter duplicates
   const filteredSuggestions = triagedEmails.filter(
     (s: TriagedEmail) => {
@@ -468,9 +479,9 @@ Return JSON in this exact format:
         return false;
       }
 
-      // If we've already processed this exact email log, don't re-add it.
-      if (processedSourceEmailIds.has(s.sourceEmailId)) {
-        console.log(`Skipping already processed source email: "${s.title}"`);
+      // Check if email already processed (dismissed or pending)
+      if (isEmailAlreadyProcessed(s.sourceEmailId, processedSourceEmailIds, runProcessedEmailIds)) {
+        console.log(`Skipping task - email ${s.sourceEmailId} already processed: "${s.title}"`);
         return false;
       }
       
@@ -497,6 +508,11 @@ Return JSON in this exact format:
           console.log(`Skipping already processed email: "${s.title}"`);
           return false;
         }
+      }
+      
+      // Mark this email as processed in this run
+      if (s.sourceEmailId) {
+        runProcessedEmailIds.add(s.sourceEmailId);
       }
       
       return true;
