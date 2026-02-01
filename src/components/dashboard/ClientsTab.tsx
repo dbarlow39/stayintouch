@@ -952,6 +952,7 @@ const ClientsTab = ({ onSelectClientForEstimate }: ClientsTabProps) => {
                 <TableHead>Phone</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead>Cell #</TableHead>
+                <TableHead>Showings</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -1049,6 +1050,7 @@ const ClientsTab = ({ onSelectClientForEstimate }: ClientsTabProps) => {
                     ) : "—"}
                   </TableCell>
                   <TableCell>{client.cell_phone || "—"}</TableCell>
+                  <TableCell>{client.showings_to_date ?? "—"}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
                       <Button 
