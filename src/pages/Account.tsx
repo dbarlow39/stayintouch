@@ -7,9 +7,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, Save, User, Mail, RefreshCw, CheckCircle, XCircle } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ArrowLeft, Save, User, Mail, RefreshCw, CheckCircle, XCircle, Settings } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { EmailClient, EMAIL_CLIENT_OPTIONS, getEmailClientPreference, setEmailClientPreference } from "@/utils/emailClientUtils";
 import logo from "@/assets/logo.jpg";
 
 interface AgentProfile {
@@ -78,6 +80,17 @@ const Account = () => {
   });
 
   const [isSyncing, setIsSyncing] = useState(false);
+  const [emailClient, setEmailClientState] = useState<EmailClient>(getEmailClientPreference);
+
+  const handleEmailClientChange = (value: string) => {
+    const client = value as EmailClient;
+    setEmailClientState(client);
+    setEmailClientPreference(client);
+    toast({
+      title: "Email Preference Saved",
+      description: `Emails will now open in ${EMAIL_CLIENT_OPTIONS.find(o => o.value === client)?.label}`,
+    });
+  };
 
   const handleConnectGmail = async () => {
     try {
@@ -436,6 +449,39 @@ const Account = () => {
                 </p>
               </div>
             )}
+          </CardContent>
+        </Card>
+
+        {/* Email Client Preference Card */}
+        <Card className="shadow-medium animate-fade-in mt-6">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Settings className="w-5 h-5" />
+              Email Preferences
+            </CardTitle>
+            <CardDescription>
+              Choose which email application to use when composing emails throughout the app
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email-client">Default Email Client</Label>
+              <Select value={emailClient} onValueChange={handleEmailClientChange}>
+                <SelectTrigger id="email-client" className="w-full max-w-xs">
+                  <SelectValue placeholder="Select email client" />
+                </SelectTrigger>
+                <SelectContent>
+                  {EMAIL_CLIENT_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                This setting applies to all email links throughout the application
+              </p>
+            </div>
           </CardContent>
         </Card>
       </main>
