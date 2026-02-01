@@ -201,11 +201,12 @@ async function processAgentSuggestions(agentId: string, supabaseClient: any): Pr
 }> {
   console.log(`Processing suggestions for agent: ${agentId}`);
   
-  // Fetch ALL suggested tasks (pending + dismissed) to prevent duplicates
+  // Fetch existing suggested tasks (BOTH pending AND dismissed) to avoid duplicates
   const { data: existingSuggestions } = await supabaseClient
     .from('suggested_tasks')
     .select('title, gmail_message_id, source_email_id, status')
-    .eq('agent_id', agentId);
+    .eq('agent_id', agentId)
+    .in('status', ['pending', 'dismissed']);
 
   // Separate pending and dismissed for logging
   const pendingSuggestions = (existingSuggestions || []).filter((s: any) => s.status === 'pending');
@@ -226,6 +227,13 @@ async function processAgentSuggestions(agentId: string, supabaseClient: any): Pr
   // Track ALL processed source_email_ids (pending + dismissed)
   const processedSourceEmailIds = new Set<string>(
     (existingSuggestions || []).map((s: any) => s.source_email_id as string).filter(Boolean)
+  );
+
+  // Alias used for email-level filtering to match our source_email_id-based dedupe
+  const processedEmailIds = processedSourceEmailIds;
+
+  console.log(
+    `Found ${existingSuggestionTitles.size} existing task titles and ${processedEmailIds.size} processed email IDs`
   );
   
   console.log(`Agent ${agentId}: Tracking ${processedGmailMessageIds.size} gmail_message_ids, ${processedSourceEmailIds.size} source_email_ids`);
@@ -293,9 +301,22 @@ async function processAgentSuggestions(agentId: string, supabaseClient: any): Pr
     (emails || []).map((e: any) => [e.id, { gmail_message_id: e.gmail_message_id, thread_id: e.thread_id }])
   );
 
+  // Filter out emails that already have tasks (even if dismissed)
+  const filteredEmails = (emails || []).filter((email: any) => {
+    if (processedEmailIds.has(email.id)) {
+      console.log(`Skipping email ${email.id} - already has a task (dismissed or pending)`);
+      return false;
+    }
+    return true;
+  });
+
+  console.log(
+    `Filtered ${emails?.length || 0} emails down to ${filteredEmails.length} (removed ${processedEmailIds.size} already processed)`
+  );
+
   // CRITICAL: Filter out emails that already have a suggestion (pending OR dismissed)
   // This prevents the AI from generating new suggestions for already-processed emails
-  const relevantEmails: EmailForAnalysis[] = (emails || [])
+  const relevantEmails: EmailForAnalysis[] = filteredEmails
     .filter((email: any) => {
       // Skip if we already have a suggestion for this exact email
       if (processedSourceEmailIds.has(email.id)) {
