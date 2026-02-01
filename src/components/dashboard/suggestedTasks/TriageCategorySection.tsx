@@ -204,7 +204,7 @@ export const TriageCategorySection = ({
                   )}
                   <Button
                     size="sm"
-                    variant="ghost"
+                    variant="outline"
                     disabled={isDismissing}
                     onClick={(e) => {
                       e.stopPropagation();
