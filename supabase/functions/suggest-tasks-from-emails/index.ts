@@ -204,39 +204,22 @@ async function processAgentSuggestions(agentId: string, supabaseClient: any): Pr
   // Fetch existing suggested tasks (BOTH pending AND dismissed) to avoid duplicates
   const { data: existingSuggestions } = await supabaseClient
     .from('suggested_tasks')
-    .select('title, gmail_message_id, source_email_id, status')
+    .select('title, status, source_email_id')
     .eq('agent_id', agentId)
-    .in('status', ['pending', 'dismissed']);
+    .in('status', ['pending', 'dismissed']);  // ← CHECK BOTH STATUSES
 
-  // Separate pending and dismissed for logging
-  const pendingSuggestions = (existingSuggestions || []).filter((s: any) => s.status === 'pending');
-  const dismissedSuggestions = (existingSuggestions || []).filter((s: any) => s.status === 'dismissed');
-  
-  console.log(`Agent ${agentId}: Found ${pendingSuggestions.length} pending, ${dismissedSuggestions.length} dismissed suggestions`);
-
-  // Combine ALL titles (pending + dismissed) to avoid recreating dismissed items
   const existingSuggestionTitles = new Set<string>(
-    (existingSuggestions || []).map((s: any) => (s.title as string).toLowerCase())
-  );
-  
-  // Track ALL processed gmail_message_ids (pending + dismissed)
-  const processedGmailMessageIds = new Set<string>(
-    (existingSuggestions || []).map((s: any) => s.gmail_message_id as string).filter(Boolean)
+    existingSuggestions?.map((s: any) => (s.title as string).toLowerCase()) || []
   );
 
-  // Track ALL processed source_email_ids (pending + dismissed)
-  const processedSourceEmailIds = new Set<string>(
-    (existingSuggestions || []).map((s: any) => s.source_email_id as string).filter(Boolean)
+  // Track which email IDs already have tasks (dismissed or pending)
+  const processedEmailIds = new Set<string>(
+    existingSuggestions
+      ?.filter((s: any) => s.source_email_id !== null)
+      .map((s: any) => s.source_email_id as string) || []
   );
 
-  // Alias used for email-level filtering to match our source_email_id-based dedupe
-  const processedEmailIds = processedSourceEmailIds;
-
-  console.log(
-    `Found ${existingSuggestionTitles.size} existing task titles and ${processedEmailIds.size} processed email IDs`
-  );
-  
-  console.log(`Agent ${agentId}: Tracking ${processedGmailMessageIds.size} gmail_message_ids, ${processedSourceEmailIds.size} source_email_ids`);
+  console.log(`[DISMISSED FIX] Found ${existingSuggestionTitles.size} existing tasks, ${processedEmailIds.size} processed emails`);
 
   const sevenDaysAgo = new Date();
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
@@ -295,7 +278,7 @@ async function processAgentSuggestions(agentId: string, supabaseClient: any): Pr
     .limit(500);
 
   const existingTaskTitles = new Set<string>((existingTasks || []).map((t: any) => (t.title as string).toLowerCase()));
-  const allExistingTitles = new Set<string>([...existingTaskTitles, ...existingSuggestionTitles]);
+  const allExistingTitles = new Set<string>([...Array.from(existingTaskTitles), ...Array.from(existingSuggestionTitles)]);
 
   const emailMap = new Map<string, { gmail_message_id: string | null; thread_id: string | null }>(
     (emails || []).map((e: any) => [e.id, { gmail_message_id: e.gmail_message_id, thread_id: e.thread_id }])
@@ -304,32 +287,16 @@ async function processAgentSuggestions(agentId: string, supabaseClient: any): Pr
   // Filter out emails that already have tasks (even if dismissed)
   const filteredEmails = (emails || []).filter((email: any) => {
     if (processedEmailIds.has(email.id)) {
-      console.log(`Skipping email ${email.id} - already has a task (dismissed or pending)`);
+      console.log(`[DISMISSED FIX] ⏭️ Skipping email ${email.id} - already has a task`);
       return false;
     }
     return true;
   });
 
-  console.log(
-    `Filtered ${emails?.length || 0} emails down to ${filteredEmails.length} (removed ${processedEmailIds.size} already processed)`
-  );
+  console.log(`[DISMISSED FIX] Processing ${filteredEmails.length} of ${emails?.length || 0} emails`);
 
-  // CRITICAL: Filter out emails that already have a suggestion (pending OR dismissed)
-  // This prevents the AI from generating new suggestions for already-processed emails
+  // Format FILTERED emails for AI analysis (not ALL emails)
   const relevantEmails: EmailForAnalysis[] = filteredEmails
-    .filter((email: any) => {
-      // Skip if we already have a suggestion for this exact email
-      if (processedSourceEmailIds.has(email.id)) {
-        console.log(`Skipping email already in suggested_tasks: ${email.subject?.substring(0, 50)}`);
-        return false;
-      }
-      // Skip if we already processed this gmail_message_id
-      if (email.gmail_message_id && processedGmailMessageIds.has(email.gmail_message_id)) {
-        console.log(`Skipping email with known gmail_message_id: ${email.subject?.substring(0, 50)}`);
-        return false;
-      }
-      return true;
-    })
     .map((email: any) => ({
       id: email.id,
       gmail_message_id: email.gmail_message_id,
@@ -501,8 +468,8 @@ Return JSON in this exact format:
       }
 
       // Check if email already processed (dismissed or pending)
-      if (isEmailAlreadyProcessed(s.sourceEmailId, processedSourceEmailIds, runProcessedEmailIds)) {
-        console.log(`Skipping task - email ${s.sourceEmailId} already processed: "${s.title}"`);
+      if (isEmailAlreadyProcessed(s.sourceEmailId, processedEmailIds, runProcessedEmailIds)) {
+        console.log(`[DISMISSED FIX] Skipping task - email ${s.sourceEmailId} already processed: "${s.title}"`);
         return false;
       }
       
@@ -525,8 +492,8 @@ Return JSON in this exact format:
       
       if (s.sourceEmailId) {
         const emailInfo = emailMap.get(s.sourceEmailId);
-        if (emailInfo?.gmail_message_id && processedGmailMessageIds.has(emailInfo.gmail_message_id)) {
-          console.log(`Skipping already processed email: "${s.title}"`);
+        if (emailInfo?.gmail_message_id && processedEmailIds.has(s.sourceEmailId)) {
+          console.log(`[DISMISSED FIX] Skipping already processed email: "${s.title}"`);
           return false;
         }
       }
