@@ -9,8 +9,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { PropertyData } from "@/types/estimatedNet";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, List, Download, Mail, Calendar, FileText, ArrowRight, Settings, DollarSign, ClipboardList } from "lucide-react";
-import { EmailClient, EMAIL_CLIENT_OPTIONS, getEmailClientPreference, setEmailClientPreference, openEmailClient } from "@/utils/emailClientUtils";
+import { ArrowLeft, List, Download, Mail, Calendar, FileText, ArrowRight, DollarSign, ClipboardList } from "lucide-react";
+import { getEmailClientPreference, openEmailClient } from "@/utils/emailClientUtils";
 
 interface InitialClientData {
   id: string;
@@ -40,7 +40,7 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
   const [lookingUp, setLookingUp] = useState(false);
   const [linkedClientId, setLinkedClientId] = useState<string | null>(null);
   const [navigationTarget, setNavigationTarget] = useState<string>("closing-costs");
-  const [emailClient, setEmailClient] = useState<EmailClient>(getEmailClientPreference);
+  
   const formRef = useRef<HTMLFormElement>(null);
   const [formData, setFormData] = useState<PropertyData>({
     name: "",
@@ -776,11 +776,6 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
     setTimeout(() => formRef.current?.requestSubmit(), 0);
   };
 
-  const handleEmailClientChange = (value: string) => {
-    const client = value as EmailClient;
-    setEmailClient(client);
-    setEmailClientPreference(client);
-  };
 
   const navigationItems = [
     {
@@ -850,23 +845,6 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
     <div className="flex w-full min-h-[600px]">
       {/* Left Sidebar Navigation */}
       <aside className="w-56 p-3 border-r bg-card shrink-0">
-        {/* Email Client Selector */}
-        <div className="flex items-center gap-2 mb-4 px-1">
-          <Settings className="h-4 w-4 text-muted-foreground shrink-0" />
-          <Select value={emailClient} onValueChange={handleEmailClientChange}>
-            <SelectTrigger className="h-8 text-sm bg-background">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent className="bg-popover z-50">
-              {EMAIL_CLIENT_OPTIONS.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
         <div className="space-y-1">
           {navigationItems.map((item, idx) => (
             <Button
@@ -1032,7 +1010,7 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
                     size="sm"
                     className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 p-0 text-primary hover:text-primary/80"
                     onClick={() => openEmailClient(formData.sellerEmail.split(',')[0].trim())}
-                    title={`Open in ${EMAIL_CLIENT_OPTIONS.find(o => o.value === emailClient)?.label}`}
+                    title="Send Email"
                   >
                     <Mail className="h-4 w-4" />
                   </Button>
@@ -1097,7 +1075,7 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
                     size="sm"
                     className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 p-0 text-primary hover:text-primary/80"
                     onClick={() => openEmailClient(formData.listingAgentEmail)}
-                    title={`Open in ${EMAIL_CLIENT_OPTIONS.find(o => o.value === emailClient)?.label}`}
+                    title="Send Email"
                   >
                     <Mail className="h-4 w-4" />
                   </Button>
