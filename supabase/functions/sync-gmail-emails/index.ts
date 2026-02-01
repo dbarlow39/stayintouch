@@ -937,16 +937,25 @@ async function autoCreateSuggestedTasks(supabase: any, agentId: string): Promise
     return 0;
   }
 
-  // Fetch existing pending suggested tasks to avoid duplicates
+  // Fetch existing suggested tasks (BOTH pending AND dismissed) to avoid duplicates
   const { data: existingSuggestions } = await supabase
     .from('suggested_tasks')
-    .select('title')
+    .select('title, status, source_email_id')
     .eq('agent_id', agentId)
-    .eq('status', 'pending');
+    .in('status', ['pending', 'dismissed']);  // ← CHECK BOTH STATUSES
 
   const existingSuggestionTitles = new Set(
     existingSuggestions?.map((s: any) => s.title.toLowerCase()) || []
   );
+
+  // Track which email IDs already have tasks (dismissed or pending)
+  const processedEmailIds = new Set<string>(
+    existingSuggestions
+      ?.filter((s: any) => s.source_email_id !== null)
+      .map((s: any) => s.source_email_id as string) || []
+  );
+
+  console.log(`[DISMISSED FIX] Found ${existingSuggestionTitles.size} existing tasks, ${processedEmailIds.size} processed emails`);
 
   // Fetch recent emails (last 7 days) that are linked to clients
   const sevenDaysAgo = new Date();
@@ -995,8 +1004,24 @@ async function autoCreateSuggestedTasks(supabase: any, agentId: string): Promise
     emails.map((e: any) => [e.id, { gmail_message_id: e.gmail_message_id }])
   );
 
-  // Format emails for AI
-  const emailsForAnalysis = emails.map((email: any) => ({
+  // Filter out emails that already have tasks (even if dismissed)
+  const filteredEmails = emails.filter((email: any) => {
+    if (processedEmailIds.has(email.id)) {
+      console.log(`[DISMISSED FIX] ⏭️ Skipping email ${email.id} - already has a task`);
+      return false;
+    }
+    return true;
+  });
+
+  console.log(`[DISMISSED FIX] Processing ${filteredEmails.length} of ${emails.length} emails`);
+
+  if (filteredEmails.length === 0) {
+    console.log('All emails already have tasks, nothing to process');
+    return 0;
+  }
+
+  // Format FILTERED emails for AI (not ALL emails)
+  const emailsForAnalysis = filteredEmails.map((email: any) => ({
     id: email.id,
     gmail_message_id: email.gmail_message_id,
     subject: email.subject,
