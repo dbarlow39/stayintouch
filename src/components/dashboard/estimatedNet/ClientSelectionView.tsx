@@ -23,6 +23,7 @@ interface Client {
   email: string | null;
   status: string | null;
   annual_taxes: number | null;
+  showings_to_date: number | null;
 }
 
 interface ClientSelectionViewProps {
@@ -41,7 +42,7 @@ const ClientSelectionView = ({ onSelectClient, onNewClient, onCancel }: ClientSe
       const { data, error } = await supabase
         .from("clients")
         .select(
-          "id, first_name, last_name, street_number, street_name, city, state, zip, phone, cell_phone, home_phone, email, status, annual_taxes"
+          "id, first_name, last_name, street_number, street_name, city, state, zip, phone, cell_phone, home_phone, email, status, annual_taxes, showings_to_date"
         )
         .eq("agent_id", user!.id)
         .ilike("status", "A")
@@ -118,6 +119,7 @@ const ClientSelectionView = ({ onSelectClient, onNewClient, onCancel }: ClientSe
                 <TableHead>Name</TableHead>
                 <TableHead>Address</TableHead>
                 <TableHead>City</TableHead>
+                <TableHead>Showings</TableHead>
                 <TableHead>Contact</TableHead>
               </TableRow>
             </TableHeader>
@@ -135,6 +137,7 @@ const ClientSelectionView = ({ onSelectClient, onNewClient, onCancel }: ClientSe
                     {client.street_number} {client.street_name}
                   </TableCell>
                   <TableCell>{client.city}</TableCell>
+                  <TableCell>{client.showings_to_date ?? "-"}</TableCell>
                   <TableCell>
                     {client.phone || client.cell_phone || client.home_phone || client.email || "-"}
                   </TableCell>
