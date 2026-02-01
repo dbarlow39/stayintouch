@@ -193,22 +193,34 @@ async function processAgentSuggestions(agentId: string, supabaseClient: any): Pr
 }> {
   console.log(`Processing suggestions for agent: ${agentId}`);
   
+  // Fetch ALL suggested tasks (pending + dismissed) to prevent duplicates
   const { data: existingSuggestions } = await supabaseClient
     .from('suggested_tasks')
-    .select('title, gmail_message_id, source_email_id')
+    .select('title, gmail_message_id, source_email_id, status')
     .eq('agent_id', agentId);
 
+  // Separate pending and dismissed for logging
+  const pendingSuggestions = (existingSuggestions || []).filter((s: any) => s.status === 'pending');
+  const dismissedSuggestions = (existingSuggestions || []).filter((s: any) => s.status === 'dismissed');
+  
+  console.log(`Agent ${agentId}: Found ${pendingSuggestions.length} pending, ${dismissedSuggestions.length} dismissed suggestions`);
+
+  // Combine ALL titles (pending + dismissed) to avoid recreating dismissed items
   const existingSuggestionTitles = new Set<string>(
     (existingSuggestions || []).map((s: any) => (s.title as string).toLowerCase())
   );
   
+  // Track ALL processed gmail_message_ids (pending + dismissed)
   const processedGmailMessageIds = new Set<string>(
     (existingSuggestions || []).map((s: any) => s.gmail_message_id as string).filter(Boolean)
   );
 
+  // Track ALL processed source_email_ids (pending + dismissed)
   const processedSourceEmailIds = new Set<string>(
     (existingSuggestions || []).map((s: any) => s.source_email_id as string).filter(Boolean)
   );
+  
+  console.log(`Agent ${agentId}: Tracking ${processedGmailMessageIds.size} gmail_message_ids, ${processedSourceEmailIds.size} source_email_ids`);
 
   const sevenDaysAgo = new Date();
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
@@ -347,6 +359,11 @@ async function processAgentSuggestions(agentId: string, supabaseClient: any): Pr
           role: 'system',
           content: `You are an intelligent email triage assistant for a real estate agent. Categorize each email into one of four triage categories and create actionable summaries.
 
+**CRITICAL REQUIREMENTS:**
+- Every suggestion MUST include the sourceEmailId (the email's 'id' field from the input)
+- Each email should generate AT MOST one task - consolidate if needed
+- If you cannot determine which email a task relates to, DO NOT create that task
+
 **TRIAGE CATEGORIES:**
 
 1. **URGENT** - Needs immediate attention (within hours)
@@ -379,7 +396,7 @@ async function processAgentSuggestions(agentId: string, supabaseClient: any): Pr
    - Auto-responses
 
 **OUTPUT FORMAT:**
-For each email, provide:
+For each email, provide EXACTLY ONE entry with:
 - title: Brief, action-oriented task (e.g., "Respond to John Smith's counter-offer question")
 - email_summary: 1-2 sentence summary of what the email is about
 - sender: Name of the sender (extract from email or use client_name)
@@ -387,7 +404,7 @@ For each email, provide:
 - priority: "urgent" | "high" | "medium" | "low"
 - triage_category: "urgent" | "important" | "fyi" | "ignore"
 - reasoning: Brief explanation of why this categorization
-- sourceEmailId: The email's id field
+- sourceEmailId: REQUIRED - The email's 'id' field (MUST be an exact match to prevent duplicates)
 
 Today's date is ${today}.`
         },
@@ -398,6 +415,8 @@ Today's date is ${today}.`
 ${JSON.stringify(uniqueEmails, null, 2)}
 
 Existing tasks/suggestions to avoid duplicating: ${Array.from(allExistingTitles).join(', ')}
+
+IMPORTANT: Every suggestion MUST have a sourceEmailId that exactly matches one of the email 'id' fields above. This is required to prevent duplicates.
 
 Return JSON in this exact format:
 {
@@ -410,7 +429,7 @@ Return JSON in this exact format:
       "priority": "urgent" | "high" | "medium" | "low",
       "triage_category": "urgent" | "important" | "fyi" | "ignore",
       "reasoning": "Why this email was categorized this way",
-      "sourceEmailId": "The email id from the input"
+      "sourceEmailId": "REQUIRED - The exact 'id' field from the email input"
     }
   ]
 }`
@@ -528,6 +547,23 @@ Return JSON in this exact format:
     } else {
       console.log(`Agent ${agentId}: Inserted ${filteredSuggestions.length} new suggestions`);
     }
+  }
+
+  // Clean up old dismissed tasks (older than 30 days) to prevent table bloat
+  const thirtyDaysAgo = new Date();
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+  
+  const { error: cleanupError, count: cleanedCount } = await supabaseClient
+    .from('suggested_tasks')
+    .delete()
+    .eq('agent_id', agentId)
+    .eq('status', 'dismissed')
+    .lt('created_at', thirtyDaysAgo.toISOString());
+
+  if (cleanupError) {
+    console.error('Error cleaning up old dismissed tasks:', cleanupError);
+  } else if (cleanedCount && cleanedCount > 0) {
+    console.log(`Agent ${agentId}: Cleaned up ${cleanedCount} old dismissed tasks`);
   }
 
   return { newSuggestionsCount: filteredSuggestions.length, stats };
