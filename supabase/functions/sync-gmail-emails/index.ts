@@ -2,7 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 // Bump this when deploying to positively identify which code is running.
-const VERSION = "sync-gmail-emails@2026-02-01.1";
+const VERSION = "sync-gmail-emails@2026-02-01.2-DISMISSED-FIX";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -1141,19 +1141,46 @@ Return JSON in this exact format:
     return 0;
   }
 
-  // Filter out duplicates
-  const newSuggestions = suggestions.filter(
-    (s: { title: string }) => !allExistingTitles.has(s.title.toLowerCase())
-  );
+  // Filter out duplicates - check BOTH title AND source_email_id
+  const newSuggestions = suggestions.filter((s: any) => {
+    // Skip if title already exists
+    if (allExistingTitles.has(s.title.toLowerCase())) {
+      console.log(`[DISMISSED FIX] ⏭️ Skipping duplicate title: "${s.title}"`);
+      return false;
+    }
+    
+    // Skip if sourceEmailId already has a task (the CRITICAL check)
+    const sourceEmailId = s.sourceEmailId || null;
+    if (sourceEmailId && processedEmailIds.has(sourceEmailId)) {
+      console.log(`[DISMISSED FIX] ⏭️ Skipping - email ${sourceEmailId} already has a task: "${s.title}"`);
+      return false;
+    }
+    
+    // Skip if AI returned an invalid sourceEmailId (not in our email list)
+    if (sourceEmailId && !emailMap.has(sourceEmailId)) {
+      console.log(`[DISMISSED FIX] ⏭️ Skipping - invalid sourceEmailId ${sourceEmailId}: "${s.title}"`);
+      return false;
+    }
+    
+    return true;
+  });
 
   if (newSuggestions.length === 0) {
+    console.log('[DISMISSED FIX] All suggestions filtered out as duplicates');
     return 0;
   }
+
+  console.log(`[DISMISSED FIX] ✅ Inserting ${newSuggestions.length} new suggestions`);
 
   // Insert new suggestions with source email references
   const suggestionsToInsert = newSuggestions.map((s: any) => {
     const sourceEmailId = s.sourceEmailId || null;
     const emailInfo = sourceEmailId ? emailMap.get(sourceEmailId) : null;
+    
+    // Add to processedEmailIds to prevent duplicates within same batch
+    if (sourceEmailId) {
+      processedEmailIds.add(sourceEmailId);
+    }
     
     return {
       agent_id: agentId,
