@@ -2,7 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 // Bump this when deploying to positively identify which code is running.
-const VERSION = "sync-gmail-emails@2026-02-01.2-DISMISSED-FIX";
+const VERSION = "sync-gmail-emails@2026-02-02.1-CLIENT-OWNER-FIX";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -737,6 +737,10 @@ async function syncAgentEmails(
       clientId = (matchedClient as any).id;
     }
 
+    // CRITICAL FIX: Use the client's agent_id if we matched a client, otherwise use the syncing agent's id
+    // This ensures emails are attributed to the agent who owns the client, not who triggered the sync
+    const effectiveAgentId = matchedClient ? (matchedClient as any).agent_id : agent_id;
+    
     // Determine direction
     const agentEmail = tokenData.email_address.toLowerCase();
     const direction = fromAddr === agentEmail ? "outgoing" : "incoming";
@@ -754,7 +758,7 @@ async function syncAgentEmails(
       const cleanedBody = isShowingTime ? stripHtml(rawBody) : msg.snippet;
       
       const emailLog = {
-        agent_id,
+        agent_id: effectiveAgentId,
         client_id: clientId,
         gmail_message_id: msg.id,
         thread_id: msg.threadId,
@@ -803,7 +807,7 @@ async function syncAgentEmails(
             }
             
             const feedbackRecord = {
-              agent_id,
+              agent_id: effectiveAgentId,
               client_id: clientId,
               showing_agent_name: parsedEmail.agentName,
               showing_agent_email: parsedEmail.agentEmail,
