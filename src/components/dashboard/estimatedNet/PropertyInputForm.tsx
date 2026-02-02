@@ -1202,7 +1202,7 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
               </Select>
             </div>
             <div>
-              <Label htmlFor="loanCommitment">Loan Commitment (Days Due)</Label>
+              <Label htmlFor="loanCommitment">(3.2c) Loan Commitment (Days Due)</Label>
               <Input
                 id="loanCommitment"
                 value={formData.loanCommitment}
