@@ -341,7 +341,9 @@ const TitleLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate 
               </p>
               <p className="mb-4">Let know if you need anything else.</p>
               <p className="mb-0">Thanks</p>
-              <p className="mb-4"><strong>{propertyData.listingAgentName}</strong></p>
+              <p className="mb-0"><strong>{propertyData.listingAgentName}</strong></p>
+              <p className="mb-0">{propertyData.listingAgentPhone}</p>
+              <p className="mb-4">{propertyData.listingAgentEmail}</p>
             </div>
           </Card>
         </div>
