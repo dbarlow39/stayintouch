@@ -31,6 +31,24 @@ interface TriagedEmail {
   sourceEmailId: string | null;
 }
 
+function isOfferEmail(email: EmailForAnalysis): boolean {
+  const subject = (email.subject || '').toLowerCase();
+  const body = (email.body_preview || '').toLowerCase();
+  return (
+    subject.includes('received an offer') ||
+    subject.includes('we have received an offer') ||
+    subject.includes('offer for') ||
+    body.includes('received an offer')
+  );
+}
+
+function extractOfferAddress(subject: string | null): string | null {
+  if (!subject) return null;
+  // e.g. "Re: We have received an offer for 1955 Royal Oak Dr" -> "1955 Royal Oak Dr"
+  const m = subject.match(/offer\s+for\s+(.+)$/i);
+  return m?.[1]?.trim() || null;
+}
+
 function isRelevantEmail(email: EmailForAnalysis, clientEmails: Set<string>): boolean {
   const from = email.from_email.toLowerCase();
   const subject = (email.subject || '').toLowerCase();
@@ -221,15 +239,21 @@ async function processAgentSuggestions(agentId: string, supabaseClient: any): Pr
   const agentName = profile?.first_name || profile?.full_name?.split(' ')[0] || 'the agent';
   console.log(`Processing for agent: ${agentName}`);
   
-  // Fetch existing suggested tasks (BOTH pending AND dismissed) to avoid duplicates
+  // Fetch existing suggested tasks.
+  // We keep BOTH pending AND dismissed so we can:
+  // - avoid re-processing the exact same email again (by source_email_id)
+  // - but we ONLY use *pending* suggestion titles for topic/semantic de-duping
+  //   so a previously dismissed topic can resurface if a new email comes in.
   const { data: existingSuggestions } = await supabaseClient
     .from('suggested_tasks')
     .select('title, status, source_email_id')
     .eq('agent_id', agentId)
     .in('status', ['pending', 'dismissed']);  // ← CHECK BOTH STATUSES
 
-  const existingSuggestionTitles = new Set<string>(
-    existingSuggestions?.map((s: any) => (s.title as string).toLowerCase()) || []
+  const pendingSuggestionTitles = new Set<string>(
+    existingSuggestions
+      ?.filter((s: any) => s.status === 'pending')
+      .map((s: any) => (s.title as string).toLowerCase()) || []
   );
 
   // Track which email IDs already have tasks (dismissed or pending)
@@ -239,7 +263,7 @@ async function processAgentSuggestions(agentId: string, supabaseClient: any): Pr
       .map((s: any) => s.source_email_id as string) || []
   );
 
-  console.log(`[DISMISSED FIX] Found ${existingSuggestionTitles.size} existing tasks, ${processedEmailIds.size} processed emails`);
+  console.log(`[DISMISSED FIX] Found ${pendingSuggestionTitles.size} pending suggestion titles, ${processedEmailIds.size} processed emails`);
 
   const sevenDaysAgo = new Date();
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
@@ -299,7 +323,7 @@ async function processAgentSuggestions(agentId: string, supabaseClient: any): Pr
     .limit(500);
 
   const existingTaskTitles = new Set<string>((existingTasks || []).map((t: any) => (t.title as string).toLowerCase()));
-  const allExistingTitles = new Set<string>([...Array.from(existingTaskTitles), ...Array.from(existingSuggestionTitles)]);
+  const allExistingTitles = new Set<string>([...Array.from(existingTaskTitles), ...Array.from(pendingSuggestionTitles)]);
 
   const emailMap = new Map<string, { gmail_message_id: string | null; thread_id: string | null }>(
     (emails || []).map((e: any) => [e.id, { gmail_message_id: e.gmail_message_id, thread_id: e.thread_id }])
@@ -349,6 +373,11 @@ async function processAgentSuggestions(agentId: string, supabaseClient: any): Pr
       new Date(b.received_at).getTime() - new Date(a.received_at).getTime()
     )[0];
   });
+
+  // If the model is too selective, we still want to ensure offer-received emails
+  // get surfaced at least once (per email id) since they almost always require action.
+  const offerEmails = uniqueEmails.filter(isOfferEmail);
+  const offerEmailIds = new Set<string>(offerEmails.map((e) => e.id));
 
   console.log(`Agent ${agentId}: Reduced ${relevantEmails.length} emails to ${uniqueEmails.length} unique threads`);
 
@@ -479,12 +508,37 @@ Return JSON:
   const result = JSON.parse(aiData.choices[0].message.content);
   
   const triagedEmails: TriagedEmail[] = result.triaged_emails || [];
+
+  // Fallback: ensure at least one "offer received" email is surfaced.
+  // This handles cases where the prompt's selectivity causes offers to be skipped.
+  let triagedEmailsWithFallback = triagedEmails;
+  if (offerEmails.length > 0) {
+    const hasOffer = triagedEmails.some((t) => t?.sourceEmailId && offerEmails.some((e) => e.id === t.sourceEmailId));
+    if (!hasOffer) {
+      const offerEmail = offerEmails[0];
+      const addr = extractOfferAddress(offerEmail.subject) || 'the property';
+      const sender = offerEmail.from_email?.split('<')[0]?.trim() || offerEmail.from_email;
+
+      const fallback: TriagedEmail = {
+        title: `Review offer for ${addr}`,
+        email_summary: offerEmail.snippet || offerEmail.body_preview || 'Offer received email requires review.',
+        sender,
+        action_needed: `Open the email thread and review the offer details for ${addr}.`,
+        priority: 'high',
+        triage_category: 'important',
+        reasoning: 'An offer received typically requires timely review and response.',
+        sourceEmailId: offerEmail.id,
+      };
+
+      triagedEmailsWithFallback = [fallback, ...triagedEmails].slice(0, 5);
+    }
+  }
   
   // Track which emails we've already processed in THIS run
   const runProcessedEmailIds = new Set<string>();
   
   // Filter duplicates
-  const filteredSuggestions = triagedEmails.filter(
+  const filteredSuggestions = triagedEmailsWithFallback.filter(
     (s: TriagedEmail) => {
       // If the model didn't return a valid sourceEmailId, skip it.
       if (!s.sourceEmailId || !emailMap.has(s.sourceEmailId)) {
@@ -506,16 +560,20 @@ Return JSON:
         console.log(`Skipping exact duplicate: "${s.title}"`);
         return false;
       }
-      
-      if (isSimilarTask(s.title, allExistingTitles)) {
-        console.log(`Skipping similar task: "${s.title}"`);
-        return false;
-      }
-      
-      for (const existing of allExistingTitles) {
-        if (areTasksAboutSameTopic(s.title, existing)) {
-          console.log(`Skipping duplicate topic: "${s.title}" similar to "${existing}"`);
+
+      // Offers are time-sensitive; don't suppress them just because a similar task exists
+      // (e.g., doc review for the same address).
+      if (!offerEmailIds.has(s.sourceEmailId)) {
+        if (isSimilarTask(s.title, allExistingTitles)) {
+          console.log(`Skipping similar task: "${s.title}"`);
           return false;
+        }
+
+        for (const existing of allExistingTitles) {
+          if (areTasksAboutSameTopic(s.title, existing)) {
+            console.log(`Skipping duplicate topic: "${s.title}" similar to "${existing}"`);
+            return false;
+          }
         }
       }
       
@@ -538,10 +596,10 @@ Return JSON:
 
   // Count stats (including ignored for reporting)
   const stats = {
-    urgent: triagedEmails.filter(e => e.triage_category === 'urgent').length,
-    important: triagedEmails.filter(e => e.triage_category === 'important').length,
-    fyi: triagedEmails.filter(e => e.triage_category === 'fyi').length,
-    ignore: triagedEmails.filter(e => e.triage_category === 'ignore').length,
+    urgent: triagedEmailsWithFallback.filter(e => e.triage_category === 'urgent').length,
+    important: triagedEmailsWithFallback.filter(e => e.triage_category === 'important').length,
+    fyi: triagedEmailsWithFallback.filter(e => e.triage_category === 'fyi').length,
+    ignore: triagedEmailsWithFallback.filter(e => e.triage_category === 'ignore').length,
   };
 
   console.log(`Agent ${agentId}: Triage stats - Urgent: ${stats.urgent}, Important: ${stats.important}, FYI: ${stats.fyi}, Ignored: ${stats.ignore}`);
