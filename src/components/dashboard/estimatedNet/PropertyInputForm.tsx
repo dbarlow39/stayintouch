@@ -1296,7 +1296,7 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
               </div>
             </div>
             <div>
-              <Label htmlFor="depositCollection">Deposit Collection</Label>
+              <Label htmlFor="depositCollection">(12.2) Deposit Collection</Label>
               <Select value={formData.depositCollection} onValueChange={(value) => updateField("depositCollection", value)}>
                 <SelectTrigger>
                   <SelectValue />
