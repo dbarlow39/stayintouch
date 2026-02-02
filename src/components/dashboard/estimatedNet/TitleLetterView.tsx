@@ -134,10 +134,13 @@ const TitleLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate 
         description: "Opening your email client...",
       });
 
-      // Open email client with pre-filled subject and title company recipients
+      // Open email client with pre-filled subject and title company + lender recipients
       const subject = `${propertyData.streetAddress} into contract`;
-      const titleCompanyEmails = "jonadeguzman0330@gmail.com,Kameron.Faulkner@titlefirst.com,chris.furrow@titlefirst.com,polaris@titlefirst.com";
-      const link = getEmailLink(titleCompanyEmails, emailClient, subject);
+      let recipients = "jonadeguzman0330@gmail.com,Kameron.Faulkner@titlefirst.com,chris.furrow@titlefirst.com,polaris@titlefirst.com";
+      if (propertyData.lendingOfficerEmail) {
+        recipients += `,${propertyData.lendingOfficerEmail}`;
+      }
+      const link = getEmailLink(recipients, emailClient, subject);
       window.open(link, '_blank');
     } catch (error) {
       console.error('Failed to copy:', error);
