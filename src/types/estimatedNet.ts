@@ -22,6 +22,7 @@ export interface PropertyData {
   lendingOfficer: string;
   lendingOfficerPhone: string;
   lendingOfficerEmail: string;
+  buyerName1: string;
   loanAppTimeFrame: string;
   loanCommitment: string;
   preApprovalDays: number;
