@@ -327,6 +327,9 @@ const TitleLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate 
               <p className="mb-4">
                 Buyer agent is <strong>{propertyData.agentName}</strong>  phone: {propertyData.agentContact}   email: {propertyData.agentEmail}
               </p>
+              <p className="mb-4">
+                Buyer Name(s): <strong>{propertyData.buyerName1}</strong>{propertyData.buyerName2 && <>, <strong>{propertyData.buyerName2}</strong></>}
+              </p>
               <p className="mb-4">Let know if you need anything else.</p>
               <p className="mb-0">Thanks</p>
               <p className="mb-4"><strong>{propertyData.listingAgentName}</strong></p>
