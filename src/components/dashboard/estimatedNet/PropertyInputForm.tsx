@@ -1335,7 +1335,7 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
               />
             </div>
             <div>
-              <Label htmlFor="possession">Possession Date</Label>
+              <Label htmlFor="possession">(15.3) Possession Date</Label>
               <Input
                 id="possession"
                 type="date"
