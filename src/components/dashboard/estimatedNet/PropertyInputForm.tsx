@@ -59,6 +59,7 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
     typeOfLoan: "Conventional",
     lenderName: "",
     lendingOfficer: "",
+    lendingOfficerPhone: "",
     loanAppTimeFrame: "7",
     loanCommitment: "",
     preApprovalDays: 2,
@@ -400,6 +401,7 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
           typeOfLoan: data.type_of_loan || "Conventional",
           lenderName: (data as any).lender_name || "",
           lendingOfficer: (data as any).lending_officer || "",
+          lendingOfficerPhone: (data as any).lending_officer_phone || "",
           loanAppTimeFrame: data.loan_app_time_frame || "",
           loanCommitment: data.loan_commitment || "",
           preApprovalDays: data.pre_approval_days ?? 0,
@@ -1520,6 +1522,15 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
                 id="lendingOfficer"
                 value={formData.lendingOfficer || ""}
                 onChange={(e) => updateField("lendingOfficer", e.target.value)}
+              />
+            </div>
+            <div>
+              <Label htmlFor="lendingOfficerPhone">Lending Officer Phone #</Label>
+              <Input
+                id="lendingOfficerPhone"
+                type="tel"
+                value={formData.lendingOfficerPhone || ""}
+                onChange={(e) => updateField("lendingOfficerPhone", e.target.value)}
               />
             </div>
           </div>
