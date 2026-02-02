@@ -1309,7 +1309,7 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
               </Select>
             </div>
             <div>
-              <Label htmlFor="finalWalkThrough">Final Walk-thru</Label>
+              <Label htmlFor="finalWalkThrough">(15.2) Final Walk-thru</Label>
               <Input
                 id="finalWalkThrough"
                 value={formData.finalWalkThrough}
