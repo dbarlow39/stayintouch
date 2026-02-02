@@ -1192,6 +1192,16 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
               />
             </div>
             <div>
+              <Label htmlFor="loanAppTimeFrame">(3.2b) Loan Application</Label>
+              <Input
+                id="loanAppTimeFrame"
+                type="number"
+                value={formData.loanAppTimeFrame ?? ""}
+                onChange={(e) => updateField("loanAppTimeFrame", e.target.value)}
+                placeholder="7"
+              />
+            </div>
+            <div>
               <Label htmlFor="loanCommitment">Loan Commitment (Days Due)</Label>
               <Input
                 id="loanCommitment"
