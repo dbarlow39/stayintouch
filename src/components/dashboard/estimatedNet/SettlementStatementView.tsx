@@ -20,7 +20,7 @@ const SettlementStatementView = ({ propertyData, propertyId, onBack, onEdit, onN
   const { toast } = useToast();
   const [emailClient, setEmailClient] = useState<EmailClient>(getEmailClientPreference);
 
-  const EMAIL_LOGO_WIDTH_PX = 144;
+  const EMAIL_LOGO_WIDTH_PX = 175;
 
   const resizeImageForEmail = async (imageUrl: string, targetWidth: number): Promise<string> => {
     return await new Promise((resolve, reject) => {
