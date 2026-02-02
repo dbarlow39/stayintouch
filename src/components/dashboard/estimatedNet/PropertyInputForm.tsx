@@ -1487,7 +1487,7 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
         </Card>
 
         <Card className="p-6 mb-6">
-          <h3 className="text-xl font-semibold mb-4 text-foreground">Buyer Agent Information</h3>
+          <h3 className="text-xl font-semibold mb-4 text-foreground">Parties of the Contract</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <Label htmlFor="agentName">Buyer Agent Name</Label>
