@@ -40,7 +40,7 @@ const TitleLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate 
     try {
       const clonedContent = content.cloneNode(true) as HTMLElement;
       
-      // Convert logo to base64
+      // Convert logo to base64 at reduced size
       const logoImg = clonedContent.querySelector('img') as HTMLImageElement;
       if (logoImg) {
         const canvas = document.createElement('canvas');
@@ -50,14 +50,20 @@ const TitleLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate 
         
         await new Promise((resolve, reject) => {
           img.onload = () => {
-            canvas.width = img.width;
-            canvas.height = img.height;
-            ctx?.drawImage(img, 0, 0);
+            // Resize to 65px width (about 33% of original 200px)
+            const targetWidth = 65;
+            const scale = targetWidth / img.width;
+            const targetHeight = img.height * scale;
+            
+            canvas.width = targetWidth;
+            canvas.height = targetHeight;
+            ctx?.drawImage(img, 0, 0, targetWidth, targetHeight);
+            
             const dataUrl = canvas.toDataURL('image/jpeg');
             logoImg.src = dataUrl;
-            logoImg.style.width = '65px';
+            logoImg.style.width = `${targetWidth}px`;
             logoImg.style.height = 'auto';
-            logoImg.setAttribute('width', '65');
+            logoImg.setAttribute('width', String(targetWidth));
             resolve(true);
           };
           img.onerror = reject;
