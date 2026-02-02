@@ -259,6 +259,7 @@ const EstimatedNetTab = ({ selectedClient, onClearSelectedClient }: EstimatedNet
       lendingOfficerPhone: (data as any).lending_officer_phone || "",
       lendingOfficerEmail: (data as any).lending_officer_email || "",
       buyerName1: (data as any).buyer_name_1 || "",
+      buyerName2: (data as any).buyer_name_2 || "",
       loanAppTimeFrame: data.loan_app_time_frame || "",
       loanCommitment: data.loan_commitment || "",
       preApprovalDays: data.pre_approval_days ?? 0,
