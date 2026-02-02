@@ -306,7 +306,7 @@ const ImportantDatesView = ({ propertyData, propertyId, onBack, onEdit, onNaviga
                     </tr>
                     <tr className="hover:bg-muted/50">
                       <td className="px-4 py-3 font-medium">Possession given to buyer:</td>
-                      <td className="px-4 py-3">{propertyData.possession || formatDate(propertyData.closingDate || '')}</td>
+                      <td className="px-4 py-3">{propertyData.possession ? formatDate(propertyData.possession) : formatDate(propertyData.closingDate || '')}</td>
                     </tr>
                     <tr className="hover:bg-muted/50">
                       <td className="px-4 py-3 font-medium">Home Inspection to be completed by:</td>
