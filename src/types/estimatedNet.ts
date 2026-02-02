@@ -21,6 +21,7 @@ export interface PropertyData {
   loanAppTimeFrame: string;
   loanCommitment: string;
   preApprovalDays: number;
+  appraisalContingency: boolean;
   
   // Additional Costs
   homeWarranty: number;

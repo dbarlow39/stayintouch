@@ -394,6 +394,7 @@ export type Database = {
           agent_name: string | null
           annual_taxes: number
           appliances: string | null
+          appraisal_contingency: boolean | null
           buyer_agent_commission: number
           city: string
           client_id: string | null
@@ -444,6 +445,7 @@ export type Database = {
           agent_name?: string | null
           annual_taxes?: number
           appliances?: string | null
+          appraisal_contingency?: boolean | null
           buyer_agent_commission?: number
           city: string
           client_id?: string | null
@@ -494,6 +496,7 @@ export type Database = {
           agent_name?: string | null
           annual_taxes?: number
           appliances?: string | null
+          appraisal_contingency?: boolean | null
           buyer_agent_commission?: number
           city?: string
           client_id?: string | null
