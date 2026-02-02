@@ -1248,7 +1248,7 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
               />
             </div>
             <div>
-              <Label htmlFor="homeWarrantyCompany">Home Warranty Company</Label>
+              <Label htmlFor="homeWarrantyCompany">(7.1) Home Warranty Company</Label>
               <Input
                 id="homeWarrantyCompany"
                 value={formData.homeWarrantyCompany}
