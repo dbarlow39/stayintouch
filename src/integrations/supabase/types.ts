@@ -396,6 +396,8 @@ export type Database = {
           appliances: string | null
           appraisal_contingency: boolean | null
           buyer_agent_commission: number
+          buyer_name_1: string | null
+          buyer_name_2: string | null
           city: string
           client_id: string | null
           closing_cost: number
@@ -413,6 +415,10 @@ export type Database = {
           id: string
           in_contract: string | null
           inspection_days: number | null
+          lender_name: string | null
+          lending_officer: string | null
+          lending_officer_email: string | null
+          lending_officer_phone: string | null
           listing_agent_commission: number
           listing_agent_email: string | null
           listing_agent_name: string | null
@@ -447,6 +453,8 @@ export type Database = {
           appliances?: string | null
           appraisal_contingency?: boolean | null
           buyer_agent_commission?: number
+          buyer_name_1?: string | null
+          buyer_name_2?: string | null
           city: string
           client_id?: string | null
           closing_cost?: number
@@ -464,6 +472,10 @@ export type Database = {
           id?: string
           in_contract?: string | null
           inspection_days?: number | null
+          lender_name?: string | null
+          lending_officer?: string | null
+          lending_officer_email?: string | null
+          lending_officer_phone?: string | null
           listing_agent_commission?: number
           listing_agent_email?: string | null
           listing_agent_name?: string | null
@@ -498,6 +510,8 @@ export type Database = {
           appliances?: string | null
           appraisal_contingency?: boolean | null
           buyer_agent_commission?: number
+          buyer_name_1?: string | null
+          buyer_name_2?: string | null
           city?: string
           client_id?: string | null
           closing_cost?: number
@@ -515,6 +529,10 @@ export type Database = {
           id?: string
           in_contract?: string | null
           inspection_days?: number | null
+          lender_name?: string | null
+          lending_officer?: string | null
+          lending_officer_email?: string | null
+          lending_officer_phone?: string | null
           listing_agent_commission?: number
           listing_agent_email?: string | null
           listing_agent_name?: string | null
