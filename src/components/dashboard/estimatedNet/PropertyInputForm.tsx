@@ -59,7 +59,7 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
     typeOfLoan: "Conventional",
     loanAppTimeFrame: "7",
     loanCommitment: "",
-    preApprovalDays: 0,
+    preApprovalDays: 2,
     appraisalContingency: true,
     homeWarranty: 0,
     homeWarrantyCompany: "",
