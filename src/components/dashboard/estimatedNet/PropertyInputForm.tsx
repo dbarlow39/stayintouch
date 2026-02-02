@@ -1347,14 +1347,6 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
               />
             </div>
             <div>
-              <Label htmlFor="lenderName">Lender Name</Label>
-              <Input
-                id="lenderName"
-                value={formData.lenderName || ""}
-                onChange={(e) => updateField("lenderName", e.target.value)}
-              />
-            </div>
-            <div>
               <Label htmlFor="respondToOfferBy">(16) Duration of Offer</Label>
               <Input
                 id="respondToOfferBy"
@@ -1510,6 +1502,14 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
                 type="email"
                 value={formData.agentEmail}
                 onChange={(e) => updateField("agentEmail", e.target.value)}
+              />
+            </div>
+            <div>
+              <Label htmlFor="lenderName">Lender Name</Label>
+              <Input
+                id="lenderName"
+                value={formData.lenderName || ""}
+                onChange={(e) => updateField("lenderName", e.target.value)}
               />
             </div>
           </div>
