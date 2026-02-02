@@ -115,11 +115,21 @@ function isRelevantEmail(email: EmailForAnalysis, clientEmails: Set<string>): bo
     return true;
   }
   
-  // INCLUDE: Real estate related emails
-  const realEstateKeywords = ['showing', 'offer', 'contract', 'inspection', 'closing',
+  // INCLUDE: Real estate related emails - expanded to catch leads, offers, etc.
+  const realEstateKeywords = [
+    // Transaction-related
+    'showing', 'offer', 'contract', 'inspection', 'closing', 'counter',
     'dotloop', 'docusign', 'mls', 'listing', 'buyer', 'seller', 'property',
     'feedback', 'home', 'house', 'real estate', 'mortgage', 'lender',
-    'title company', 'escrow', 'appraisal'];
+    'title company', 'escrow', 'appraisal',
+    // Lead-related (critical for catching new business)
+    'new lead', 'got a new lead', 'landing page lead', 'referral',
+    'inquiry', 'interested in', 'property inquiry',
+    // Offer-related
+    'received an offer', 'new offer', 'offer submitted', 'offer for',
+    // Agent/broker communication
+    'agent referred', 'buyer agent', 'listing agent'
+  ];
   if (realEstateKeywords.some(keyword => from.includes(keyword) || subject.includes(keyword) || body.includes(keyword))) {
     return true;
   }
@@ -234,6 +244,8 @@ async function processAgentSuggestions(agentId: string, supabaseClient: any): Pr
   const sevenDaysAgo = new Date();
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
+  // Fetch emails - include ALL incoming emails, not just those linked to clients
+  // This ensures new leads, offers from unknown parties, etc. get triaged
   const { data: emails, error: emailsError } = await supabaseClient
     .from('client_email_logs')
     .select(`
@@ -251,10 +263,9 @@ async function processAgentSuggestions(agentId: string, supabaseClient: any): Pr
     `)
     .eq('agent_id', agentId)
     .eq('direction', 'incoming')
-    .not('client_id', 'is', null)
     .gte('received_at', sevenDaysAgo.toISOString())
     .order('received_at', { ascending: false })
-    .limit(100);
+    .limit(150);
 
   if (emailsError) {
     console.error('Error fetching emails:', emailsError);
