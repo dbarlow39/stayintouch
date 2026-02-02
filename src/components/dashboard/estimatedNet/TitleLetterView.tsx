@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -6,6 +6,7 @@ import { PropertyData } from "@/types/estimatedNet";
 import { ArrowLeft, List, Mail, Calendar, FileText, Copy, DollarSign, ClipboardList, Settings, Download, Home } from "lucide-react";
 import { EmailClient, EMAIL_CLIENT_OPTIONS, getEmailClientPreference, setEmailClientPreference, getEmailLink } from "@/utils/emailClientUtils";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 import logo from "@/assets/logo.jpg";
 
 interface TitleLetterViewProps {
@@ -19,6 +20,24 @@ interface TitleLetterViewProps {
 const TitleLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate }: TitleLetterViewProps) => {
   const { toast } = useToast();
   const [emailClient, setEmailClient] = useState<EmailClient>(getEmailClientPreference);
+  const [agentEmail, setAgentEmail] = useState<string>("");
+
+  useEffect(() => {
+    const fetchAgentProfile = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('preferred_email, email')
+          .eq('id', user.id)
+          .single();
+        if (profile) {
+          setAgentEmail(profile.preferred_email || profile.email || "");
+        }
+      }
+    };
+    fetchAgentProfile();
+  }, []);
 
   const handleEmailClientChange = (value: string) => {
     const client = value as EmailClient;
@@ -343,7 +362,7 @@ const TitleLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate 
               <p className="mb-0">Thanks</p>
               <p className="mb-0"><strong>{propertyData.listingAgentName}</strong></p>
               <p className="mb-0">{propertyData.listingAgentPhone}</p>
-              <p className="mb-4">{propertyData.listingAgentEmail}</p>
+              <p className="mb-4">{agentEmail}</p>
             </div>
           </Card>
         </div>
