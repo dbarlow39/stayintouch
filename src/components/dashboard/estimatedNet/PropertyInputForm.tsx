@@ -1270,7 +1270,7 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
               </div>
             </div>
             <div>
-              <Label htmlFor="deposit">Earnest Money Deposit</Label>
+              <Label htmlFor="deposit">(12) Earnest Money Deposit</Label>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
                 <Input
