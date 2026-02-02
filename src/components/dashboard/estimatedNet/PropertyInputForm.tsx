@@ -1182,7 +1182,7 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
               </Select>
             </div>
             <div>
-              <Label htmlFor="preApprovalDays">(3.2) Lender Pre-Qualification (Days Due)</Label>
+              <Label htmlFor="preApprovalDays">(3.2a) Lender Pre-Qualification (Days Due)</Label>
               <Input
                 id="preApprovalDays"
                 type="number"
