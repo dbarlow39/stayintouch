@@ -257,6 +257,7 @@ const EstimatedNetTab = ({ selectedClient, onClearSelectedClient }: EstimatedNet
       loanAppTimeFrame: data.loan_app_time_frame || "",
       loanCommitment: data.loan_commitment || "",
       preApprovalDays: data.pre_approval_days ?? 0,
+      appraisalContingency: data.appraisal_contingency ?? true,
       homeWarranty: Number(data.home_warranty),
       homeWarrantyCompany: data.home_warranty_company || "",
       deposit: Number(data.deposit),

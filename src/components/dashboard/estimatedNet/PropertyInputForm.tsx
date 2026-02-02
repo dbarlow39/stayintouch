@@ -60,6 +60,7 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
     loanAppTimeFrame: "7",
     loanCommitment: "",
     preApprovalDays: 0,
+    appraisalContingency: true,
     homeWarranty: 0,
     homeWarrantyCompany: "",
     deposit: 1000,
@@ -398,6 +399,7 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
           loanAppTimeFrame: data.loan_app_time_frame || "",
           loanCommitment: data.loan_commitment || "",
           preApprovalDays: data.pre_approval_days ?? 0,
+          appraisalContingency: data.appraisal_contingency ?? true,
           homeWarranty: Number(data.home_warranty),
           homeWarrantyCompany: data.home_warranty_company || "",
           deposit: Number(data.deposit),
@@ -542,6 +544,7 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
         loan_app_time_frame: formData.loanAppTimeFrame || null,
         loan_commitment: formData.loanCommitment || null,
         pre_approval_days: Number(formData.preApprovalDays) || 0,
+        appraisal_contingency: formData.appraisalContingency,
         home_warranty: Number(formData.homeWarranty) || 0,
         home_warranty_company: formData.homeWarrantyCompany,
         deposit: Number(formData.deposit) || 0,
@@ -1208,6 +1211,21 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
                 value={formData.loanCommitment}
                 onChange={(e) => updateField("loanCommitment", e.target.value)}
               />
+            </div>
+            <div>
+              <Label htmlFor="appraisalContingency">(3.2d) Appraisal Contingency</Label>
+              <Select 
+                value={formData.appraisalContingency ? "yes" : "no"} 
+                onValueChange={(value) => updateField("appraisalContingency", value === "yes")}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="yes">Yes</SelectItem>
+                  <SelectItem value="no">No</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div>
               <Label htmlFor="inspectionDays">Home Inspection (Days)</Label>
