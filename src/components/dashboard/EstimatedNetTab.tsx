@@ -255,6 +255,7 @@ const EstimatedNetTab = ({ selectedClient, onClearSelectedClient }: EstimatedNet
       closingCost: Number(data.closing_cost),
       typeOfLoan: data.type_of_loan || "Conventional",
       lenderName: (data as any).lender_name || "",
+      lendingOfficer: (data as any).lending_officer || "",
       loanAppTimeFrame: data.loan_app_time_frame || "",
       loanCommitment: data.loan_commitment || "",
       preApprovalDays: data.pre_approval_days ?? 0,
