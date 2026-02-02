@@ -1228,7 +1228,7 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
               </Select>
             </div>
             <div>
-              <Label htmlFor="inspectionDays">Home Inspection (Days)</Label>
+              <Label htmlFor="inspectionDays">(6.3) Home Inspection (Days)</Label>
               <Input
                 id="inspectionDays"
                 type="number"
