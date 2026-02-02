@@ -96,14 +96,22 @@ function isRelevantEmail(email: EmailForAnalysis, clientEmails: Set<string>): bo
     }
   }
   
-  // EXCLUDE: Showing request/confirmation emails even if not from ShowingTime domain
+  // EXCLUDE: Showing request/confirmation/reschedule/cancel emails even if not from ShowingTime domain
   // (These have been creating noisy suggestions like "Confirm showing details".)
   const showingExcludeKeywords = [
     'showing summary',
     'showing request',
+    'showing requested',
     'showing confirmation',
+    'showing confirmed',
+    'showing rescheduled',
+    'showing cancelled',
+    'showing canceled',
     'appointment confirmed',
     'appointment scheduled',
+    'appointment rescheduled',
+    'appointment cancelled',
+    'appointment canceled',
     'showing scheduled',
     'confirm showing',
     'confirm showing details',
