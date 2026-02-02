@@ -1345,7 +1345,7 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
               />
             </div>
             <div>
-              <Label htmlFor="respondToOfferBy">Respond to Offer By</Label>
+              <Label htmlFor="respondToOfferBy">(16) Duration of Offer</Label>
               <Input
                 id="respondToOfferBy"
                 value={formData.respondToOfferBy}
