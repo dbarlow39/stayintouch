@@ -1182,13 +1182,13 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
               </Select>
             </div>
             <div>
-              <Label htmlFor="preApprovalDays">Pre-Approval (Days Due)</Label>
+              <Label htmlFor="preApprovalDays">3.2 Lender Pre-Qualification (Days Due)</Label>
               <Input
                 id="preApprovalDays"
                 type="number"
                 value={formData.preApprovalDays || ""}
                 onChange={(e) => updateField("preApprovalDays", parseInt(e.target.value) || 0)}
-                placeholder="0 = Received"
+                placeholder="0 = Received or 2 = Contract Default"
               />
             </div>
             <div>
