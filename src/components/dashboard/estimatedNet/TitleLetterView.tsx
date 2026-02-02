@@ -336,6 +336,9 @@ const TitleLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate 
               <p className="mb-4">
                 Lender is <strong>{propertyData.lenderName}</strong>  Loan Officer: <strong>{propertyData.lendingOfficer}</strong>  phone: {propertyData.lendingOfficerPhone}  email: {propertyData.lendingOfficerEmail}
               </p>
+              <p className="mb-4">
+                Title Agency is <strong>Caliber Title / Title First</strong>  Processor: <strong>Kameron Faulkner</strong> or <strong>Shina Painter</strong>  phone: 614-854-0980  email: polaris@titlefirst.com
+              </p>
               <p className="mb-4">Let know if you need anything else.</p>
               <p className="mb-0">Thanks</p>
               <p className="mb-4"><strong>{propertyData.listingAgentName}</strong></p>
