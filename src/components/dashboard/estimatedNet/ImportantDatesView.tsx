@@ -75,8 +75,8 @@ const ImportantDatesView = ({ propertyData, propertyId, onBack, onEdit, onNaviga
         
         await new Promise((resolve, reject) => {
           img.onload = () => {
-            // Resize to 65px width (about 33% of original 200px)
-            const targetWidth = 65;
+            // Resize to 130px width (about 65% of original)
+            const targetWidth = 130;
             const scale = targetWidth / img.width;
             const targetHeight = img.height * scale;
             
