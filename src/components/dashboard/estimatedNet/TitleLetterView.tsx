@@ -50,8 +50,8 @@ const TitleLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate 
         
         await new Promise((resolve, reject) => {
           img.onload = () => {
-            // Resize to 150px width
-            const targetWidth = 150;
+            // Resize to 175px width
+            const targetWidth = 175;
             const scale = targetWidth / img.width;
             const targetHeight = img.height * scale;
             
