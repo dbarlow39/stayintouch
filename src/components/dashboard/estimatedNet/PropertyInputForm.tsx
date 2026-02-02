@@ -57,6 +57,7 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
     buyerAgentCommission: 3,
     closingCost: 0,
     typeOfLoan: "Conventional",
+    lenderName: "",
     loanAppTimeFrame: "7",
     loanCommitment: "",
     preApprovalDays: 2,
@@ -396,6 +397,7 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
           buyerAgentCommission: Number(data.buyer_agent_commission),
           closingCost: Number(data.closing_cost),
           typeOfLoan: data.type_of_loan || "Conventional",
+          lenderName: (data as any).lender_name || "",
           loanAppTimeFrame: data.loan_app_time_frame || "",
           loanCommitment: data.loan_commitment || "",
           preApprovalDays: data.pre_approval_days ?? 0,
@@ -1342,6 +1344,14 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
                 value={formData.possession}
                 onChange={(e) => updateField("possession", e.target.value)}
                 required
+              />
+            </div>
+            <div>
+              <Label htmlFor="lenderName">Lender Name</Label>
+              <Input
+                id="lenderName"
+                value={formData.lenderName || ""}
+                onChange={(e) => updateField("lenderName", e.target.value)}
               />
             </div>
             <div>
