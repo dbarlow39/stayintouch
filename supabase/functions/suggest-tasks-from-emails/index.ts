@@ -682,13 +682,18 @@ serve(async (req) => {
     const token = authHeader.replace('Bearer ', '');
     const { process_all_agents } = await req.json().catch(() => ({}));
 
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      process_all_agents 
-        ? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY') ?? ''
-        : Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      { global: { headers: { Authorization: authHeader } } }
-    );
+    // For cron mode (process_all_agents), use service role key WITHOUT passing auth header
+    // This allows the service role to bypass RLS and query all agents' data
+    const supabaseClient = process_all_agents
+      ? createClient(
+          Deno.env.get('SUPABASE_URL') ?? '',
+          Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+        )
+      : createClient(
+          Deno.env.get('SUPABASE_URL') ?? '',
+          Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+          { global: { headers: { Authorization: authHeader } } }
+        );
 
     let agentIds: string[] = [];
 
