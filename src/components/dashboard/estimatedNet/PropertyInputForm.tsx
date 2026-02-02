@@ -1168,20 +1168,6 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
               />
             </div>
             <div>
-              <Label htmlFor="typeOfLoan">Type of Loan</Label>
-              <Select value={formData.typeOfLoan} onValueChange={(value) => updateField("typeOfLoan", value)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Conventional">Conventional</SelectItem>
-                  <SelectItem value="FHA">FHA</SelectItem>
-                  <SelectItem value="VA">VA</SelectItem>
-                  <SelectItem value="Cash">Cash</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
               <Label htmlFor="preApprovalDays">(3.2a) Lender Pre-Qualification (Days Due)</Label>
               <Input
                 id="preApprovalDays"
@@ -1200,6 +1186,20 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
                 onChange={(e) => updateField("loanAppTimeFrame", e.target.value)}
                 placeholder="7"
               />
+            </div>
+            <div>
+              <Label htmlFor="typeOfLoan">Type of Loan</Label>
+              <Select value={formData.typeOfLoan} onValueChange={(value) => updateField("typeOfLoan", value)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Conventional">Conventional</SelectItem>
+                  <SelectItem value="FHA">FHA</SelectItem>
+                  <SelectItem value="VA">VA</SelectItem>
+                  <SelectItem value="Cash">Cash</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div>
               <Label htmlFor="loanCommitment">Loan Commitment (Days Due)</Label>
