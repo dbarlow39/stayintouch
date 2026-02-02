@@ -88,14 +88,20 @@ const AgentLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate 
         
         await new Promise((resolve, reject) => {
           img.onload = () => {
-            canvas.width = img.width;
-            canvas.height = img.height;
-            ctx?.drawImage(img, 0, 0);
+            // Resize to 175px width
+            const targetWidth = 175;
+            const scale = targetWidth / img.width;
+            const targetHeight = img.height * scale;
+            
+            canvas.width = targetWidth;
+            canvas.height = targetHeight;
+            ctx?.drawImage(img, 0, 0, targetWidth, targetHeight);
+            
             const dataUrl = canvas.toDataURL('image/jpeg');
             logoImg.src = dataUrl;
-            logoImg.style.width = '200px';
+            logoImg.style.width = `${targetWidth}px`;
             logoImg.style.height = 'auto';
-            logoImg.setAttribute('width', '200');
+            logoImg.setAttribute('width', String(targetWidth));
             resolve(true);
           };
           img.onerror = reject;
