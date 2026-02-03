@@ -1115,7 +1115,7 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
           <h3 className="text-xl font-semibold mb-4 text-foreground">Contract Details</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="offerPrice">Offer Price</Label>
+              <Label htmlFor="offerPrice">(1) Offer Price</Label>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
                 <Input
@@ -1183,7 +1183,7 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
               />
             </div>
             <div>
-              <Label htmlFor="buyerAgentCommission">Buyer Agent Commission (%)</Label>
+              <Label htmlFor="buyerAgentCommission">(1.2) Buyer Broker Compensation (%)</Label>
               <Input
                 id="buyerAgentCommission"
                 type="number"
@@ -1294,7 +1294,7 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
               />
             </div>
             <div>
-              <Label htmlFor="homeWarranty">Home Warranty Cost</Label>
+              <Label htmlFor="homeWarranty">(7.1) Home Warranty Cost</Label>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
                 <Input
