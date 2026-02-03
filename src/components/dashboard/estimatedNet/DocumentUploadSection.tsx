@@ -30,6 +30,9 @@ export interface ContractExtractedData {
   depositCollection?: string | null;
   buyerName1?: string | null;
   buyerName2?: string | null;
+  buyerAgentName?: string | null;
+  buyerAgentPhone?: string | null;
+  buyerAgentEmail?: string | null;
   streetAddress?: string | null;
   city?: string | null;
   state?: string | null;

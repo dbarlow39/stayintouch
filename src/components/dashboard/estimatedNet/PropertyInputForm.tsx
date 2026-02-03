@@ -841,6 +841,16 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
       if (data.finalWalkThrough && prev.finalWalkThrough === "48 hours prior to close") {
         updates.finalWalkThrough = data.finalWalkThrough;
       }
+      // Buyer agent fields (18.1)
+      if (data.buyerAgentName && !prev.agentName) {
+        updates.agentName = data.buyerAgentName;
+      }
+      if (data.buyerAgentPhone && !prev.agentContact) {
+        updates.agentContact = data.buyerAgentPhone;
+      }
+      if (data.buyerAgentEmail && !prev.agentEmail) {
+        updates.agentEmail = data.buyerAgentEmail;
+      }
 
       return { ...prev, ...updates };
     });
@@ -1779,7 +1789,7 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
           <h3 className="text-xl font-semibold mb-4 text-foreground">Parties of the Contract</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="agentName">Buyer Agent Name</Label>
+              <Label htmlFor="agentName">(18.1) Buyer Agent Name</Label>
               <Input
                 id="agentName"
                 value={formData.agentName}
@@ -1787,7 +1797,7 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
               />
             </div>
             <div>
-              <Label htmlFor="agentContact">Buyer Agent Cell Phone</Label>
+              <Label htmlFor="agentContact">(18.1) Buyer Agent Cell Phone</Label>
               <Input
                 id="agentContact"
                 value={formData.agentContact}
@@ -1795,7 +1805,7 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
               />
             </div>
             <div>
-              <Label htmlFor="agentEmail">Buyer Agent Email</Label>
+              <Label htmlFor="agentEmail">(18.1) Buyer Agent Email</Label>
               <Input
                 id="agentEmail"
                 type="email"
@@ -1838,7 +1848,7 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
               />
             </div>
             <div>
-              <Label htmlFor="buyerName1">Buyer Name 1</Label>
+              <Label htmlFor="buyerName1">(18.1) Buyer Name 1</Label>
               <Input
                 id="buyerName1"
                 value={formData.buyerName1 || ""}
@@ -1846,7 +1856,7 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
               />
             </div>
             <div>
-              <Label htmlFor="buyerName2">Buyer Name 2</Label>
+              <Label htmlFor="buyerName2">(18.1) Buyer Name 2</Label>
               <Input
                 id="buyerName2"
                 value={formData.buyerName2 || ""}
