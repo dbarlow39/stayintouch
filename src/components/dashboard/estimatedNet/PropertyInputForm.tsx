@@ -1890,8 +1890,8 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
         <Card className="p-6 mb-6">
           <h3 className="text-xl font-semibold mb-4 text-foreground">Parties of the Contract</h3>
           
-          {/* Buyer Agent Section - Light Green Background */}
-          <div className="bg-green-50 p-4 rounded-lg mb-6">
+          {/* Buyer Agent Section - Light Rose Background */}
+          <div className="bg-rose-50 p-4 rounded-lg mb-6">
             {/* Line 1: Buyer Agent Name + Cell Phone */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
               <div>
@@ -1926,8 +1926,8 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
             </div>
           </div>
 
-          {/* Lender Section - Light Yellow Background */}
-          <div className="bg-yellow-50 p-4 rounded-lg mb-6">
+          {/* Lender Section - Light Green Background */}
+          <div className="bg-green-50 p-4 rounded-lg mb-6">
             {/* Line 3: Lender Name + Lending Officer */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
               <div>
