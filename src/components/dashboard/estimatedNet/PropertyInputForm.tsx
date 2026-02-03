@@ -1650,7 +1650,8 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
               <Label htmlFor="possession">(15.3) Possession Date</Label>
               <Input
                 id="possession"
-                type="date"
+                type="text"
+                placeholder="e.g., At time of closing & funding"
                 value={formData.possession}
                 onChange={(e) => updateField("possession", e.target.value)}
                 required
