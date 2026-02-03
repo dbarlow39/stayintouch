@@ -393,7 +393,7 @@ const DocumentUploadSection = ({ propertyId, clientId, onContractParsed }: Docum
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-xl font-semibold text-foreground">Upload Contract Documents</h3>
         {parsing ? (
-          <AnalyzingPill label="Analyzing contract" />
+          <AnalyzingPill label="Analyzing" />
         ) : (
           <Button
             type="button"

@@ -1,46 +1,51 @@
 import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
 
-const SPINNER_FRAMES = ["|", "/", "-", "\\"] as const;
+const DOT_FRAMES = ["", ".", "..", "..."] as const;
 
-export function AnalyzingToastDescription({ label }: { label: string }) {
-  const [frame, setFrame] = useState(0);
+function useAnimatedDots(intervalMs = 350) {
+  const [dots, setDots] = useState(0);
 
   useEffect(() => {
     const id = window.setInterval(() => {
-      setFrame((f) => (f + 1) % SPINNER_FRAMES.length);
-    }, 200);
+      setDots((d) => (d + 1) % DOT_FRAMES.length);
+    }, intervalMs);
     return () => window.clearInterval(id);
-  }, []);
+  }, [intervalMs]);
+
+  return DOT_FRAMES[dots];
+}
+
+export function AnalyzingToastDescription({ label }: { label: string }) {
+  const dots = useAnimatedDots(350);
 
   return (
-    <span className="inline-flex items-center gap-2">
-      {/* Keep CSS spin for browsers that allow it, but also animate text so motion is always visible */}
+    <span className="inline-flex items-center gap-2" role="status" aria-live="polite">
+      {/* CSS spin may be reduced by OS settings; dots are JS-driven so motion is still visible */}
       <Loader2 className="h-4 w-4 animate-spin" />
       <span className="whitespace-nowrap">
-        {SPINNER_FRAMES[frame]} {label}
+        {label}
+        <span aria-hidden>{dots}</span>
       </span>
     </span>
   );
 }
 
 export function AnalyzingPill({ label }: { label: string }) {
-  const [frame, setFrame] = useState(0);
-
-  useEffect(() => {
-    const id = window.setInterval(() => {
-      setFrame((f) => (f + 1) % SPINNER_FRAMES.length);
-    }, 200);
-    return () => window.clearInterval(id);
-  }, []);
+  const dots = useAnimatedDots(350);
 
   return (
-    <div className="flex items-center gap-3 px-4 py-2 rounded-md bg-success/10 border border-success/30 shrink-0">
+    <div
+      className="flex items-center gap-3 px-4 py-2 rounded-md bg-success/10 border border-success/30 shrink-0"
+      role="status"
+      aria-live="polite"
+    >
       <div className="flex items-center gap-2">
         <Loader2 className="h-4 w-4 text-success animate-spin" />
-        {/* Text-based spinner ensures visible motion even when CSS animations are suppressed */}
+        {/* JS-driven dots ensure visible motion even when CSS animations are suppressed */}
         <span className="text-success font-medium whitespace-nowrap">
-          {SPINNER_FRAMES[frame]} {label}
+          {label}
+          <span aria-hidden>{dots}</span>
         </span>
       </div>
     </div>
