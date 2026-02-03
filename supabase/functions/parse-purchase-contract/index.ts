@@ -70,77 +70,56 @@ serve(async (req) => {
       });
     }
 
-    const extractionPrompt = `You are an expert real estate contract analyzer. Extract the following fields from this purchase contract document. The contract typically has numbered paragraphs that correspond to specific terms.
+    const extractionPrompt = `You are an expert real estate contract analyzer. Extract the following fields from this purchase contract document and return them as a FLAT JSON object (not nested).
 
-Look for and extract these fields (return null if not found):
+Extract these fields (return null if not found):
 
-PARAGRAPH 1 - PURCHASE PRICE:
-- offerPrice: The total purchase/offer price (number only, no commas or $)
-
-PARAGRAPH 2 - EARNEST MONEY/DEPOSIT:
-- deposit: The earnest money deposit amount (number only)
-- depositCollection: When/how the deposit is collected (text description)
-
-PARAGRAPH 18.1 - BUYER AGENT & BUYER INFORMATION:
-- buyerAgentName: Buyer agent's full name
-- buyerAgentPhone: Buyer agent's cell phone number
-- buyerAgentEmail: Buyer agent's email address
-- buyerName1: First buyer's full name
-- buyerName2: Second buyer's full name (if applicable)
-
-PARAGRAPH 4 - PROPERTY ADDRESS:
-- streetAddress: Street address of the property
-- city: City
-- state: State (2-letter abbreviation)
-- zip: ZIP code
-
-PARAGRAPH 5 - FINANCING/LOAN:
-- typeOfLoan: Type of loan (Conventional, FHA, VA, Cash, etc.)
-- lenderName: Name of the lending institution
-- lendingOfficer: Loan officer name
-- lendingOfficerPhone: Loan officer phone
-- lendingOfficerEmail: Loan officer email
-- preApprovalDays: Days for pre-approval (number)
-- loanAppTimeFrame: Timeframe for loan application
-- loanCommitment: Loan commitment date or timeframe
-
-PARAGRAPH 6 - APPRAISAL:
-- appraisalContingency: Is there an appraisal contingency? (true/false)
-
-PARAGRAPH 7 - INSPECTION:
-- inspectionDays: Number of days for inspection (number only)
-
-PARAGRAPH 8 - CLOSING:
-- closingDate: Closing date (YYYY-MM-DD format if possible)
-- possession: Possession terms (e.g., "at closing", "30 days after closing")
-
-PARAGRAPH 9 - RESPONSE DEADLINE:
-- respondToOfferBy: Deadline to respond to offer
-
-PARAGRAPH 10 - HOME WARRANTY:
-- homeWarranty: Home warranty amount (number only, 0 if none)
-- homeWarrantyCompany: Name of home warranty company
-
-PARAGRAPH 11 - APPLIANCES/INCLUSIONS:
-- appliances: List of included appliances/items (comma-separated text)
-
-PARAGRAPH 12 - REMEDY PERIOD:
-- remedyPeriodDays: Number of days for remedy period (number)
-
-AGENT INFORMATION (usually at the end):
+- offerPrice: The total purchase/offer price from paragraph 1 (number only, no commas or $)
+- deposit: The earnest money deposit amount from paragraph 2 (number only)
+- depositCollection: When/how the deposit is collected from paragraph 2 (text description)
+- buyerAgentName: Buyer agent's full name from paragraph 18.1
+- buyerAgentPhone: Buyer agent's cell phone number from paragraph 18.1
+- buyerAgentEmail: Buyer agent's email address from paragraph 18.1
+- buyerName1: First buyer's full name from paragraph 18.1
+- buyerName2: Second buyer's full name from paragraph 18.1 (if applicable)
+- streetAddress: Street address of the property from paragraph 4
+- city: City from paragraph 4
+- state: State (2-letter abbreviation) from paragraph 4
+- zip: ZIP code from paragraph 4
+- typeOfLoan: Type of loan (Conventional, FHA, VA, Cash, etc.) from paragraph 5
+- lenderName: Name of the lending institution from paragraph 5
+- lendingOfficer: Loan officer name from paragraph 5
+- lendingOfficerPhone: Loan officer phone from paragraph 5
+- lendingOfficerEmail: Loan officer email from paragraph 5
+- preApprovalDays: Days for pre-approval from paragraph 5 (number)
+- loanAppTimeFrame: Timeframe for loan application from paragraph 5
+- loanCommitment: Loan commitment date or timeframe from paragraph 5
+- appraisalContingency: Is there an appraisal contingency from paragraph 6? (true/false)
+- inspectionDays: Number of days for inspection from paragraph 7 (number only)
+- closingDate: Closing date from paragraph 8 (YYYY-MM-DD format if possible)
+- possession: Possession terms from paragraph 8 (e.g., "at closing", "30 days after closing")
+- respondToOfferBy: Deadline to respond to offer from paragraph 9
+- homeWarranty: Home warranty amount from paragraph 10 (number only, 0 if none)
+- homeWarrantyCompany: Name of home warranty company from paragraph 10
+- appliances: List of included appliances/items from paragraph 11 (comma-separated text)
+- remedyPeriodDays: Number of days for remedy period from paragraph 12 (number)
 - listingAgentName: Listing agent's name
 - listingAgentPhone: Listing agent's phone
 - listingAgentEmail: Listing agent's email
-
-SELLER INFORMATION:
 - sellerPhone: Seller's phone number
 - sellerEmail: Seller's email
-
-OTHER DATES:
-- inContract: Date contract was executed/signed
+- inContract: Date contract was executed/signed (YYYY-MM-DD format if possible)
 - finalWalkThrough: Final walk-through date or terms
 
-Return ONLY a valid JSON object with these exact field names. Use null for any field not found in the document. Numbers should be plain numbers without formatting.`;
+IMPORTANT: Return ONLY a FLAT JSON object with the field names listed above as top-level keys. Do NOT nest fields under paragraph headers. Example format:
+{
+  "offerPrice": 350000,
+  "deposit": 5000,
+  "buyerName1": "John Doe",
+  ...
+}
+
+Use null for any field not found. Numbers should be plain numbers without formatting.`;
 
     console.log('Calling AI to extract contract fields...');
 
