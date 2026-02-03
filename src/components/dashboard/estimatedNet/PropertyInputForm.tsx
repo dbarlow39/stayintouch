@@ -1926,45 +1926,48 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
             </div>
           </div>
 
-          {/* Line 3: Lender Name + Lending Officer */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-            <div>
-              <Label htmlFor="lenderName">Lender Name</Label>
-              <Input
-                id="lenderName"
-                value={formData.lenderName || ""}
-                onChange={(e) => updateField("lenderName", e.target.value)}
-              />
+          {/* Lender Section - Light Yellow Background */}
+          <div className="bg-yellow-50 p-4 rounded-lg mb-6">
+            {/* Line 3: Lender Name + Lending Officer */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <div>
+                <Label htmlFor="lenderName">Lender Name</Label>
+                <Input
+                  id="lenderName"
+                  value={formData.lenderName || ""}
+                  onChange={(e) => updateField("lenderName", e.target.value)}
+                />
+              </div>
+              <div>
+                <Label htmlFor="lendingOfficer">Lending Officer</Label>
+                <Input
+                  id="lendingOfficer"
+                  value={formData.lendingOfficer || ""}
+                  onChange={(e) => updateField("lendingOfficer", e.target.value)}
+                />
+              </div>
             </div>
-            <div>
-              <Label htmlFor="lendingOfficer">Lending Officer</Label>
-              <Input
-                id="lendingOfficer"
-                value={formData.lendingOfficer || ""}
-                onChange={(e) => updateField("lendingOfficer", e.target.value)}
-              />
-            </div>
-          </div>
 
-          {/* Line 4: Lending Officer Phone + Email */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-            <div>
-              <Label htmlFor="lendingOfficerPhone">Lending Officer Phone #</Label>
-              <Input
-                id="lendingOfficerPhone"
-                type="tel"
-                value={formData.lendingOfficerPhone || ""}
-                onChange={(e) => updateField("lendingOfficerPhone", e.target.value)}
-              />
-            </div>
-            <div>
-              <Label htmlFor="lendingOfficerEmail">Lending Officer Email</Label>
-              <Input
-                id="lendingOfficerEmail"
-                type="email"
-                value={formData.lendingOfficerEmail || ""}
-                onChange={(e) => updateField("lendingOfficerEmail", e.target.value)}
-              />
+            {/* Line 4: Lending Officer Phone + Email */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="lendingOfficerPhone">Lending Officer Phone #</Label>
+                <Input
+                  id="lendingOfficerPhone"
+                  type="tel"
+                  value={formData.lendingOfficerPhone || ""}
+                  onChange={(e) => updateField("lendingOfficerPhone", e.target.value)}
+                />
+              </div>
+              <div>
+                <Label htmlFor="lendingOfficerEmail">Lending Officer Email</Label>
+                <Input
+                  id="lendingOfficerEmail"
+                  type="email"
+                  value={formData.lendingOfficerEmail || ""}
+                  onChange={(e) => updateField("lendingOfficerEmail", e.target.value)}
+                />
+              </div>
             </div>
           </div>
 
