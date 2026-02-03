@@ -70,33 +70,46 @@ serve(async (req) => {
       });
     }
 
-    const callLovableAI = async (prompt: string, model: string) => {
-      const res = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model,
-          temperature: 0,
-          messages: [
-            {
-              role: 'user',
-              content: [
-                { type: 'text', text: prompt },
-                {
-                  type: 'image_url',
-                  image_url: {
-                    url: `data:${mimeType};base64,${base64Content}`,
+    const callLovableAI = async (prompt: string, model: string, maxRetries = 3) => {
+      for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        const res = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model,
+            temperature: 0,
+            messages: [
+              {
+                role: 'user',
+                content: [
+                  { type: 'text', text: prompt },
+                  {
+                    type: 'image_url',
+                    image_url: {
+                      url: `data:${mimeType};base64,${base64Content}`,
+                    },
                   },
-                },
-              ],
-            },
-          ],
-        }),
-      });
-      return res;
+                ],
+              },
+            ],
+          }),
+        });
+        
+        // Retry on 503 (service unavailable) errors
+        if (res.status === 503 && attempt < maxRetries) {
+          const delay = Math.pow(2, attempt) * 1000; // Exponential backoff: 2s, 4s, 8s
+          console.log(`AI gateway returned 503, retrying in ${delay / 1000}s (attempt ${attempt}/${maxRetries})...`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+          continue;
+        }
+        
+        return res;
+      }
+      // This line is technically unreachable but satisfies TypeScript
+      throw new Error('Max retries exceeded');
     };
 
     const normalizeTypeOfLoan = (raw: unknown): string | null => {
