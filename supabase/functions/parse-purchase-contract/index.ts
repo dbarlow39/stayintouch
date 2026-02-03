@@ -95,7 +95,7 @@ Extract these fields (return null if not found):
 - preApprovalDays: Days for pre-approval from paragraph 5 (number)
 - loanAppTimeFrame: Timeframe for loan application from paragraph 5
 - loanCommitment: Loan commitment date or timeframe from paragraph 5
-- appraisalContingency: From paragraph 6 section 3.2(d), look for checkbox language about appraisal contingency. The format is typically "[ ] is [ ] is not contingent upon Appraisal". If the checkbox BEFORE the word "is" is checked/marked (X, ✓, or filled), return true (meaning YES, the contract IS contingent on appraisal). If the checkbox BEFORE "is not" is checked/marked, return false (meaning NO contingency). IMPORTANT: A checked first box = true = YES contingency exists. Return null only if completely unclear.
+- appraisalContingency: From section 3.2(d), find the appraisal contingency checkboxes. There are TWO checkboxes in the pattern "[ ] is [ ] is not contingent". Look carefully at WHICH box has a mark (X, ✓, filled, or any mark). If the FIRST checkbox (the one immediately before the word "is") has ANY mark in it, return true. If the SECOND checkbox (the one before "is not") has a mark, return false. The first box being checked means the buyer WANTS the appraisal contingency protection. CRITICAL: Examine both boxes carefully - only ONE should be marked. First box marked = true, second box marked = false.
 - inspectionDays: Number of days for inspection from paragraph 7 (number only)
 - closingDate: Closing date from paragraph 8 (YYYY-MM-DD format if possible)
 - possession: Possession terms from paragraph 8 (15.3). If a specific date/time is given, use that. If the language says "at closing", "at time of closing", "upon closing", or similar, return that exact phrase instead of a date.
