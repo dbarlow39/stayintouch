@@ -1971,23 +1971,25 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
             </div>
           </div>
 
-          {/* Line 5: Buyer Names */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="buyerName1">(18.1) Buyer Name 1</Label>
-              <Input
-                id="buyerName1"
-                value={formData.buyerName1 || ""}
-                onChange={(e) => updateField("buyerName1", e.target.value)}
-              />
-            </div>
-            <div>
-              <Label htmlFor="buyerName2">(18.1) Buyer Name 2</Label>
-              <Input
-                id="buyerName2"
-                value={formData.buyerName2 || ""}
-                onChange={(e) => updateField("buyerName2", e.target.value)}
-              />
+          {/* Buyer Names Section - Light Blue Background */}
+          <div className="bg-blue-50 p-4 rounded-lg">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="buyerName1">(18.1) Buyer Name 1</Label>
+                <Input
+                  id="buyerName1"
+                  value={formData.buyerName1 || ""}
+                  onChange={(e) => updateField("buyerName1", e.target.value)}
+                />
+              </div>
+              <div>
+                <Label htmlFor="buyerName2">(18.1) Buyer Name 2</Label>
+                <Input
+                  id="buyerName2"
+                  value={formData.buyerName2 || ""}
+                  onChange={(e) => updateField("buyerName2", e.target.value)}
+                />
+              </div>
             </div>
           </div>
         </Card>
