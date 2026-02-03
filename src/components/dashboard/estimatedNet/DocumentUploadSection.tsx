@@ -18,7 +18,8 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 
 const DOCUMENT_TYPES = [
-  { value: "purchase_contract", label: "A Purchase Contract" },
+  { value: "purchase_contract", label: "Purchase Contract" },
+  { value: "counter_offer", label: "Counter Offer" },
   { value: "lender_pre_approval", label: "Lender Pre-Approval" },
   { value: "inspection_report", label: "Inspection Report" },
   { value: "other", label: "Other" },
