@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Upload, File, Trash2, Loader2, FileText, Download } from "lucide-react";
+import { Upload, File, Trash2, Loader2, FileText, Download, Sparkles } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,6 +24,42 @@ const DOCUMENT_TYPES = [
   { value: "other", label: "Other" },
 ] as const;
 
+export interface ContractExtractedData {
+  offerPrice?: number | null;
+  deposit?: number | null;
+  depositCollection?: string | null;
+  buyerName1?: string | null;
+  buyerName2?: string | null;
+  streetAddress?: string | null;
+  city?: string | null;
+  state?: string | null;
+  zip?: string | null;
+  typeOfLoan?: string | null;
+  lenderName?: string | null;
+  lendingOfficer?: string | null;
+  lendingOfficerPhone?: string | null;
+  lendingOfficerEmail?: string | null;
+  preApprovalDays?: number | null;
+  loanAppTimeFrame?: string | null;
+  loanCommitment?: string | null;
+  appraisalContingency?: boolean | null;
+  inspectionDays?: number | null;
+  closingDate?: string | null;
+  possession?: string | null;
+  respondToOfferBy?: string | null;
+  homeWarranty?: number | null;
+  homeWarrantyCompany?: string | null;
+  appliances?: string | null;
+  remedyPeriodDays?: number | null;
+  listingAgentName?: string | null;
+  listingAgentPhone?: string | null;
+  listingAgentEmail?: string | null;
+  sellerPhone?: string | null;
+  sellerEmail?: string | null;
+  inContract?: string | null;
+  finalWalkThrough?: string | null;
+}
+
 interface PropertyDocument {
   id: string;
   file_name: string;
@@ -37,12 +73,14 @@ interface PropertyDocument {
 interface DocumentUploadSectionProps {
   propertyId: string | null;
   clientId: string | null;
+  onContractParsed?: (data: ContractExtractedData) => void;
 }
 
-const DocumentUploadSection = ({ propertyId, clientId }: DocumentUploadSectionProps) => {
+const DocumentUploadSection = ({ propertyId, clientId, onContractParsed }: DocumentUploadSectionProps) => {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
+  const [parsing, setParsing] = useState(false);
   const [documents, setDocuments] = useState<PropertyDocument[]>([]);
   const [loading, setLoading] = useState(false);
   const [showTypeDialog, setShowTypeDialog] = useState(false);
@@ -88,6 +126,44 @@ const DocumentUploadSection = ({ propertyId, clientId }: DocumentUploadSectionPr
     fileInputRef.current?.click();
   };
 
+  const parseContract = async (filePath: string) => {
+    setParsing(true);
+    try {
+      toast({
+        title: "Analyzing Contract",
+        description: "AI is extracting contract details...",
+      });
+
+      const { data, error } = await supabase.functions.invoke('parse-purchase-contract', {
+        body: { filePath },
+      });
+
+      if (error) throw error;
+
+      if (data?.success && data?.data) {
+        toast({
+          title: "Contract Parsed Successfully",
+          description: "Form fields have been populated from the contract.",
+        });
+        
+        if (onContractParsed) {
+          onContractParsed(data.data);
+        }
+      } else if (data?.error) {
+        throw new Error(data.error);
+      }
+    } catch (error: any) {
+      console.error("Contract parsing error:", error);
+      toast({
+        title: "Contract Parsing Failed",
+        description: error.message || "Could not extract data from contract",
+        variant: "destructive",
+      });
+    } finally {
+      setParsing(false);
+    }
+  };
+
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (!files || files.length === 0) return;
@@ -102,6 +178,8 @@ const DocumentUploadSection = ({ propertyId, clientId }: DocumentUploadSectionPr
     }
 
     setUploading(true);
+    let uploadedFilePath: string | null = null;
+    
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
@@ -117,6 +195,11 @@ const DocumentUploadSection = ({ propertyId, clientId }: DocumentUploadSectionPr
           .upload(filePath, file);
 
         if (uploadError) throw uploadError;
+
+        // Store the first file path for potential parsing
+        if (!uploadedFilePath) {
+          uploadedFilePath = filePath;
+        }
 
         // Create database record
         const { error: dbError } = await supabase
@@ -140,6 +223,11 @@ const DocumentUploadSection = ({ propertyId, clientId }: DocumentUploadSectionPr
       });
 
       fetchDocuments();
+
+      // If it's a purchase contract and we have a callback, parse it
+      if (selectedDocType === "purchase_contract" && uploadedFilePath && onContractParsed) {
+        await parseContract(uploadedFilePath);
+      }
     } catch (error: any) {
       console.error("Upload error:", error);
       toast({
@@ -223,11 +311,13 @@ const DocumentUploadSection = ({ propertyId, clientId }: DocumentUploadSectionPr
 
   const getFileIcon = (fileType: string | null) => {
     if (!fileType) return <File className="h-4 w-4" />;
-    if (fileType.includes("pdf")) return <FileText className="h-4 w-4 text-red-500" />;
-    if (fileType.includes("image")) return <File className="h-4 w-4 text-blue-500" />;
-    if (fileType.includes("word") || fileType.includes("doc")) return <FileText className="h-4 w-4 text-blue-600" />;
+    if (fileType.includes("pdf")) return <FileText className="h-4 w-4 text-destructive" />;
+    if (fileType.includes("image")) return <File className="h-4 w-4 text-primary" />;
+    if (fileType.includes("word") || fileType.includes("doc")) return <FileText className="h-4 w-4 text-primary" />;
     return <File className="h-4 w-4" />;
   };
+
+  const isProcessing = uploading || parsing;
 
   return (
     <Card className="p-6 mb-6">
@@ -237,14 +327,19 @@ const DocumentUploadSection = ({ propertyId, clientId }: DocumentUploadSectionPr
           type="button"
           variant="outline"
           onClick={handleUploadClick}
-          disabled={uploading || !propertyId}
+          disabled={isProcessing || !propertyId}
         >
-          {uploading ? (
+          {parsing ? (
+            <>
+              <Sparkles className="h-4 w-4 mr-2 animate-pulse" />
+              Analyzing...
+            </>
+          ) : uploading ? (
             <Loader2 className="h-4 w-4 mr-2 animate-spin" />
           ) : (
             <Upload className="h-4 w-4 mr-2" />
           )}
-          Upload
+          {!isProcessing && "Upload"}
         </Button>
       </div>
 
@@ -253,7 +348,7 @@ const DocumentUploadSection = ({ propertyId, clientId }: DocumentUploadSectionPr
           <AlertDialogHeader>
             <AlertDialogTitle>What type of document are you uploading?</AlertDialogTitle>
             <AlertDialogDescription>
-              Select the document category to help organize your files.
+              Select the document category. Purchase contracts will be automatically analyzed to populate form fields.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <RadioGroup
@@ -266,6 +361,9 @@ const DocumentUploadSection = ({ propertyId, clientId }: DocumentUploadSectionPr
                 <RadioGroupItem value={type.value} id={type.value} />
                 <Label htmlFor={type.value} className="cursor-pointer font-normal">
                   {type.label}
+                  {type.value === "purchase_contract" && (
+                    <span className="ml-2 text-xs text-muted-foreground">(AI will extract fields)</span>
+                  )}
                 </Label>
               </div>
             ))}

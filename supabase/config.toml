@@ -56,3 +56,6 @@ verify_jwt = false
 
 [functions.suggest-tasks-from-emails]
 verify_jwt = true
+
+[functions.parse-purchase-contract]
+verify_jwt = true

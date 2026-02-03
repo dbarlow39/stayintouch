@@ -10,7 +10,7 @@ import { PropertyData } from "@/types/estimatedNet";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, List, Download, Mail, Calendar, FileText, ArrowRight, DollarSign, ClipboardList } from "lucide-react";
-import DocumentUploadSection from "./DocumentUploadSection";
+import DocumentUploadSection, { ContractExtractedData } from "./DocumentUploadSection";
 import { getEmailClientPreference, openEmailClient } from "@/utils/emailClientUtils";
 
 interface InitialClientData {
@@ -736,6 +736,121 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
+  // Handle contract data extracted by AI from uploaded purchase contract
+  const handleContractParsed = (data: ContractExtractedData) => {
+    setFormData(prev => {
+      const updates: Partial<PropertyData> = {};
+      
+      // Map extracted data to form fields (only update if value exists and current is empty/default)
+      if (data.offerPrice != null && (!prev.offerPrice || prev.offerPrice === 0)) {
+        updates.offerPrice = data.offerPrice;
+      }
+      if (data.deposit != null && (!prev.deposit || prev.deposit === 1000)) {
+        updates.deposit = data.deposit;
+      }
+      if (data.depositCollection && !prev.depositCollection) {
+        updates.depositCollection = data.depositCollection;
+      }
+      if (data.buyerName1 && !prev.buyerName1) {
+        updates.buyerName1 = data.buyerName1;
+      }
+      if (data.buyerName2 && !prev.buyerName2) {
+        updates.buyerName2 = data.buyerName2;
+      }
+      if (data.streetAddress && !prev.streetAddress) {
+        updates.streetAddress = data.streetAddress;
+      }
+      if (data.city && !prev.city) {
+        updates.city = data.city;
+      }
+      if (data.state && !prev.state) {
+        updates.state = data.state;
+      }
+      if (data.zip && !prev.zip) {
+        updates.zip = data.zip;
+      }
+      if (data.typeOfLoan && prev.typeOfLoan === "Conventional") {
+        updates.typeOfLoan = data.typeOfLoan;
+      }
+      if (data.lenderName && !prev.lenderName) {
+        updates.lenderName = data.lenderName;
+      }
+      if (data.lendingOfficer && !prev.lendingOfficer) {
+        updates.lendingOfficer = data.lendingOfficer;
+      }
+      if (data.lendingOfficerPhone && !prev.lendingOfficerPhone) {
+        updates.lendingOfficerPhone = data.lendingOfficerPhone;
+      }
+      if (data.lendingOfficerEmail && !prev.lendingOfficerEmail) {
+        updates.lendingOfficerEmail = data.lendingOfficerEmail;
+      }
+      if (data.preApprovalDays != null && prev.preApprovalDays === 2) {
+        updates.preApprovalDays = data.preApprovalDays;
+      }
+      if (data.loanAppTimeFrame && prev.loanAppTimeFrame === "7") {
+        updates.loanAppTimeFrame = data.loanAppTimeFrame;
+      }
+      if (data.loanCommitment && !prev.loanCommitment) {
+        updates.loanCommitment = data.loanCommitment;
+      }
+      if (data.appraisalContingency != null) {
+        updates.appraisalContingency = data.appraisalContingency;
+      }
+      if (data.inspectionDays != null && prev.inspectionDays === 7) {
+        updates.inspectionDays = data.inspectionDays;
+      }
+      if (data.closingDate && !prev.closingDate) {
+        updates.closingDate = data.closingDate;
+      }
+      if (data.possession && !prev.possession) {
+        updates.possession = data.possession;
+      }
+      if (data.respondToOfferBy && !prev.respondToOfferBy) {
+        updates.respondToOfferBy = data.respondToOfferBy;
+      }
+      if (data.homeWarranty != null && (!prev.homeWarranty || prev.homeWarranty === 0)) {
+        updates.homeWarranty = data.homeWarranty;
+      }
+      if (data.homeWarrantyCompany && !prev.homeWarrantyCompany) {
+        updates.homeWarrantyCompany = data.homeWarrantyCompany;
+      }
+      if (data.appliances && !prev.appliances) {
+        updates.appliances = data.appliances;
+      }
+      if (data.remedyPeriodDays != null && prev.remedyPeriodDays === 2) {
+        updates.remedyPeriodDays = data.remedyPeriodDays;
+      }
+      if (data.listingAgentName && !prev.listingAgentName) {
+        updates.listingAgentName = data.listingAgentName;
+      }
+      if (data.listingAgentPhone && !prev.listingAgentPhone) {
+        updates.listingAgentPhone = data.listingAgentPhone;
+      }
+      if (data.listingAgentEmail && !prev.listingAgentEmail) {
+        updates.listingAgentEmail = data.listingAgentEmail;
+      }
+      if (data.sellerPhone && !prev.sellerPhone) {
+        updates.sellerPhone = data.sellerPhone;
+      }
+      if (data.sellerEmail && !prev.sellerEmail) {
+        updates.sellerEmail = data.sellerEmail;
+      }
+      if (data.inContract && !prev.inContract) {
+        updates.inContract = data.inContract;
+      }
+      if (data.finalWalkThrough && prev.finalWalkThrough === "48 hours prior to close") {
+        updates.finalWalkThrough = data.finalWalkThrough;
+      }
+
+      return { ...prev, ...updates };
+    });
+
+    toast({
+      title: "Contract Data Applied",
+      description: "Review the populated fields and make any necessary adjustments.",
+    });
+  };
+
   // Search Stay in Touch clients database
   const searchClients = async (query: string) => {
     try {
@@ -1253,7 +1368,11 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
           </div>
         </Card>
 
-        <DocumentUploadSection propertyId={currentPropertyId} clientId={linkedClientId} />
+        <DocumentUploadSection 
+          propertyId={currentPropertyId} 
+          clientId={linkedClientId}
+          onContractParsed={handleContractParsed}
+        />
 
         <Card className="p-6 mb-6">
           <h3 className="text-xl font-semibold mb-4 text-foreground">Contract Details</h3>
