@@ -189,15 +189,15 @@ const UpcomingClosingsView = ({ onBack }: UpcomingClosingsViewProps) => {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Closing Date</TableHead>
-                        <TableHead>Address</TableHead>
-                        <TableHead>Client Name</TableHead>
-                        <TableHead>Cell Phone</TableHead>
-                        <TableHead>Email</TableHead>
-                        <TableHead className="text-right">Sales Price</TableHead>
-                        <TableHead className="text-right">Commission</TableHead>
-                        <TableHead>Buyer's Agent</TableHead>
-                        <TableHead>Buyer's Agent Phone</TableHead>
+                        <TableHead className="px-2">Closing Date</TableHead>
+                        <TableHead className="px-2">Address</TableHead>
+                        <TableHead className="px-2">Client Name</TableHead>
+                        <TableHead className="px-2">Cell Phone</TableHead>
+                        <TableHead className="px-2">Email</TableHead>
+                        <TableHead className="px-2 text-right">Sales Price</TableHead>
+                        <TableHead className="px-2 text-right">Commission</TableHead>
+                        <TableHead className="px-2">Buyer's Agent</TableHead>
+                        <TableHead className="px-2">Buyer's Agent Phone</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -207,31 +207,31 @@ const UpcomingClosingsView = ({ onBack }: UpcomingClosingsViewProps) => {
 
                         return (
                           <TableRow key={closing.id}>
-                            <TableCell className="font-medium whitespace-nowrap">
+                            <TableCell className="px-2 font-medium whitespace-nowrap">
                               {parsedDate ? format(parsedDate, "MMM d, yyyy") : closing.closing_date}
                             </TableCell>
-                            <TableCell className="whitespace-nowrap">
+                            <TableCell className="px-2 whitespace-nowrap">
                               {closing.street_address}
                             </TableCell>
-                            <TableCell className="whitespace-nowrap">
+                            <TableCell className="px-2 whitespace-nowrap">
                               {closing.name}
                             </TableCell>
-                            <TableCell className="whitespace-nowrap">
+                            <TableCell className="px-2 whitespace-nowrap">
                               {formatPhoneLink(closing.seller_phone)}
                             </TableCell>
-                            <TableCell className="whitespace-nowrap">
+                            <TableCell className="px-2 max-w-[150px] truncate">
                               {formatEmailLink(closing.seller_email)}
                             </TableCell>
-                            <TableCell className="text-right whitespace-nowrap">
+                            <TableCell className="px-2 text-right whitespace-nowrap">
                               {formatCurrency(closing.offer_price)}
                             </TableCell>
-                            <TableCell className="text-right whitespace-nowrap font-medium text-emerald-600 dark:text-emerald-400">
+                            <TableCell className="px-2 text-right whitespace-nowrap font-medium text-emerald-600 dark:text-emerald-400">
                               {formatCurrency(commission)}
                             </TableCell>
-                            <TableCell className="whitespace-nowrap">
+                            <TableCell className="px-2 whitespace-nowrap">
                               {closing.agent_name || "—"}
                             </TableCell>
-                            <TableCell className="whitespace-nowrap">
+                            <TableCell className="px-2 whitespace-nowrap">
                               {formatPhoneLink(closing.agent_contact)}
                             </TableCell>
                           </TableRow>
@@ -239,15 +239,15 @@ const UpcomingClosingsView = ({ onBack }: UpcomingClosingsViewProps) => {
                       })}
                       {/* Month totals row */}
                       <TableRow className="bg-muted/50 font-semibold">
-                        <TableCell colSpan={5} className="text-right">
+                        <TableCell colSpan={5} className="px-2 text-right">
                           Month Totals:
                         </TableCell>
-                        <TableCell className="text-right">
+                        <TableCell className="px-2 text-right">
                           {formatCurrency(
                             monthClosings.reduce((sum, c) => sum + c.offer_price, 0)
                           )}
                         </TableCell>
-                        <TableCell className="text-right text-emerald-600 dark:text-emerald-400">
+                        <TableCell className="px-2 text-right text-emerald-600 dark:text-emerald-400">
                           {formatCurrency(
                             monthClosings.reduce(
                               (sum, c) => sum + calculateCommission(c.offer_price),
@@ -255,7 +255,7 @@ const UpcomingClosingsView = ({ onBack }: UpcomingClosingsViewProps) => {
                             )
                           )}
                         </TableCell>
-                        <TableCell colSpan={2} />
+                        <TableCell colSpan={2} className="px-2" />
                       </TableRow>
                     </TableBody>
                   </Table>
