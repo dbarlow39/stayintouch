@@ -565,7 +565,8 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
         listing_agent_commission: Number(dataToSave.listingAgentCommission) || 0,
         buyer_agent_commission: Number(dataToSave.buyerAgentCommission) || 0,
         closing_cost: Number(dataToSave.closingCost) || 0,
-        type_of_loan: dataToSave.typeOfLoan,
+        // Persist canonical values so subsequent loads always match the Select options.
+        type_of_loan: normalizeTypeOfLoan(dataToSave.typeOfLoan) || "Other",
         lender_name: dataToSave.lenderName || null,
         lending_officer: dataToSave.lendingOfficer || null,
         lending_officer_phone: dataToSave.lendingOfficerPhone || null,
@@ -579,7 +580,8 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
         home_warranty: Number(dataToSave.homeWarranty) || 0,
         home_warranty_company: dataToSave.homeWarrantyCompany,
         deposit: Number(dataToSave.deposit) || 0,
-        deposit_collection: dataToSave.depositCollection,
+        // Persist canonical values so subsequent loads always match the Select options.
+        deposit_collection: normalizeDepositCollection(dataToSave.depositCollection) || "Other",
         in_contract: dataToSave.inContract || null,
         closing_date: dataToSave.closingDate || null,
         possession: dataToSave.possession || null,
@@ -791,7 +793,8 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
       updates.deposit = data.deposit;
     }
     if (data.depositCollection) {
-      updates.depositCollection = normalizeDepositCollection(data.depositCollection) || data.depositCollection;
+      // Always coerce to one of the <SelectItem> values; raw strings can make the Select render blank.
+      updates.depositCollection = normalizeDepositCollection(data.depositCollection) || "Other";
     }
     if (data.buyerName1) {
       updates.buyerName1 = data.buyerName1;
@@ -812,7 +815,8 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
       updates.zip = data.zip;
     }
     if (data.typeOfLoan) {
-      updates.typeOfLoan = normalizeTypeOfLoan(data.typeOfLoan) || data.typeOfLoan;
+      // Always coerce to one of the <SelectItem> values; raw strings can make the Select render blank.
+      updates.typeOfLoan = normalizeTypeOfLoan(data.typeOfLoan) || "Other";
     }
     if (data.lenderName) {
       updates.lenderName = data.lenderName;
