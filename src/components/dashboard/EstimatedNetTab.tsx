@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, FileText, Trash2, Edit } from "lucide-react";
+import { Plus, FileText, Trash2, Edit, Calendar } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
@@ -20,6 +20,7 @@ import RequestToRemedyView from "./estimatedNet/RequestToRemedyView";
 import SettlementStatementView from "./estimatedNet/SettlementStatementView";
 import NoticesView from "./estimatedNet/NoticesView";
 import ClientSelectionView from "./estimatedNet/ClientSelectionView";
+import UpcomingClosingsView from "./estimatedNet/UpcomingClosingsView";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -31,7 +32,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-type ViewState = 'list' | 'select-client' | 'form' | 'results' | 'offer-letter' | 'offer-summary' | 'important-dates' | 'title-letter' | 'agent-letter' | 'request-to-remedy' | 'settlement-statement' | 'notices';
+type ViewState = 'list' | 'select-client' | 'form' | 'results' | 'offer-letter' | 'offer-summary' | 'important-dates' | 'title-letter' | 'agent-letter' | 'request-to-remedy' | 'settlement-statement' | 'notices' | 'upcoming-closings';
 
 interface SelectedClientForEstimate {
   id: string;
@@ -365,6 +366,12 @@ const EstimatedNetTab = ({ selectedClient, onClearSelectedClient }: EstimatedNet
   };
 
   // Render based on current view state
+  if (viewState === 'upcoming-closings') {
+    return (
+      <UpcomingClosingsView onBack={handleBackToList} />
+    );
+  }
+
   if (viewState === 'select-client') {
     return (
       <ClientSelectionView
@@ -503,10 +510,16 @@ const EstimatedNetTab = ({ selectedClient, onClearSelectedClient }: EstimatedNet
           <h2 className="text-2xl font-bold">Estimated Net Sheets</h2>
           <p className="text-muted-foreground">Create and manage property estimates</p>
         </div>
-        <Button onClick={handleNewEstimate}>
-          <Plus className="mr-2 h-4 w-4" />
-          New Estimate
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setViewState('upcoming-closings')}>
+            <Calendar className="mr-2 h-4 w-4" />
+            Upcoming Closings
+          </Button>
+          <Button onClick={handleNewEstimate}>
+            <Plus className="mr-2 h-4 w-4" />
+            New Estimate
+          </Button>
+        </div>
       </div>
 
       {isLoading ? (
