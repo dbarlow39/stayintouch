@@ -390,25 +390,38 @@ const DocumentUploadSection = ({ propertyId, clientId, onContractParsed }: Docum
     <Card className="p-6 mb-6">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-xl font-semibold text-foreground">Upload Contract Documents</h3>
-        <Button
-          type="button"
-          variant="outline"
-          onClick={handleUploadClick}
-          disabled={isProcessing || !propertyId}
-          className={parsing ? "animate-pulse-green text-green-700 dark:text-green-400" : ""}
-        >
-          {parsing ? (
-            <>
-              <Sparkles className="h-4 w-4 mr-2 animate-spin text-green-500" />
-              Analyzing...
-            </>
-          ) : uploading ? (
-            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-          ) : (
-            <Upload className="h-4 w-4 mr-2" />
-          )}
-          {!isProcessing && "Upload"}
-        </Button>
+        {parsing ? (
+          <div className="flex items-center gap-3 px-4 py-2 rounded-md bg-green-500/10 border border-green-500/30">
+            {/* Animated loader with expanding rings */}
+            <div className="relative flex items-center justify-center w-6 h-6">
+              <div className="absolute inset-0 rounded-full border-2 border-green-500 animate-ping-slow" />
+              <div className="absolute inset-0.5 rounded-full border-2 border-green-400 animate-pulse-ring" />
+              <Loader2 className="h-4 w-4 text-green-600 animate-spin" />
+            </div>
+            <span className="text-green-700 dark:text-green-400 font-medium">
+              Analyzing contract
+              <span className="inline-flex ml-0.5">
+                <span className="animate-bounce" style={{ animationDelay: '0ms' }}>.</span>
+                <span className="animate-bounce" style={{ animationDelay: '150ms' }}>.</span>
+                <span className="animate-bounce" style={{ animationDelay: '300ms' }}>.</span>
+              </span>
+            </span>
+          </div>
+        ) : (
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleUploadClick}
+            disabled={isProcessing || !propertyId}
+          >
+            {uploading ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Upload className="h-4 w-4 mr-2" />
+            )}
+            {!isProcessing && "Upload"}
+          </Button>
+        )}
       </div>
 
       <AlertDialog open={showTypeDialog} onOpenChange={setShowTypeDialog}>
