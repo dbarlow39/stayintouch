@@ -1916,6 +1916,22 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
               />
             </div>
             <div>
+              <Label htmlFor="buyerName1">(18.1) Buyer Name 1</Label>
+              <Input
+                id="buyerName1"
+                value={formData.buyerName1 || ""}
+                onChange={(e) => updateField("buyerName1", e.target.value)}
+              />
+            </div>
+            <div>
+              <Label htmlFor="buyerName2">(18.1) Buyer Name 2</Label>
+              <Input
+                id="buyerName2"
+                value={formData.buyerName2 || ""}
+                onChange={(e) => updateField("buyerName2", e.target.value)}
+              />
+            </div>
+            <div>
               <Label htmlFor="lenderName">Lender Name</Label>
               <Input
                 id="lenderName"
@@ -1947,22 +1963,6 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
                 type="email"
                 value={formData.lendingOfficerEmail || ""}
                 onChange={(e) => updateField("lendingOfficerEmail", e.target.value)}
-              />
-            </div>
-            <div>
-              <Label htmlFor="buyerName1">(18.1) Buyer Name 1</Label>
-              <Input
-                id="buyerName1"
-                value={formData.buyerName1 || ""}
-                onChange={(e) => updateField("buyerName1", e.target.value)}
-              />
-            </div>
-            <div>
-              <Label htmlFor="buyerName2">(18.1) Buyer Name 2</Label>
-              <Input
-                id="buyerName2"
-                value={formData.buyerName2 || ""}
-                onChange={(e) => updateField("buyerName2", e.target.value)}
               />
             </div>
           </div>
