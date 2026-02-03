@@ -117,9 +117,12 @@ Extract these fields (return null if not found):
 - state: State (2-letter abbreviation) from paragraph 4
 - zip: ZIP code from paragraph 4
 - typeOfLoan: Type of loan (Conventional, FHA, VA, Cash, etc.) from paragraph 5
-- preApprovalDays: Days for pre-approval from paragraph 5 (number)
-- loanAppTimeFrame: Timeframe for loan application from paragraph 5
-- loanCommitment: Loan commitment date or timeframe from paragraph 5
+- preApprovalDays: From section 3.2(a) "Lender Pre-Qualification". There are TWO sets of initial boxes separated by "OR":
+  * FIRST set: "[initials] has delivered" - if these boxes have initials/marks, the pre-approval letter has been RECEIVED, return 0.
+  * SECOND set: "[initials] shall deliver within ___ calendar days" - if these boxes have initials/marks, extract the number from the blank line. If the line is blank or says "if left blank, the number shall be 2", return 2.
+  Return the number of days (0 if received, or the number of days if pending). Default to 2 if unclear.
+- loanAppTimeFrame: Timeframe for loan application from paragraph 5 (3.2b)
+- loanCommitment: Loan commitment date or timeframe from paragraph 5 (3.2c)
 - appraisalContingency: From section 3.2(d), find the appraisal contingency checkboxes. There are TWO checkboxes in the pattern "[ ] is [ ] is not contingent". Look carefully at WHICH box has a mark (X, ✓, filled, or any mark). If the FIRST checkbox (the one immediately before the word "is") has ANY mark in it, return true. If the SECOND checkbox (the one before "is not") has a mark, return false. The first box being checked means the buyer WANTS the appraisal contingency protection. CRITICAL: Examine both boxes carefully - only ONE should be marked. First box marked = true, second box marked = false.
 - inspectionDays: Number of days for inspection from paragraph 7 (number only)
 - closingDate: Closing date from paragraph 8 (YYYY-MM-DD format if possible)
@@ -255,6 +258,56 @@ Return ONLY valid JSON:
       }
     } catch (e) {
       console.error('2nd pass appraisal contingency extraction failed:', e);
+      // Keep the first pass value
+    }
+
+    // Third pass: Pre-Approval Days 3.2(a) - complex checkbox logic
+    try {
+      const preApprovalPrompt = `You are validating ONE field in a real estate purchase contract.
+
+TASK:
+Determine the preApprovalDays value from section 3.2(a) "Lender Pre-Qualification".
+
+STRUCTURE:
+There are TWO sets of initial boxes separated by the word "OR":
+1. FIRST set: "Buyer [__][__] (insert initials here) has delivered" - means pre-approval is RECEIVED
+2. SECOND set: "[__][__] (insert initials here) shall deliver within ___ calendar days" - means pre-approval is PENDING
+
+RULES:
+- If the FIRST set of boxes has initials/marks, return 0 (pre-approval received).
+- If the SECOND set of boxes has initials/marks, look for the number on the blank line for days. If the number is written, return that number. If blank, return 2 (the default).
+- If you cannot clearly determine which set is initialed, return 2 as the default.
+
+Return ONLY valid JSON:
+{ "preApprovalDays": <number> }`;
+
+      console.log('Calling AI (3rd pass) to extract preApprovalDays...');
+      const preApprovalRes = await callLovableAI(preApprovalPrompt, 'google/gemini-2.5-pro');
+
+      if (preApprovalRes.ok) {
+        const preApprovalJson = await preApprovalRes.json();
+        const preApprovalContent = preApprovalJson.choices?.[0]?.message?.content;
+        if (preApprovalContent) {
+          let jsonStr = String(preApprovalContent).trim();
+          if (jsonStr.startsWith('```json')) jsonStr = jsonStr.slice(7);
+          else if (jsonStr.startsWith('```')) jsonStr = jsonStr.slice(3);
+          if (jsonStr.endsWith('```')) jsonStr = jsonStr.slice(0, -3);
+
+          const parsed = JSON.parse(jsonStr.trim());
+          const days = parsed?.preApprovalDays;
+          if (typeof days === 'number' && days >= 0) {
+            extractedData.preApprovalDays = days;
+            console.log('preApprovalDays overridden by 3rd pass:', days);
+          } else {
+            console.log('3rd pass preApprovalDays returned invalid; keeping first pass value');
+          }
+        }
+      } else {
+        const t = await preApprovalRes.text();
+        console.error('3rd pass preApprovalDays AI error:', preApprovalRes.status, t);
+      }
+    } catch (e) {
+      console.error('3rd pass preApprovalDays extraction failed:', e);
       // Keep the first pass value
     }
 
