@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Upload, File, Trash2, Loader2, FileText, Download, Sparkles } from "lucide-react";
+import { Upload, File, Trash2, Loader2, FileText, Download } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -16,24 +16,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
-
-const AnalyzingToastDescription = ({ label }: { label: string }) => {
-  const [dots, setDots] = useState(0);
-  useEffect(() => {
-    const id = window.setInterval(() => setDots((d) => (d + 1) % 4), 350);
-    return () => window.clearInterval(id);
-  }, []);
-
-  return (
-    <span className="inline-flex items-center gap-2">
-      <Loader2 className="h-4 w-4 animate-spin" />
-      <span>
-        {label}
-        {Array.from({ length: dots }).map(() => ".").join("")}
-      </span>
-    </span>
-  );
-};
+import { AnalyzingPill, AnalyzingToastDescription } from "./AnalyzingIndicator";
 
 const DOCUMENT_TYPES = [
   { value: "purchase_contract", label: "Purchase Contract" },
@@ -105,25 +88,10 @@ const DocumentUploadSection = ({ propertyId, clientId, onContractParsed }: Docum
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [parsing, setParsing] = useState(false);
-  const [parsingDots, setParsingDots] = useState(0);
   const [documents, setDocuments] = useState<PropertyDocument[]>([]);
   const [loading, setLoading] = useState(false);
   const [showTypeDialog, setShowTypeDialog] = useState(false);
   const [selectedDocType, setSelectedDocType] = useState<string>("purchase_contract");
-
-  // Ensure the UI shows motion even if CSS animations are reduced/disabled.
-  useEffect(() => {
-    if (!parsing) {
-      setParsingDots(0);
-      return;
-    }
-
-    const id = window.setInterval(() => {
-      setParsingDots((d) => (d + 1) % 4); // 0..3 dots
-    }, 350);
-
-    return () => window.clearInterval(id);
-  }, [parsing]);
 
   // Fetch documents when propertyId changes
   useEffect(() => {
@@ -425,17 +393,7 @@ const DocumentUploadSection = ({ propertyId, clientId, onContractParsed }: Docum
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-xl font-semibold text-foreground">Upload Contract Documents</h3>
         {parsing ? (
-          <div className="flex items-center gap-3 px-4 py-2 rounded-md bg-green-500/10 border border-green-500/30">
-            {/* Animated loader with expanding rings */}
-            <div className="relative flex items-center justify-center w-6 h-6">
-              <div className="absolute inset-0 rounded-full border-2 border-green-500 animate-ping-slow" />
-              <div className="absolute inset-0.5 rounded-full border-2 border-green-400 animate-pulse-ring" />
-              <Loader2 className="h-4 w-4 text-green-600 animate-spin" />
-            </div>
-            <span className="text-green-700 dark:text-green-400 font-medium">
-              Analyzing contract{Array.from({ length: parsingDots }).map(() => ".").join("")}
-            </span>
-          </div>
+          <AnalyzingPill label="Analyzing contract" />
         ) : (
           <Button
             type="button"
