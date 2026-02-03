@@ -74,7 +74,10 @@ PARAGRAPH 2 - EARNEST MONEY/DEPOSIT:
 - deposit: The earnest money deposit amount (number only)
 - depositCollection: When/how the deposit is collected (text description)
 
-PARAGRAPH 3 - BUYER INFORMATION:
+PARAGRAPH 18.1 - BUYER AGENT & BUYER INFORMATION:
+- buyerAgentName: Buyer agent's full name
+- buyerAgentPhone: Buyer agent's cell phone number
+- buyerAgentEmail: Buyer agent's email address
 - buyerName1: First buyer's full name
 - buyerName2: Second buyer's full name (if applicable)
 
