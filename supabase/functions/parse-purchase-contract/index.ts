@@ -75,7 +75,7 @@ serve(async (req) => {
 Extract these fields (return null if not found):
 
 - offerPrice: The total purchase/offer price from paragraph 1 (number only, no commas or $)
-- deposit: The earnest money deposit amount from paragraph 2 (number only)
+- deposit: The earnest money deposit amount from paragraph 2 (12) (number only, default to 0 if not found)
 - depositCollection: When/how the deposit is collected from paragraph 2 (text description)
 - buyerAgentName: Buyer agent's full name from paragraph 18.1
 - buyerAgentPhone: Buyer agent's cell phone number from paragraph 18.1
