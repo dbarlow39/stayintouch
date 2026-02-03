@@ -21,7 +21,6 @@ const DOCUMENT_TYPES = [
   { value: "purchase_contract", label: "A Purchase Contract" },
   { value: "lender_pre_approval", label: "Lender Pre-Approval" },
   { value: "inspection_report", label: "Inspection Report" },
-  { value: "appraisal", label: "Appraisal" },
   { value: "other", label: "Other" },
 ] as const;
 
