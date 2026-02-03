@@ -741,118 +741,117 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
     setFormData(prev => {
       const updates: Partial<PropertyData> = {};
       
-      // Map extracted data to form fields (only update if value exists and current is empty/default)
-      if (data.offerPrice != null && (!prev.offerPrice || prev.offerPrice === 0)) {
+      // Map extracted data to form fields - always overwrite with new contract data
+      if (data.offerPrice != null) {
         updates.offerPrice = data.offerPrice;
       }
-      if (data.deposit != null && (!prev.deposit || prev.deposit === 1000)) {
+      if (data.buyerAgentCommission != null) {
+        updates.buyerAgentCommission = data.buyerAgentCommission;
+      }
+      if (data.deposit != null) {
         updates.deposit = data.deposit;
       }
-      if (data.depositCollection && !prev.depositCollection) {
+      if (data.depositCollection) {
         updates.depositCollection = data.depositCollection;
       }
-      if (data.buyerName1 && !prev.buyerName1) {
+      if (data.buyerName1) {
         updates.buyerName1 = data.buyerName1;
       }
-      if (data.buyerName2 && !prev.buyerName2) {
+      if (data.buyerName2) {
         updates.buyerName2 = data.buyerName2;
       }
-      if (data.streetAddress && !prev.streetAddress) {
+      if (data.streetAddress) {
         updates.streetAddress = data.streetAddress;
       }
-      if (data.city && !prev.city) {
+      if (data.city) {
         updates.city = data.city;
       }
-      if (data.state && !prev.state) {
+      if (data.state) {
         updates.state = data.state;
       }
-      if (data.zip && !prev.zip) {
+      if (data.zip) {
         updates.zip = data.zip;
       }
-      if (data.typeOfLoan && !prev.typeOfLoan) {
+      if (data.typeOfLoan) {
         updates.typeOfLoan = data.typeOfLoan;
       }
-      if (data.lenderName && !prev.lenderName) {
+      if (data.lenderName) {
         updates.lenderName = data.lenderName;
       }
-      if (data.lendingOfficer && !prev.lendingOfficer) {
+      if (data.lendingOfficer) {
         updates.lendingOfficer = data.lendingOfficer;
       }
-      if (data.lendingOfficerPhone && !prev.lendingOfficerPhone) {
+      if (data.lendingOfficerPhone) {
         updates.lendingOfficerPhone = data.lendingOfficerPhone;
       }
-      if (data.lendingOfficerEmail && !prev.lendingOfficerEmail) {
+      if (data.lendingOfficerEmail) {
         updates.lendingOfficerEmail = data.lendingOfficerEmail;
       }
-      if (data.preApprovalDays != null && (prev.preApprovalDays === 2 || prev.preApprovalDays === 0)) {
+      if (data.preApprovalDays != null) {
         updates.preApprovalDays = data.preApprovalDays;
       }
-      if (data.loanAppTimeFrame != null && (prev.loanAppTimeFrame === "7" || !prev.loanAppTimeFrame)) {
+      if (data.loanAppTimeFrame != null) {
         updates.loanAppTimeFrame = String(data.loanAppTimeFrame);
       }
-      if (data.loanCommitment && !prev.loanCommitment) {
+      if (data.loanCommitment) {
         updates.loanCommitment = String(data.loanCommitment);
       }
       if (data.appraisalContingency != null) {
         updates.appraisalContingency = data.appraisalContingency;
       }
-      if (data.inspectionDays != null && (prev.inspectionDays === 7 || prev.inspectionDays === 0)) {
+      if (data.inspectionDays != null) {
         updates.inspectionDays = data.inspectionDays;
       }
-      if (data.closingDate && !prev.closingDate) {
+      if (data.closingDate) {
         updates.closingDate = data.closingDate;
       }
-      if (data.possession && !prev.possession) {
+      if (data.possession) {
         updates.possession = data.possession;
       }
-      if (data.respondToOfferBy && !prev.respondToOfferBy) {
+      if (data.respondToOfferBy) {
         updates.respondToOfferBy = data.respondToOfferBy;
       }
-      if (data.homeWarranty != null && (!prev.homeWarranty || prev.homeWarranty === 0)) {
+      if (data.homeWarranty != null) {
         updates.homeWarranty = data.homeWarranty;
       }
-      if (data.homeWarrantyCompany && !prev.homeWarrantyCompany) {
+      if (data.homeWarrantyCompany) {
         updates.homeWarrantyCompany = data.homeWarrantyCompany;
       }
-      if (data.appliances && !prev.appliances) {
+      if (data.appliances) {
         updates.appliances = data.appliances;
       }
-      if (data.remedyPeriodDays != null && (prev.remedyPeriodDays === 2 || prev.remedyPeriodDays === 0)) {
+      if (data.remedyPeriodDays != null) {
         updates.remedyPeriodDays = data.remedyPeriodDays;
       }
-      if (data.listingAgentName && !prev.listingAgentName) {
+      if (data.listingAgentName) {
         updates.listingAgentName = data.listingAgentName;
       }
-      if (data.listingAgentPhone && !prev.listingAgentPhone) {
+      if (data.listingAgentPhone) {
         updates.listingAgentPhone = data.listingAgentPhone;
       }
-      if (data.listingAgentEmail && !prev.listingAgentEmail) {
+      if (data.listingAgentEmail) {
         updates.listingAgentEmail = data.listingAgentEmail;
       }
-      if (data.sellerPhone && !prev.sellerPhone) {
+      if (data.sellerPhone) {
         updates.sellerPhone = data.sellerPhone;
       }
-      if (data.sellerEmail && !prev.sellerEmail) {
+      if (data.sellerEmail) {
         updates.sellerEmail = data.sellerEmail;
       }
-      if (data.inContract && !prev.inContract) {
+      if (data.inContract) {
         updates.inContract = data.inContract;
       }
-      if (data.finalWalkThrough && (!prev.finalWalkThrough || prev.finalWalkThrough === "48 hours prior to close")) {
+      if (data.finalWalkThrough) {
         updates.finalWalkThrough = data.finalWalkThrough;
       }
-      // Buyer agent commission (1.2)
-      if (data.buyerAgentCommission != null && (prev.buyerAgentCommission === 3 || prev.buyerAgentCommission === 0)) {
-        updates.buyerAgentCommission = data.buyerAgentCommission;
-      }
       // Buyer agent fields (18.1)
-      if (data.buyerAgentName && !prev.agentName) {
+      if (data.buyerAgentName) {
         updates.agentName = data.buyerAgentName;
       }
-      if (data.buyerAgentPhone && !prev.agentContact) {
+      if (data.buyerAgentPhone) {
         updates.agentContact = data.buyerAgentPhone;
       }
-      if (data.buyerAgentEmail && !prev.agentEmail) {
+      if (data.buyerAgentEmail) {
         updates.agentEmail = data.buyerAgentEmail;
       }
 
