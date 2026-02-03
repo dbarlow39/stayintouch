@@ -205,7 +205,7 @@ const UpcomingClosingsView = ({ onBack }: UpcomingClosingsViewProps) => {
                               {parsedDate ? format(parsedDate, "MMM d, yyyy") : closing.closing_date}
                             </TableCell>
                             <TableCell className="whitespace-nowrap">
-                              {closing.street_address}, {closing.city}
+                              {closing.street_address}
                             </TableCell>
                             <TableCell className="whitespace-nowrap">
                               {closing.name}
