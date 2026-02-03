@@ -838,9 +838,7 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
       if (data.sellerEmail) {
         updates.sellerEmail = data.sellerEmail;
       }
-      if (data.inContract) {
-        updates.inContract = data.inContract;
-      }
+      // Note: inContract is intentionally NOT auto-populated - it's manual input only
       if (data.finalWalkThrough) {
         updates.finalWalkThrough = data.finalWalkThrough;
       }
