@@ -412,7 +412,7 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
           listingAgentCommission: Number(data.listing_agent_commission),
           buyerAgentCommission: Number(data.buyer_agent_commission),
           closingCost: Number(data.closing_cost),
-          typeOfLoan: data.type_of_loan || "Conventional",
+          typeOfLoan: normalizeTypeOfLoan(data.type_of_loan) || "Conventional",
           lenderName: (data as any).lender_name || "",
           lendingOfficer: (data as any).lending_officer || "",
           lendingOfficerPhone: (data as any).lending_officer_phone || "",
@@ -426,7 +426,7 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
           homeWarranty: Number(data.home_warranty),
           homeWarrantyCompany: data.home_warranty_company || "",
           deposit: Number(data.deposit),
-          depositCollection: data.deposit_collection || "Within 3 Days of Acceptance",
+          depositCollection: normalizeDepositCollection(data.deposit_collection) || "Within 3 Days of Acceptance",
           inContract: data.in_contract || "",
           closingDate: data.closing_date || "",
           possession: data.possession || "",
@@ -736,6 +736,42 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
+  // The UI uses <Select> components with fixed values. If the parser returns
+  // different casing or longer phrases, the select will render as blank.
+  const normalizeTypeOfLoan = (raw?: string | null): string | null => {
+    if (!raw) return null;
+    const v = String(raw).trim();
+    if (!v) return null;
+    const lower = v.toLowerCase();
+
+    if (lower.includes("conventional") || lower === "conv" || lower.startsWith("conv")) return "Conventional";
+    if (lower === "fha" || lower.includes("fha")) return "FHA";
+    // Avoid matching "available" etc. by checking boundaries for "va"
+    if (/(^|\\b)va(\\b|$)/i.test(v) || lower.includes("veterans")) return "VA";
+    if (lower === "usda" || lower.includes("usda")) return "USDA";
+    if (lower.includes("cash")) return "Cash";
+
+    return "Other";
+  };
+
+  const normalizeDepositCollection = (raw?: string | null): string | null => {
+    if (!raw) return null;
+    const v = String(raw).trim();
+    if (!v) return null;
+    const lower = v.toLowerCase();
+
+    if (lower.includes("acceptance")) return "Within 3 Days of Acceptance";
+    if (lower.includes("remedy") || lower.includes("expiration") || lower.includes("expire")) {
+      return "Within 3 Days of Remedy Expiration";
+    }
+
+    // If already one of our known values (case-insensitive), return canonical casing
+    if (lower === "within 3 days of acceptance") return "Within 3 Days of Acceptance";
+    if (lower === "within 3 days of remedy expiration") return "Within 3 Days of Remedy Expiration";
+
+    return "Other";
+  };
+
   // Handle contract data extracted by AI from uploaded purchase contract
   const handleContractParsed = async (data: ContractExtractedData) => {
     console.log('[Contract Parse] Received data:', data);
@@ -755,7 +791,7 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
       updates.deposit = data.deposit;
     }
     if (data.depositCollection) {
-      updates.depositCollection = data.depositCollection;
+      updates.depositCollection = normalizeDepositCollection(data.depositCollection) || data.depositCollection;
     }
     if (data.buyerName1) {
       updates.buyerName1 = data.buyerName1;
@@ -776,7 +812,7 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
       updates.zip = data.zip;
     }
     if (data.typeOfLoan) {
-      updates.typeOfLoan = data.typeOfLoan;
+      updates.typeOfLoan = normalizeTypeOfLoan(data.typeOfLoan) || data.typeOfLoan;
     }
     if (data.lenderName) {
       updates.lenderName = data.lenderName;
@@ -1536,7 +1572,9 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
                   <SelectItem value="Conventional">Conventional</SelectItem>
                   <SelectItem value="FHA">FHA</SelectItem>
                   <SelectItem value="VA">VA</SelectItem>
+                  <SelectItem value="USDA">USDA</SelectItem>
                   <SelectItem value="Cash">Cash</SelectItem>
+                  <SelectItem value="Other">Other</SelectItem>
                 </SelectContent>
               </Select>
             </div>
