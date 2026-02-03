@@ -1593,14 +1593,16 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
             </div>
             <div>
               <Label htmlFor="typeOfLoan">(3.2b) Type of Loan</Label>
+              {(() => {
+                const typeOfLoanValue = normalizeTypeOfLoan(formData.typeOfLoan) || "Conventional";
+                return (
               <Select
-                key={`typeOfLoan-${formData.typeOfLoan || 'default'}`}
-                value={normalizeTypeOfLoan(formData.typeOfLoan) || "Conventional"}
+                value={typeOfLoanValue}
                 onValueChange={(value) => updateField("typeOfLoan", value)}
-                defaultValue="Conventional"
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Conventional" />
+                  {/* Render our own label so the trigger never appears blank */}
+                  <span className="truncate">{typeOfLoanValue}</span>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="Conventional">Conventional</SelectItem>
@@ -1611,6 +1613,8 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
                   <SelectItem value="Other">Other</SelectItem>
                 </SelectContent>
               </Select>
+                );
+              })()}
             </div>
             <div>
               <Label htmlFor="loanCommitment">(3.2c) Loan Commitment (Days Due)</Label>
