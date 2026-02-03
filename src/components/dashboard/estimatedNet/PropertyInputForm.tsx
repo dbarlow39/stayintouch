@@ -41,6 +41,7 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
   const [lookingUp, setLookingUp] = useState(false);
   const [linkedClientId, setLinkedClientId] = useState<string | null>(null);
   const [navigationTarget, setNavigationTarget] = useState<string>("closing-costs");
+  const [currentPropertyId, setCurrentPropertyId] = useState<string | null>(editingId);
   
   const formRef = useRef<HTMLFormElement>(null);
   const [formData, setFormData] = useState<PropertyData>({
@@ -127,6 +128,13 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
     };
 
     loadData();
+  }, [editingId]);
+
+  // Sync currentPropertyId with editingId
+  useEffect(() => {
+    if (editingId) {
+      setCurrentPropertyId(editingId);
+    }
   }, [editingId]);
 
   // Handle initial client from Clients tab
@@ -529,6 +537,98 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
     );
   }, [linkedClientId, formData.streetAddress, formData.city, formData.zip, formData.sellerPhone, formData.annualTaxes, loading]);
 
+  // Auto-save function that creates/updates the property and returns the saved ID
+  const performAutoSave = async (dataToSave: PropertyData, clientId: string | null): Promise<string | null> => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return null;
+
+      const taxDaysDue = dataToSave.closingDate ? (() => {
+        const closingDate = new Date(dataToSave.closingDate);
+        const startOfYear = new Date(closingDate.getFullYear(), 0, 1);
+        return Math.floor((closingDate.getTime() - startOfYear.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+      })() : 0;
+      
+      const propertyData = {
+        agent_id: user.id,
+        client_id: clientId,
+        name: dataToSave.name,
+        seller_phone: dataToSave.sellerPhone || null,
+        seller_email: dataToSave.sellerEmail || null,
+        street_address: dataToSave.streetAddress,
+        city: dataToSave.city,
+        state: dataToSave.state,
+        zip: dataToSave.zip,
+        offer_price: Number(dataToSave.offerPrice) || 0,
+        first_mortgage: Number(dataToSave.firstMortgage) || 0,
+        second_mortgage: Number(dataToSave.secondMortgage) || 0,
+        listing_agent_commission: Number(dataToSave.listingAgentCommission) || 0,
+        buyer_agent_commission: Number(dataToSave.buyerAgentCommission) || 0,
+        closing_cost: Number(dataToSave.closingCost) || 0,
+        type_of_loan: dataToSave.typeOfLoan,
+        lender_name: dataToSave.lenderName || null,
+        lending_officer: dataToSave.lendingOfficer || null,
+        lending_officer_phone: dataToSave.lendingOfficerPhone || null,
+        lending_officer_email: dataToSave.lendingOfficerEmail || null,
+        buyer_name_1: dataToSave.buyerName1 || null,
+        buyer_name_2: dataToSave.buyerName2 || null,
+        loan_app_time_frame: dataToSave.loanAppTimeFrame || null,
+        loan_commitment: dataToSave.loanCommitment || null,
+        pre_approval_days: Number(dataToSave.preApprovalDays) || 0,
+        appraisal_contingency: dataToSave.appraisalContingency,
+        home_warranty: Number(dataToSave.homeWarranty) || 0,
+        home_warranty_company: dataToSave.homeWarrantyCompany,
+        deposit: Number(dataToSave.deposit) || 0,
+        deposit_collection: dataToSave.depositCollection,
+        in_contract: dataToSave.inContract || null,
+        closing_date: dataToSave.closingDate || null,
+        possession: dataToSave.possession || null,
+        final_walk_through: dataToSave.finalWalkThrough || null,
+        respond_to_offer_by: dataToSave.respondToOfferBy || null,
+        inspection_days: Number(dataToSave.inspectionDays) || 0,
+        remedy_period_days: Number(dataToSave.remedyPeriodDays) || 0,
+        annual_taxes: Number(dataToSave.annualTaxes) || 0,
+        first_half_paid: dataToSave.firstHalfPaid,
+        second_half_paid: dataToSave.secondHalfPaid,
+        tax_days_due_this_year: taxDaysDue,
+        days_first_half_taxes: Number(dataToSave.daysFirstHalfTaxes) || 0,
+        days_second_half_taxes: Number(dataToSave.daysSecondHalfTaxes) || 0,
+        agent_name: dataToSave.agentName,
+        agent_contact: dataToSave.agentContact,
+        agent_email: dataToSave.agentEmail,
+        listing_agent_name: dataToSave.listingAgentName,
+        listing_agent_phone: dataToSave.listingAgentPhone,
+        listing_agent_email: dataToSave.listingAgentEmail,
+        admin_fee: Number(dataToSave.adminFee) || 0,
+        appliances: dataToSave.appliances,
+        notes: dataToSave.notes,
+      };
+
+      if (currentPropertyId) {
+        const { error } = await supabase
+          .from("estimated_net_properties")
+          .update(propertyData)
+          .eq("id", currentPropertyId);
+
+        if (error) throw error;
+        return currentPropertyId;
+      } else {
+        const { data, error } = await supabase
+          .from("estimated_net_properties")
+          .insert(propertyData)
+          .select()
+          .single();
+
+        if (error) throw error;
+        setCurrentPropertyId(data.id);
+        return data.id;
+      }
+    } catch (error: any) {
+      console.error("Auto-save error:", error);
+      return null;
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -675,22 +775,27 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
 
   // Handle selecting a client from Stay in Touch
   const handleSelectClient = async (client: any) => {
-    setFormData(prev => ({
-      ...prev,
+    // Set the linked client ID
+    setLinkedClientId(client.id);
+    
+    const newFormData: PropertyData = {
+      ...formData,
       name: client.name || `${client.firstName} ${client.lastName}`.trim(),
       streetAddress: client.streetAddress || `${client.streetNumber} ${client.streetName}`.trim(),
-      city: client.city,
-      state: client.state,
-      zip: client.zip,
+      city: client.city || formData.city,
+      state: client.state || formData.state,
+      zip: client.zip || formData.zip,
       sellerPhone: client.phone || "",
       sellerEmail: client.email || "",
-    }));
+    };
     
+    setFormData(newFormData);
     setShowSuggestions(false);
     setClientSuggestions([]);
     setLookingUp(true);
 
     // Look up property details using lookup-property edge function
+    let finalFormData = newFormData;
     try {
       const { data, error } = await supabase.functions.invoke('lookup-property', {
         body: {
@@ -703,30 +808,31 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
 
       if (!error && data?.matches?.length > 0) {
         const property = data.matches[0];
-        
-        setFormData(prev => ({
-          ...prev,
-          annualTaxes: property.taxes?.annual || prev.annualTaxes,
-        }));
-
-        toast({
-          title: "Client & Property Found!",
-          description: `Loaded ${client.name || `${client.firstName} ${client.lastName}`} from Stay in Touch`,
-        });
-      } else {
-        toast({
-          title: "Client Loaded",
-          description: `${client.name || `${client.firstName} ${client.lastName}`} from Stay in Touch`,
-        });
+        finalFormData = {
+          ...newFormData,
+          annualTaxes: property.taxes?.annual || newFormData.annualTaxes,
+        };
+        setFormData(finalFormData);
       }
     } catch (error: any) {
       console.error('Error looking up property:', error);
+    }
+
+    // Auto-save the property after client data is populated
+    const savedId = await performAutoSave(finalFormData, client.id);
+    
+    setLookingUp(false);
+    
+    if (savedId) {
+      toast({
+        title: "Property Auto-Saved",
+        description: `${client.name || `${client.firstName} ${client.lastName}`} loaded and saved`,
+      });
+    } else {
       toast({
         title: "Client Loaded",
         description: `${client.name || `${client.firstName} ${client.lastName}`} from Stay in Touch`,
       });
-    } finally {
-      setLookingUp(false);
     }
   };
 
@@ -1109,7 +1215,7 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
           </div>
         </Card>
 
-        <DocumentUploadSection propertyId={editingId} clientId={linkedClientId} />
+        <DocumentUploadSection propertyId={currentPropertyId} clientId={linkedClientId} />
 
         <Card className="p-6 mb-6">
           <h3 className="text-xl font-semibold mb-4 text-foreground">Contract Details</h3>
