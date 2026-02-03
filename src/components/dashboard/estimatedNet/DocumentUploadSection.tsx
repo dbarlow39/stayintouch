@@ -86,10 +86,25 @@ const DocumentUploadSection = ({ propertyId, clientId, onContractParsed }: Docum
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [parsing, setParsing] = useState(false);
+  const [parsingDots, setParsingDots] = useState(0);
   const [documents, setDocuments] = useState<PropertyDocument[]>([]);
   const [loading, setLoading] = useState(false);
   const [showTypeDialog, setShowTypeDialog] = useState(false);
   const [selectedDocType, setSelectedDocType] = useState<string>("purchase_contract");
+
+  // Ensure the UI shows motion even if CSS animations are reduced/disabled.
+  useEffect(() => {
+    if (!parsing) {
+      setParsingDots(0);
+      return;
+    }
+
+    const id = window.setInterval(() => {
+      setParsingDots((d) => (d + 1) % 4); // 0..3 dots
+    }, 350);
+
+    return () => window.clearInterval(id);
+  }, [parsing]);
 
   // Fetch documents when propertyId changes
   useEffect(() => {
@@ -399,12 +414,7 @@ const DocumentUploadSection = ({ propertyId, clientId, onContractParsed }: Docum
               <Loader2 className="h-4 w-4 text-green-600 animate-spin" />
             </div>
             <span className="text-green-700 dark:text-green-400 font-medium">
-              Analyzing contract
-              <span className="inline-flex ml-0.5">
-                <span className="animate-bounce" style={{ animationDelay: '0ms' }}>.</span>
-                <span className="animate-bounce" style={{ animationDelay: '150ms' }}>.</span>
-                <span className="animate-bounce" style={{ animationDelay: '300ms' }}>.</span>
-              </span>
+              Analyzing contract{Array.from({ length: parsingDots }).map(() => ".").join("")}
             </span>
           </div>
         ) : (
