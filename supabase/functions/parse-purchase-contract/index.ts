@@ -105,8 +105,11 @@ Extract these fields (return null if not found):
 
 - offerPrice: The total purchase/offer price from paragraph 1 (number only, no commas or $). The number may be written numerically (e.g., 350000) or spelled out (e.g., "three hundred fifty thousand") or both - extract the numeric value.
 - buyerAgentCommission: The buyer broker compensation percentage from paragraph 1.2 (number only, e.g., 3 for 3%). The number may be written numerically (1, 2, 3) or spelled out (one, two, three) or both - extract the numeric value. Default to 3 if not found.
-- deposit: The earnest money deposit amount from paragraph 2 (12) (number only, default to 0 if not found)
-- depositCollection: When/how the deposit is collected from paragraph 2 (text description)
+- deposit: From section 12.1, the Earnest Money Deposit amount (number only, no $ or commas). Default to 0 if not found.
+- depositCollection: From section 12.2, there are TWO sets of initial boxes separated by "OR":
+  * FIRST set initialed: deposit is "within 3 days of acceptance"
+  * SECOND set initialed: deposit is "upon expiration of remedy period"
+  Return the appropriate phrase based on which set has initials/marks. Default to "within 3 days of acceptance" if unclear.
 - buyerAgentName: Buyer agent's full name from paragraph 18.1
 - buyerAgentPhone: Buyer agent's cell phone number from paragraph 18.1
 - buyerAgentEmail: Buyer agent's email address from paragraph 18.1
