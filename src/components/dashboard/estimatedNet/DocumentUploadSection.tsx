@@ -17,6 +17,24 @@ import {
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 
+const AnalyzingToastDescription = ({ label }: { label: string }) => {
+  const [dots, setDots] = useState(0);
+  useEffect(() => {
+    const id = window.setInterval(() => setDots((d) => (d + 1) % 4), 350);
+    return () => window.clearInterval(id);
+  }, []);
+
+  return (
+    <span className="inline-flex items-center gap-2">
+      <Loader2 className="h-4 w-4 animate-spin" />
+      <span>
+        {label}
+        {Array.from({ length: dots }).map(() => ".").join("")}
+      </span>
+    </span>
+  );
+};
+
 const DOCUMENT_TYPES = [
   { value: "purchase_contract", label: "Purchase Contract" },
   { value: "counter_offer", label: "Counter Offer" },
@@ -83,6 +101,7 @@ interface DocumentUploadSectionProps {
 
 const DocumentUploadSection = ({ propertyId, clientId, onContractParsed }: DocumentUploadSectionProps) => {
   const { toast } = useToast();
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [parsing, setParsing] = useState(false);
@@ -151,7 +170,7 @@ const DocumentUploadSection = ({ propertyId, clientId, onContractParsed }: Docum
     try {
       toast({
         title: "Analyzing Contract",
-        description: "AI is extracting contract details...",
+        description: <AnalyzingToastDescription label="AI is extracting contract details" />,
       });
 
       const { data, error } = await supabase.functions.invoke('parse-purchase-contract', {
@@ -189,7 +208,7 @@ const DocumentUploadSection = ({ propertyId, clientId, onContractParsed }: Docum
     try {
       toast({
         title: "Analyzing Pre-Approval Letter",
-        description: "AI is extracting lender details...",
+        description: <AnalyzingToastDescription label="AI is extracting lender details" />,
       });
 
       const { data, error } = await supabase.functions.invoke('parse-preapproval-letter', {
