@@ -1890,36 +1890,39 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
         <Card className="p-6 mb-6">
           <h3 className="text-xl font-semibold mb-4 text-foreground">Parties of the Contract</h3>
           
-          {/* Line 1: Buyer Agent Name + Cell Phone */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-            <div>
-              <Label htmlFor="agentName">(18.1) Buyer Agent Name</Label>
-              <Input
-                id="agentName"
-                value={formData.agentName}
-                onChange={(e) => updateField("agentName", e.target.value)}
-              />
+          {/* Buyer Agent Section - Light Green Background */}
+          <div className="bg-green-50 p-4 rounded-lg mb-6">
+            {/* Line 1: Buyer Agent Name + Cell Phone */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <div>
+                <Label htmlFor="agentName">(18.1) Buyer Agent Name</Label>
+                <Input
+                  id="agentName"
+                  value={formData.agentName}
+                  onChange={(e) => updateField("agentName", e.target.value)}
+                />
+              </div>
+              <div>
+                <Label htmlFor="agentContact">(18.1) Buyer Agent Cell Phone</Label>
+                <Input
+                  id="agentContact"
+                  value={formData.agentContact}
+                  onChange={(e) => updateField("agentContact", e.target.value)}
+                />
+              </div>
             </div>
-            <div>
-              <Label htmlFor="agentContact">(18.1) Buyer Agent Cell Phone</Label>
-              <Input
-                id="agentContact"
-                value={formData.agentContact}
-                onChange={(e) => updateField("agentContact", e.target.value)}
-              />
-            </div>
-          </div>
 
-          {/* Line 2: Buyer Agent Email */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-            <div>
-              <Label htmlFor="agentEmail">(18.1) Buyer Agent Email</Label>
-              <Input
-                id="agentEmail"
-                type="email"
-                value={formData.agentEmail}
-                onChange={(e) => updateField("agentEmail", e.target.value)}
-              />
+            {/* Line 2: Buyer Agent Email */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="agentEmail">(18.1) Buyer Agent Email</Label>
+                <Input
+                  id="agentEmail"
+                  type="email"
+                  value={formData.agentEmail}
+                  onChange={(e) => updateField("agentEmail", e.target.value)}
+                />
+              </div>
             </div>
           </div>
 
