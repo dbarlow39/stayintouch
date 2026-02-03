@@ -657,7 +657,8 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
         listing_agent_commission: Number(formData.listingAgentCommission) || 0,
         buyer_agent_commission: Number(formData.buyerAgentCommission) || 0,
         closing_cost: Number(formData.closingCost) || 0,
-        type_of_loan: formData.typeOfLoan,
+        // Persist canonical values so subsequent loads always match the Select options.
+        type_of_loan: normalizeTypeOfLoan(formData.typeOfLoan) || "Other",
         lender_name: formData.lenderName || null,
         lending_officer: formData.lendingOfficer || null,
         lending_officer_phone: formData.lendingOfficerPhone || null,
@@ -671,7 +672,8 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
         home_warranty: Number(formData.homeWarranty) || 0,
         home_warranty_company: formData.homeWarrantyCompany,
         deposit: Number(formData.deposit) || 0,
-        deposit_collection: formData.depositCollection,
+        // Persist canonical values so subsequent loads always match the Select options.
+        deposit_collection: normalizeDepositCollection(formData.depositCollection) || "Other",
         in_contract: formData.inContract || null,
         closing_date: formData.closingDate || null,
         possession: formData.possession || null,
@@ -1568,7 +1570,10 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
             </div>
             <div>
               <Label htmlFor="typeOfLoan">(3.2b) Type of Loan</Label>
-              <Select value={formData.typeOfLoan} onValueChange={(value) => updateField("typeOfLoan", value)}>
+              <Select
+                value={normalizeTypeOfLoan(formData.typeOfLoan) || "Other"}
+                onValueChange={(value) => updateField("typeOfLoan", value)}
+              >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
