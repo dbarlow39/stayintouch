@@ -296,7 +296,7 @@ const UpcomingClosingsView = ({ onBack }: UpcomingClosingsViewProps) => {
                         <TableHead className="px-2">Address</TableHead>
                         <TableHead className="px-2">Client Name</TableHead>
                         <TableHead className="px-2">Cell Phone</TableHead>
-                        <TableHead className="px-2">Email</TableHead>
+                        <TableHead className="px-2 no-print">Email</TableHead>
                         <TableHead className="px-2 text-right">Sales Price</TableHead>
                         <TableHead className="px-2 text-right">Commission</TableHead>
                         <TableHead className="px-2">Buyer's Agent</TableHead>
@@ -322,7 +322,7 @@ const UpcomingClosingsView = ({ onBack }: UpcomingClosingsViewProps) => {
                             <TableCell className="px-2 whitespace-nowrap">
                               {formatPhoneLink(closing.seller_phone)}
                             </TableCell>
-                            <TableCell className="px-2 max-w-[150px] truncate">
+                            <TableCell className="px-2 max-w-[150px] truncate no-print">
                               {formatEmailLink(closing.seller_email)}
                             </TableCell>
                             <TableCell className="px-2 text-right whitespace-nowrap">
@@ -342,9 +342,10 @@ const UpcomingClosingsView = ({ onBack }: UpcomingClosingsViewProps) => {
                       })}
                       {/* Month totals row */}
                       <TableRow className="bg-muted/50 font-semibold totals-row">
-                        <TableCell colSpan={5} className="px-2 text-right">
+                        <TableCell colSpan={4} className="px-2 text-right">
                           Month Totals:
                         </TableCell>
+                        <TableCell className="px-2 no-print" />
                         <TableCell className="px-2 text-right">
                           {formatCurrency(
                             monthClosings.reduce((sum, c) => sum + c.offer_price, 0)
