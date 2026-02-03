@@ -1502,7 +1502,7 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
               />
             </div>
             <div>
-              <Label htmlFor="typeOfLoan">Type of Loan</Label>
+              <Label htmlFor="typeOfLoan">(3.2b) Type of Loan</Label>
               <Select value={formData.typeOfLoan} onValueChange={(value) => updateField("typeOfLoan", value)}>
                 <SelectTrigger>
                   <SelectValue />
