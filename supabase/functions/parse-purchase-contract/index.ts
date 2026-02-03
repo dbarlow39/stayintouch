@@ -70,6 +70,35 @@ serve(async (req) => {
       });
     }
 
+    const callLovableAI = async (prompt: string, model: string) => {
+      const res = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model,
+          temperature: 0,
+          messages: [
+            {
+              role: 'user',
+              content: [
+                { type: 'text', text: prompt },
+                {
+                  type: 'image_url',
+                  image_url: {
+                    url: `data:${mimeType};base64,${base64Content}`,
+                  },
+                },
+              ],
+            },
+          ],
+        }),
+      });
+      return res;
+    };
+
     const extractionPrompt = `You are an expert real estate contract analyzer. Extract the following fields from this purchase contract document and return them as a FLAT JSON object (not nested).
 
 Extract these fields (return null if not found):
@@ -121,30 +150,7 @@ Use null for any field not found. Numbers should be plain numbers without format
 
     console.log('Calling AI to extract contract fields...');
 
-    const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
-        messages: [
-          {
-            role: 'user',
-            content: [
-              { type: 'text', text: extractionPrompt },
-              {
-                type: 'image_url',
-                image_url: {
-                  url: `data:${mimeType};base64,${base64Content}`,
-                },
-              },
-            ],
-          },
-        ],
-      }),
-    });
+    const aiResponse = await callLovableAI(extractionPrompt, 'google/gemini-2.5-flash');
 
     if (!aiResponse.ok) {
       if (aiResponse.status === 429) {
@@ -203,6 +209,53 @@ Use null for any field not found. Numbers should be plain numbers without format
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
+    }
+
+    // Second pass: Appraisal Contingency is frequently missed/misread.
+    // Run a focused extraction using a higher-accuracy model and override the first-pass value.
+    try {
+      const appraisalPrompt = `You are validating ONE field in a real estate purchase contract.
+
+TASK:
+Determine the Appraisal Contingency value for section 3.2(d).
+
+RULES:
+- There are two checkboxes in the pattern: "[ ] is [ ] is not contingent" (or similar).
+- If the FIRST checkbox (before the word "is") has ANY mark (X, ✓, filled, etc.), appraisalContingency = true.
+- If the SECOND checkbox (before the words "is not") has ANY mark, appraisalContingency = false.
+- Do NOT guess. If you cannot clearly see which box is marked, return null.
+
+Return ONLY valid JSON:
+{ "appraisalContingency": true | false | null }`;
+
+      console.log('Calling AI (2nd pass) to extract appraisal contingency...');
+      const appraisalRes = await callLovableAI(appraisalPrompt, 'google/gemini-2.5-pro');
+
+      if (appraisalRes.ok) {
+        const appraisalJson = await appraisalRes.json();
+        const appraisalContent = appraisalJson.choices?.[0]?.message?.content;
+        if (appraisalContent) {
+          let jsonStr = String(appraisalContent).trim();
+          if (jsonStr.startsWith('```json')) jsonStr = jsonStr.slice(7);
+          else if (jsonStr.startsWith('```')) jsonStr = jsonStr.slice(3);
+          if (jsonStr.endsWith('```')) jsonStr = jsonStr.slice(0, -3);
+
+          const parsed = JSON.parse(jsonStr.trim());
+          const ac = parsed?.appraisalContingency;
+          if (ac === true || ac === false) {
+            extractedData.appraisalContingency = ac;
+            console.log('Appraisal contingency overridden by 2nd pass:', ac);
+          } else {
+            console.log('2nd pass appraisal contingency returned null/invalid; keeping first pass value');
+          }
+        }
+      } else {
+        const t = await appraisalRes.text();
+        console.error('2nd pass appraisal contingency AI error:', appraisalRes.status, t);
+      }
+    } catch (e) {
+      console.error('2nd pass appraisal contingency extraction failed:', e);
+      // Keep the first pass value
     }
 
     console.log('Extracted contract data:', extractedData);
