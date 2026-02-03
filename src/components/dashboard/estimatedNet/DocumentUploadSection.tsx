@@ -395,11 +395,11 @@ const DocumentUploadSection = ({ propertyId, clientId, onContractParsed }: Docum
           variant="outline"
           onClick={handleUploadClick}
           disabled={isProcessing || !propertyId}
-          className={parsing ? "animate-pulse bg-green-500/20 border-green-500 text-green-700 dark:text-green-400" : ""}
+          className={parsing ? "animate-pulse-green text-green-700 dark:text-green-400" : ""}
         >
           {parsing ? (
             <>
-              <Sparkles className="h-4 w-4 mr-2 animate-pulse text-green-500" />
+              <Sparkles className="h-4 w-4 mr-2 animate-spin text-green-500" />
               Analyzing...
             </>
           ) : uploading ? (
