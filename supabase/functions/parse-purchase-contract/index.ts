@@ -119,12 +119,12 @@ Extract these fields (return null if not found):
 - city: City from paragraph 4
 - state: State (2-letter abbreviation) from paragraph 4
 - zip: ZIP code from paragraph 4
-- typeOfLoan: From section 3.2(b) "Loan Application", find line "a)" which says "make formal application for a (write in type of loan: Conventional, FHA, VA, USDA) _____ loan". The type of loan is written on the blank line AFTER the parenthetical instruction. Look for handwritten or typed text like "conventional", "FHA", "VA", "USDA", "Cash", etc. Extract that value.
+- typeOfLoan: From section 3.2(b) "Loan Application". Look at line "a)" which spans TWO lines and reads: "make formal application for a (write in type of loan: Conventional, FHA, VA, USDA) _____ loan". The type of loan is HANDWRITTEN or TYPED on the blank line that appears AFTER the parenthetical instruction and BEFORE the word "loan". Common values: "conventional", "FHA", "VA", "USDA", "Cash". If blank or unreadable, default to "Conventional".
+- loanAppTimeFrame: From section 3.2(b) "Loan Application", line "(i)" which reads "Within ___ calendar days, (if left blank, the number of calendar days shall be 7)...". Extract the handwritten/typed NUMBER from the blank line. If blank, return 7. This is the number of days for the buyer to submit a formal loan application.
 - preApprovalDays: From section 3.2(a) "Lender Pre-Qualification". The clause reads: "Buyer [BOX1][BOX2] (insert initials here) has delivered OR [BOX3][BOX4] (insert initials here) shall deliver within ___ calendar days..."
   * FIRST SET (BOX1+BOX2, BEFORE "OR"): If these boxes have initials/marks → the pre-approval letter has been RECEIVED → return 0.
   * SECOND SET (BOX3+BOX4, AFTER "OR"): If these boxes have initials/marks → extract the number from the blank line after "within". If blank, return 2.
   Return the number of days (0 if received, or the number of days if pending). Default to 2 if unclear.
-- loanAppTimeFrame: Timeframe for loan application from paragraph 5 (3.2b)
 - loanCommitment: Loan commitment date or timeframe from paragraph 5 (3.2c)
 - appraisalContingency: From section 3.2(d), find the appraisal contingency checkboxes. There are TWO checkboxes in the pattern "[ ] is [ ] is not contingent". Look carefully at WHICH box has a mark (X, ✓, filled, or any mark). If the FIRST checkbox (the one immediately before the word "is") has ANY mark in it, return true. If the SECOND checkbox (the one before "is not") has a mark, return false. The first box being checked means the buyer WANTS the appraisal contingency protection. CRITICAL: Examine both boxes carefully - only ONE should be marked. First box marked = true, second box marked = false.
 - inspectionDays: Number of days for inspection from paragraph 7 (number only)
