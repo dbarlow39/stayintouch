@@ -55,7 +55,9 @@ const DocumentUploadSection = ({ propertyId, clientId }: DocumentUploadSectionPr
     }
   };
 
-  const handleFileSelect = () => {
+  const handleFileSelect = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
     fileInputRef.current?.click();
   };
 
