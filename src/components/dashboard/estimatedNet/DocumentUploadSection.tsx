@@ -306,6 +306,26 @@ const DocumentUploadSection = ({ propertyId, clientId, onContractParsed }: Docum
     }
   };
 
+  const handleOpenDocument = async (doc: PropertyDocument) => {
+    try {
+      const { data, error } = await supabase.storage
+        .from("deal-documents")
+        .download(doc.file_path);
+
+      if (error) throw error;
+
+      const url = URL.createObjectURL(data);
+      window.open(url, "_blank");
+    } catch (error: any) {
+      console.error("Open error:", error);
+      toast({
+        title: "Could not open document",
+        description: error.message || "Failed to open document",
+        variant: "destructive",
+      });
+    }
+  };
+
   const formatFileSize = (bytes: number | null) => {
     if (!bytes) return "";
     if (bytes < 1024) return `${bytes} B`;
@@ -413,7 +433,11 @@ const DocumentUploadSection = ({ propertyId, clientId, onContractParsed }: Docum
               key={doc.id}
               className="flex items-center justify-between p-3 bg-muted/50 rounded-lg hover:bg-muted transition-colors"
             >
-              <div className="flex items-center gap-3 overflow-hidden">
+              <button
+                type="button"
+                onClick={() => handleOpenDocument(doc)}
+                className="flex items-center gap-3 overflow-hidden text-left hover:underline cursor-pointer"
+              >
                 {getFileIcon(doc.file_type)}
                 <div className="overflow-hidden">
                   <p className="font-medium truncate">{doc.file_name}</p>
@@ -421,7 +445,7 @@ const DocumentUploadSection = ({ propertyId, clientId, onContractParsed }: Docum
                     {formatFileSize(doc.file_size)} • {new Date(doc.uploaded_at).toLocaleDateString()}
                   </p>
                 </div>
-              </div>
+              </button>
               <div className="flex items-center gap-1 shrink-0">
                 <Button
                   type="button"
