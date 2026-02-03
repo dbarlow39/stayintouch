@@ -106,10 +106,10 @@ Extract these fields (return null if not found):
 - offerPrice: The total purchase/offer price from paragraph 1 (number only, no commas or $). The number may be written numerically (e.g., 350000) or spelled out (e.g., "three hundred fifty thousand") or both - extract the numeric value.
 - buyerAgentCommission: The buyer broker compensation percentage from paragraph 1.2 (number only, e.g., 3 for 3%). The number may be written numerically (1, 2, 3) or spelled out (one, two, three) or both - extract the numeric value. Default to 3 if not found.
 - deposit: From section 12.1, the Earnest Money Deposit amount (number only, no $ or commas). Default to 0 if not found.
-- depositCollection: From section 12.2, there are TWO sets of initial boxes separated by "OR":
-  * FIRST set initialed: deposit is "within 3 days of acceptance"
-  * SECOND set initialed: deposit is "upon expiration of remedy period"
-  Return the appropriate phrase based on which set has initials/marks. Default to "within 3 days of acceptance" if unclear.
+- depositCollection: From section 12.2, there are TWO sets of initial boxes separated by "OR". The structure reads: "Buyer [BOX1][BOX2] (insert initials here) shall deposit ... within 3 banking days of acceptance OR [BOX3][BOX4] (insert initials here) within 3 banking days of expiration of remedy period..."
+  * FIRST SET (BOX1+BOX2, BEFORE "OR"): If these boxes have initials/marks → return "Within 3 Days of Acceptance"
+  * SECOND SET (BOX3+BOX4, AFTER "OR"): If these boxes have initials/marks → return "Within 3 Days of Remedy Expiration"
+  Return the EXACT phrase based on which set has initials/marks. Default to "Within 3 Days of Acceptance" if unclear.
 - buyerAgentName: Buyer agent's full name from paragraph 18.1
 - buyerAgentPhone: Buyer agent's cell phone number from paragraph 18.1
 - buyerAgentEmail: Buyer agent's email address from paragraph 18.1
