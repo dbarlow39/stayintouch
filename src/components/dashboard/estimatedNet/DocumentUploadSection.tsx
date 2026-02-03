@@ -4,6 +4,26 @@ import { Card } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Upload, File, Trash2, Loader2, FileText, Download } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
+
+const DOCUMENT_TYPES = [
+  { value: "purchase_contract", label: "A Purchase Contract" },
+  { value: "lender_pre_approval", label: "Lender Pre-Approval" },
+  { value: "inspection_report", label: "Inspection Report" },
+  { value: "appraisal", label: "Appraisal" },
+  { value: "other", label: "Other" },
+] as const;
 
 interface PropertyDocument {
   id: string;
@@ -11,6 +31,7 @@ interface PropertyDocument {
   file_path: string;
   file_size: number | null;
   file_type: string | null;
+  document_category?: string | null;
   uploaded_at: string;
 }
 
@@ -25,6 +46,8 @@ const DocumentUploadSection = ({ propertyId, clientId }: DocumentUploadSectionPr
   const [uploading, setUploading] = useState(false);
   const [documents, setDocuments] = useState<PropertyDocument[]>([]);
   const [loading, setLoading] = useState(false);
+  const [showTypeDialog, setShowTypeDialog] = useState(false);
+  const [selectedDocType, setSelectedDocType] = useState<string>("purchase_contract");
 
   // Fetch documents when propertyId changes
   useEffect(() => {
@@ -55,9 +78,14 @@ const DocumentUploadSection = ({ propertyId, clientId }: DocumentUploadSectionPr
     }
   };
 
-  const handleFileSelect = (e: React.MouseEvent) => {
+  const handleUploadClick = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    setShowTypeDialog(true);
+  };
+
+  const handleTypeConfirm = () => {
+    setShowTypeDialog(false);
     fileInputRef.current?.click();
   };
 
@@ -209,7 +237,7 @@ const DocumentUploadSection = ({ propertyId, clientId }: DocumentUploadSectionPr
         <Button
           type="button"
           variant="outline"
-          onClick={handleFileSelect}
+          onClick={handleUploadClick}
           disabled={uploading || !propertyId}
         >
           {uploading ? (
@@ -220,6 +248,35 @@ const DocumentUploadSection = ({ propertyId, clientId }: DocumentUploadSectionPr
           Upload
         </Button>
       </div>
+
+      <AlertDialog open={showTypeDialog} onOpenChange={setShowTypeDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>What type of document are you uploading?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Select the document category to help organize your files.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <RadioGroup
+            value={selectedDocType}
+            onValueChange={setSelectedDocType}
+            className="gap-3 py-4"
+          >
+            {DOCUMENT_TYPES.map((type) => (
+              <div key={type.value} className="flex items-center space-x-3">
+                <RadioGroupItem value={type.value} id={type.value} />
+                <Label htmlFor={type.value} className="cursor-pointer font-normal">
+                  {type.label}
+                </Label>
+              </div>
+            ))}
+          </RadioGroup>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleTypeConfirm}>Continue</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <input
         type="file"
