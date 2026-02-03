@@ -1889,7 +1889,9 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
 
         <Card className="p-6 mb-6">
           <h3 className="text-xl font-semibold mb-4 text-foreground">Parties of the Contract</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          
+          {/* Buyer Agent Section */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             <div>
               <Label htmlFor="agentName">(18.1) Buyer Agent Name</Label>
               <Input
@@ -1915,22 +1917,10 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
                 onChange={(e) => updateField("agentEmail", e.target.value)}
               />
             </div>
-            <div>
-              <Label htmlFor="buyerName1">(18.1) Buyer Name 1</Label>
-              <Input
-                id="buyerName1"
-                value={formData.buyerName1 || ""}
-                onChange={(e) => updateField("buyerName1", e.target.value)}
-              />
-            </div>
-            <div>
-              <Label htmlFor="buyerName2">(18.1) Buyer Name 2</Label>
-              <Input
-                id="buyerName2"
-                value={formData.buyerName2 || ""}
-                onChange={(e) => updateField("buyerName2", e.target.value)}
-              />
-            </div>
+          </div>
+
+          {/* Lender Section */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
             <div>
               <Label htmlFor="lenderName">Lender Name</Label>
               <Input
@@ -1963,6 +1953,26 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
                 type="email"
                 value={formData.lendingOfficerEmail || ""}
                 onChange={(e) => updateField("lendingOfficerEmail", e.target.value)}
+              />
+            </div>
+          </div>
+
+          {/* Buyer Names Section */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="buyerName1">(18.1) Buyer Name 1</Label>
+              <Input
+                id="buyerName1"
+                value={formData.buyerName1 || ""}
+                onChange={(e) => updateField("buyerName1", e.target.value)}
+              />
+            </div>
+            <div>
+              <Label htmlFor="buyerName2">(18.1) Buyer Name 2</Label>
+              <Input
+                id="buyerName2"
+                value={formData.buyerName2 || ""}
+                onChange={(e) => updateField("buyerName2", e.target.value)}
               />
             </div>
           </div>
