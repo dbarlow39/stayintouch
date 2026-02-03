@@ -338,7 +338,7 @@ const OfferSummaryView = ({ propertyData, propertyId, onBack, onEdit, onNavigate
               <div className="space-y-1 mb-6">
                 <h3 className="text-lg font-semibold text-foreground mb-3">Loan Information</h3>
                 <SummaryRow label="Type of Loan" value={propertyData.typeOfLoan || "Not specified"} />
-                <SummaryRow label="Pre-Approval (Days)" value={propertyData.preApprovalDays || 0} />
+                <SummaryRow label="Pre-Approval (Days)" value={propertyData.preApprovalDays === 0 ? "Received" : propertyData.preApprovalDays} />
                 {propertyData.appliances && <SummaryRow label="Appliances" value={propertyData.appliances} />}
               </div>
 
