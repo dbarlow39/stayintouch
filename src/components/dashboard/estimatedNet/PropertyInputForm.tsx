@@ -1571,11 +1571,13 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
             <div>
               <Label htmlFor="typeOfLoan">(3.2b) Type of Loan</Label>
               <Select
-                value={normalizeTypeOfLoan(formData.typeOfLoan) || "Other"}
+                key={`typeOfLoan-${formData.typeOfLoan || 'default'}`}
+                value={normalizeTypeOfLoan(formData.typeOfLoan) || "Conventional"}
                 onValueChange={(value) => updateField("typeOfLoan", value)}
+                defaultValue="Conventional"
               >
                 <SelectTrigger>
-                  <SelectValue />
+                  <SelectValue placeholder="Conventional" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="Conventional">Conventional</SelectItem>
