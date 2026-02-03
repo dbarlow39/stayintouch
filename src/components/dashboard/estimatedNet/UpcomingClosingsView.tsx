@@ -3,12 +3,88 @@ import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ArrowLeft, Calendar } from "lucide-react";
+import { ArrowLeft, Calendar, Printer } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { formatCurrency } from "@/utils/estimatedNetCalculations";
 import { format, parseISO, isValid, startOfMonth, addMonths } from "date-fns";
 import { getEmailLink } from "@/utils/emailClientUtils";
+
+const printStyles = `
+@media print {
+  @page {
+    size: landscape;
+    margin: 0.5in;
+  }
+  
+  body * {
+    visibility: hidden;
+  }
+  
+  .print-area, .print-area * {
+    visibility: visible;
+  }
+  
+  .print-area {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+  }
+  
+  .no-print {
+    display: none !important;
+  }
+  
+  .print-area table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 10pt;
+  }
+  
+  .print-area th,
+  .print-area td {
+    border: 1px solid #ddd;
+    padding: 4px 8px;
+    text-align: left;
+  }
+  
+  .print-area th {
+    background-color: #f5f5f5 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  
+  .print-area .month-card {
+    page-break-inside: avoid;
+    margin-bottom: 20px;
+  }
+  
+  .print-area .totals-row {
+    background-color: #f9f9f9 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    font-weight: bold;
+  }
+  
+  .print-area .grand-totals {
+    margin-top: 20px;
+    padding: 15px;
+    border: 2px solid #333;
+    page-break-inside: avoid;
+  }
+  
+  .print-area h2 {
+    font-size: 18pt;
+    margin-bottom: 5px;
+  }
+  
+  .print-area h3 {
+    font-size: 14pt;
+    margin-bottom: 10px;
+  }
+}
+`;
 
 interface UpcomingClosingsViewProps {
   onBack: () => void;
@@ -143,18 +219,45 @@ const UpcomingClosingsView = ({ onBack }: UpcomingClosingsViewProps) => {
     );
   };
 
+  const handlePrint = () => {
+    // Inject print styles
+    const styleSheet = document.createElement("style");
+    styleSheet.id = "print-styles";
+    styleSheet.textContent = printStyles;
+    document.head.appendChild(styleSheet);
+
+    window.print();
+
+    // Clean up styles after printing
+    setTimeout(() => {
+      const style = document.getElementById("print-styles");
+      if (style) style.remove();
+    }, 1000);
+  };
+
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={onBack}>
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
-        <div>
-          <h2 className="text-2xl font-bold">Upcoming Closings</h2>
-          <p className="text-muted-foreground">
-            View all scheduled closings organized by month
-          </p>
+    <div className="space-y-6 print-area">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon" onClick={onBack} className="no-print">
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <div>
+            <h2 className="text-2xl font-bold">Upcoming Closings</h2>
+            <p className="text-muted-foreground no-print">
+              View all scheduled closings organized by month
+            </p>
+            <p className="hidden print:block text-sm text-muted-foreground">
+              Generated on {format(new Date(), "MMMM d, yyyy")}
+            </p>
+          </div>
         </div>
+        {closingsByMonth.length > 0 && (
+          <Button onClick={handlePrint} className="no-print">
+            <Printer className="h-4 w-4 mr-2" />
+            Print
+          </Button>
+        )}
       </div>
 
       {isLoading ? (
@@ -174,7 +277,7 @@ const UpcomingClosingsView = ({ onBack }: UpcomingClosingsViewProps) => {
       ) : (
         <div className="space-y-8">
           {closingsByMonth.map(([month, monthClosings]) => (
-            <Card key={month}>
+            <Card key={month} className="month-card">
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2">
                   <Calendar className="h-5 w-5" />
@@ -238,7 +341,7 @@ const UpcomingClosingsView = ({ onBack }: UpcomingClosingsViewProps) => {
                         );
                       })}
                       {/* Month totals row */}
-                      <TableRow className="bg-muted/50 font-semibold">
+                      <TableRow className="bg-muted/50 font-semibold totals-row">
                         <TableCell colSpan={5} className="px-2 text-right">
                           Month Totals:
                         </TableCell>
@@ -265,7 +368,7 @@ const UpcomingClosingsView = ({ onBack }: UpcomingClosingsViewProps) => {
           ))}
 
           {/* Grand totals card */}
-          <Card className="bg-primary/5 border-primary/20">
+          <Card className="bg-primary/5 border-primary/20 grand-totals">
             <CardContent className="py-4">
               <div className="flex flex-wrap justify-between items-center gap-4">
                 <div>
