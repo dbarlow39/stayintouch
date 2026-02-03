@@ -26,6 +26,7 @@ const DOCUMENT_TYPES = [
 
 export interface ContractExtractedData {
   offerPrice?: number | null;
+  buyerAgentCommission?: number | null;
   deposit?: number | null;
   depositCollection?: string | null;
   buyerName1?: string | null;

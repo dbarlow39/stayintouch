@@ -769,7 +769,7 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
       if (data.zip && !prev.zip) {
         updates.zip = data.zip;
       }
-      if (data.typeOfLoan && prev.typeOfLoan === "Conventional") {
+      if (data.typeOfLoan && !prev.typeOfLoan) {
         updates.typeOfLoan = data.typeOfLoan;
       }
       if (data.lenderName && !prev.lenderName) {
@@ -784,19 +784,19 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
       if (data.lendingOfficerEmail && !prev.lendingOfficerEmail) {
         updates.lendingOfficerEmail = data.lendingOfficerEmail;
       }
-      if (data.preApprovalDays != null && prev.preApprovalDays === 2) {
+      if (data.preApprovalDays != null && (prev.preApprovalDays === 2 || prev.preApprovalDays === 0)) {
         updates.preApprovalDays = data.preApprovalDays;
       }
-      if (data.loanAppTimeFrame && prev.loanAppTimeFrame === "7") {
-        updates.loanAppTimeFrame = data.loanAppTimeFrame;
+      if (data.loanAppTimeFrame != null && (prev.loanAppTimeFrame === "7" || !prev.loanAppTimeFrame)) {
+        updates.loanAppTimeFrame = String(data.loanAppTimeFrame);
       }
       if (data.loanCommitment && !prev.loanCommitment) {
-        updates.loanCommitment = data.loanCommitment;
+        updates.loanCommitment = String(data.loanCommitment);
       }
       if (data.appraisalContingency != null) {
         updates.appraisalContingency = data.appraisalContingency;
       }
-      if (data.inspectionDays != null && prev.inspectionDays === 7) {
+      if (data.inspectionDays != null && (prev.inspectionDays === 7 || prev.inspectionDays === 0)) {
         updates.inspectionDays = data.inspectionDays;
       }
       if (data.closingDate && !prev.closingDate) {
@@ -817,7 +817,7 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
       if (data.appliances && !prev.appliances) {
         updates.appliances = data.appliances;
       }
-      if (data.remedyPeriodDays != null && prev.remedyPeriodDays === 2) {
+      if (data.remedyPeriodDays != null && (prev.remedyPeriodDays === 2 || prev.remedyPeriodDays === 0)) {
         updates.remedyPeriodDays = data.remedyPeriodDays;
       }
       if (data.listingAgentName && !prev.listingAgentName) {
@@ -838,8 +838,12 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
       if (data.inContract && !prev.inContract) {
         updates.inContract = data.inContract;
       }
-      if (data.finalWalkThrough && prev.finalWalkThrough === "48 hours prior to close") {
+      if (data.finalWalkThrough && (!prev.finalWalkThrough || prev.finalWalkThrough === "48 hours prior to close")) {
         updates.finalWalkThrough = data.finalWalkThrough;
+      }
+      // Buyer agent commission (1.2)
+      if (data.buyerAgentCommission != null && (prev.buyerAgentCommission === 3 || prev.buyerAgentCommission === 0)) {
+        updates.buyerAgentCommission = data.buyerAgentCommission;
       }
       // Buyer agent fields (18.1)
       if (data.buyerAgentName && !prev.agentName) {
