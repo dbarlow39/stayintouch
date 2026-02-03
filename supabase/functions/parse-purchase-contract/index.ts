@@ -49,8 +49,25 @@ serve(async (req) => {
       });
     }
 
-    // Convert file to base64 for AI processing (chunked to avoid stack overflow)
+    // Check file size - edge functions have ~256MB memory limit
+    // A 10MB PDF becomes ~13-14MB base64, and we make multiple API calls
+    // Limit to 8MB to be safe with memory overhead
+    const MAX_FILE_SIZE = 8 * 1024 * 1024; // 8MB
     const arrayBuffer = await fileData.arrayBuffer();
+    const fileSizeMB = (arrayBuffer.byteLength / (1024 * 1024)).toFixed(2);
+    console.log(`File size: ${fileSizeMB}MB`);
+    
+    if (arrayBuffer.byteLength > MAX_FILE_SIZE) {
+      console.error(`File too large: ${fileSizeMB}MB exceeds ${MAX_FILE_SIZE / (1024 * 1024)}MB limit`);
+      return new Response(JSON.stringify({ 
+        error: `File too large (${fileSizeMB}MB). Please upload a PDF under 8MB. Tip: Split multi-page contracts or reduce scan quality.` 
+      }), {
+        status: 413,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Convert file to base64 for AI processing (chunked to avoid stack overflow)
     const uint8Array = new Uint8Array(arrayBuffer);
     let binaryString = '';
     const chunkSize = 8192;
@@ -60,6 +77,13 @@ serve(async (req) => {
     }
     const base64Content = btoa(binaryString);
     const mimeType = fileData.type || 'application/pdf';
+    
+    // Determine if we should skip multi-pass extraction for larger files
+    // Files over 4MB use single-pass only to conserve memory
+    const useSinglePassOnly = arrayBuffer.byteLength > 4 * 1024 * 1024;
+    if (useSinglePassOnly) {
+      console.log('Large file detected, using single-pass extraction only');
+    }
 
     // Use Lovable AI to extract contract fields
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
@@ -258,10 +282,12 @@ Use null for any field not found. Numbers should be plain numbers without format
     // Normalize typeOfLoan into the canonical values used by the UI.
     extractedData.typeOfLoan = normalizeTypeOfLoan(extractedData.typeOfLoan);
 
-    // Second pass: Appraisal Contingency is frequently missed/misread.
-    // Run a focused extraction using a higher-accuracy model and override the first-pass value.
-    try {
-      const appraisalPrompt = `You are validating ONE field in a real estate purchase contract.
+    // Multi-pass refinement - skip for large files to conserve memory
+    if (!useSinglePassOnly) {
+      // Second pass: Appraisal Contingency is frequently missed/misread.
+      // Run a focused extraction using a higher-accuracy model and override the first-pass value.
+      try {
+        const appraisalPrompt = `You are validating ONE field in a real estate purchase contract.
 
 TASK:
 Determine the Appraisal Contingency value for section 3.2(d).
@@ -400,10 +426,11 @@ Return ONLY valid JSON:
         const t = await loanTypeRes.text();
         console.error('4th pass typeOfLoan AI error:', loanTypeRes.status, t);
       }
-    } catch (e) {
-      console.error('4th pass typeOfLoan extraction failed:', e);
-      // Keep the first pass value
-    }
+      } catch (e) {
+        console.error('4th pass typeOfLoan extraction failed:', e);
+        // Keep the first pass value
+      }
+    } // End of !useSinglePassOnly block
 
     console.log('Extracted contract data:', extractedData);
 
