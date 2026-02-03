@@ -100,6 +100,8 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
   const [showSuggestions, setShowSuggestions] = useState(false);
   const autocompleteTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const hydratedKeyRef = useRef<string | null>(null);
+  const [preApprovalFocused, setPreApprovalFocused] = useState(false);
+  const [preApprovalText, setPreApprovalText] = useState<string>("");
 
   // Helper function to convert text to title case
   const toTitleCase = (text: string): string => {
@@ -1193,17 +1195,22 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
               <Input
                 id="preApprovalDays"
                 type="text"
-                value={formData.preApprovalDays === 0 ? "Received" : formData.preApprovalDays?.toString() ?? ""}
+                inputMode="numeric"
+                value={preApprovalFocused ? preApprovalText : (formData.preApprovalDays === 0 ? "Received" : String(formData.preApprovalDays ?? ""))}
+                onFocus={() => {
+                  setPreApprovalFocused(true);
+                  setPreApprovalText(formData.preApprovalDays === 0 ? "" : String(formData.preApprovalDays ?? ""));
+                }}
                 onChange={(e) => {
                   const val = e.target.value;
-                  if (val === "" || val.toLowerCase() === "received") {
-                    updateField("preApprovalDays", 0);
-                  } else {
-                    const num = parseInt(val);
-                    if (!isNaN(num)) {
-                      updateField("preApprovalDays", num);
-                    }
+                  if (val === "" || /^\d*$/.test(val)) {
+                    setPreApprovalText(val);
                   }
+                }}
+                onBlur={() => {
+                  const num = preApprovalText.trim() === "" ? 0 : parseInt(preApprovalText, 10);
+                  updateField("preApprovalDays", isNaN(num) ? 0 : num);
+                  setPreApprovalFocused(false);
                 }}
                 placeholder="0 = Received"
               />
