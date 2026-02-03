@@ -99,6 +99,29 @@ serve(async (req) => {
       return res;
     };
 
+    const normalizeTypeOfLoan = (raw: unknown): string | null => {
+      if (raw == null) return null;
+      const v = String(raw).trim();
+      if (!v) return null;
+      const lower = v.toLowerCase();
+
+      if (lower === "conventional") return "Conventional";
+      if (lower === "fha") return "FHA";
+      if (lower === "va") return "VA";
+      if (lower === "usda") return "USDA";
+      if (lower === "cash") return "Cash";
+      if (lower === "other") return "Other";
+
+      const lettersOnly = lower.replace(/[^a-z]/g, "");
+      if (lettersOnly.includes("conventional") || lettersOnly.includes("ventional") || lettersOnly.startsWith("conv")) return "Conventional";
+      if (lettersOnly.includes("fha")) return "FHA";
+      if (lettersOnly.includes("usda")) return "USDA";
+      if (lettersOnly.includes("cash")) return "Cash";
+      if (/(^|\b)v\.?a\.?($|\b)/i.test(v) || lettersOnly === "va" || lettersOnly.includes("veterans")) return "VA";
+
+      return null;
+    };
+
     const extractionPrompt = `You are an expert real estate contract analyzer. Extract the following fields from this purchase contract document and return them as a FLAT JSON object (not nested).
 
 Extract these fields (return null if not found):
@@ -119,7 +142,9 @@ Extract these fields (return null if not found):
 - city: City from paragraph 4
 - state: State (2-letter abbreviation) from paragraph 4
 - zip: ZIP code from paragraph 4
-- typeOfLoan: From section 3.2(b) "Loan Application". Look at line "a)" which spans TWO lines and reads: "make formal application for a (write in type of loan: Conventional, FHA, VA, USDA) _____ loan". The type of loan is HANDWRITTEN or TYPED on the blank line that appears AFTER the parenthetical instruction and BEFORE the word "loan". Common values: "conventional", "FHA", "VA", "USDA", "Cash". If blank or unreadable, default to "Conventional".
+- typeOfLoan: From section 3.2(b) "Loan Application". Look at line "a)" which spans TWO lines and reads: "make formal application for a (write in type of loan: Conventional, FHA, VA, USDA) _____ loan". The type of loan is HANDWRITTEN or TYPED on the blank line that appears AFTER the parenthetical instruction and BEFORE the word "loan".
+  * Return one of these exact values (case-sensitive): "Conventional", "FHA", "VA", "USDA", "Cash", "Other".
+  * If the field is blank or you cannot clearly read it, return null. DO NOT default.
 - loanAppTimeFrame: From section 3.2(b) "Loan Application", line "(i)" which reads "Within ___ calendar days, (if left blank, the number of calendar days shall be 7)...". Extract the handwritten/typed NUMBER from the blank line. If blank, return 7. This is the number of days for the buyer to submit a formal loan application.
 - preApprovalDays: From section 3.2(a) "Lender Pre-Qualification". The clause reads: "Buyer [BOX1][BOX2] (insert initials here) has delivered OR [BOX3][BOX4] (insert initials here) shall deliver within ___ calendar days..."
   * FIRST SET (BOX1+BOX2, BEFORE "OR"): If these boxes have initials/marks → the pre-approval letter has been RECEIVED → return 0.
@@ -217,6 +242,9 @@ Use null for any field not found. Numbers should be plain numbers without format
       });
     }
 
+    // Normalize typeOfLoan into the canonical values used by the UI.
+    extractedData.typeOfLoan = normalizeTypeOfLoan(extractedData.typeOfLoan);
+
     // Second pass: Appraisal Contingency is frequently missed/misread.
     // Run a focused extraction using a higher-accuracy model and override the first-pass value.
     try {
@@ -313,6 +341,54 @@ Return ONLY valid JSON:
       }
     } catch (e) {
       console.error('3rd pass preApprovalDays extraction failed:', e);
+      // Keep the first pass value
+    }
+
+    // Fourth pass: Type of Loan 3.2(b) - frequently handwritten and easy to miss.
+    try {
+      const loanTypePrompt = `You are validating ONE field in a real estate purchase contract.
+
+TASK:
+Determine the Type of Loan from section 3.2(b) "Loan Application".
+
+WHERE TO LOOK:
+- The line typically reads: "make formal application for a (write in type of loan: Conventional, FHA, VA, USDA) _____ loan".
+- The loan type is handwritten/typed on the blank line before the word "loan".
+
+RULES:
+- Return ONLY one of: Conventional, FHA, VA, USDA, Cash, Other.
+- Do NOT guess. If you cannot clearly read it, return null.
+
+Return ONLY valid JSON:
+{ "typeOfLoan": "Conventional" | "FHA" | "VA" | "USDA" | "Cash" | "Other" | null }`;
+
+      console.log('Calling AI (4th pass) to extract typeOfLoan...');
+      const loanTypeRes = await callLovableAI(loanTypePrompt, 'google/gemini-2.5-pro');
+
+      if (loanTypeRes.ok) {
+        const loanTypeJson = await loanTypeRes.json();
+        const loanTypeContent = loanTypeJson.choices?.[0]?.message?.content;
+        if (loanTypeContent) {
+          let jsonStr = String(loanTypeContent).trim();
+          if (jsonStr.startsWith('```json')) jsonStr = jsonStr.slice(7);
+          else if (jsonStr.startsWith('```')) jsonStr = jsonStr.slice(3);
+          if (jsonStr.endsWith('```')) jsonStr = jsonStr.slice(0, -3);
+
+          const parsed = JSON.parse(jsonStr.trim());
+          const normalized = normalizeTypeOfLoan(parsed?.typeOfLoan);
+          if (normalized) {
+            extractedData.typeOfLoan = normalized;
+            console.log('typeOfLoan overridden by 4th pass:', normalized);
+          } else {
+            console.log('4th pass typeOfLoan returned null/invalid; keeping first pass value');
+          }
+        }
+      } else {
+        const t = await loanTypeRes.text();
+        console.error('4th pass typeOfLoan AI error:', loanTypeRes.status, t);
+      }
+    } catch (e) {
+      console.error('4th pass typeOfLoan extraction failed:', e);
       // Keep the first pass value
     }
 
