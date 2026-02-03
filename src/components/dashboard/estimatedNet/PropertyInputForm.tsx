@@ -858,6 +858,44 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
     };
   }, [formData.streetAddress, editingId]);
 
+  // Auto-save when Seller & Property fields are populated (for new properties only)
+  const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
+  useEffect(() => {
+    // Only auto-save for new properties (not when editing)
+    if (editingId || currentPropertyId) return;
+    
+    // Check if required fields are populated
+    const hasName = formData.name.trim().length > 0;
+    const hasAddress = formData.streetAddress.trim().length > 0;
+    const hasCity = formData.city.trim().length > 0;
+    const hasZip = formData.zip.trim().length > 0;
+    
+    if (hasName && hasAddress && hasCity && hasZip) {
+      // Clear any existing timeout
+      if (autoSaveTimeoutRef.current) {
+        clearTimeout(autoSaveTimeoutRef.current);
+      }
+      
+      // Debounce auto-save by 1.5 seconds after fields are populated
+      autoSaveTimeoutRef.current = setTimeout(async () => {
+        const savedId = await performAutoSave(formData, linkedClientId);
+        if (savedId) {
+          toast({
+            title: "Property Auto-Saved",
+            description: "You can now upload contract documents",
+          });
+        }
+      }, 1500);
+    }
+    
+    return () => {
+      if (autoSaveTimeoutRef.current) {
+        clearTimeout(autoSaveTimeoutRef.current);
+      }
+    };
+  }, [formData.name, formData.streetAddress, formData.city, formData.zip, editingId, currentPropertyId, linkedClientId]);
+
   // Calculate tax days due this year based on closing date
   const calculateTaxDaysDue = () => {
     if (!formData.closingDate) return 0;
