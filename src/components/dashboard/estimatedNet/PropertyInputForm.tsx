@@ -1193,8 +1193,8 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
               <Input
                 id="preApprovalDays"
                 type="number"
-                value={formData.preApprovalDays ?? ""}
-                onChange={(e) => updateField("preApprovalDays", parseInt(e.target.value) || 0)}
+                value={formData.preApprovalDays === 0 ? "" : formData.preApprovalDays ?? ""}
+                onChange={(e) => updateField("preApprovalDays", e.target.value === "" ? 0 : parseInt(e.target.value))}
                 placeholder="0 = Received or 2 = Contract Default"
               />
             </div>
