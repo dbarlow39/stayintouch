@@ -98,21 +98,35 @@ All colors MUST be HSL.
   }
 }
 
-@keyframes pulse-green {
-  0%, 100% {
-    background-color: hsl(142 76% 36% / 0.15);
-    border-color: hsl(142 76% 36%);
-    box-shadow: 0 0 0 0 hsl(142 76% 36% / 0.4);
+/* Analyzing indicator - expanding rings */
+@keyframes ping-slow {
+  0% {
+    transform: scale(1);
+    opacity: 0.8;
   }
-  50% {
-    background-color: hsl(142 76% 36% / 0.35);
-    border-color: hsl(142 76% 50%);
-    box-shadow: 0 0 12px 2px hsl(142 76% 36% / 0.3);
+  75%, 100% {
+    transform: scale(1.8);
+    opacity: 0;
   }
 }
 
-.animate-pulse-green {
-  animation: pulse-green 1.2s ease-in-out infinite;
+@keyframes pulse-ring {
+  0%, 100% {
+    transform: scale(0.95);
+    opacity: 0.5;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 1;
+  }
+}
+
+.animate-ping-slow {
+  animation: ping-slow 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+.animate-pulse-ring {
+  animation: pulse-ring 1s ease-in-out infinite;
 }
 
 @layer base {
