@@ -74,7 +74,8 @@ serve(async (req) => {
 
 Extract these fields (return null if not found):
 
-- offerPrice: The total purchase/offer price from paragraph 1 (number only, no commas or $)
+- offerPrice: The total purchase/offer price from paragraph 1 (number only, no commas or $). The number may be written numerically (e.g., 350000) or spelled out (e.g., "three hundred fifty thousand") or both - extract the numeric value.
+- buyerAgentCommission: The buyer broker compensation percentage from paragraph 1.2 (number only, e.g., 3 for 3%). The number may be written numerically (1, 2, 3) or spelled out (one, two, three) or both - extract the numeric value. Default to 3 if not found.
 - deposit: The earnest money deposit amount from paragraph 2 (12) (number only, default to 0 if not found)
 - depositCollection: When/how the deposit is collected from paragraph 2 (text description)
 - buyerAgentName: Buyer agent's full name from paragraph 18.1
