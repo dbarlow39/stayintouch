@@ -99,7 +99,7 @@ Extract these fields (return null if not found):
 - inspectionDays: Number of days for inspection from paragraph 7 (number only)
 - closingDate: Closing date from paragraph 8 (YYYY-MM-DD format if possible)
 - possession: Possession terms from paragraph 8 (15.3). If a specific date/time is given, use that. If the language says "at closing", "at time of closing", "upon closing", or similar, return that exact phrase instead of a date.
-- respondToOfferBy: Deadline to respond to offer from paragraph 9
+- respondToOfferBy: Deadline to respond to offer from paragraph 9 (16). Include BOTH the date AND time if specified (e.g., "2026-02-03 04:00 PM" or "February 3, 2026 at 4:00 PM"). This is critical for contract deadlines.
 - homeWarranty: Home warranty amount from paragraph 10 (number only, 0 if none)
 - homeWarrantyCompany: Name of home warranty company from paragraph 10
 - appliances: List of included appliances/items from paragraph 11 (comma-separated text)
