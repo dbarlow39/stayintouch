@@ -169,6 +169,44 @@ const DocumentUploadSection = ({ propertyId, clientId, onContractParsed }: Docum
     }
   };
 
+  const parsePreApproval = async (filePath: string) => {
+    setParsing(true);
+    try {
+      toast({
+        title: "Analyzing Pre-Approval Letter",
+        description: "AI is extracting lender details...",
+      });
+
+      const { data, error } = await supabase.functions.invoke('parse-preapproval-letter', {
+        body: { filePath },
+      });
+
+      if (error) throw error;
+
+      if (data?.success && data?.data) {
+        toast({
+          title: "Pre-Approval Letter Parsed Successfully",
+          description: "Lender information has been populated.",
+        });
+        
+        if (onContractParsed) {
+          onContractParsed(data.data);
+        }
+      } else if (data?.error) {
+        throw new Error(data.error);
+      }
+    } catch (error: any) {
+      console.error("Pre-approval parsing error:", error);
+      toast({
+        title: "Pre-Approval Parsing Failed",
+        description: error.message || "Could not extract data from pre-approval letter",
+        variant: "destructive",
+      });
+    } finally {
+      setParsing(false);
+    }
+  };
+
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (!files || files.length === 0) return;
@@ -229,9 +267,13 @@ const DocumentUploadSection = ({ propertyId, clientId, onContractParsed }: Docum
 
       fetchDocuments();
 
-      // If it's a purchase contract and we have a callback, parse it
-      if (selectedDocType === "purchase_contract" && uploadedFilePath && onContractParsed) {
-        await parseContract(uploadedFilePath);
+      // If it's a parseable document and we have a callback, parse it
+      if (uploadedFilePath && onContractParsed) {
+        if (selectedDocType === "purchase_contract") {
+          await parseContract(uploadedFilePath);
+        } else if (selectedDocType === "lender_pre_approval") {
+          await parsePreApproval(uploadedFilePath);
+        }
       }
     } catch (error: any) {
       console.error("Upload error:", error);
@@ -388,6 +430,9 @@ const DocumentUploadSection = ({ propertyId, clientId, onContractParsed }: Docum
                   {type.label}
                   {type.value === "purchase_contract" && (
                     <span className="ml-2 text-xs text-muted-foreground">(AI will extract fields)</span>
+                  )}
+                  {type.value === "lender_pre_approval" && (
+                    <span className="ml-2 text-xs text-muted-foreground">(AI will extract lender info)</span>
                   )}
                 </Label>
               </div>
