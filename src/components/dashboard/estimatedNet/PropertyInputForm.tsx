@@ -738,6 +738,9 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
 
   // Handle contract data extracted by AI from uploaded purchase contract
   const handleContractParsed = (data: ContractExtractedData) => {
+    console.log('[Contract Parse] Received data:', data);
+    console.log('[Contract Parse] appraisalContingency value:', data.appraisalContingency, 'type:', typeof data.appraisalContingency);
+    
     setFormData(prev => {
       const updates: Partial<PropertyData> = {};
       
