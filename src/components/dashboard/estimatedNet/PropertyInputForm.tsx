@@ -856,12 +856,15 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
       updates.agentEmail = data.buyerAgentEmail;
     }
 
-    // Update the form data with new values
-    const newFormData = { ...formData, ...updates };
-    setFormData(newFormData);
+    // Update the form data with new values using functional update to get latest state
+    let newFormData: PropertyData | null = null;
+    setFormData(prev => {
+      newFormData = { ...prev, ...updates };
+      return newFormData;
+    });
 
     // Auto-save the parsed data to the database
-    if (currentPropertyId) {
+    if (currentPropertyId && newFormData) {
       const savedId = await performAutoSave(newFormData, linkedClientId);
       if (savedId) {
         toast({
