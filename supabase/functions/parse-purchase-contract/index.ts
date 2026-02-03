@@ -120,9 +120,9 @@ Extract these fields (return null if not found):
 - state: State (2-letter abbreviation) from paragraph 4
 - zip: ZIP code from paragraph 4
 - typeOfLoan: From section 3.2(b) "Loan Application", find line "a)" which says "make formal application for a (write in type of loan: Conventional, FHA, VA, USDA) _____ loan". The type of loan is written on the blank line AFTER the parenthetical instruction. Look for handwritten or typed text like "conventional", "FHA", "VA", "USDA", "Cash", etc. Extract that value.
-- preApprovalDays: From section 3.2(a) "Lender Pre-Qualification". There are TWO sets of initial boxes separated by "OR":
-  * FIRST set: "[initials] has delivered" - if these boxes have initials/marks, the pre-approval letter has been RECEIVED, return 0.
-  * SECOND set: "[initials] shall deliver within ___ calendar days" - if these boxes have initials/marks, extract the number from the blank line. If the line is blank or says "if left blank, the number shall be 2", return 2.
+- preApprovalDays: From section 3.2(a) "Lender Pre-Qualification". The clause reads: "Buyer [BOX1][BOX2] (insert initials here) has delivered OR [BOX3][BOX4] (insert initials here) shall deliver within ___ calendar days..."
+  * FIRST SET (BOX1+BOX2, BEFORE "OR"): If these boxes have initials/marks → the pre-approval letter has been RECEIVED → return 0.
+  * SECOND SET (BOX3+BOX4, AFTER "OR"): If these boxes have initials/marks → extract the number from the blank line after "within". If blank, return 2.
   Return the number of days (0 if received, or the number of days if pending). Default to 2 if unclear.
 - loanAppTimeFrame: Timeframe for loan application from paragraph 5 (3.2b)
 - loanCommitment: Loan commitment date or timeframe from paragraph 5 (3.2c)
@@ -271,15 +271,17 @@ Return ONLY valid JSON:
 TASK:
 Determine the preApprovalDays value from section 3.2(a) "Lender Pre-Qualification".
 
-STRUCTURE:
-There are TWO sets of initial boxes separated by the word "OR":
-1. FIRST set: "Buyer [__][__] (insert initials here) has delivered" - means pre-approval is RECEIVED
-2. SECOND set: "[__][__] (insert initials here) shall deliver within ___ calendar days" - means pre-approval is PENDING
+VISUAL STRUCTURE (read left to right):
+The clause reads: "Buyer [BOX1][BOX2] (insert initials here) has delivered OR [BOX3][BOX4] (insert initials here) shall deliver within ___ calendar days..."
 
-RULES:
-- If the FIRST set of boxes has initials/marks, return 0 (pre-approval received).
-- If the SECOND set of boxes has initials/marks, look for the number on the blank line for days. If the number is written, return that number. If blank, return 2 (the default).
-- If you cannot clearly determine which set is initialed, return 2 as the default.
+- FIRST SET = BOX1 + BOX2 (immediately after the word "Buyer", BEFORE the word "OR")
+- SECOND SET = BOX3 + BOX4 (AFTER the word "OR", before "shall deliver")
+- DAYS FIELD = the handwritten/typed number in the blank line AFTER "within" and BEFORE "calendar days"
+
+DECISION RULES:
+1. If the FIRST SET (BOX1+BOX2) contains initials, handwriting, or any marks → return 0 (meaning "Received").
+2. If the SECOND SET (BOX3+BOX4) contains initials, handwriting, or any marks → read the number in the DAYS FIELD and return that number. If the days field is blank or unreadable, return 2 (the contract default).
+3. If BOTH sets appear marked or you cannot determine which is marked, return 2.
 
 Return ONLY valid JSON:
 { "preApprovalDays": <number> }`;
