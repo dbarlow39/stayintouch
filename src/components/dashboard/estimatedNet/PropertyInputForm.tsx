@@ -737,132 +737,150 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
   };
 
   // Handle contract data extracted by AI from uploaded purchase contract
-  const handleContractParsed = (data: ContractExtractedData) => {
+  const handleContractParsed = async (data: ContractExtractedData) => {
     console.log('[Contract Parse] Received data:', data);
     console.log('[Contract Parse] appraisalContingency value:', data.appraisalContingency, 'type:', typeof data.appraisalContingency);
     
-    setFormData(prev => {
-      const updates: Partial<PropertyData> = {};
-      
-      // Map extracted data to form fields - always overwrite with new contract data
-      if (data.offerPrice != null) {
-        updates.offerPrice = data.offerPrice;
-      }
-      if (data.buyerAgentCommission != null) {
-        updates.buyerAgentCommission = data.buyerAgentCommission;
-      }
-      if (data.deposit != null) {
-        updates.deposit = data.deposit;
-      }
-      if (data.depositCollection) {
-        updates.depositCollection = data.depositCollection;
-      }
-      if (data.buyerName1) {
-        updates.buyerName1 = data.buyerName1;
-      }
-      if (data.buyerName2) {
-        updates.buyerName2 = data.buyerName2;
-      }
-      if (data.streetAddress) {
-        updates.streetAddress = data.streetAddress;
-      }
-      if (data.city) {
-        updates.city = data.city;
-      }
-      if (data.state) {
-        updates.state = data.state;
-      }
-      if (data.zip) {
-        updates.zip = data.zip;
-      }
-      if (data.typeOfLoan) {
-        updates.typeOfLoan = data.typeOfLoan;
-      }
-      if (data.lenderName) {
-        updates.lenderName = data.lenderName;
-      }
-      if (data.lendingOfficer) {
-        updates.lendingOfficer = data.lendingOfficer;
-      }
-      if (data.lendingOfficerPhone) {
-        updates.lendingOfficerPhone = data.lendingOfficerPhone;
-      }
-      if (data.lendingOfficerEmail) {
-        updates.lendingOfficerEmail = data.lendingOfficerEmail;
-      }
-      if (data.preApprovalDays != null) {
-        updates.preApprovalDays = data.preApprovalDays;
-      }
-      if (data.loanAppTimeFrame != null) {
-        updates.loanAppTimeFrame = String(data.loanAppTimeFrame);
-      }
-      if (data.loanCommitment) {
-        updates.loanCommitment = String(data.loanCommitment);
-      }
-      if (data.appraisalContingency != null) {
-        updates.appraisalContingency = data.appraisalContingency;
-      }
-      if (data.inspectionDays != null) {
-        updates.inspectionDays = data.inspectionDays;
-      }
-      if (data.closingDate) {
-        updates.closingDate = data.closingDate;
-      }
-      if (data.possession) {
-        updates.possession = data.possession;
-      }
-      if (data.respondToOfferBy) {
-        updates.respondToOfferBy = data.respondToOfferBy;
-      }
-      if (data.homeWarranty != null) {
-        updates.homeWarranty = data.homeWarranty;
-      }
-      if (data.homeWarrantyCompany) {
-        updates.homeWarrantyCompany = data.homeWarrantyCompany;
-      }
-      if (data.appliances) {
-        updates.appliances = data.appliances;
-      }
-      if (data.remedyPeriodDays != null) {
-        updates.remedyPeriodDays = data.remedyPeriodDays;
-      }
-      if (data.listingAgentName) {
-        updates.listingAgentName = data.listingAgentName;
-      }
-      if (data.listingAgentPhone) {
-        updates.listingAgentPhone = data.listingAgentPhone;
-      }
-      if (data.listingAgentEmail) {
-        updates.listingAgentEmail = data.listingAgentEmail;
-      }
-      if (data.sellerPhone) {
-        updates.sellerPhone = data.sellerPhone;
-      }
-      if (data.sellerEmail) {
-        updates.sellerEmail = data.sellerEmail;
-      }
-      // Note: inContract is intentionally NOT auto-populated - it's manual input only
-      if (data.finalWalkThrough) {
-        updates.finalWalkThrough = data.finalWalkThrough;
-      }
-      // Buyer agent fields (18.1)
-      if (data.buyerAgentName) {
-        updates.agentName = data.buyerAgentName;
-      }
-      if (data.buyerAgentPhone) {
-        updates.agentContact = data.buyerAgentPhone;
-      }
-      if (data.buyerAgentEmail) {
-        updates.agentEmail = data.buyerAgentEmail;
-      }
+    // Build the updates object
+    const updates: Partial<PropertyData> = {};
+    
+    // Map extracted data to form fields - always overwrite with new contract data
+    if (data.offerPrice != null) {
+      updates.offerPrice = data.offerPrice;
+    }
+    if (data.buyerAgentCommission != null) {
+      updates.buyerAgentCommission = data.buyerAgentCommission;
+    }
+    if (data.deposit != null) {
+      updates.deposit = data.deposit;
+    }
+    if (data.depositCollection) {
+      updates.depositCollection = data.depositCollection;
+    }
+    if (data.buyerName1) {
+      updates.buyerName1 = data.buyerName1;
+    }
+    if (data.buyerName2) {
+      updates.buyerName2 = data.buyerName2;
+    }
+    if (data.streetAddress) {
+      updates.streetAddress = data.streetAddress;
+    }
+    if (data.city) {
+      updates.city = data.city;
+    }
+    if (data.state) {
+      updates.state = data.state;
+    }
+    if (data.zip) {
+      updates.zip = data.zip;
+    }
+    if (data.typeOfLoan) {
+      updates.typeOfLoan = data.typeOfLoan;
+    }
+    if (data.lenderName) {
+      updates.lenderName = data.lenderName;
+    }
+    if (data.lendingOfficer) {
+      updates.lendingOfficer = data.lendingOfficer;
+    }
+    if (data.lendingOfficerPhone) {
+      updates.lendingOfficerPhone = data.lendingOfficerPhone;
+    }
+    if (data.lendingOfficerEmail) {
+      updates.lendingOfficerEmail = data.lendingOfficerEmail;
+    }
+    if (data.preApprovalDays != null) {
+      updates.preApprovalDays = data.preApprovalDays;
+    }
+    if (data.loanAppTimeFrame != null) {
+      updates.loanAppTimeFrame = String(data.loanAppTimeFrame);
+    }
+    if (data.loanCommitment) {
+      updates.loanCommitment = String(data.loanCommitment);
+    }
+    if (data.appraisalContingency != null) {
+      updates.appraisalContingency = data.appraisalContingency;
+    }
+    if (data.inspectionDays != null) {
+      updates.inspectionDays = data.inspectionDays;
+    }
+    if (data.closingDate) {
+      updates.closingDate = data.closingDate;
+    }
+    if (data.possession) {
+      updates.possession = data.possession;
+    }
+    if (data.respondToOfferBy) {
+      updates.respondToOfferBy = data.respondToOfferBy;
+    }
+    if (data.homeWarranty != null) {
+      updates.homeWarranty = data.homeWarranty;
+    }
+    if (data.homeWarrantyCompany) {
+      updates.homeWarrantyCompany = data.homeWarrantyCompany;
+    }
+    if (data.appliances) {
+      updates.appliances = data.appliances;
+    }
+    if (data.remedyPeriodDays != null) {
+      updates.remedyPeriodDays = data.remedyPeriodDays;
+    }
+    if (data.listingAgentName) {
+      updates.listingAgentName = data.listingAgentName;
+    }
+    if (data.listingAgentPhone) {
+      updates.listingAgentPhone = data.listingAgentPhone;
+    }
+    if (data.listingAgentEmail) {
+      updates.listingAgentEmail = data.listingAgentEmail;
+    }
+    if (data.sellerPhone) {
+      updates.sellerPhone = data.sellerPhone;
+    }
+    if (data.sellerEmail) {
+      updates.sellerEmail = data.sellerEmail;
+    }
+    // Note: inContract is intentionally NOT auto-populated - it's manual input only
+    if (data.finalWalkThrough) {
+      updates.finalWalkThrough = data.finalWalkThrough;
+    }
+    // Buyer agent fields (18.1)
+    if (data.buyerAgentName) {
+      updates.agentName = data.buyerAgentName;
+    }
+    if (data.buyerAgentPhone) {
+      updates.agentContact = data.buyerAgentPhone;
+    }
+    if (data.buyerAgentEmail) {
+      updates.agentEmail = data.buyerAgentEmail;
+    }
 
-      return { ...prev, ...updates };
-    });
+    // Update the form data with new values
+    const newFormData = { ...formData, ...updates };
+    setFormData(newFormData);
 
-    toast({
-      title: "Contract Data Applied",
-      description: "Review the populated fields and make any necessary adjustments.",
-    });
+    // Auto-save the parsed data to the database
+    if (currentPropertyId) {
+      const savedId = await performAutoSave(newFormData, linkedClientId);
+      if (savedId) {
+        toast({
+          title: "Contract Data Saved",
+          description: "Extracted data has been applied and saved automatically.",
+        });
+      } else {
+        toast({
+          title: "Contract Data Applied",
+          description: "Review the populated fields. Save failed - please save manually.",
+          variant: "destructive",
+        });
+      }
+    } else {
+      toast({
+        title: "Contract Data Applied",
+        description: "Review the populated fields and make any necessary adjustments.",
+      });
+    }
   };
 
   // Search Stay in Touch clients database
