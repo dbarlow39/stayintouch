@@ -97,7 +97,7 @@ Extract these fields (return null if not found):
 - appraisalContingency: From paragraph 6 (3.2d), the contract uses checkbox language "[ ] is [ ] is not contingent". If the FIRST box (before "is") is checked, return true. If the SECOND box (before "is not") is checked, return false. Return null if unclear.
 - inspectionDays: Number of days for inspection from paragraph 7 (number only)
 - closingDate: Closing date from paragraph 8 (YYYY-MM-DD format if possible)
-- possession: Possession terms from paragraph 8 (e.g., "at closing", "30 days after closing")
+- possession: Possession terms from paragraph 8 (15.3). If a specific date/time is given, use that. If the language says "at closing", "at time of closing", "upon closing", or similar, return that exact phrase instead of a date.
 - respondToOfferBy: Deadline to respond to offer from paragraph 9
 - homeWarranty: Home warranty amount from paragraph 10 (number only, 0 if none)
 - homeWarrantyCompany: Name of home warranty company from paragraph 10
