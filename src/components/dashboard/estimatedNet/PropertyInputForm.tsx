@@ -1911,14 +1911,16 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
           </div>
 
           {/* Line 2: Buyer Agent Email */}
-          <div className="mb-6">
-            <Label htmlFor="agentEmail">(18.1) Buyer Agent Email</Label>
-            <Input
-              id="agentEmail"
-              type="email"
-              value={formData.agentEmail}
-              onChange={(e) => updateField("agentEmail", e.target.value)}
-            />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            <div>
+              <Label htmlFor="agentEmail">(18.1) Buyer Agent Email</Label>
+              <Input
+                id="agentEmail"
+                type="email"
+                value={formData.agentEmail}
+                onChange={(e) => updateField("agentEmail", e.target.value)}
+              />
+            </div>
           </div>
 
           {/* Line 3: Lender Name + Lending Officer */}
