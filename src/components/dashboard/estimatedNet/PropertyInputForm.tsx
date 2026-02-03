@@ -1190,13 +1190,21 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
             </div>
             <div>
               <Label htmlFor="preApprovalDays">(3.2a) Lender Pre-Qualification (Days Due)</Label>
-              <Input
-                id="preApprovalDays"
-                type="number"
-                value={formData.preApprovalDays === 0 ? "" : formData.preApprovalDays ?? ""}
-                onChange={(e) => updateField("preApprovalDays", e.target.value === "" ? 0 : parseInt(e.target.value))}
-                placeholder="0 = Received or 2 = Contract Default"
-              />
+              <div className="relative">
+                <Input
+                  id="preApprovalDays"
+                  type="number"
+                  value={formData.preApprovalDays === 0 ? "" : formData.preApprovalDays ?? ""}
+                  onChange={(e) => updateField("preApprovalDays", e.target.value === "" ? 0 : parseInt(e.target.value))}
+                  placeholder="Enter days or leave empty"
+                  className={formData.preApprovalDays === 0 ? "pr-24" : ""}
+                />
+                {formData.preApprovalDays === 0 && (
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-medium text-primary bg-primary/10 px-2 py-0.5 rounded">
+                    Received
+                  </span>
+                )}
+              </div>
             </div>
             <div>
               <Label htmlFor="loanAppTimeFrame">(3.2b) Loan Application</Label>
