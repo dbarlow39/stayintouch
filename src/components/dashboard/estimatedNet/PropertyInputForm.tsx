@@ -566,7 +566,7 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
         buyer_agent_commission: Number(dataToSave.buyerAgentCommission) || 0,
         closing_cost: Number(dataToSave.closingCost) || 0,
         // Persist canonical values so subsequent loads always match the Select options.
-        type_of_loan: normalizeTypeOfLoan(dataToSave.typeOfLoan) || "Other",
+        type_of_loan: normalizeTypeOfLoan(dataToSave.typeOfLoan) || "Conventional",
         lender_name: dataToSave.lenderName || null,
         lending_officer: dataToSave.lendingOfficer || null,
         lending_officer_phone: dataToSave.lendingOfficerPhone || null,
@@ -658,7 +658,7 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
         buyer_agent_commission: Number(formData.buyerAgentCommission) || 0,
         closing_cost: Number(formData.closingCost) || 0,
         // Persist canonical values so subsequent loads always match the Select options.
-        type_of_loan: normalizeTypeOfLoan(formData.typeOfLoan) || "Other",
+        type_of_loan: normalizeTypeOfLoan(formData.typeOfLoan) || "Conventional",
         lender_name: formData.lenderName || null,
         lending_officer: formData.lendingOfficer || null,
         lending_officer_phone: formData.lendingOfficerPhone || null,
@@ -748,14 +748,37 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
     if (!v) return null;
     const lower = v.toLowerCase();
 
-    if (lower.includes("conventional") || lower === "conv" || lower.startsWith("conv")) return "Conventional";
-    if (lower === "fha" || lower.includes("fha")) return "FHA";
-    // Avoid matching "available" etc. by checking boundaries for "va"
-    if (/(^|\\b)va(\\b|$)/i.test(v) || lower.includes("veterans")) return "VA";
-    if (lower === "usda" || lower.includes("usda")) return "USDA";
-    if (lower.includes("cash")) return "Cash";
+    // If it's already one of our known values (case-insensitive), return canonical casing.
+    if (lower === "conventional") return "Conventional";
+    if (lower === "fha") return "FHA";
+    if (lower === "va") return "VA";
+    if (lower === "usda") return "USDA";
+    if (lower === "cash") return "Cash";
+    if (lower === "other") return "Other";
 
-    return "Other";
+    // Normalize to letters only so partial OCR like "ventional" still matches.
+    const lettersOnly = lower.replace(/[^a-z]/g, "");
+    const needle = lettersOnly;
+
+    // Conventional: accept partials like "ventional" (missing leading "con").
+    if (
+      needle.includes("conventional") ||
+      needle.includes("ventional") ||
+      needle === "conv" ||
+      needle.startsWith("conv") ||
+      (needle.length >= 4 && "conventional".includes(needle))
+    ) {
+      return "Conventional";
+    }
+
+    if (needle.includes("fha") || (needle.length >= 3 && "fha".includes(needle))) return "FHA";
+    if (needle.includes("usda") || (needle.length >= 4 && "usda".includes(needle))) return "USDA";
+    if (needle.includes("cash") || (needle.length >= 4 && "cash".includes(needle))) return "Cash";
+
+    // VA is short; only match when it's clearly "VA".
+    if (/(^|\b)v\.?a\.?($|\b)/i.test(v) || needle === "va" || needle.includes("veterans")) return "VA";
+
+    return null;
   };
 
   const normalizeDepositCollection = (raw?: string | null): string | null => {
@@ -818,7 +841,7 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
     }
     if (data.typeOfLoan) {
       // Always coerce to one of the <SelectItem> values; raw strings can make the Select render blank.
-      updates.typeOfLoan = normalizeTypeOfLoan(data.typeOfLoan) || "Other";
+      updates.typeOfLoan = normalizeTypeOfLoan(data.typeOfLoan) || "Conventional";
     }
     if (data.lenderName) {
       updates.lenderName = data.lenderName;
