@@ -116,7 +116,7 @@ Extract these fields (return null if not found):
 - city: City from paragraph 4
 - state: State (2-letter abbreviation) from paragraph 4
 - zip: ZIP code from paragraph 4
-- typeOfLoan: Type of loan (Conventional, FHA, VA, Cash, etc.) from paragraph 5
+- typeOfLoan: From section 3.2(b) "Loan Application", find line "a)" which says "make formal application for a (write in type of loan: Conventional, FHA, VA, USDA) _____ loan". The type of loan is written on the blank line AFTER the parenthetical instruction. Look for handwritten or typed text like "conventional", "FHA", "VA", "USDA", "Cash", etc. Extract that value.
 - preApprovalDays: From section 3.2(a) "Lender Pre-Qualification". There are TWO sets of initial boxes separated by "OR":
   * FIRST set: "[initials] has delivered" - if these boxes have initials/marks, the pre-approval letter has been RECEIVED, return 0.
   * SECOND set: "[initials] shall deliver within ___ calendar days" - if these boxes have initials/marks, extract the number from the blank line. If the line is blank or says "if left blank, the number shall be 2", return 2.
