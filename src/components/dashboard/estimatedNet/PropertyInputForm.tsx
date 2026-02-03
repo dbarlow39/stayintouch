@@ -10,6 +10,7 @@ import { PropertyData } from "@/types/estimatedNet";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, List, Download, Mail, Calendar, FileText, ArrowRight, DollarSign, ClipboardList } from "lucide-react";
+import DocumentUploadSection from "./DocumentUploadSection";
 import { getEmailClientPreference, openEmailClient } from "@/utils/emailClientUtils";
 
 interface InitialClientData {
@@ -1107,6 +1108,8 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
             </div>
           </div>
         </Card>
+
+        <DocumentUploadSection propertyId={editingId} clientId={linkedClientId} />
 
         <Card className="p-6 mb-6">
           <h3 className="text-xl font-semibold mb-4 text-foreground">Contract Details</h3>

@@ -852,6 +852,57 @@ export type Database = {
         }
         Relationships: []
       }
+      property_documents: {
+        Row: {
+          agent_id: string
+          client_id: string | null
+          file_name: string
+          file_path: string
+          file_size: number | null
+          file_type: string | null
+          id: string
+          property_id: string | null
+          uploaded_at: string
+        }
+        Insert: {
+          agent_id: string
+          client_id?: string | null
+          file_name: string
+          file_path: string
+          file_size?: number | null
+          file_type?: string | null
+          id?: string
+          property_id?: string | null
+          uploaded_at?: string
+        }
+        Update: {
+          agent_id?: string
+          client_id?: string | null
+          file_name?: string
+          file_path?: string
+          file_size?: number | null
+          file_type?: string | null
+          id?: string
+          property_id?: string | null
+          uploaded_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "property_documents_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "property_documents_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "estimated_net_properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       property_views: {
         Row: {
           agent_id: string
