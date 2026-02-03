@@ -7,7 +7,8 @@ import { ArrowLeft, Calendar } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { formatCurrency } from "@/utils/estimatedNetCalculations";
-import { format, parseISO, isValid, startOfMonth, addMonths, isSameMonth } from "date-fns";
+import { format, parseISO, isValid, startOfMonth, addMonths } from "date-fns";
+import { getEmailLink } from "@/utils/emailClientUtils";
 
 interface UpcomingClosingsViewProps {
   onBack: () => void;
@@ -131,7 +132,12 @@ const UpcomingClosingsView = ({ onBack }: UpcomingClosingsViewProps) => {
   const formatEmailLink = (email: string | null) => {
     if (!email) return "—";
     return (
-      <a href={`mailto:${email}`} className="text-primary hover:underline">
+      <a 
+        href={getEmailLink(email)} 
+        target="_blank" 
+        rel="noopener noreferrer"
+        className="text-primary hover:underline"
+      >
         {email}
       </a>
     );
