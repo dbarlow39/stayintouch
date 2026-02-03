@@ -19,12 +19,13 @@ interface ClosingData {
   city: string;
   state: string;
   closing_date: string | null;
+  in_contract: string | null;
   offer_price: number;
   name: string; // Client name
   seller_phone: string | null;
   seller_email: string | null;
-  listing_agent_name: string | null;
-  listing_agent_phone: string | null;
+  agent_name: string | null; // Buyer's agent name
+  agent_contact: string | null; // Buyer's agent phone
 }
 
 // Commission calculation: sales price * 1% + $499
@@ -66,15 +67,17 @@ const UpcomingClosingsView = ({ onBack }: UpcomingClosingsViewProps) => {
           city,
           state,
           closing_date,
+          in_contract,
           offer_price,
           name,
           seller_phone,
           seller_email,
-          listing_agent_name,
-          listing_agent_phone
+          agent_name,
+          agent_contact
         `)
         .eq("agent_id", user!.id)
-        .not("closing_date", "is", null);
+        .not("closing_date", "is", null)
+        .not("in_contract", "is", null);
 
       if (error) throw error;
       return data as ClosingData[];
@@ -187,8 +190,8 @@ const UpcomingClosingsView = ({ onBack }: UpcomingClosingsViewProps) => {
                         <TableHead>Email</TableHead>
                         <TableHead className="text-right">Sales Price</TableHead>
                         <TableHead className="text-right">Commission</TableHead>
-                        <TableHead>Buyer Agent</TableHead>
-                        <TableHead>Agent Phone</TableHead>
+                        <TableHead>Buyer's Agent</TableHead>
+                        <TableHead>Buyer's Agent Phone</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -220,10 +223,10 @@ const UpcomingClosingsView = ({ onBack }: UpcomingClosingsViewProps) => {
                               {formatCurrency(commission)}
                             </TableCell>
                             <TableCell className="whitespace-nowrap">
-                              {closing.listing_agent_name || "—"}
+                              {closing.agent_name || "—"}
                             </TableCell>
                             <TableCell className="whitespace-nowrap">
-                              {formatPhoneLink(closing.listing_agent_phone)}
+                              {formatPhoneLink(closing.agent_contact)}
                             </TableCell>
                           </TableRow>
                         );
