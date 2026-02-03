@@ -88,10 +88,6 @@ Extract these fields (return null if not found):
 - state: State (2-letter abbreviation) from paragraph 4
 - zip: ZIP code from paragraph 4
 - typeOfLoan: Type of loan (Conventional, FHA, VA, Cash, etc.) from paragraph 5
-- lenderName: Name of the lending institution from paragraph 5
-- lendingOfficer: Loan officer name from paragraph 5
-- lendingOfficerPhone: Loan officer phone from paragraph 5
-- lendingOfficerEmail: Loan officer email from paragraph 5
 - preApprovalDays: Days for pre-approval from paragraph 5 (number)
 - loanAppTimeFrame: Timeframe for loan application from paragraph 5
 - loanCommitment: Loan commitment date or timeframe from paragraph 5
@@ -109,8 +105,9 @@ Extract these fields (return null if not found):
 - listingAgentEmail: Listing agent's email
 - sellerPhone: Seller's phone number
 - sellerEmail: Seller's email
-- inContract: Date contract was executed/signed (YYYY-MM-DD format if possible)
 - finalWalkThrough: Final walk-through date or terms
+
+NOTE: Do NOT extract lender information (lenderName, lendingOfficer, lendingOfficerPhone, lendingOfficerEmail) - that comes from pre-approval letters, not contracts.
 
 IMPORTANT: Return ONLY a FLAT JSON object with the field names listed above as top-level keys. Do NOT nest fields under paragraph headers. Example format:
 {
