@@ -346,7 +346,7 @@ const OfferLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate 
                 <p>Take a look and let me know your thoughts.</p>
                 
                 <p className="mb-0">Thanks</p>
-                <p className="mb-0"><strong>{agentFirstName}</strong></p>
+                <p className="mb-0">{agentFirstName}</p>
               </div>
             </Card>
           </div>
