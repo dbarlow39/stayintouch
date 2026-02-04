@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -6,6 +6,7 @@ import { PropertyData } from "@/types/estimatedNet";
 import { ArrowLeft, List, Mail, Calendar, FileText, Copy, DollarSign, ClipboardList, Settings } from "lucide-react";
 import { EmailClient, EMAIL_CLIENT_OPTIONS, getEmailClientPreference, setEmailClientPreference, openEmailClient } from "@/utils/emailClientUtils";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 import logo from "@/assets/logo.jpg";
 
 interface OfferLetterViewProps {
@@ -19,6 +20,24 @@ interface OfferLetterViewProps {
 const OfferLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate }: OfferLetterViewProps) => {
   const { toast } = useToast();
   const [emailClient, setEmailClient] = useState<EmailClient>(getEmailClientPreference);
+  const [agentFirstName, setAgentFirstName] = useState<string>("");
+
+  useEffect(() => {
+    const fetchAgentProfile = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('first_name')
+          .eq('id', user.id)
+          .single();
+        if (profile?.first_name) {
+          setAgentFirstName(profile.first_name);
+        }
+      }
+    };
+    fetchAgentProfile();
+  }, []);
 
   const EMAIL_LOGO_WIDTH_PX = 144;
 
@@ -72,9 +91,8 @@ const OfferLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate 
     setEmailClientPreference(client);
   };
 
-  // Extract first names
+  // Extract first name from seller
   const ownerFirstName = propertyData.name.split(' ')[0];
-  const listingAgentFirstName = propertyData.listingAgentName?.split(' ')[0] || '';
 
 
   const handleCopyToClipboard = async () => {
@@ -328,7 +346,7 @@ const OfferLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate 
                 <p>Take a look and let me know your thoughts.</p>
                 
                 <p className="mb-0">Thanks</p>
-                <p className="mb-0"><strong>{listingAgentFirstName}</strong></p>
+                <p className="mb-0"><strong>{agentFirstName}</strong></p>
               </div>
             </Card>
           </div>
