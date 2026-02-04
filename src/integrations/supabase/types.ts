@@ -903,6 +903,44 @@ export type Database = {
           },
         ]
       }
+      property_notice_status: {
+        Row: {
+          completed: boolean
+          completed_at: string | null
+          created_at: string
+          id: string
+          notice_type: string
+          property_id: string
+          updated_at: string
+        }
+        Insert: {
+          completed?: boolean
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          notice_type: string
+          property_id: string
+          updated_at?: string
+        }
+        Update: {
+          completed?: boolean
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          notice_type?: string
+          property_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "property_notice_status_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "estimated_net_properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       property_views: {
         Row: {
           agent_id: string
