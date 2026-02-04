@@ -27,10 +27,11 @@ interface NoticesViewProps {
 }
 
 type NoticeType = 
-  | "home-inspection-scheduled"
   | "deposit-received"
-  | "appraisal-ordered"
+  | "home-inspection-scheduled"
+  | "loan-application"
   | "title-commitment-received"
+  | "appraisal-ordered"
   | "loan-approved"
   | "clear-to-close";
 
@@ -77,6 +78,11 @@ const NoticesView = ({
       }
     }
     
+    // Loan Application: inContract + loanAppTimeFrame days
+    const loanApplicationDue = inContractDate && propertyData.loanAppTimeFrame
+      ? formatDueDate(addDays(inContractDate, parseInt(propertyData.loanAppTimeFrame) || 7))
+      : "Date not set";
+    
     // Appraisal Ordered: 14 days before closing
     const appraisalDue = closingDate
       ? formatDueDate(subDays(closingDate, 14))
@@ -100,6 +106,7 @@ const NoticesView = ({
     return [
       { value: "deposit-received", label: "Deposit Received", dueDate: depositDue },
       { value: "home-inspection-scheduled", label: "Home Inspection Scheduled", dueDate: inspectionDue },
+      { value: "loan-application", label: "Loan Application", dueDate: loanApplicationDue },
       { value: "title-commitment-received", label: "Title Commitment Received", dueDate: titleCommitmentDue },
       { value: "appraisal-ordered", label: "Appraisal Ordered", dueDate: appraisalDue },
       { value: "loan-approved", label: "Loan Approved", dueDate: loanApprovedDue },
