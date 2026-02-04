@@ -922,15 +922,20 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
     }
 
     // Update the form data with new values using functional update to get latest state
-    let newFormData: PropertyData | null = null;
-    setFormData(prev => {
-      newFormData = { ...prev, ...updates };
-      return newFormData;
+    // IMPORTANT: We use a Promise-based approach to ensure we save the ACTUAL committed state
+    // rather than a stale snapshot, preventing race conditions with user typing
+    const updatedFormData = await new Promise<PropertyData>((resolve) => {
+      setFormData(prev => {
+        const merged = { ...prev, ...updates };
+        // Use setTimeout to resolve AFTER React commits the state
+        setTimeout(() => resolve(merged), 0);
+        return merged;
+      });
     });
 
-    // Auto-save the parsed data to the database
-    if (currentPropertyId && newFormData) {
-      const savedId = await performAutoSave(newFormData, linkedClientId);
+    // Auto-save the parsed data to the database using the committed state
+    if (currentPropertyId) {
+      const savedId = await performAutoSave(updatedFormData, linkedClientId);
       if (savedId) {
         toast({
           title: "Contract Data Saved",
