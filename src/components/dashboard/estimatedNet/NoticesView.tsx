@@ -1,10 +1,14 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { PropertyData } from "@/types/estimatedNet";
-import { format, addDays, subDays } from "date-fns";
+import { format, addDays, subDays, isBefore, startOfDay } from "date-fns";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 import {
   ArrowLeft,
   List,
@@ -16,6 +20,7 @@ import {
   Edit,
   Bell,
   Send,
+  AlertTriangle,
 } from "lucide-react";
 
 interface NoticesViewProps {
@@ -36,6 +41,11 @@ type NoticeType =
   | "clear-to-close"
   | "hud-settlement-statement";
 
+interface NoticeStatus {
+  notice_type: string;
+  completed: boolean;
+}
+
 // Helper to parse date string as local date
 const parseLocalDate = (dateString: string): Date | null => {
   if (!dateString) return null;
@@ -50,6 +60,14 @@ const formatDueDate = (date: Date | null): string => {
   return format(date, "MM/dd/yyyy");
 };
 
+// Helper to parse displayed date back to Date object
+const parseDueDate = (dueDateStr: string): Date | null => {
+  if (dueDateStr === "Date not set") return null;
+  const [month, day, year] = dueDateStr.split('/');
+  if (!month || !day || !year) return null;
+  return new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+};
+
 const NoticesView = ({
   propertyData,
   propertyId,
@@ -58,70 +76,134 @@ const NoticesView = ({
   onNavigate,
 }: NoticesViewProps) => {
   const [selectedNotice, setSelectedNotice] = useState<NoticeType | null>(null);
+  const [noticeStatuses, setNoticeStatuses] = useState<Record<string, boolean>>({});
+  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
+
+  // Fetch notice statuses from database
+  const fetchNoticeStatuses = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from('property_notice_status')
+        .select('notice_type, completed')
+        .eq('property_id', propertyId);
+
+      if (error) throw error;
+
+      const statuses: Record<string, boolean> = {};
+      (data || []).forEach((status: NoticeStatus) => {
+        statuses[status.notice_type] = status.completed;
+      });
+      setNoticeStatuses(statuses);
+    } catch (error) {
+      console.error('Error fetching notice statuses:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [propertyId]);
+
+  useEffect(() => {
+    fetchNoticeStatuses();
+  }, [fetchNoticeStatuses]);
+
+  // Toggle notice completion status
+  const toggleNoticeCompletion = async (noticeType: NoticeType, completed: boolean) => {
+    try {
+      // Optimistically update UI
+      setNoticeStatuses(prev => ({ ...prev, [noticeType]: completed }));
+
+      const { error } = await supabase
+        .from('property_notice_status')
+        .upsert({
+          property_id: propertyId,
+          notice_type: noticeType,
+          completed,
+          completed_at: completed ? new Date().toISOString() : null,
+        }, {
+          onConflict: 'property_id,notice_type'
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: completed ? "Notice marked complete" : "Notice marked incomplete",
+        description: `${noticeType.replace(/-/g, ' ')} status updated.`,
+      });
+    } catch (error) {
+      // Revert on error
+      setNoticeStatuses(prev => ({ ...prev, [noticeType]: !completed }));
+      console.error('Error updating notice status:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update notice status.",
+        variant: "destructive",
+      });
+    }
+  };
 
   // Calculate due dates based on property data
-  const calculateDueDates = (): { value: NoticeType; label: string; dueDate: string }[] => {
+  const calculateDueDates = (): { value: NoticeType; label: string; dueDate: string; dueDateObj: Date | null }[] => {
     const inContractDate = parseLocalDate(propertyData.inContract);
     const closingDate = parseLocalDate(propertyData.closingDate);
     
     // Home Inspection: inContract + inspectionDays
-    const inspectionDue = inContractDate && propertyData.inspectionDays
-      ? formatDueDate(addDays(inContractDate, propertyData.inspectionDays))
-      : "Date not set";
+    const inspectionDueDate = inContractDate && propertyData.inspectionDays
+      ? addDays(inContractDate, propertyData.inspectionDays)
+      : null;
     
     // Deposit: Use depositCollection text or calculate if it contains days
-    let depositDue = propertyData.depositCollection || "Date not set";
+    let depositDueDate: Date | null = null;
     if (propertyData.depositCollection && inContractDate) {
-      // Try to extract days from text like "Within 3 Days of Acceptance"
       const daysMatch = propertyData.depositCollection.match(/(\d+)\s*days?/i);
       if (daysMatch) {
-        depositDue = formatDueDate(addDays(inContractDate, parseInt(daysMatch[1])));
+        depositDueDate = addDays(inContractDate, parseInt(daysMatch[1]));
       }
     }
     
     // Loan Application: inContract + loanAppTimeFrame days
-    const loanApplicationDue = inContractDate && propertyData.loanAppTimeFrame
-      ? formatDueDate(addDays(inContractDate, parseInt(propertyData.loanAppTimeFrame) || 7))
-      : "Date not set";
+    const loanApplicationDueDate = inContractDate && propertyData.loanAppTimeFrame
+      ? addDays(inContractDate, parseInt(propertyData.loanAppTimeFrame) || 7)
+      : null;
     
     // Appraisal Ordered: 14 days before closing
-    const appraisalDue = closingDate
-      ? formatDueDate(subDays(closingDate, 14))
-      : "Date not set";
+    const appraisalDueDate = closingDate ? subDays(closingDate, 14) : null;
     
     // Title Commitment: 15 days before closing
-    const titleCommitmentDue = closingDate
-      ? formatDueDate(subDays(closingDate, 15))
-      : "Date not set";
+    const titleCommitmentDueDate = closingDate ? subDays(closingDate, 15) : null;
     
     // Loan Approved: inContract + loanCommitment days
-    const loanApprovedDue = inContractDate && propertyData.loanCommitment
-      ? formatDueDate(addDays(inContractDate, parseInt(propertyData.loanCommitment) || 21))
-      : "Date not set";
+    const loanApprovedDueDate = inContractDate && propertyData.loanCommitment
+      ? addDays(inContractDate, parseInt(propertyData.loanCommitment) || 21)
+      : null;
     
     // Clear to Close: 4 days before closing
-    const clearToCloseDue = closingDate
-      ? formatDueDate(subDays(closingDate, 4))
-      : "Date not set";
+    const clearToCloseDueDate = closingDate ? subDays(closingDate, 4) : null;
     
     // HUD Settlement Statement: 2 days before closing
-    const hudSettlementDue = closingDate
-      ? formatDueDate(subDays(closingDate, 2))
-      : "Date not set";
+    const hudSettlementDueDate = closingDate ? subDays(closingDate, 2) : null;
 
     return [
-      { value: "deposit-received", label: "Deposit Received", dueDate: depositDue },
-      { value: "home-inspection-scheduled", label: "Home Inspection Scheduled", dueDate: inspectionDue },
-      { value: "loan-application", label: "Loan Application", dueDate: loanApplicationDue },
-      { value: "title-commitment-received", label: "Title Commitment Received", dueDate: titleCommitmentDue },
-      { value: "appraisal-ordered", label: "Appraisal Ordered", dueDate: appraisalDue },
-      { value: "loan-approved", label: "Loan Approved", dueDate: loanApprovedDue },
-      { value: "clear-to-close", label: "Clear to Close", dueDate: clearToCloseDue },
-      { value: "hud-settlement-statement", label: "HUD Settlement Statement", dueDate: hudSettlementDue },
+      { value: "deposit-received", label: "Deposit Received", dueDate: formatDueDate(depositDueDate), dueDateObj: depositDueDate },
+      { value: "home-inspection-scheduled", label: "Home Inspection Scheduled", dueDate: formatDueDate(inspectionDueDate), dueDateObj: inspectionDueDate },
+      { value: "loan-application", label: "Loan Application", dueDate: formatDueDate(loanApplicationDueDate), dueDateObj: loanApplicationDueDate },
+      { value: "title-commitment-received", label: "Title Commitment Received", dueDate: formatDueDate(titleCommitmentDueDate), dueDateObj: titleCommitmentDueDate },
+      { value: "appraisal-ordered", label: "Appraisal Ordered", dueDate: formatDueDate(appraisalDueDate), dueDateObj: appraisalDueDate },
+      { value: "loan-approved", label: "Loan Approved", dueDate: formatDueDate(loanApprovedDueDate), dueDateObj: loanApprovedDueDate },
+      { value: "clear-to-close", label: "Clear to Close", dueDate: formatDueDate(clearToCloseDueDate), dueDateObj: clearToCloseDueDate },
+      { value: "hud-settlement-statement", label: "HUD Settlement Statement", dueDate: formatDueDate(hudSettlementDueDate), dueDateObj: hudSettlementDueDate },
     ];
   };
 
   const noticeOptions = calculateDueDates();
+
+  // Check for overdue incomplete notices
+  const today = startOfDay(new Date());
+  const overdueNotices = noticeOptions.filter(option => {
+    const isCompleted = noticeStatuses[option.value] || false;
+    if (isCompleted) return false;
+    if (!option.dueDateObj) return false;
+    return isBefore(option.dueDateObj, today);
+  });
 
   const navigationItems = [
     {
@@ -192,6 +274,14 @@ const NoticesView = ({
     console.log("Sending notice:", selectedNotice);
   };
 
+  // Check if a notice is overdue
+  const isOverdue = (option: { value: NoticeType; dueDateObj: Date | null }) => {
+    if (!option.dueDateObj) return false;
+    const isCompleted = noticeStatuses[option.value] || false;
+    if (isCompleted) return false;
+    return isBefore(option.dueDateObj, today);
+  };
+
   return (
     <div className="flex gap-6">
       {/* Left Navigation Sidebar */}
@@ -228,30 +318,65 @@ const NoticesView = ({
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
+            {/* Overdue Notices Warning */}
+            {overdueNotices.length > 0 && (
+              <Alert variant="destructive">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription>
+                  <strong>Overdue Notices:</strong>{" "}
+                  {overdueNotices.map(n => n.label).join(", ")} — Please complete these items.
+                </AlertDescription>
+              </Alert>
+            )}
+
             <RadioGroup
               value={selectedNotice || ""}
               onValueChange={(value) => setSelectedNotice(value as NoticeType)}
               className="space-y-3"
             >
-              {noticeOptions.map((option) => (
-                <div
-                  key={option.value}
-                  className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-muted/50 transition-colors"
-                >
-                  <div className="flex items-center space-x-3">
-                    <RadioGroupItem value={option.value} id={option.value} />
-                    <Label
-                      htmlFor={option.value}
-                      className="cursor-pointer font-medium"
-                    >
-                      {option.label}
-                    </Label>
+              {noticeOptions.map((option) => {
+                const isCompleted = noticeStatuses[option.value] || false;
+                const overdue = isOverdue(option);
+
+                return (
+                  <div
+                    key={option.value}
+                    className={`flex items-center justify-between p-3 rounded-lg border transition-colors ${
+                      overdue 
+                        ? "border-destructive bg-destructive/10" 
+                        : isCompleted 
+                          ? "border-green-500 bg-green-500/10" 
+                          : "border-border hover:bg-muted/50"
+                    }`}
+                  >
+                    <div className="flex items-center space-x-3">
+                      <Checkbox
+                        id={`checkbox-${option.value}`}
+                        checked={isCompleted}
+                        onCheckedChange={(checked) => 
+                          toggleNoticeCompletion(option.value, checked as boolean)
+                        }
+                        disabled={loading}
+                      />
+                      <RadioGroupItem value={option.value} id={option.value} />
+                      <Label
+                        htmlFor={option.value}
+                        className={`cursor-pointer font-medium ${
+                          isCompleted ? "line-through text-muted-foreground" : ""
+                        }`}
+                      >
+                        {option.label}
+                      </Label>
+                      {overdue && (
+                        <span className="text-xs text-destructive font-semibold">OVERDUE</span>
+                      )}
+                    </div>
+                    <span className={`text-sm ${overdue ? "text-destructive font-medium" : "text-muted-foreground"}`}>
+                      Due: {option.dueDate}
+                    </span>
                   </div>
-                  <span className="text-sm text-muted-foreground">
-                    Due: {option.dueDate}
-                  </span>
-                </div>
-              ))}
+                );
+              })}
             </RadioGroup>
 
             <div className="pt-4 border-t">
