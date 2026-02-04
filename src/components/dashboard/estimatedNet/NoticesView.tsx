@@ -98,10 +98,10 @@ const NoticesView = ({
       : "Date not set";
 
     return [
-      { value: "home-inspection-scheduled", label: "Home Inspection Scheduled", dueDate: inspectionDue },
       { value: "deposit-received", label: "Deposit Received", dueDate: depositDue },
-      { value: "appraisal-ordered", label: "Appraisal Ordered", dueDate: appraisalDue },
+      { value: "home-inspection-scheduled", label: "Home Inspection Scheduled", dueDate: inspectionDue },
       { value: "title-commitment-received", label: "Title Commitment Received", dueDate: titleCommitmentDue },
+      { value: "appraisal-ordered", label: "Appraisal Ordered", dueDate: appraisalDue },
       { value: "loan-approved", label: "Loan Approved", dueDate: loanApprovedDue },
       { value: "clear-to-close", label: "Clear to Close", dueDate: clearToCloseDue },
     ];
