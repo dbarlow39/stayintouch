@@ -33,7 +33,8 @@ type NoticeType =
   | "title-commitment-received"
   | "appraisal-ordered"
   | "loan-approved"
-  | "clear-to-close";
+  | "clear-to-close"
+  | "hud-settlement-statement";
 
 // Helper to parse date string as local date
 const parseLocalDate = (dateString: string): Date | null => {
@@ -102,6 +103,11 @@ const NoticesView = ({
     const clearToCloseDue = closingDate
       ? formatDueDate(subDays(closingDate, 4))
       : "Date not set";
+    
+    // HUD Settlement Statement: 2 days before closing
+    const hudSettlementDue = closingDate
+      ? formatDueDate(subDays(closingDate, 2))
+      : "Date not set";
 
     return [
       { value: "deposit-received", label: "Deposit Received", dueDate: depositDue },
@@ -111,6 +117,7 @@ const NoticesView = ({
       { value: "appraisal-ordered", label: "Appraisal Ordered", dueDate: appraisalDue },
       { value: "loan-approved", label: "Loan Approved", dueDate: loanApprovedDue },
       { value: "clear-to-close", label: "Clear to Close", dueDate: clearToCloseDue },
+      { value: "hud-settlement-statement", label: "HUD Settlement Statement", dueDate: hudSettlementDue },
     ];
   };
 
