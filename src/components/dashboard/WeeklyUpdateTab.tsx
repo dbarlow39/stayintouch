@@ -13,10 +13,11 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Calendar, Send, Eye, RefreshCw, Mail, CheckCircle, AlertCircle, TrendingUp, TrendingDown, Minus, ChevronDown, FileText, Save } from "lucide-react";
+import { Calendar, Send, Eye, RefreshCw, Mail, CheckCircle, AlertCircle, TrendingUp, TrendingDown, Minus, ChevronDown, FileText, Save, BarChart3 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth";
 import { format } from "date-fns";
+import ClientStatsView from "./weeklyUpdate/ClientStatsView";
 
 const generateSampleEmail = (
   client: { first_name: string | null; last_name: string | null; street_number: string | null; street_name: string | null; city: string | null; state: string | null; zip: string | null } | null,
@@ -171,6 +172,9 @@ interface Client {
   zillow_link: string | null;
   status: string | null;
   showings_to_date: number | null;
+  mls_id: string | null;
+  days_on_market: number | null;
+  price: number | null;
 }
 
 interface ZillowStats {
@@ -228,6 +232,7 @@ const WeeklyUpdateTab = () => {
   const [templateDirty, setTemplateDirty] = useState(false);
   const [isFetchingFreddieMac, setIsFetchingFreddieMac] = useState(false);
   const [freddieMacFetched, setFreddieMacFetched] = useState(false);
+  const [selectedClientForStats, setSelectedClientForStats] = useState<Client | null>(null);
 
   const MASTER_USER_ID = '579941cc-bf37-4a75-8030-450e06c49f44';
   const isMasterUser = user?.id === MASTER_USER_ID;
@@ -562,7 +567,7 @@ const WeeklyUpdateTab = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("clients")
-        .select("id, first_name, last_name, email, street_number, street_name, city, state, zip, zillow_link, status, showings_to_date")
+        .select("id, first_name, last_name, email, street_number, street_name, city, state, zip, zillow_link, status, showings_to_date, mls_id, days_on_market, price")
         .eq("agent_id", user!.id)
         .ilike("status", "A")
         .order("street_name", { ascending: true });
@@ -890,6 +895,16 @@ const WeeklyUpdateTab = () => {
       default: return <Minus className="w-4 h-4 text-muted-foreground" />;
     }
   };
+
+  // If a client is selected for stats view, show that instead
+  if (selectedClientForStats) {
+    return (
+      <ClientStatsView 
+        client={selectedClientForStats} 
+        onBack={() => setSelectedClientForStats(null)} 
+      />
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -1341,8 +1356,9 @@ const WeeklyUpdateTab = () => {
                     <TableHead className="w-12"></TableHead>
                     <TableHead>Client</TableHead>
                     <TableHead>Property</TableHead>
-                    <TableHead>Email</TableHead>
+                    <TableHead>Showings</TableHead>
                     <TableHead>Zillow</TableHead>
+                    <TableHead>Stats</TableHead>
                     {generatedEmails.size > 0 && <TableHead>Status</TableHead>}
                   </TableRow>
                 </TableHeader>
@@ -1352,8 +1368,12 @@ const WeeklyUpdateTab = () => {
                     const email = generatedEmails.get(client.id);
                     
                     return (
-                      <TableRow key={client.id} className={!hasEmail ? 'opacity-50' : ''}>
-                        <TableCell>
+                      <TableRow 
+                        key={client.id} 
+                        className={`${!hasEmail ? 'opacity-50' : ''} cursor-pointer hover:bg-muted/50`}
+                        onClick={() => setSelectedClientForStats(client)}
+                      >
+                        <TableCell onClick={(e) => e.stopPropagation()}>
                           <Checkbox
                             checked={selectedClients.has(client.id)}
                             onCheckedChange={() => toggleClient(client.id)}
@@ -1367,13 +1387,9 @@ const WeeklyUpdateTab = () => {
                           {client.street_number} {client.street_name}
                         </TableCell>
                         <TableCell>
-                          {hasEmail ? (
-                            <span className="text-sm">{client.email}</span>
-                          ) : (
-                            <Badge variant="outline" className="text-destructive border-destructive/50">
-                              No email
-                            </Badge>
-                          )}
+                          <span className="font-medium">
+                            {client.showings_to_date ?? '-'}
+                          </span>
                         </TableCell>
                         <TableCell>
                           {client.zillow_link ? (
@@ -1388,8 +1404,18 @@ const WeeklyUpdateTab = () => {
                             </Badge>
                           )}
                         </TableCell>
+                        <TableCell onClick={(e) => e.stopPropagation()}>
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => setSelectedClientForStats(client)}
+                          >
+                            <BarChart3 className="w-4 h-4 mr-1" />
+                            View
+                          </Button>
+                        </TableCell>
                         {generatedEmails.size > 0 && (
-                          <TableCell>
+                          <TableCell onClick={(e) => e.stopPropagation()}>
                             {email ? (
                               <Button 
                                 variant="ghost" 
