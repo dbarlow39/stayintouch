@@ -72,7 +72,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         },
       });
       if (error) throw error;
-      toast.success("Account created! Welcome to Stay in Touch.");
+      toast.success("Account created! Welcome to My Real Estate Office.");
       navigate("/dashboard");
       return { error: null };
     } catch (error: any) {
