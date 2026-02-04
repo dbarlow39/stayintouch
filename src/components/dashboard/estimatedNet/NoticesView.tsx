@@ -350,14 +350,6 @@ const NoticesView = ({
                     }`}
                   >
                     <div className="flex items-center space-x-3">
-                      <Checkbox
-                        id={`checkbox-${option.value}`}
-                        checked={isCompleted}
-                        onCheckedChange={(checked) => 
-                          toggleNoticeCompletion(option.value, checked as boolean)
-                        }
-                        disabled={loading}
-                      />
                       <RadioGroupItem value={option.value} id={option.value} />
                       <Label
                         htmlFor={option.value}
@@ -371,9 +363,19 @@ const NoticesView = ({
                         <span className="text-xs text-destructive font-semibold">OVERDUE</span>
                       )}
                     </div>
-                    <span className={`text-sm ${overdue ? "text-destructive font-medium" : "text-muted-foreground"}`}>
-                      Due: {option.dueDate}
-                    </span>
+                    <div className="flex items-center space-x-3">
+                      <Checkbox
+                        id={`checkbox-${option.value}`}
+                        checked={isCompleted}
+                        onCheckedChange={(checked) => 
+                          toggleNoticeCompletion(option.value, checked as boolean)
+                        }
+                        disabled={loading}
+                      />
+                      <span className={`text-sm ${overdue ? "text-destructive font-medium" : "text-muted-foreground"}`}>
+                        Due: {option.dueDate}
+                      </span>
+                    </div>
                   </div>
                 );
               })}
