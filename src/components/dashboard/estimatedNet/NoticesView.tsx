@@ -30,7 +30,8 @@ type NoticeType =
   | "deposit-received"
   | "appraisal-ordered"
   | "title-commitment-received"
-  | "loan-approved";
+  | "loan-approved"
+  | "clear-to-close";
 
 const noticeOptions: { value: NoticeType; label: string }[] = [
   { value: "home-inspection-scheduled", label: "Home Inspection Scheduled" },
@@ -38,6 +39,7 @@ const noticeOptions: { value: NoticeType; label: string }[] = [
   { value: "appraisal-ordered", label: "Appraisal Ordered" },
   { value: "title-commitment-received", label: "Title Commitment Received" },
   { value: "loan-approved", label: "Loan Approved" },
+  { value: "clear-to-close", label: "Clear to Close" },
 ];
 
 const NoticesView = ({
