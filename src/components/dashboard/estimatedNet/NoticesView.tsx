@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { PropertyData } from "@/types/estimatedNet";
+import { format, addDays, subDays } from "date-fns";
 import {
   ArrowLeft,
   List,
@@ -33,14 +34,19 @@ type NoticeType =
   | "loan-approved"
   | "clear-to-close";
 
-const noticeOptions: { value: NoticeType; label: string }[] = [
-  { value: "home-inspection-scheduled", label: "Home Inspection Scheduled" },
-  { value: "deposit-received", label: "Deposit Received" },
-  { value: "appraisal-ordered", label: "Appraisal Ordered" },
-  { value: "title-commitment-received", label: "Title Commitment Received" },
-  { value: "loan-approved", label: "Loan Approved" },
-  { value: "clear-to-close", label: "Clear to Close" },
-];
+// Helper to parse date string as local date
+const parseLocalDate = (dateString: string): Date | null => {
+  if (!dateString) return null;
+  const [year, month, day] = dateString.split('-');
+  if (!year || !month || !day) return null;
+  return new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+};
+
+// Helper to format date for display
+const formatDueDate = (date: Date | null): string => {
+  if (!date) return "Date not set";
+  return format(date, "MM/dd/yyyy");
+};
 
 const NoticesView = ({
   propertyData,
@@ -50,6 +56,58 @@ const NoticesView = ({
   onNavigate,
 }: NoticesViewProps) => {
   const [selectedNotice, setSelectedNotice] = useState<NoticeType | null>(null);
+
+  // Calculate due dates based on property data
+  const calculateDueDates = (): { value: NoticeType; label: string; dueDate: string }[] => {
+    const inContractDate = parseLocalDate(propertyData.inContract);
+    const closingDate = parseLocalDate(propertyData.closingDate);
+    
+    // Home Inspection: inContract + inspectionDays
+    const inspectionDue = inContractDate && propertyData.inspectionDays
+      ? formatDueDate(addDays(inContractDate, propertyData.inspectionDays))
+      : "Date not set";
+    
+    // Deposit: Use depositCollection text or calculate if it contains days
+    let depositDue = propertyData.depositCollection || "Date not set";
+    if (propertyData.depositCollection && inContractDate) {
+      // Try to extract days from text like "Within 3 Days of Acceptance"
+      const daysMatch = propertyData.depositCollection.match(/(\d+)\s*days?/i);
+      if (daysMatch) {
+        depositDue = formatDueDate(addDays(inContractDate, parseInt(daysMatch[1])));
+      }
+    }
+    
+    // Appraisal Ordered: typically within loan app time frame from in contract
+    const appraisalDue = inContractDate && propertyData.loanAppTimeFrame
+      ? formatDueDate(addDays(inContractDate, parseInt(propertyData.loanAppTimeFrame) || 7))
+      : "Date not set";
+    
+    // Title Commitment: 15 days before closing
+    const titleCommitmentDue = closingDate
+      ? formatDueDate(subDays(closingDate, 15))
+      : "Date not set";
+    
+    // Loan Approved: inContract + loanCommitment days
+    const loanApprovedDue = inContractDate && propertyData.loanCommitment
+      ? formatDueDate(addDays(inContractDate, parseInt(propertyData.loanCommitment) || 21))
+      : "Date not set";
+    
+    // Clear to Close: 3 days before closing
+    const clearToCloseDue = closingDate
+      ? formatDueDate(subDays(closingDate, 3))
+      : "Date not set";
+
+    return [
+      { value: "home-inspection-scheduled", label: "Home Inspection Scheduled", dueDate: inspectionDue },
+      { value: "deposit-received", label: "Deposit Received", dueDate: depositDue },
+      { value: "appraisal-ordered", label: "Appraisal Ordered", dueDate: appraisalDue },
+      { value: "title-commitment-received", label: "Title Commitment Received", dueDate: titleCommitmentDue },
+      { value: "loan-approved", label: "Loan Approved", dueDate: loanApprovedDue },
+      { value: "clear-to-close", label: "Clear to Close", dueDate: clearToCloseDue },
+    ];
+  };
+
+  const noticeOptions = calculateDueDates();
 
   const navigationItems = [
     {
@@ -164,15 +222,20 @@ const NoticesView = ({
               {noticeOptions.map((option) => (
                 <div
                   key={option.value}
-                  className="flex items-center space-x-3 p-3 rounded-lg border border-border hover:bg-muted/50 transition-colors"
+                  className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-muted/50 transition-colors"
                 >
-                  <RadioGroupItem value={option.value} id={option.value} />
-                  <Label
-                    htmlFor={option.value}
-                    className="flex-1 cursor-pointer font-medium"
-                  >
-                    {option.label}
-                  </Label>
+                  <div className="flex items-center space-x-3">
+                    <RadioGroupItem value={option.value} id={option.value} />
+                    <Label
+                      htmlFor={option.value}
+                      className="cursor-pointer font-medium"
+                    >
+                      {option.label}
+                    </Label>
+                  </div>
+                  <span className="text-sm text-muted-foreground">
+                    Due: {option.dueDate}
+                  </span>
                 </div>
               ))}
             </RadioGroup>
