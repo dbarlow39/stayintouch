@@ -257,9 +257,15 @@ const DocumentUploadSection = ({ propertyId, clientId, onContractParsed }: Docum
             file_path: filePath,
             file_size: file.size,
             file_type: file.type || fileExt,
+            document_category: selectedDocType,
           });
 
-        if (dbError) throw dbError;
+        if (dbError) {
+          console.error("Database insert error:", dbError);
+          // If database insert fails, clean up the uploaded file
+          await supabase.storage.from("deal-documents").remove([filePath]);
+          throw new Error(`Failed to save document record: ${dbError.message}`);
+        }
       }
 
       toast({

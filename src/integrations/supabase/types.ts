@@ -856,6 +856,7 @@ export type Database = {
         Row: {
           agent_id: string
           client_id: string | null
+          document_category: string | null
           file_name: string
           file_path: string
           file_size: number | null
@@ -867,6 +868,7 @@ export type Database = {
         Insert: {
           agent_id: string
           client_id?: string | null
+          document_category?: string | null
           file_name: string
           file_path: string
           file_size?: number | null
@@ -878,6 +880,7 @@ export type Database = {
         Update: {
           agent_id?: string
           client_id?: string | null
+          document_category?: string | null
           file_name?: string
           file_path?: string
           file_size?: number | null
