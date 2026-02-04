@@ -195,7 +195,7 @@ Extract these fields (return null if not found):
 - respondToOfferBy: Deadline to respond to offer from paragraph 9 (16). Include BOTH the date AND time if specified (e.g., "2026-02-03 04:00 PM" or "February 3, 2026 at 4:00 PM"). This is critical for contract deadlines.
 - homeWarranty: Home warranty amount from paragraph 10 (number only, 0 if none)
 - homeWarrantyCompany: Name of home warranty company from paragraph 10
-- appliances: List of included appliances/items from paragraph 11 (comma-separated text)
+- appliances: ONLY extract specific EXCEPTIONS or ADDITIONS noted handwritten/typed OUTSIDE the standard printed list in paragraph 11. The standard printed list of fixtures is boilerplate and should NOT be extracted. Return null unless there are handwritten additions or exclusions.
 - remedyPeriodDays: Number of days for remedy period from paragraph 12 (number)
 - listingAgentName: Listing agent's name
 - listingAgentPhone: Listing agent's phone
