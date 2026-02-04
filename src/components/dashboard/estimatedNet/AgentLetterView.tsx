@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -6,6 +6,7 @@ import { PropertyData } from "@/types/estimatedNet";
 import { ArrowLeft, List, Mail, Calendar, FileText, Copy, DollarSign, ClipboardList, Settings, Download, Home } from "lucide-react";
 import { EmailClient, EMAIL_CLIENT_OPTIONS, getEmailClientPreference, setEmailClientPreference, getEmailLink } from "@/utils/emailClientUtils";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 import logo from "@/assets/logo.jpg";
 import { format, subDays } from "date-fns";
 
@@ -20,6 +21,28 @@ interface AgentLetterViewProps {
 const AgentLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate }: AgentLetterViewProps) => {
   const { toast } = useToast();
   const [emailClient, setEmailClient] = useState<EmailClient>(getEmailClientPreference);
+  const [agentFirstName, setAgentFirstName] = useState<string>("");
+  const [agentPhone, setAgentPhone] = useState<string>("");
+  const [agentEmail, setAgentEmail] = useState<string>("");
+
+  useEffect(() => {
+    const fetchAgentProfile = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('first_name, cell_phone, preferred_email, email')
+          .eq('id', user.id)
+          .single();
+        if (profile) {
+          setAgentFirstName(profile.first_name || "");
+          setAgentPhone(profile.cell_phone || "");
+          setAgentEmail(profile.preferred_email || profile.email || "");
+        }
+      }
+    };
+    fetchAgentProfile();
+  }, []);
 
   const handleEmailClientChange = (value: string) => {
     const client = value as EmailClient;
@@ -67,9 +90,6 @@ const AgentLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate 
 
   // Extract buyer agent first name
   const buyerAgentFirstName = propertyData.agentName?.split(" ")[0] || "";
-  
-  // Extract listing agent first name
-  const listingAgentFirstName = propertyData.listingAgentName?.split(" ")[0] || "";
 
   const handleCopyToClipboard = async () => {
     const content = document.getElementById('agent-letter-content');
@@ -415,9 +435,9 @@ const AgentLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate 
                   Let me know if you see anything that needs to be changed. I look forward to working with you to get this one closed.
                 </p>
                 <p className="mt-6">Thanks</p>
-                <p className="mt-4">{listingAgentFirstName}</p>
-                <p>{propertyData.listingAgentPhone}</p>
-                <p>{propertyData.listingAgentEmail}</p>
+                <p className="mt-4">{agentFirstName}</p>
+                <p>{agentPhone}</p>
+                <p>{agentEmail}</p>
               </div>
             </div>
           </Card>

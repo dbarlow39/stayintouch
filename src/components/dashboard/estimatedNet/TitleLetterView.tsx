@@ -21,6 +21,8 @@ const TitleLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate 
   const { toast } = useToast();
   const [emailClient, setEmailClient] = useState<EmailClient>(getEmailClientPreference);
   const [agentEmail, setAgentEmail] = useState<string>("");
+  const [agentFirstName, setAgentFirstName] = useState<string>("");
+  const [agentPhone, setAgentPhone] = useState<string>("");
 
   useEffect(() => {
     const fetchAgentProfile = async () => {
@@ -28,11 +30,13 @@ const TitleLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate 
       if (user) {
         const { data: profile } = await supabase
           .from('profiles')
-          .select('preferred_email, email')
+          .select('preferred_email, email, first_name, cell_phone')
           .eq('id', user.id)
           .single();
         if (profile) {
           setAgentEmail(profile.preferred_email || profile.email || "");
+          setAgentFirstName(profile.first_name || "");
+          setAgentPhone(profile.cell_phone || "");
         }
       }
     };
@@ -360,8 +364,8 @@ const TitleLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate 
               </p>
               <p className="mb-4">Let know if you need anything else.</p>
               <p className="mb-0">Thanks</p>
-              <p className="mb-0"><strong>{propertyData.listingAgentName}</strong></p>
-              <p className="mb-0">{propertyData.listingAgentPhone}</p>
+              <p className="mb-0"><strong>{agentFirstName}</strong></p>
+              <p className="mb-0">{agentPhone}</p>
               <p className="mb-4">{agentEmail}</p>
             </div>
           </Card>
