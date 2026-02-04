@@ -22,7 +22,7 @@ const Index = () => {
           <div className="flex items-center space-x-3">
             <img src={logo} alt="Sell for 1 Percent" className="h-14 w-auto" />
             <div>
-              <h1 className="text-2xl font-bold">Stay in Touch</h1>
+              <h1 className="text-2xl font-bold">My Real Estate Office</h1>
               <p className="text-sm text-muted-foreground">Real Estate CRM</p>
             </div>
           </div>
@@ -96,7 +96,7 @@ const Index = () => {
 
       <footer className="border-t border-border/50 py-8 mt-20">
         <div className="container mx-auto px-4 text-center text-muted-foreground">
-          <p>© 2024 Stay in Touch. Professional Real Estate CRM.</p>
+          <p>© 2024 My Real Estate Office. Professional Real Estate CRM.</p>
         </div>
       </footer>
     </div>

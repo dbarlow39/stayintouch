@@ -43,7 +43,7 @@ const Auth = () => {
           <div className="inline-flex items-center justify-center mb-4">
             <img src={logo} alt="Sell for 1 Percent" className="h-16 w-auto" />
           </div>
-          <h1 className="text-3xl font-bold text-foreground mb-2">Stay in Touch</h1>
+          <h1 className="text-3xl font-bold text-foreground mb-2">My Real Estate Office</h1>
           <p className="text-muted-foreground">Real Estate CRM for Agents</p>
         </div>
 

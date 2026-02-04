@@ -251,7 +251,7 @@ const Account = () => {
           <div className="flex items-center space-x-3">
             <img src={logo} alt="Sell for 1 Percent" className="h-12 w-auto" />
             <div>
-              <h1 className="text-xl font-bold">Stay in Touch</h1>
+              <h1 className="text-xl font-bold">My Real Estate Office</h1>
               <p className="text-xs text-muted-foreground">Account Settings</p>
             </div>
           </div>
