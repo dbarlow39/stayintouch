@@ -81,7 +81,7 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
     inspectionDays: 7,
     remedyPeriodDays: 2,
     annualTaxes: 0,
-    firstHalfPaid: false,
+    firstHalfPaid: true,
     secondHalfPaid: false,
     taxDaysDueThisYear: 0,
     daysFirstHalfTaxes: 0,
