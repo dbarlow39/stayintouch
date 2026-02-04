@@ -77,9 +77,9 @@ const NoticesView = ({
       }
     }
     
-    // Appraisal Ordered: typically within loan app time frame from in contract
-    const appraisalDue = inContractDate && propertyData.loanAppTimeFrame
-      ? formatDueDate(addDays(inContractDate, parseInt(propertyData.loanAppTimeFrame) || 7))
+    // Appraisal Ordered: 14 days before closing
+    const appraisalDue = closingDate
+      ? formatDueDate(subDays(closingDate, 14))
       : "Date not set";
     
     // Title Commitment: 15 days before closing
@@ -92,9 +92,9 @@ const NoticesView = ({
       ? formatDueDate(addDays(inContractDate, parseInt(propertyData.loanCommitment) || 21))
       : "Date not set";
     
-    // Clear to Close: 3 days before closing
+    // Clear to Close: 4 days before closing
     const clearToCloseDue = closingDate
-      ? formatDueDate(subDays(closingDate, 3))
+      ? formatDueDate(subDays(closingDate, 4))
       : "Date not set";
 
     return [
