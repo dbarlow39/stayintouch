@@ -152,16 +152,30 @@ serve(async (req) => {
       data.error = "Login may have failed - still seeing login page. Please verify credentials.";
       console.log("Detected login page content - credentials may be incorrect");
     } else {
-      // Try to extract total showings
-      const totalMatch = markdown.match(/(\d+)\s*(?:total\s*)?showings?/i);
+      // Try to extract total showings - be more specific to avoid matching years like "2025"
+      // Look for patterns like "8 Showings" or "Total Showings: 8" or "8 total showings"
+      // Exclude matches where the number is 4 digits (likely a year)
+      const totalMatch = markdown.match(/(?:total\s+showings?[:\s]*(\d{1,3})|(\d{1,3})\s+total\s+showings?|^(\d{1,3})\s+showings?(?!\s*\d)|showings?[:\s]*(\d{1,3})(?!\d))/im);
       if (totalMatch) {
-        data.totalShowings = parseInt(totalMatch[1], 10);
+        // Find the first captured group that has a value
+        const showingCount = totalMatch[1] || totalMatch[2] || totalMatch[3] || totalMatch[4];
+        if (showingCount) {
+          const parsed = parseInt(showingCount, 10);
+          // Sanity check: if the number is >= 1000, it's probably a year or invalid
+          if (parsed < 1000) {
+            data.totalShowings = parsed;
+          }
+        }
       }
 
       // Try to extract recent/this week showings
       const weekMatch = markdown.match(/(\d+)\s*showings?\s*(?:this\s*week|last\s*7\s*days|recent)/i);
       if (weekMatch) {
-        data.showingsThisWeek = parseInt(weekMatch[1], 10);
+        const parsed = parseInt(weekMatch[1], 10);
+        // Sanity check
+        if (parsed < 1000) {
+          data.showingsThisWeek = parsed;
+        }
       }
 
       // Try to extract last showing date
