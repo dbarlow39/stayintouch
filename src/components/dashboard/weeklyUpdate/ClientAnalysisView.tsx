@@ -202,7 +202,11 @@ const ClientStatsView = ({ client, onBack }: ClientStatsViewProps) => {
               </div>
               <div>
                 <p className="text-2xl font-bold">
-                  {client.days_on_market ?? client.showings_to_date ?? '-'}
+                  {isLoadingZillow ? (
+                    <Skeleton className="h-8 w-12" />
+                  ) : (
+                    zillowStats?.days ?? client.days_on_market ?? '-'
+                  )}
                 </p>
                 <p className="text-xs text-muted-foreground">Days on Market</p>
               </div>
