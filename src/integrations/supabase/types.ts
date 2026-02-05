@@ -439,6 +439,10 @@ export type Database = {
           state: string
           street_address: string
           tax_days_due_this_year: number | null
+          title_company_name: string | null
+          title_email: string | null
+          title_phone: string | null
+          title_processor: string | null
           type_of_loan: string | null
           updated_at: string
           zip: string
@@ -496,6 +500,10 @@ export type Database = {
           state?: string
           street_address: string
           tax_days_due_this_year?: number | null
+          title_company_name?: string | null
+          title_email?: string | null
+          title_phone?: string | null
+          title_processor?: string | null
           type_of_loan?: string | null
           updated_at?: string
           zip: string
@@ -553,6 +561,10 @@ export type Database = {
           state?: string
           street_address?: string
           tax_days_due_this_year?: number | null
+          title_company_name?: string | null
+          title_email?: string | null
+          title_phone?: string | null
+          title_processor?: string | null
           type_of_loan?: string | null
           updated_at?: string
           zip?: string
