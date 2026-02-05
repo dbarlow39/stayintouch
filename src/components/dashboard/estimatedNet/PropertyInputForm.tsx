@@ -1897,6 +1897,7 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
           
           {/* Buyer Agent Section - Light Rose Background */}
           <div className="bg-rose-50 p-4 rounded-lg mb-6">
+           <h4 className="font-bold text-foreground mb-3">Buyer Agent Details</h4>
             {/* Line 1: Buyer Agent Name + Cell Phone */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
               <div>
@@ -1934,6 +1935,7 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
 
           {/* Lender Section - Light Green Background */}
           <div className="bg-green-50 p-4 rounded-lg mb-6">
+           <h4 className="font-bold text-foreground mb-3">Lender Info</h4>
             {/* Line 3: Lender Name + Lending Officer */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
               <div>
@@ -1979,6 +1981,7 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
 
           {/* Buyer Names Section - Light Blue Background */}
           <div className="bg-blue-50 p-4 rounded-lg">
+           <h4 className="font-bold text-foreground mb-3">Buyer Info</h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="buyerName1">(18.1) Buyer Name 1</Label>
