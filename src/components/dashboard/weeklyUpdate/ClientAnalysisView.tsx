@@ -437,22 +437,6 @@ const ClientStatsView = ({ client, onBack }: ClientStatsViewProps) => {
                   <p className="text-sm text-muted-foreground mt-1">Last Showing</p>
                 </div>
               </div>
-              
-              {showingTimeData.feedback.length > 0 && (
-                <div>
-                  <h4 className="font-medium mb-3 flex items-center gap-2">
-                    <MessageSquare className="h-4 w-4" />
-                    Recent Feedback
-                  </h4>
-                  <div className="space-y-2">
-                    {showingTimeData.feedback.map((fb, idx) => (
-                      <div key={idx} className="p-3 bg-muted/50 rounded-lg text-sm">
-                        {fb}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
             </div>
           ) : (
             // Use local showing data if ShowingTime not fetched
