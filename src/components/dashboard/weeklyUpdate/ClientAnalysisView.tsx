@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -32,14 +32,6 @@ interface ZillowStats {
   days: number | null;
 }
 
-interface ShowingTimeData {
-  totalShowings: number | null;
-  showingsThisWeek: number | null;
-  lastShowingDate: string | null;
-  feedback: string[];
-  error: string | null;
-}
-
 interface ClientStatsViewProps {
   client: Client;
   onBack: () => void;
@@ -51,26 +43,55 @@ const ClientStatsView = ({ client, onBack }: ClientStatsViewProps) => {
   const [isLoadingZillow, setIsLoadingZillow] = useState(false);
   const [zillowError, setZillowError] = useState<string | null>(null);
   
-  const [showingTimeData, setShowingTimeData] = useState<ShowingTimeData | null>(null);
-  const [isLoadingShowingTime, setIsLoadingShowingTime] = useState(false);
-  const [showingTimeError, setShowingTimeError] = useState<string | null>(null);
-
-  // Fetch showing feedback from database
-  const { data: showingFeedback = [] } = useQuery({
+  // Fetch showing feedback from database - this gives us IMMEDIATE data
+  const { data: showingFeedback = [], isLoading: isLoadingFeedback } = useQuery({
     queryKey: ["showing-feedback", client.id],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("showing_feedback")
         .select("*")
         .eq("client_id", client.id)
-       .not("source_email_id", "is", null)
-        .order("showing_date", { ascending: false })
-        .limit(10);
+        .not("source_email_id", "is", null)
+        .order("showing_date", { ascending: false });
       if (error) throw error;
       return data;
     },
     enabled: !!client.id,
   });
+
+  // Calculate ShowingTime stats from database records (instant - no API call!)
+  const showingTimeStats = useMemo(() => {
+    const now = new Date();
+    const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    
+    if (!showingFeedback || showingFeedback.length === 0) {
+      return {
+        totalShowings: client.showings_to_date ?? 0,
+        showingsThisWeek: 0,
+        lastShowingDate: null as string | null,
+      };
+    }
+
+    const showingsThisWeek = showingFeedback.filter(f => {
+      if (!f.showing_date) return false;
+      const showDate = new Date(f.showing_date);
+      return showDate >= oneWeekAgo;
+    }).length;
+
+    const lastShowing = showingFeedback.find(f => f.showing_date);
+    const lastShowingDate = lastShowing?.showing_date 
+      ? new Date(lastShowing.showing_date).toLocaleDateString()
+      : null;
+
+    // Use the larger of: feedback count or stored showings_to_date
+    const totalShowings = Math.max(showingFeedback.length, client.showings_to_date ?? 0);
+
+    return {
+      totalShowings,
+      showingsThisWeek,
+      lastShowingDate,
+    };
+  }, [showingFeedback, client.showings_to_date]);
 
   // Fetch Zillow stats on mount if client has zillow_link
   useEffect(() => {
@@ -78,13 +99,6 @@ const ClientStatsView = ({ client, onBack }: ClientStatsViewProps) => {
       fetchZillowStats();
     }
   }, [client.zillow_link]);
-
-  // Fetch ShowingTime data on mount if client has mls_id
-  useEffect(() => {
-    if (client.mls_id) {
-      fetchShowingTimeData();
-    }
-  }, [client.mls_id]);
 
   const fetchZillowStats = async () => {
     if (!client.zillow_link) return;
@@ -122,48 +136,6 @@ const ClientStatsView = ({ client, onBack }: ClientStatsViewProps) => {
       setZillowError(error instanceof Error ? error.message : 'Unknown error');
     } finally {
       setIsLoadingZillow(false);
-    }
-  };
-
-  const fetchShowingTimeData = async () => {
-    if (!client.mls_id) return;
-    
-    setIsLoadingShowingTime(true);
-    setShowingTimeError(null);
-    
-    try {
-      const session = await supabase.auth.getSession();
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/fetch-showingtime`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-            'Authorization': `Bearer ${session?.data?.session?.access_token}`,
-          },
-          body: JSON.stringify({ 
-            mls_id: client.mls_id,
-            property_address: `${client.street_number} ${client.street_name}`,
-          }),
-        }
-      );
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch ShowingTime data');
-      }
-      
-      const result = await response.json();
-      if (result.error) {
-        setShowingTimeError(result.error);
-      } else {
-        setShowingTimeData(result.data);
-      }
-    } catch (error) {
-      console.error('Error fetching ShowingTime data:', error);
-      setShowingTimeError(error instanceof Error ? error.message : 'Unknown error');
-    } finally {
-      setIsLoadingShowingTime(false);
     }
   };
 
@@ -218,12 +190,16 @@ const ClientStatsView = ({ client, onBack }: ClientStatsViewProps) => {
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-500/10 rounded-lg">
-                <Users className="h-5 w-5 text-blue-500" />
+              <div className="p-2 bg-primary/10 rounded-lg">
+                <Users className="h-5 w-5 text-primary" />
               </div>
               <div>
                 <p className="text-2xl font-bold">
-                  {client.showings_to_date ?? showingTimeData?.totalShowings ?? '-'}
+                  {isLoadingFeedback ? (
+                    <Skeleton className="h-8 w-12" />
+                  ) : (
+                    showingTimeStats.totalShowings || '-'
+                  )}
                 </p>
                 <p className="text-xs text-muted-foreground">Total Showings</p>
               </div>
@@ -234,8 +210,8 @@ const ClientStatsView = ({ client, onBack }: ClientStatsViewProps) => {
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-green-500/10 rounded-lg">
-                <Eye className="h-5 w-5 text-green-500" />
+              <div className="p-2 bg-primary/10 rounded-lg">
+                <Eye className="h-5 w-5 text-primary" />
               </div>
               <div>
                 <p className="text-2xl font-bold">
@@ -254,8 +230,8 @@ const ClientStatsView = ({ client, onBack }: ClientStatsViewProps) => {
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-red-500/10 rounded-lg">
-                <Heart className="h-5 w-5 text-red-500" />
+              <div className="p-2 bg-primary/10 rounded-lg">
+                <Heart className="h-5 w-5 text-primary" />
               </div>
               <div>
                 <p className="text-2xl font-bold">
@@ -277,7 +253,7 @@ const ClientStatsView = ({ client, onBack }: ClientStatsViewProps) => {
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
             <CardTitle className="flex items-center gap-2">
-              <TrendingUp className="h-5 w-5 text-blue-600" />
+              <TrendingUp className="h-5 w-5 text-primary" />
               Zillow Statistics
             </CardTitle>
             <CardDescription>Online engagement metrics from Zillow</CardDescription>
@@ -327,13 +303,13 @@ const ClientStatsView = ({ client, onBack }: ClientStatsViewProps) => {
           ) : zillowStats ? (
             <div className="grid grid-cols-3 gap-6">
               <div className="text-center p-4 bg-muted/50 rounded-lg">
-                <p className="text-4xl font-bold text-green-600">
+                <p className="text-4xl font-bold text-primary">
                   {zillowStats.views?.toLocaleString() ?? '-'}
                 </p>
                 <p className="text-sm text-muted-foreground mt-1">Total Views</p>
               </div>
               <div className="text-center p-4 bg-muted/50 rounded-lg">
-                <p className="text-4xl font-bold text-red-500">
+                <p className="text-4xl font-bold text-primary">
                   {zillowStats.saves ?? '-'}
                 </p>
                 <p className="text-sm text-muted-foreground mt-1">Buyer Saves</p>
@@ -352,14 +328,14 @@ const ClientStatsView = ({ client, onBack }: ClientStatsViewProps) => {
           )}
           
           {/* Conversion Metrics */}
-          {zillowStats?.views && client.showings_to_date && (
+          {zillowStats?.views && showingTimeStats.totalShowings > 0 && (
             <div className="mt-6 p-4 bg-primary/5 rounded-lg border border-primary/20">
               <h4 className="font-medium mb-2">Conversion Analysis</h4>
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
                   <span className="text-muted-foreground">Views to Showings Ratio:</span>
                   <span className="font-medium ml-2">
-                    {Math.round(zillowStats.views / client.showings_to_date)}:1
+                    {Math.round(zillowStats.views / showingTimeStats.totalShowings)}:1
                   </span>
                 </div>
                 <div>
@@ -374,40 +350,19 @@ const ClientStatsView = ({ client, onBack }: ClientStatsViewProps) => {
         </CardContent>
       </Card>
 
-      {/* ShowingTime Stats Section */}
+      {/* ShowingTime Stats Section - Now uses database data (instant!) */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
             <CardTitle className="flex items-center gap-2">
-              <Users className="h-5 w-5 text-purple-600" />
+              <Users className="h-5 w-5 text-primary" />
               ShowingTime Statistics
             </CardTitle>
-            <CardDescription>Showing activity and feedback</CardDescription>
+            <CardDescription>Showing activity from synced emails (instant)</CardDescription>
           </div>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={fetchShowingTimeData}
-            disabled={isLoadingShowingTime || !client.mls_id}
-          >
-            {isLoadingShowingTime ? (
-              <RefreshCw className="h-4 w-4 animate-spin" />
-            ) : (
-              <RefreshCw className="h-4 w-4" />
-            )}
-          </Button>
         </CardHeader>
         <CardContent>
-          {!client.mls_id ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <p>No MLS ID configured for this property.</p>
-              <p className="text-sm">Add an MLS ID to fetch ShowingTime data.</p>
-            </div>
-          ) : showingTimeError ? (
-            <div className="text-center py-8 text-destructive">
-              <p>Error fetching ShowingTime data: {showingTimeError}</p>
-            </div>
-          ) : isLoadingShowingTime ? (
+          {isLoadingFeedback ? (
             <div className="grid grid-cols-3 gap-6">
               {[1, 2, 3].map((i) => (
                 <div key={i} className="text-center">
@@ -416,48 +371,34 @@ const ClientStatsView = ({ client, onBack }: ClientStatsViewProps) => {
                 </div>
               ))}
             </div>
-          ) : showingTimeData ? (
+          ) : (
             <div className="space-y-6">
               <div className="grid grid-cols-3 gap-6">
                 <div className="text-center p-4 bg-muted/50 rounded-lg">
-                  <p className="text-4xl font-bold text-purple-600">
-                    {showingTimeData.totalShowings ?? client.showings_to_date ?? '-'}
+                  <p className="text-4xl font-bold text-primary">
+                    {showingTimeStats.totalShowings || '-'}
                   </p>
                   <p className="text-sm text-muted-foreground mt-1">Total Showings</p>
                 </div>
                 <div className="text-center p-4 bg-muted/50 rounded-lg">
-                  <p className="text-4xl font-bold text-blue-500">
-                    {showingTimeData.showingsThisWeek ?? '-'}
+                  <p className="text-4xl font-bold text-primary">
+                    {showingTimeStats.showingsThisWeek || '-'}
                   </p>
                   <p className="text-sm text-muted-foreground mt-1">This Week</p>
                 </div>
                 <div className="text-center p-4 bg-muted/50 rounded-lg">
                   <p className="text-2xl font-bold text-muted-foreground">
-                    {showingTimeData.lastShowingDate ?? '-'}
+                    {showingTimeStats.lastShowingDate ?? '-'}
                   </p>
                   <p className="text-sm text-muted-foreground mt-1">Last Showing</p>
                 </div>
               </div>
-            </div>
-          ) : (
-            // Use local showing data if ShowingTime not fetched
-            <div className="space-y-6">
-              <div className="grid grid-cols-3 gap-6">
-                <div className="text-center p-4 bg-muted/50 rounded-lg">
-                  <p className="text-4xl font-bold text-purple-600">
-                    {client.showings_to_date ?? '-'}
-                  </p>
-                  <p className="text-sm text-muted-foreground mt-1">Total Showings</p>
-                </div>
-                <div className="text-center p-4 bg-muted/50 rounded-lg">
-                  <p className="text-4xl font-bold text-blue-500">-</p>
-                  <p className="text-sm text-muted-foreground mt-1">This Week</p>
-                </div>
-                <div className="text-center p-4 bg-muted/50 rounded-lg">
-                  <p className="text-2xl font-bold text-muted-foreground">-</p>
-                  <p className="text-sm text-muted-foreground mt-1">Last Showing</p>
-                </div>
-              </div>
+              
+              {showingFeedback.length === 0 && !client.showings_to_date && (
+                <p className="text-center text-sm text-muted-foreground">
+                  No showing data yet. Sync your Gmail to import ShowingTime emails.
+                </p>
+              )}
             </div>
           )}
         </CardContent>
@@ -468,7 +409,7 @@ const ClientStatsView = ({ client, onBack }: ClientStatsViewProps) => {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <MessageSquare className="h-5 w-5 text-orange-500" />
+              <MessageSquare className="h-5 w-5 text-primary" />
               Showing Feedback History
             </CardTitle>
             <CardDescription>Feedback received from showing agents</CardDescription>
