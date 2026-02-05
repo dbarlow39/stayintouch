@@ -17,7 +17,7 @@ import { Calendar, Send, Eye, RefreshCw, Mail, CheckCircle, AlertCircle, Trendin
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth";
 import { format } from "date-fns";
-import ClientStatsView from "./weeklyUpdate/ClientStatsView";
+import ClientAnalysisView from "./weeklyUpdate/ClientAnalysisView";
 
 const generateSampleEmail = (
   client: { first_name: string | null; last_name: string | null; street_number: string | null; street_name: string | null; city: string | null; state: string | null; zip: string | null } | null,
@@ -896,10 +896,10 @@ const WeeklyUpdateTab = () => {
     }
   };
 
-  // If a client is selected for stats view, show that instead
+  // If a client is selected for analysis view, show that instead
   if (selectedClientForStats) {
     return (
-      <ClientStatsView 
+      <ClientAnalysisView 
         client={selectedClientForStats} 
         onBack={() => setSelectedClientForStats(null)} 
       />
@@ -1358,7 +1358,7 @@ const WeeklyUpdateTab = () => {
                     <TableHead>Property</TableHead>
                     <TableHead>Showings</TableHead>
                     <TableHead>Zillow</TableHead>
-                    <TableHead>Stats</TableHead>
+                    <TableHead>Analysis</TableHead>
                     {generatedEmails.size > 0 && <TableHead>Status</TableHead>}
                   </TableRow>
                 </TableHeader>
@@ -1411,7 +1411,7 @@ const WeeklyUpdateTab = () => {
                             onClick={() => setSelectedClientForStats(client)}
                           >
                             <BarChart3 className="w-4 h-4 mr-1" />
-                            View
+                            Analyze
                           </Button>
                         </TableCell>
                         {generatedEmails.size > 0 && (
