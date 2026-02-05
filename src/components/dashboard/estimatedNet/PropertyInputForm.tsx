@@ -92,6 +92,10 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
     listingAgentName: "",
     listingAgentPhone: "",
     listingAgentEmail: "",
+   titleCompanyName: "Caliber Title / Title First",
+   titleProcessor: "Kameron Faulkner or Shina Painter",
+   titlePhone: "614-854-0980",
+   titleEmail: "polaris@titlefirst.com",
     adminFee: 499,
     appliances: "",
     notes: ""
@@ -446,6 +450,10 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
           listingAgentName: data.listing_agent_name || "",
           listingAgentPhone: data.listing_agent_phone || "",
           listingAgentEmail: data.listing_agent_email || "",
+         titleCompanyName: (data as any).title_company_name || "Caliber Title / Title First",
+         titleProcessor: (data as any).title_processor || "Kameron Faulkner or Shina Painter",
+         titlePhone: (data as any).title_phone || "614-854-0980",
+         titleEmail: (data as any).title_email || "polaris@titlefirst.com",
           adminFee: Number(data.admin_fee),
           appliances: data.appliances || "",
           notes: data.notes || "",
@@ -693,6 +701,10 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
         listing_agent_name: formData.listingAgentName,
         listing_agent_phone: formData.listingAgentPhone,
         listing_agent_email: formData.listingAgentEmail,
+       title_company_name: formData.titleCompanyName,
+       title_processor: formData.titleProcessor,
+       title_phone: formData.titlePhone,
+       title_email: formData.titleEmail,
         admin_fee: Number(formData.adminFee) || 0,
         appliances: formData.appliances,
         notes: formData.notes,
@@ -2002,6 +2014,46 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
             </div>
           </div>
         </Card>
+
+       <Card className="p-6 mb-6">
+         <h3 className="text-xl font-semibold mb-4 text-foreground">Title Company Info</h3>
+         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+           <div>
+             <Label htmlFor="titleCompanyName">Title Company Name</Label>
+             <Input
+               id="titleCompanyName"
+               value={formData.titleCompanyName || ""}
+               onChange={(e) => updateField("titleCompanyName", e.target.value)}
+             />
+           </div>
+           <div>
+             <Label htmlFor="titleProcessor">Processor</Label>
+             <Input
+               id="titleProcessor"
+               value={formData.titleProcessor || ""}
+               onChange={(e) => updateField("titleProcessor", e.target.value)}
+             />
+           </div>
+           <div>
+             <Label htmlFor="titlePhone">Title Phone</Label>
+             <Input
+               id="titlePhone"
+               type="tel"
+               value={formData.titlePhone || ""}
+               onChange={(e) => updateField("titlePhone", e.target.value)}
+             />
+           </div>
+           <div>
+             <Label htmlFor="titleEmail">Title Email</Label>
+             <Input
+               id="titleEmail"
+               type="email"
+               value={formData.titleEmail || ""}
+               onChange={(e) => updateField("titleEmail", e.target.value)}
+             />
+           </div>
+         </div>
+       </Card>
 
         <Card className="p-6 mb-6">
           <h3 className="text-xl font-semibold mb-4 text-foreground">Additional Information</h3>

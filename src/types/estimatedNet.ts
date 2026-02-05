@@ -64,6 +64,12 @@ export interface PropertyData {
   listingAgentPhone: string;
   listingAgentEmail: string;
   
+   // Title Company Information
+   titleCompanyName: string;
+   titleProcessor: string;
+   titlePhone: string;
+   titleEmail: string;
+ 
   adminFee: number;
   
   // Additional
