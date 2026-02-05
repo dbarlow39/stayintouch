@@ -63,6 +63,7 @@ const ClientStatsView = ({ client, onBack }: ClientStatsViewProps) => {
         .from("showing_feedback")
         .select("*")
         .eq("client_id", client.id)
+       .not("source_email_id", "is", null)
         .order("showing_date", { ascending: false })
         .limit(10);
       if (error) throw error;
