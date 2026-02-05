@@ -18,11 +18,13 @@ import {
   Mail,
   X,
   Save,
+  BarChart3,
 } from "lucide-react";
 import logo from "@/assets/logo.jpg";
 import ClientFeedbackPage from "./ClientFeedbackPage";
 import ClientCommunicationsView from "./ClientCommunicationsView";
 import ClientEditForm from "./ClientEditForm";
+import ClientAnalysisView from "./weeklyUpdate/ClientAnalysisView";
 
 interface Client {
   id: string;
@@ -68,7 +70,7 @@ interface ClientDetailModalProps {
   onClientUpdated?: () => void;
 }
 
-type TabView = "details" | "edit" | "notes" | "communications" | "feedback";
+type TabView = "details" | "edit" | "notes" | "communications" | "feedback" | "stats";
 
 const ClientDetailModal = ({ client, open, onClose, onClientUpdated }: ClientDetailModalProps) => {
   const { user } = useAuth();
@@ -274,6 +276,19 @@ const ClientDetailModal = ({ client, open, onClose, onClientUpdated }: ClientDet
               >
                 <MessageSquare className="h-4 w-4" />
                 Feedback
+              </button>
+
+              {/* Stats */}
+              <button
+                onClick={() => setActiveTab("stats")}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors ${
+                  activeTab === "stats"
+                    ? "bg-primary text-primary-foreground"
+                    : "hover:bg-muted text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <BarChart3 className="h-4 w-4" />
+                Stats
               </button>
 
               {/* Close */}
@@ -550,6 +565,29 @@ const ClientDetailModal = ({ client, open, onClose, onClientUpdated }: ClientDet
 
               {activeTab === "feedback" && (
                 <ClientFeedbackPage clientId={client.id} onBack={() => setActiveTab("details")} />
+              )}
+
+              {activeTab === "stats" && (
+                <ClientAnalysisView
+                  client={{
+                    id: client.id,
+                    first_name: client.first_name,
+                    last_name: client.last_name,
+                    email: client.email || null,
+                    street_number: client.street_number || null,
+                    street_name: client.street_name || null,
+                    city: client.city || null,
+                    state: client.state || null,
+                    zip: client.zip || null,
+                    zillow_link: client.zillow_link || null,
+                    status: client.status || null,
+                    showings_to_date: client.showings_to_date || null,
+                    mls_id: client.mls_id || null,
+                    days_on_market: client.days_on_market || null,
+                    price: client.price || null,
+                  }}
+                  onBack={() => setActiveTab("details")}
+                />
               )}
             </ScrollArea>
           </div>
