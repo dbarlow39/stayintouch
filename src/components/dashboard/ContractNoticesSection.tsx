@@ -138,9 +138,10 @@ const ContractNoticesSection = () => {
       }
     }
 
-    // Sort: overdue incomplete first, then upcoming incomplete by date, then completed
+    // Only show overdue and up to 3 days in the future
+    const threeDaysOut = addDays(today, 3);
     return items
-      .filter((item) => !item.completed)
+      .filter((item) => !item.completed && isBefore(item.dueDate, addDays(threeDaysOut, 1)))
       .sort((a, b) => a.dueDate.getTime() - b.dueDate.getTime());
   }, [properties, noticeStatuses]);
 
