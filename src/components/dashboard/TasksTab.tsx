@@ -14,6 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth";
 import ArchivedTasksDialog from "./ArchivedTasksDialog";
 import SuggestedTasksSection from "./SuggestedTasksSection";
+import ContractNoticesSection from "./ContractNoticesSection";
 
 interface Task {
   id: string;
@@ -133,6 +134,9 @@ const TasksTab = () => {
 
   return (
     <div className="space-y-6">
+      {/* Contract Notices - from working deals */}
+      <ContractNoticesSection />
+
       {/* Email Digest Section - powered by cron job */}
       <SuggestedTasksSection />
       
