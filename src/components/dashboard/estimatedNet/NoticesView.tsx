@@ -276,6 +276,10 @@ const NoticesView = ({
       onNavigate("home-inspection-letter");
       return;
     }
+    if (noticeType === "deposit-received") {
+      onNavigate("deposit-letter");
+      return;
+    }
     console.log("Sending notice:", noticeType);
   };
 
