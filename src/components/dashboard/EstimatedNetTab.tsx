@@ -51,9 +51,11 @@ interface SelectedClientForEstimate {
 interface EstimatedNetTabProps {
   selectedClient?: SelectedClientForEstimate | null;
   onClearSelectedClient?: () => void;
+  navigateToPropertyId?: string | null;
+  onClearNavigateToProperty?: () => void;
 }
 
-const EstimatedNetTab = ({ selectedClient, onClearSelectedClient }: EstimatedNetTabProps) => {
+const EstimatedNetTab = ({ selectedClient, onClearSelectedClient, navigateToPropertyId, onClearNavigateToProperty }: EstimatedNetTabProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -93,6 +95,14 @@ const EstimatedNetTab = ({ selectedClient, onClearSelectedClient }: EstimatedNet
 
     loadClientEstimate();
   }, [selectedClient, onClearSelectedClient, user]);
+
+  // Handle navigation from external sources (e.g., Contract Notices on Tasks tab)
+  useEffect(() => {
+    if (navigateToPropertyId) {
+      handleViewResults(navigateToPropertyId, 'notices');
+      onClearNavigateToProperty?.();
+    }
+  }, [navigateToPropertyId]);
 
   // Helper to extract street name from address (removes leading numbers)
   const extractStreetName = (address: string): string => {
@@ -222,7 +232,7 @@ const EstimatedNetTab = ({ selectedClient, onClearSelectedClient }: EstimatedNet
     setViewState('form');
   };
 
-  const handleViewResults = async (id: string) => {
+  const handleViewResults = async (id: string, targetView?: ViewState) => {
     // Load the property data from the database
     const { data, error } = await supabase
       .from("estimated_net_properties")
@@ -299,7 +309,7 @@ const EstimatedNetTab = ({ selectedClient, onClearSelectedClient }: EstimatedNet
 
     setCurrentPropertyId(id);
     setCurrentPropertyData(propertyData);
-    setViewState('results');
+    setViewState(targetView || 'results');
   };
 
   const handleFormSave = (propertyId: string, propertyData: PropertyData, targetView?: string) => {
