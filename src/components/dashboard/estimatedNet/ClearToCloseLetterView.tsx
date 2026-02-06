@@ -239,8 +239,9 @@ const ClearToCloseLetterView = ({ propertyData, propertyId, onBack, onEdit, onNa
                 Just a quick note that the buyer's lender has issued a "Clear to Close" notice. What that means is the buyer's loan has been fully reviewed by underwriting and all we are doing at this point is waiting to close.
               </p>
 
+              <h2 className="text-xl font-bold mt-6 mb-3">📋 Next Step:</h2>
               <p className="mb-4">
-                📋 The next step will be getting a copy of the Settlement Statement for review, normally the day before closing and scheduling you to sign your side of the paperwork.
+                The next step will be getting a copy of the Settlement Statement for review, normally the day before closing and scheduling you to sign your side of the paperwork.
               </p>
 
               <h2 className="text-xl font-bold mt-6 mb-3">📅 Scheduling Your Closing:</h2>
