@@ -34,6 +34,7 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("clients");
   const [selectedClientForEstimate, setSelectedClientForEstimate] = useState<SelectedClientForEstimate | null>(null);
+  const [navigateToPropertyId, setNavigateToPropertyId] = useState<string | null>(null);
 
   const handleSelectClientForEstimate = (client: SelectedClientForEstimate) => {
     setSelectedClientForEstimate(client);
@@ -42,6 +43,15 @@ const Dashboard = () => {
 
   const handleClearSelectedClient = () => {
     setSelectedClientForEstimate(null);
+  };
+
+  const handleNavigateToProperty = (propertyId: string) => {
+    setNavigateToPropertyId(propertyId);
+    setActiveTab("deals");
+  };
+
+  const handleClearNavigateToProperty = () => {
+    setNavigateToPropertyId(null);
   };
 
   useEffect(() => {
@@ -200,10 +210,12 @@ const Dashboard = () => {
                 <EstimatedNetTab 
                   selectedClient={selectedClientForEstimate} 
                   onClearSelectedClient={handleClearSelectedClient}
+                  navigateToPropertyId={navigateToPropertyId}
+                  onClearNavigateToProperty={handleClearNavigateToProperty}
                 />
               </TabsContent>
               <TabsContent value="tasks">
-                <TasksTab />
+                <TasksTab onNavigateToProperty={handleNavigateToProperty} />
               </TabsContent>
               <TabsContent value="sms">
                 <SMSTab />

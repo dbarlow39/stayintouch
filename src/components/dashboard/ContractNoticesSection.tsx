@@ -79,7 +79,11 @@ const calculateNotices = (property: PropertyRow): { type: string; label: string;
   ];
 };
 
-const ContractNoticesSection = () => {
+interface ContractNoticesSectionProps {
+  onNavigateToProperty?: (propertyId: string) => void;
+}
+
+const ContractNoticesSection = ({ onNavigateToProperty }: ContractNoticesSectionProps) => {
   const { user } = useAuth();
 
   const { data: properties } = useQuery({
@@ -169,7 +173,7 @@ const ContractNoticesSection = () => {
         {overdueNotices.length > 0 && (
           <div className="space-y-1 mb-3">
             {overdueNotices.map((notice) => (
-              <NoticeRow key={`${notice.propertyId}-${notice.noticeType}`} notice={notice} today={today} />
+              <NoticeRow key={`${notice.propertyId}-${notice.noticeType}`} notice={notice} today={today} onClick={() => onNavigateToProperty?.(notice.propertyId)} />
             ))}
           </div>
         )}
@@ -179,20 +183,21 @@ const ContractNoticesSection = () => {
         )}
 
         {upcomingNotices.map((notice) => (
-          <NoticeRow key={`${notice.propertyId}-${notice.noticeType}`} notice={notice} today={today} />
+          <NoticeRow key={`${notice.propertyId}-${notice.noticeType}`} notice={notice} today={today} onClick={() => onNavigateToProperty?.(notice.propertyId)} />
         ))}
       </CardContent>
     </Card>
   );
 };
 
-const NoticeRow = ({ notice, today }: { notice: NoticeItem; today: Date }) => {
+const NoticeRow = ({ notice, today, onClick }: { notice: NoticeItem; today: Date; onClick?: () => void }) => {
   const overdue = isBefore(notice.dueDate, today);
   const daysUntil = differenceInDays(notice.dueDate, today);
 
   return (
     <div
-      className={`flex items-center justify-between py-2 px-3 rounded-md text-sm ${
+      onClick={onClick}
+      className={`flex items-center justify-between py-2 px-3 rounded-md text-sm cursor-pointer hover:ring-1 hover:ring-primary/30 transition-all ${
         overdue
           ? "bg-destructive/10 text-destructive"
           : daysUntil <= 3

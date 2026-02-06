@@ -35,7 +35,11 @@ const priorityColors = {
   urgent: "bg-destructive/10 text-destructive border-destructive/20",
 };
 
-const TasksTab = () => {
+interface TasksTabProps {
+  onNavigateToProperty?: (propertyId: string) => void;
+}
+
+const TasksTab = ({ onNavigateToProperty }: TasksTabProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -135,7 +139,7 @@ const TasksTab = () => {
   return (
     <div className="space-y-6">
       {/* Contract Notices - from working deals */}
-      <ContractNoticesSection />
+      <ContractNoticesSection onNavigateToProperty={onNavigateToProperty} />
 
       {/* Email Digest Section - powered by cron job */}
       <SuggestedTasksSection />
