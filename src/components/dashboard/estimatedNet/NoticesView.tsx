@@ -280,6 +280,10 @@ const NoticesView = ({
       onNavigate("deposit-letter");
       return;
     }
+    if (noticeType === "appraisal-ordered") {
+      onNavigate("appraisal-letter");
+      return;
+    }
     console.log("Sending notice:", noticeType);
   };
 
