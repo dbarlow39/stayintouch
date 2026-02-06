@@ -268,6 +268,10 @@ const NoticesView = ({
   ];
 
   const handleSendNotice = (noticeType: NoticeType) => {
+    if (noticeType === "clear-to-close") {
+      onNavigate("clear-to-close-letter");
+      return;
+    }
     console.log("Sending notice:", noticeType);
   };
 
