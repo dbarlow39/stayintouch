@@ -272,6 +272,10 @@ const NoticesView = ({
       onNavigate("clear-to-close-letter");
       return;
     }
+    if (noticeType === "home-inspection-scheduled") {
+      onNavigate("home-inspection-letter");
+      return;
+    }
     console.log("Sending notice:", noticeType);
   };
 
