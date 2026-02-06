@@ -264,9 +264,9 @@ const ClearToCloseLetterView = ({ propertyData, propertyId, onBack, onEdit, onNa
 
               <p className="mb-4">Let me know if you have any questions.</p>
 
-              <p className="mb-0">Thanks</p>
-              <p className="mb-0">{agentFirstName}</p>
-              <p className="mb-0">The best compliment I can receive is a referral from you!</p>
+              <p className="mb-4">Thanks</p>
+              <p className="mb-4">{agentFirstName}</p>
+              <p className="mb-4">The best compliment I can receive is a referral from you!</p>
               <p className="mb-0">{agentFullName}</p>
               <p className="mb-0">cell: {agentPhone}</p>
               <p className="mb-4">email: {agentEmail}</p>
