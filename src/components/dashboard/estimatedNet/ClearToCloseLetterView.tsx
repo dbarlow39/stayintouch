@@ -240,7 +240,7 @@ const ClearToCloseLetterView = ({ propertyData, propertyId, onBack, onEdit, onNa
               </p>
 
               <p className="mb-4">
-                ✅ The next step will be getting a copy of the Settlement Statement for review, normally the day before closing and scheduling you to sign your side of the paperwork.
+                📋 The next step will be getting a copy of the Settlement Statement for review, normally the day before closing and scheduling you to sign your side of the paperwork.
               </p>
 
               <h2 className="text-xl font-bold mt-6 mb-3">📅 Scheduling Your Closing:</h2>
