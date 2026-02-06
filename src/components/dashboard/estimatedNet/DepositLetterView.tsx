@@ -239,7 +239,6 @@ const DepositLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigat
 
               <p className="mb-4">Thanks</p>
               <p className="mb-4">{agentFirstName}</p>
-              <p className="mb-4">The best compliment I can receive is a referral from you!</p>
               <p className="mb-0">{agentFullName}</p>
               <p className="mb-0">cell: {agentPhone}</p>
               <p className="mb-4">email: {agentEmail}</p>
