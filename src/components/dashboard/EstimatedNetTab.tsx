@@ -19,6 +19,7 @@ import AgentLetterView from "./estimatedNet/AgentLetterView";
 import RequestToRemedyView from "./estimatedNet/RequestToRemedyView";
 import SettlementStatementView from "./estimatedNet/SettlementStatementView";
 import NoticesView from "./estimatedNet/NoticesView";
+import ClearToCloseLetterView from "./estimatedNet/ClearToCloseLetterView";
 import ClientSelectionView from "./estimatedNet/ClientSelectionView";
 import UpcomingClosingsView from "./estimatedNet/UpcomingClosingsView";
 import {
@@ -32,7 +33,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-type ViewState = 'list' | 'select-client' | 'form' | 'results' | 'offer-letter' | 'offer-summary' | 'important-dates' | 'title-letter' | 'agent-letter' | 'request-to-remedy' | 'settlement-statement' | 'notices' | 'upcoming-closings';
+type ViewState = 'list' | 'select-client' | 'form' | 'results' | 'offer-letter' | 'offer-summary' | 'important-dates' | 'title-letter' | 'agent-letter' | 'request-to-remedy' | 'settlement-statement' | 'notices' | 'upcoming-closings' | 'clear-to-close-letter';
 
 interface SelectedClientForEstimate {
   id: string;
@@ -507,6 +508,18 @@ const EstimatedNetTab = ({ selectedClient, onClearSelectedClient, navigateToProp
   if (viewState === 'notices' && currentPropertyData && currentPropertyId) {
     return (
       <NoticesView
+        propertyData={currentPropertyData}
+        propertyId={currentPropertyId}
+        onBack={handleBackToList}
+        onEdit={handleEditEstimate}
+        onNavigate={(view) => setViewState(view as ViewState)}
+      />
+    );
+  }
+
+  if (viewState === 'clear-to-close-letter' && currentPropertyData && currentPropertyId) {
+    return (
+      <ClearToCloseLetterView
         propertyData={currentPropertyData}
         propertyId={currentPropertyId}
         onBack={handleBackToList}
