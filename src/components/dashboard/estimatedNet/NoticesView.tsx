@@ -319,6 +319,10 @@ const NoticesView = ({
 
       {/* Main Content */}
       <div className="flex-1">
+        <div className="mb-4">
+          <h2 className="text-xl font-semibold">{propertyData.name || "Client"}</h2>
+          <p className="text-muted-foreground">{propertyData.streetAddress}{propertyData.city ? `, ${propertyData.city}` : ""}{propertyData.state ? `, ${propertyData.state}` : ""}{propertyData.zip ? ` ${propertyData.zip}` : ""}</p>
+        </div>
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
