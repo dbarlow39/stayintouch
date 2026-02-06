@@ -1,10 +1,10 @@
 import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { PropertyData } from "@/types/estimatedNet";
 import { format, addDays, subDays, isBefore, startOfDay } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
@@ -19,7 +19,6 @@ import {
   FileText,
   Edit,
   Bell,
-  Send,
   AlertTriangle,
 } from "lucide-react";
 
@@ -75,7 +74,6 @@ const NoticesView = ({
   onEdit,
   onNavigate,
 }: NoticesViewProps) => {
-  const [selectedNotice, setSelectedNotice] = useState<NoticeType | null>(null);
   const [noticeStatuses, setNoticeStatuses] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
@@ -269,9 +267,8 @@ const NoticesView = ({
     },
   ];
 
-  const handleSendNotice = () => {
-    // Placeholder for future email sending logic
-    console.log("Sending notice:", selectedNotice);
+  const handleSendNotice = (noticeType: NoticeType) => {
+    console.log("Sending notice:", noticeType);
   };
 
   // Check if a notice is overdue
@@ -329,71 +326,62 @@ const NoticesView = ({
               </Alert>
             )}
 
-            <RadioGroup
-              value={selectedNotice || ""}
-              onValueChange={(value) => setSelectedNotice(value as NoticeType)}
-              className="space-y-3"
-            >
-              {noticeOptions.map((option) => {
-                const isCompleted = noticeStatuses[option.value] || false;
-                const overdue = isOverdue(option);
+            <TooltipProvider delayDuration={300}>
+              <div className="space-y-3">
+                {noticeOptions.map((option) => {
+                  const isCompleted = noticeStatuses[option.value] || false;
+                  const overdue = isOverdue(option);
 
-                return (
-                  <div
-                    key={option.value}
-                    className={`flex items-center justify-between p-3 rounded-lg border transition-colors ${
-                      overdue 
-                        ? "border-destructive bg-destructive/10" 
-                        : isCompleted 
-                          ? "border-green-500 bg-green-500/10" 
-                          : "border-border hover:bg-muted/50"
-                    }`}
-                  >
-                    <div className="flex items-center space-x-3">
-                      <RadioGroupItem value={option.value} id={option.value} />
-                      <Label
-                        htmlFor={option.value}
-                        className={`cursor-pointer font-medium ${
-                          isCompleted ? "line-through text-muted-foreground" : ""
-                        }`}
-                      >
-                        {option.label}
-                      </Label>
-                      {overdue && (
-                        <span className="text-xs text-destructive font-semibold">OVERDUE</span>
-                      )}
-                    </div>
-                    <div className="flex items-center space-x-3">
-                      <Checkbox
-                        id={`checkbox-${option.value}`}
-                        checked={isCompleted}
-                        onCheckedChange={(checked) => 
-                          toggleNoticeCompletion(option.value, checked as boolean)
-                        }
-                        disabled={loading}
-                      />
-                      <span className={`text-sm ${overdue ? "text-destructive font-medium" : "text-muted-foreground"}`}>
-                        Due: {option.dueDate}
-                      </span>
-                    </div>
-                  </div>
-                );
-              })}
-            </RadioGroup>
-
-            <div className="pt-4 border-t">
-              <Button
-                onClick={handleSendNotice}
-                disabled={!selectedNotice}
-                className="bg-primary hover:bg-primary/90"
-              >
-                <Send className="mr-2 h-4 w-4" />
-                Prepare Notice
-              </Button>
-              <p className="text-sm text-muted-foreground mt-2">
-                Select a notice type above, then click to prepare the email.
-              </p>
-            </div>
+                  return (
+                    <Tooltip key={option.value}>
+                      <TooltipTrigger asChild>
+                        <div
+                          onClick={() => handleSendNotice(option.value)}
+                          className={`flex items-center justify-between p-3 rounded-lg border transition-colors cursor-pointer ${
+                            overdue 
+                              ? "border-destructive bg-destructive/10 hover:bg-destructive/20" 
+                              : isCompleted 
+                                ? "border-green-500 bg-green-500/10 hover:bg-green-500/20" 
+                                : "border-border hover:bg-muted/50"
+                          }`}
+                        >
+                          <div className="flex items-center space-x-3">
+                            <Label
+                              className={`cursor-pointer font-medium ${
+                                isCompleted ? "line-through text-muted-foreground" : ""
+                              }`}
+                            >
+                              {option.label}
+                            </Label>
+                            {overdue && (
+                              <span className="text-xs text-destructive font-semibold">OVERDUE</span>
+                            )}
+                          </div>
+                          <div className="flex items-center space-x-3">
+                            <Checkbox
+                              id={`checkbox-${option.value}`}
+                              checked={isCompleted}
+                              onCheckedChange={(checked) => {
+                                // Stop click from triggering the parent div's onClick
+                                toggleNoticeCompletion(option.value, checked as boolean);
+                              }}
+                              onClick={(e) => e.stopPropagation()}
+                              disabled={loading}
+                            />
+                            <span className={`text-sm ${overdue ? "text-destructive font-medium" : "text-muted-foreground"}`}>
+                              Due: {option.dueDate}
+                            </span>
+                          </div>
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Click to send notice</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  );
+                })}
+              </div>
+            </TooltipProvider>
           </CardContent>
         </Card>
       </div>
