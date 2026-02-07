@@ -1225,16 +1225,6 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
       onClick: () => triggerSubmitAndNavigate("agent-letter"),
     },
     {
-      label: "Request to Remedy",
-      icon: FileText,
-      onClick: () => triggerSubmitAndNavigate("request-to-remedy"),
-    },
-    {
-      label: "Settlement Statement",
-      icon: FileText,
-      onClick: () => triggerSubmitAndNavigate("settlement-statement"),
-    },
-    {
       label: "Notices",
       icon: Mail,
       onClick: () => triggerSubmitAndNavigate("notices"),
