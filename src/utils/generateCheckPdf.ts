@@ -80,7 +80,7 @@ export const generateCheckPdf = (data: CheckData) => {
   y += 16;
   doc.text(data.agentCityStateZip, addressX, y);
 
-  y += 32;
+  y += 23;
 
   // Property names summary line
   doc.setFontSize(10);
