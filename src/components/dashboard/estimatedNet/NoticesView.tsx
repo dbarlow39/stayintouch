@@ -348,8 +348,7 @@ const NoticesView = ({
             </CardTitle>
             <div className="flex items-center justify-between">
               <CardDescription>
-                Select a notice to send to {propertyData.name || "the client"} regarding{" "}
-                {propertyData.streetAddress}
+                Click on a Notice to Send an Email Notice
               </CardDescription>
               {propertyData.closingDate && (
                 <p className="text-sm font-medium text-muted-foreground">
