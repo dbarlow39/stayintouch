@@ -31,15 +31,15 @@ serve(async (req) => {
       }
     );
 
-    // Use getClaims for Lovable Cloud compatibility
-    const { data: claimsData, error: authError } = await supabaseClient.auth.getClaims(token);
+    // Validate the user token
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token);
     
-    if (authError || !claimsData?.claims) {
+    if (authError || !user) {
       console.error('Authentication error:', authError);
       throw new Error('Unauthorized: Invalid token');
     }
     
-    const userId = claimsData.claims.sub;
+    const userId = user.id;
     console.log('User authenticated:', userId);
 
     // Fetch agent's data
