@@ -158,6 +158,86 @@ const DepositLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigat
   // Use buyer agent name for the greeting
   const buyerAgentFirstName = propertyData.agentName?.split(' ')[0] || "there";
 
+  // Parse seller first name(s) for homeowner letter
+  const sellerFirstNames = propertyData.name
+    ? propertyData.name.split(/\s*(?:&|and)\s*/i).map(n => n.trim().split(' ')[0]).join(' & ')
+    : "there";
+
+  const depositAmount = propertyData.deposit
+    ? `$${propertyData.deposit.toLocaleString()}`
+    : "the agreed upon amount";
+
+  const handleCopyHomeownerLetter = async () => {
+    const content = document.getElementById('deposit-homeowner-letter-content');
+    if (!content) return;
+
+    try {
+      const clonedContent = content.cloneNode(true) as HTMLElement;
+
+      const logoImg = clonedContent.querySelector('img') as HTMLImageElement;
+      if (logoImg) {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        await new Promise((resolve, reject) => {
+          img.onload = () => {
+            const targetWidth = 175;
+            const scale = targetWidth / img.width;
+            const targetHeight = img.height * scale;
+            canvas.width = targetWidth;
+            canvas.height = targetHeight;
+            ctx?.drawImage(img, 0, 0, targetWidth, targetHeight);
+            const dataUrl = canvas.toDataURL('image/jpeg');
+            logoImg.src = dataUrl;
+            logoImg.style.width = `${targetWidth}px`;
+            logoImg.style.height = 'auto';
+            logoImg.setAttribute('width', String(targetWidth));
+            resolve(true);
+          };
+          img.onerror = reject;
+          img.src = logoImg.src;
+        });
+      }
+
+      const noPdfElements = clonedContent.querySelectorAll('.no-pdf, .print\\:hidden');
+      noPdfElements.forEach(el => el.remove());
+
+      clonedContent.querySelectorAll('p').forEach((p) => {
+        if (!(p as HTMLElement).style.cssText) {
+          (p as HTMLElement).style.cssText = 'margin: 16px 0; line-height: 1.6; color: #374151;';
+        }
+      });
+
+      const htmlContent = clonedContent.innerHTML;
+      const plainText = content.innerText;
+
+      await navigator.clipboard.write([
+        new ClipboardItem({
+          'text/html': new Blob([htmlContent], { type: 'text/html' }),
+          'text/plain': new Blob([plainText], { type: 'text/plain' })
+        })
+      ]);
+
+      toast({
+        title: "Copied to clipboard",
+        description: "Opening your email client...",
+      });
+
+      const subject = `Deposit Received - ${propertyData.streetAddress}`;
+      const recipients = propertyData.sellerEmail || "";
+      const link = getEmailLink(recipients, emailClient, subject);
+      window.open(link, '_blank');
+    } catch (error) {
+      console.error('Failed to copy:', error);
+      toast({
+        title: "Copy failed",
+        description: "Please try again or copy manually",
+        variant: "destructive",
+      });
+    }
+  };
+
   const navigationItems = [
     { label: "Back", icon: ArrowLeft, onClick: onBack },
     { label: "Back to Property Info", icon: ArrowLeft, onClick: () => onEdit(propertyId) },
@@ -230,15 +310,48 @@ const DepositLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigat
           <Card className="p-8 mb-6 print:shadow-none">
             <div className="prose prose-lg max-w-none text-foreground">
               <p className="mb-4">Hey {buyerAgentFirstName},</p>
-
               <p className="mb-4">
                 Just a quick note to make sure the deposit for {propertyData.streetAddress} has been made.
               </p>
-
               <p className="mb-4">If you would confirm.</p>
-
               <p className="mb-4">Thanks</p>
               <p className="mb-4">{agentFirstName}</p>
+              <p className="mb-0">{agentFullName}</p>
+              <p className="mb-0">cell: {agentPhone}</p>
+              <p className="mb-4">email: {agentEmail}</p>
+            </div>
+          </Card>
+        </div>
+
+        {/* Homeowner Deposit Letter */}
+        <div className="max-w-4xl mx-auto mt-10" id="deposit-homeowner-letter-content">
+          <div className="flex items-center justify-between mb-8 print:mb-4">
+            <div className="flex items-center gap-3">
+              <img src={logo} alt="Sell for 1 Percent" className="h-16 w-auto print:h-12" />
+              <div>
+                <h1 className="text-3xl font-bold text-foreground">Deposit Confirmation</h1>
+                <p className="text-muted-foreground">Notice to {propertyData.name || "Homeowner"}</p>
+              </div>
+            </div>
+            <div className="flex gap-2 print:hidden no-pdf">
+              <Button onClick={handleCopyHomeownerLetter} size="lg" className="bg-rose-500 hover:bg-rose-600 text-white">
+                <Copy className="mr-2 h-4 w-4" />
+                Copy & Email
+              </Button>
+            </div>
+          </div>
+
+          <Card className="p-8 mb-6 print:shadow-none">
+            <div className="prose prose-lg max-w-none text-foreground">
+              <p className="mb-4">Hey {sellerFirstNames},</p>
+              <p className="mb-4">
+                Just a quick note to let you know that we have received notice that the buyer has made their good faith earnest money deposit of {depositAmount}.
+              </p>
+              <p className="mb-4">Everything is moving along as expected.</p>
+              <p className="mb-4">Let me know if you have any questions.</p>
+              <p className="mb-4">Thanks</p>
+              <p className="mb-4">{agentFirstName}</p>
+              <p className="mb-0">The best compliment I can receive is a referral from you!</p>
               <p className="mb-0">{agentFullName}</p>
               <p className="mb-0">cell: {agentPhone}</p>
               <p className="mb-4">email: {agentEmail}</p>
