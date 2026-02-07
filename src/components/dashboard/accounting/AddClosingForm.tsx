@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import { ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 
@@ -27,9 +28,12 @@ const AddClosingForm = ({ onBack }: AddClosingFormProps) => {
     zip: "",
     closing_date: "",
     sale_price: "",
-    total_commission: "",
-    company_split_pct: "30",
-    agent_split_pct: "70",
+    total_check: "",
+    admin_fee: "499",
+    company_split_pct: "40",
+    agent_split_pct: "60",
+    caliber_title_bonus: false,
+    caliber_title_amount: "150",
     notes: "",
   });
 
@@ -37,9 +41,13 @@ const AddClosingForm = ({ onBack }: AddClosingFormProps) => {
 
   const companyPct = parseFloat(form.company_split_pct) || 0;
   const agentPct = parseFloat(form.agent_split_pct) || 0;
-  const totalComm = parseFloat(form.total_commission) || 0;
-  const companyShare = totalComm * (companyPct / 100);
-  const agentShare = totalComm * (agentPct / 100);
+  const totalCheck = parseFloat(form.total_check) || 0;
+  const adminFee = parseFloat(form.admin_fee) || 0;
+  const totalCommission = totalCheck - adminFee;
+  const companyShare = totalCommission * (companyPct / 100);
+  const agentShare = totalCommission * (agentPct / 100);
+  const caliberAmount = form.caliber_title_bonus ? (parseFloat(form.caliber_title_amount) || 150) : 0;
+  const agentCheckTotal = agentShare + caliberAmount;
 
   const handleSplitChange = (field: "company_split_pct" | "agent_split_pct", value: string) => {
     const num = parseFloat(value) || 0;
@@ -58,7 +66,7 @@ const AddClosingForm = ({ onBack }: AddClosingFormProps) => {
     setSaving(true);
     try {
       const { error } = await supabase.from("closings").insert({
-        agent_id: user.id, // placeholder — will be matched to actual agent later
+        agent_id: user.id,
         agent_name: form.agent_name,
         property_address: form.property_address,
         city: form.city,
@@ -66,11 +74,14 @@ const AddClosingForm = ({ onBack }: AddClosingFormProps) => {
         zip: form.zip,
         closing_date: form.closing_date,
         sale_price: parseFloat(form.sale_price) || 0,
-        total_commission: totalComm,
+        total_commission: totalCheck,
+        admin_fee: adminFee,
         company_split_pct: companyPct,
         agent_split_pct: agentPct,
         company_share: companyShare,
         agent_share: agentShare,
+        caliber_title_bonus: form.caliber_title_bonus,
+        caliber_title_amount: caliberAmount > 0 ? caliberAmount : 150,
         notes: form.notes,
         created_by: user.id,
       });
@@ -132,9 +143,42 @@ const AddClosingForm = ({ onBack }: AddClosingFormProps) => {
               <Input type="number" value={form.sale_price} onChange={e => update("sale_price", e.target.value)} placeholder="0.00" />
             </div>
             <div className="space-y-2">
-              <Label>Total Commission</Label>
-              <Input type="number" value={form.total_commission} onChange={e => update("total_commission", e.target.value)} placeholder="0.00" />
+              <Label>Total Check</Label>
+              <Input type="number" value={form.total_check} onChange={e => update("total_check", e.target.value)} placeholder="0.00" />
             </div>
+            <div className="space-y-2">
+              <Label>Admin Fee</Label>
+              <Input type="number" value={form.admin_fee} onChange={e => update("admin_fee", e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>Total Commission</Label>
+              <div className="flex items-center h-10 px-3 rounded-md border bg-muted/30 text-sm font-medium">
+                {formatCurrency(totalCommission)}
+              </div>
+            </div>
+          </div>
+
+          {/* Caliber Title Bonus */}
+          <div className="flex items-center gap-4">
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="caliber_title_add"
+                checked={form.caliber_title_bonus}
+                onCheckedChange={(checked) => setForm(prev => ({ ...prev, caliber_title_bonus: !!checked }))}
+              />
+              <Label htmlFor="caliber_title_add" className="cursor-pointer">Caliber Title</Label>
+            </div>
+            {form.caliber_title_bonus && (
+              <div className="flex items-center gap-2">
+                <Label className="text-sm text-muted-foreground">Amount:</Label>
+                <Input
+                  type="number"
+                  value={form.caliber_title_amount}
+                  onChange={e => update("caliber_title_amount", e.target.value)}
+                  className="w-28"
+                />
+              </div>
+            )}
           </div>
 
           {/* Split Calculator */}
@@ -151,7 +195,7 @@ const AddClosingForm = ({ onBack }: AddClosingFormProps) => {
                   <Input type="number" value={form.agent_split_pct} onChange={e => handleSplitChange("agent_split_pct", e.target.value)} />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4 text-center">
+              <div className={`grid ${form.caliber_title_bonus ? 'grid-cols-3' : 'grid-cols-2'} gap-4 text-center`}>
                 <div className="bg-background rounded-lg p-4">
                   <p className="text-xs text-muted-foreground mb-1">Company Share</p>
                   <p className="text-lg font-semibold">{formatCurrency(companyShare)}</p>
@@ -160,6 +204,13 @@ const AddClosingForm = ({ onBack }: AddClosingFormProps) => {
                   <p className="text-xs text-muted-foreground mb-1">Agent Share</p>
                   <p className="text-lg font-semibold text-emerald-700">{formatCurrency(agentShare)}</p>
                 </div>
+                {form.caliber_title_bonus && (
+                  <div className="bg-background rounded-lg p-4">
+                    <p className="text-xs text-muted-foreground mb-1">Agent Check Total</p>
+                    <p className="text-xs text-muted-foreground mb-1">(incl. Caliber Bonus)</p>
+                    <p className="text-lg font-semibold text-emerald-700">{formatCurrency(agentCheckTotal)}</p>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
