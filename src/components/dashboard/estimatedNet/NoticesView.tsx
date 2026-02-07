@@ -33,6 +33,7 @@ interface NoticesViewProps {
 type NoticeType = 
   | "deposit-received"
   | "home-inspection-scheduled"
+  | "request-to-remedy"
   | "loan-application"
   | "title-commitment-received"
   | "appraisal-ordered"
@@ -151,6 +152,11 @@ const NoticesView = ({
       ? addDays(inContractDate, propertyData.inspectionDays)
       : null;
     
+    // Request to Remedy: inContract + inspectionDays + remedyPeriodDays
+    const remedyDueDate = inContractDate && propertyData.inspectionDays && propertyData.remedyPeriodDays
+      ? addDays(inContractDate, propertyData.inspectionDays + propertyData.remedyPeriodDays)
+      : null;
+    
     // Deposit: Use depositCollection text or calculate if it contains days
     let depositDueDate: Date | null = null;
     if (propertyData.depositCollection && inContractDate) {
@@ -185,6 +191,7 @@ const NoticesView = ({
     return [
       { value: "deposit-received", label: "Deposit Received", dueDate: formatDueDate(depositDueDate), dueDateObj: depositDueDate },
       { value: "home-inspection-scheduled", label: "Home Inspection Scheduled", dueDate: formatDueDate(inspectionDueDate), dueDateObj: inspectionDueDate },
+      { value: "request-to-remedy", label: "Request to Remedy", dueDate: formatDueDate(remedyDueDate), dueDateObj: remedyDueDate },
       { value: "loan-application", label: "Loan Application", dueDate: formatDueDate(loanApplicationDueDate), dueDateObj: loanApplicationDueDate },
       { value: "title-commitment-received", label: "Title Commitment Received", dueDate: formatDueDate(titleCommitmentDueDate), dueDateObj: titleCommitmentDueDate },
       { value: "appraisal-ordered", label: "Appraisal Ordered", dueDate: formatDueDate(appraisalDueDate), dueDateObj: appraisalDueDate },
@@ -247,11 +254,6 @@ const NoticesView = ({
       onClick: () => onNavigate("agent-letter"),
     },
     {
-      label: "Request to Remedy",
-      icon: FileText,
-      onClick: () => onNavigate("request-to-remedy"),
-    },
-    {
       label: "Notices",
       icon: Bell,
       onClick: () => {},
@@ -291,6 +293,10 @@ const NoticesView = ({
     }
     if (noticeType === "hud-settlement-statement") {
       onNavigate("settlement-statement");
+      return;
+    }
+    if (noticeType === "request-to-remedy") {
+      onNavigate("request-to-remedy");
       return;
     }
     console.log("Sending notice:", noticeType);
