@@ -209,7 +209,7 @@ const AgentsDialog = () => {
           Agent(s)
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+      <DialogContent className="max-w-5xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Manage Agents</DialogTitle>
         </DialogHeader>
