@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Printer } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { ArrowLeft, Printer, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 
@@ -108,6 +109,23 @@ const CommissionPrep = ({ onBack }: CommissionPrepProps) => {
     toast.success("Payout marked as paid.");
     queryClient.invalidateQueries({ queryKey: ["accounting-payouts"] });
     queryClient.invalidateQueries({ queryKey: ["accounting-pending-payouts"] });
+  };
+
+  const deletePayout = async (payoutId: string) => {
+    try {
+      // Delete linked closing references first
+      await supabase.from("payout_closing_links").delete().eq("payout_id", payoutId);
+      // Delete the payout record
+      const { error } = await supabase.from("commission_payouts").delete().eq("id", payoutId);
+      if (error) throw error;
+      toast.success("Payout deleted.");
+      queryClient.invalidateQueries({ queryKey: ["accounting-payouts"] });
+      queryClient.invalidateQueries({ queryKey: ["accounting-pending-payouts"] });
+      queryClient.invalidateQueries({ queryKey: ["accounting-closings-summary"] });
+      queryClient.invalidateQueries({ queryKey: ["accounting-ready-closings"] });
+    } catch (err: any) {
+      toast.error(err.message || "Failed to delete payout");
+    }
   };
 
   const statusBadge = (status: string) => {
@@ -217,10 +235,31 @@ const CommissionPrep = ({ onBack }: CommissionPrepProps) => {
                       <TableCell className="text-right">{formatCurrency(Number(payout.total_amount))}</TableCell>
                       <TableCell>{payout.payout_date ? format(new Date(payout.payout_date + "T00:00:00"), "MMM d, yyyy") : "—"}</TableCell>
                       <TableCell>{statusBadge(payout.status)}</TableCell>
-                      <TableCell>
+                      <TableCell className="text-right space-x-1">
                         {payout.status !== "paid" && (
                           <Button variant="ghost" size="sm" onClick={() => markPaid(payout.id)}>Mark Paid</Button>
                         )}
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive">
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Delete Payout</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                This will permanently delete the payout for {payout.agent_name} ({formatCurrency(Number(payout.total_amount))}). This cannot be undone.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => deletePayout(payout.id)} className="bg-destructive hover:bg-destructive/90 text-destructive-foreground">
+                                Delete
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
                       </TableCell>
                     </TableRow>
                   ))}
