@@ -87,6 +87,12 @@ const AccountingDashboard = ({ onNavigate }: AccountingDashboardProps) => {
 
   return (
     <div className="space-y-8">
+      {/* Page Header */}
+      <div>
+        <h1 className="text-2xl font-semibold tracking-tight">Commission Central</h1>
+        <p className="text-sm text-muted-foreground mt-1">Manage Your Agents Commissions</p>
+      </div>
+
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
         <Card className="border-0 shadow-sm bg-card">
