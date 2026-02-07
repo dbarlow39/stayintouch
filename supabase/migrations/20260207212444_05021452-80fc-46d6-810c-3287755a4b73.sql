@@ -1,0 +1,1 @@
+ALTER TABLE public.closings ADD COLUMN paperwork_status text NOT NULL DEFAULT 'not_received';
