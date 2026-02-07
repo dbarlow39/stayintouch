@@ -169,6 +169,7 @@ const CommissionPrep = ({ onBack }: CommissionPrepProps) => {
                       <TableHead>Property</TableHead>
                       <TableHead>Closing Date</TableHead>
                       <TableHead className="text-right">Agent Share</TableHead>
+                      <TableHead className="w-10"></TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -181,6 +182,43 @@ const CommissionPrep = ({ onBack }: CommissionPrepProps) => {
                         <TableCell>{closing.property_address}</TableCell>
                         <TableCell>{format(new Date(closing.closing_date + "T00:00:00"), "MMM d, yyyy")}</TableCell>
                         <TableCell className="text-right font-medium text-emerald-700">{formatCurrency(Number(closing.agent_share))}</TableCell>
+                        <TableCell onClick={(e) => e.stopPropagation()}>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive">
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Delete Closing</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  This will permanently delete the closing for {closing.property_address} ({closing.agent_name}). This cannot be undone.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={async () => {
+                                    try {
+                                      const { error } = await supabase.from("closings").delete().eq("id", closing.id);
+                                      if (error) throw error;
+                                      toast.success("Closing deleted.");
+                                      setSelectedIds(prev => prev.filter(x => x !== closing.id));
+                                      queryClient.invalidateQueries({ queryKey: ["accounting-ready-closings"] });
+                                      queryClient.invalidateQueries({ queryKey: ["accounting-closings-summary"] });
+                                    } catch (err: any) {
+                                      toast.error(err.message || "Failed to delete closing");
+                                    }
+                                  }}
+                                  className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
+                                >
+                                  Delete
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
