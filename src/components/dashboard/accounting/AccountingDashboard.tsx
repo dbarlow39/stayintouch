@@ -260,6 +260,7 @@ const AccountingDashboard = ({ onNavigate }: AccountingDashboardProps) => {
           if (!open) setSelectedIds([]);
         }}
         closings={selectedClosings}
+        onNavigate={onNavigate}
       />
     </div>
   );

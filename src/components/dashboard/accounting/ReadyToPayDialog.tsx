@@ -26,12 +26,13 @@ interface ReadyToPayDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   closings: Closing[];
+  onNavigate?: (view: string) => void;
 }
 
 const formatCurrency = (val: number) =>
   new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(val);
 
-const ReadyToPayDialog = ({ open, onOpenChange, closings }: ReadyToPayDialogProps) => {
+const ReadyToPayDialog = ({ open, onOpenChange, closings, onNavigate }: ReadyToPayDialogProps) => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [creating, setCreating] = useState(false);
@@ -75,6 +76,7 @@ const ReadyToPayDialog = ({ open, onOpenChange, closings }: ReadyToPayDialogProp
       queryClient.invalidateQueries({ queryKey: ["accounting-payouts"] });
       queryClient.invalidateQueries({ queryKey: ["accounting-pending-payouts"] });
       onOpenChange(false);
+      if (onNavigate) onNavigate("commission-prep");
     } catch (err: any) {
       toast.error(err.message || "Failed to create payouts");
     } finally {
