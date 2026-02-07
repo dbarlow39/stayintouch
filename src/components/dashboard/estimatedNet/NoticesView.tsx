@@ -290,6 +290,10 @@ const NoticesView = ({
       onNavigate("loan-application-letter");
       return;
     }
+    if (noticeType === "title-commitment-received") {
+      onNavigate("title-commitment-letter");
+      return;
+    }
     console.log("Sending notice:", noticeType);
   };
 
