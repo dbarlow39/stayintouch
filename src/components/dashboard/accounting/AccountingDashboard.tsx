@@ -1,12 +1,15 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { DollarSign, FileCheck, Clock, Users, CheckCircle2, XCircle } from "lucide-react";
 import AgentsDialog from "./AgentsDialog";
+import ReadyToPayDialog from "./ReadyToPayDialog";
 import { format } from "date-fns";
 
 interface AccountingDashboardProps {
@@ -15,6 +18,8 @@ interface AccountingDashboardProps {
 
 const AccountingDashboard = ({ onNavigate }: AccountingDashboardProps) => {
   const { user } = useAuth();
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [readyToPayOpen, setReadyToPayOpen] = useState(false);
 
   const { data: closings = [] } = useQuery({
     queryKey: ["accounting-closings-summary"],
@@ -30,9 +35,8 @@ const AccountingDashboard = ({ onNavigate }: AccountingDashboardProps) => {
     enabled: !!user,
   });
 
-  // Derive check/paperwork status from closing data
   const hasCheckReceived = (closing: typeof closings[0]) =>
-    closing.status === "check_received" || 
+    closing.status === "check_received" ||
     (closing.notes?.toLowerCase().includes("check received") ?? false);
 
   const hasPaperworkReceived = (closing: typeof closings[0]) =>
@@ -86,9 +90,20 @@ const AccountingDashboard = ({ onNavigate }: AccountingDashboardProps) => {
     );
   };
 
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  };
+
+  const unpaidClosings = closings.filter(c => !c.paid);
+  const selectedClosings = closings.filter(c => selectedIds.includes(c.id));
+
+  const handleReadyToPay = () => {
+    if (selectedIds.length === 0) return;
+    setReadyToPayOpen(true);
+  };
+
   return (
     <div className="space-y-8">
-      {/* Page Header */}
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Commission Central</h1>
         <p className="text-sm text-muted-foreground mt-1">Manage Your Agents Commissions</p>
@@ -157,8 +172,17 @@ const AccountingDashboard = ({ onNavigate }: AccountingDashboardProps) => {
 
       {/* Recent Closings */}
       <Card className="border-0 shadow-sm">
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-lg font-medium">Recent Closings</CardTitle>
+          {selectedIds.length > 0 && (
+            <Button
+              onClick={handleReadyToPay}
+              className="bg-emerald-700 hover:bg-emerald-800 text-white"
+              size="sm"
+            >
+              Ready to Pay ({selectedIds.length})
+            </Button>
+          )}
         </CardHeader>
         <CardContent>
           {closings.length === 0 ? (
@@ -169,46 +193,72 @@ const AccountingDashboard = ({ onNavigate }: AccountingDashboardProps) => {
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
-                 <TableRow>
-                     <TableHead>Closing Date</TableHead>
-                     <TableHead>Property</TableHead>
-                     <TableHead>Agent</TableHead>
-                     <TableHead className="text-right">Commission</TableHead>
-                     <TableHead>Check</TableHead>
-                     <TableHead>Paperwork</TableHead>
-                     <TableHead>Paid</TableHead>
-                   </TableRow>
-                 </TableHeader>
-                 <TableBody>
-                   {closings.map((closing) => (
-                     <TableRow key={closing.id} className="cursor-pointer hover:bg-muted/40" onClick={() => onNavigate(`edit-closing:${closing.id}`)}>
-                       <TableCell>{format(new Date(closing.closing_date + "T00:00:00"), "MMM d, yyyy")}</TableCell>
-                       <TableCell className="font-medium">{closing.property_address}</TableCell>
-                       <TableCell>{closing.agent_name}</TableCell>
-                       <TableCell className="text-right">{formatCurrency(Number(closing.total_commission))}</TableCell>
-                       <TableCell>
-                         {hasCheckReceived(closing) 
-                           ? <CheckCircle2 className="h-4 w-4 text-emerald-600" /> 
-                           : <XCircle className="h-4 w-4 text-muted-foreground/40" />}
-                       </TableCell>
-                        <TableCell>
-                          {hasPaperworkReceived(closing) 
-                            ? <CheckCircle2 className="h-4 w-4 text-emerald-600" /> 
-                            : <XCircle className="h-4 w-4 text-muted-foreground/40" />}
-                        </TableCell>
-                        <TableCell>
-                          {closing.paid 
-                            ? <CheckCircle2 className="h-4 w-4 text-emerald-600" /> 
-                            : null}
-                        </TableCell>
-                      </TableRow>
-                   ))}
+                  <TableRow>
+                    <TableHead className="w-10">Ready to Pay</TableHead>
+                    <TableHead>Closing Date</TableHead>
+                    <TableHead>Property</TableHead>
+                    <TableHead>Agent</TableHead>
+                    <TableHead className="text-right">Commission</TableHead>
+                    <TableHead>Check</TableHead>
+                    <TableHead>Paperwork</TableHead>
+                    <TableHead>Paid</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {closings.map((closing) => (
+                    <TableRow key={closing.id} className="cursor-pointer hover:bg-muted/40">
+                      <TableCell onClick={(e) => e.stopPropagation()}>
+                        {!closing.paid ? (
+                          <Checkbox
+                            checked={selectedIds.includes(closing.id)}
+                            onCheckedChange={() => toggleSelect(closing.id)}
+                          />
+                        ) : null}
+                      </TableCell>
+                      <TableCell onClick={() => onNavigate(`edit-closing:${closing.id}`)}>
+                        {format(new Date(closing.closing_date + "T00:00:00"), "MMM d, yyyy")}
+                      </TableCell>
+                      <TableCell className="font-medium" onClick={() => onNavigate(`edit-closing:${closing.id}`)}>
+                        {closing.property_address}
+                      </TableCell>
+                      <TableCell onClick={() => onNavigate(`edit-closing:${closing.id}`)}>
+                        {closing.agent_name}
+                      </TableCell>
+                      <TableCell className="text-right" onClick={() => onNavigate(`edit-closing:${closing.id}`)}>
+                        {formatCurrency(Number(closing.total_commission))}
+                      </TableCell>
+                      <TableCell onClick={() => onNavigate(`edit-closing:${closing.id}`)}>
+                        {hasCheckReceived(closing)
+                          ? <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                          : <XCircle className="h-4 w-4 text-muted-foreground/40" />}
+                      </TableCell>
+                      <TableCell onClick={() => onNavigate(`edit-closing:${closing.id}`)}>
+                        {hasPaperworkReceived(closing)
+                          ? <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                          : <XCircle className="h-4 w-4 text-muted-foreground/40" />}
+                      </TableCell>
+                      <TableCell onClick={() => onNavigate(`edit-closing:${closing.id}`)}>
+                        {closing.paid
+                          ? <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                          : null}
+                      </TableCell>
+                    </TableRow>
+                  ))}
                 </TableBody>
               </Table>
             </div>
           )}
         </CardContent>
       </Card>
+
+      <ReadyToPayDialog
+        open={readyToPayOpen}
+        onOpenChange={(open) => {
+          setReadyToPayOpen(open);
+          if (!open) setSelectedIds([]);
+        }}
+        closings={selectedClosings}
+      />
     </div>
   );
 };
