@@ -394,7 +394,7 @@ const CommissionPrep = ({ onBack }: CommissionPrepProps) => {
                       <TableCell>{statusBadge(payout.status)}</TableCell>
                       <TableCell className="text-right space-x-1">
                         <Button variant="ghost" size="sm" onClick={() => handlePrintCheck(payout.id, payout.agent_name, Number(payout.total_amount))}>
-                          <FileDown className="w-4 h-4 mr-1" /> Print PDF
+                          <FileDown className="w-4 h-4 mr-1" /> {payout.status === "paid" ? "Re-print PDF" : "Print PDF"}
                         </Button>
                         {payout.status !== "paid" && (
                           <Button variant="ghost" size="sm" onClick={() => markPaid(payout.id)}>Mark Paid</Button>
