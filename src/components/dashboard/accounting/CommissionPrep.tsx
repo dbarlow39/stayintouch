@@ -8,9 +8,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { ArrowLeft, Printer, Trash2 } from "lucide-react";
+import { ArrowLeft, Printer, Trash2, FileDown } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { generateCheckPdf } from "@/utils/generateCheckPdf";
+import type { CheckLineItem } from "@/utils/generateCheckPdf";
 
 interface CommissionPrepProps {
   onBack: () => void;
@@ -125,6 +127,68 @@ const CommissionPrep = ({ onBack }: CommissionPrepProps) => {
       queryClient.invalidateQueries({ queryKey: ["accounting-ready-closings"] });
     } catch (err: any) {
       toast.error(err.message || "Failed to delete payout");
+    }
+  };
+
+  const handlePrintCheck = async (payoutId: string, agentName: string, totalAmount: number) => {
+    try {
+      // Get linked closings for this payout
+      const { data: links, error: linksError } = await supabase
+        .from("payout_closing_links")
+        .select("closing_id, agent_share")
+        .eq("payout_id", payoutId);
+      if (linksError) throw linksError;
+
+      const closingIds = (links || []).map(l => l.closing_id);
+      const { data: closingsData, error: closingsError } = await supabase
+        .from("closings")
+        .select("property_address, agent_share, caliber_title_bonus, caliber_title_amount")
+        .in("id", closingIds);
+      if (closingsError) throw closingsError;
+
+      // Get agent address
+      const { data: agentData } = await supabase
+        .from("agents")
+        .select("home_address, city, state, zip")
+        .eq("full_name", agentName)
+        .maybeSingle();
+
+      // Build line items: each property + bonus if applicable
+      const lineItems: CheckLineItem[] = [];
+      const propertyNames: string[] = [];
+      (closingsData || []).forEach(c => {
+        propertyNames.push(c.property_address);
+        lineItems.push({ amount: Number(c.agent_share), label: c.property_address });
+        if (c.caliber_title_bonus) {
+          lineItems.push({ amount: Number(c.caliber_title_amount), label: `${c.property_address} Bonus` });
+        }
+      });
+
+      // Calculate YTD: sum all paid/approved payouts for this agent this year
+      const yearStart = new Date().getFullYear() + "-01-01";
+      const { data: ytdPayouts } = await supabase
+        .from("commission_payouts")
+        .select("total_amount")
+        .eq("agent_name", agentName)
+        .gte("created_at", yearStart);
+      const ytdTotal = (ytdPayouts || []).reduce((sum, p) => sum + Number(p.total_amount), 0);
+
+      const today = format(new Date(), "MMMM d, yyyy");
+
+      generateCheckPdf({
+        date: today,
+        totalAmount: totalAmount,
+        agentName: agentName,
+        agentAddress: agentData?.home_address || "",
+        agentCityStateZip: agentData ? `${agentData.city || ""}, ${agentData.state || ""} ${agentData.zip || ""}` : "",
+        propertyNames: propertyNames.join("/"),
+        lineItems,
+        ytdTotal,
+      });
+
+      toast.success("Check PDF generated.");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to generate check PDF");
     }
   };
 
@@ -274,6 +338,9 @@ const CommissionPrep = ({ onBack }: CommissionPrepProps) => {
                       <TableCell>{payout.payout_date ? format(new Date(payout.payout_date + "T00:00:00"), "MMM d, yyyy") : "—"}</TableCell>
                       <TableCell>{statusBadge(payout.status)}</TableCell>
                       <TableCell className="text-right space-x-1">
+                        <Button variant="ghost" size="sm" onClick={() => handlePrintCheck(payout.id, payout.agent_name, Number(payout.total_amount))}>
+                          <FileDown className="w-4 h-4 mr-1" /> PDF
+                        </Button>
                         {payout.status !== "paid" && (
                           <Button variant="ghost" size="sm" onClick={() => markPaid(payout.id)}>Mark Paid</Button>
                         )}
