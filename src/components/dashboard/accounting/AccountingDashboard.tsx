@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { DollarSign, FileCheck, Clock, Users } from "lucide-react";
+import { DollarSign, FileCheck, Clock, Users, CheckCircle2, XCircle } from "lucide-react";
 import { format } from "date-fns";
 
 interface AccountingDashboardProps {
@@ -28,6 +28,41 @@ const AccountingDashboard = ({ onNavigate }: AccountingDashboardProps) => {
     },
     enabled: !!user,
   });
+
+  // Fetch all checks grouped by closing_id
+  const closingIds = closings.map(c => c.id);
+  const { data: allChecks = [] } = useQuery({
+    queryKey: ["accounting-all-checks", closingIds],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("closing_checks")
+        .select("closing_id")
+        .in("closing_id", closingIds);
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: closingIds.length > 0,
+  });
+
+  // Fetch all documents grouped by closing_id
+  const { data: allDocs = [] } = useQuery({
+    queryKey: ["accounting-all-docs", closingIds],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("closing_documents")
+        .select("closing_id, is_received")
+        .in("closing_id", closingIds);
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: closingIds.length > 0,
+  });
+
+  // Build lookup sets
+  const checksReceivedSet = new Set(allChecks.map(c => c.closing_id));
+  const paperworkReceivedSet = new Set(
+    allDocs.filter(d => d.is_received).map(d => d.closing_id)
+  );
 
   const { data: pendingChecks = [] } = useQuery({
     queryKey: ["accounting-pending-checks"],
@@ -173,8 +208,16 @@ const AccountingDashboard = ({ onNavigate }: AccountingDashboardProps) => {
                       <TableCell className="font-medium">{closing.property_address}</TableCell>
                       <TableCell>{closing.agent_name}</TableCell>
                       <TableCell className="text-right">{formatCurrency(Number(closing.total_commission))}</TableCell>
-                      <TableCell>—</TableCell>
-                      <TableCell>—</TableCell>
+                      <TableCell>
+                        {checksReceivedSet.has(closing.id) 
+                          ? <CheckCircle2 className="h-4 w-4 text-emerald-600" /> 
+                          : <XCircle className="h-4 w-4 text-muted-foreground/40" />}
+                      </TableCell>
+                      <TableCell>
+                        {paperworkReceivedSet.has(closing.id) 
+                          ? <CheckCircle2 className="h-4 w-4 text-emerald-600" /> 
+                          : <XCircle className="h-4 w-4 text-muted-foreground/40" />}
+                      </TableCell>
                       <TableCell>{statusBadge(closing.status)}</TableCell>
                     </TableRow>
                   ))}
