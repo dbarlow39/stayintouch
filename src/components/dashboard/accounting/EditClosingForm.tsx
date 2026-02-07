@@ -70,7 +70,7 @@ const EditClosingForm = ({ closingId, onBack }: EditClosingFormProps) => {
         admin_fee: String(closing.admin_fee ?? "499"),
         company_split_pct: String(closing.company_split_pct || "40"),
         agent_split_pct: String(closing.agent_split_pct || "60"),
-        caliber_title_bonus: closing.caliber_title_bonus ?? false,
+        caliber_title_bonus: closing.caliber_title_bonus ?? true,
         caliber_title_amount: String(closing.caliber_title_amount ?? "150"),
         status: closing.status || "pending",
         notes: closing.notes || "",
