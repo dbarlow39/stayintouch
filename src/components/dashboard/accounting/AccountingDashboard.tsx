@@ -156,21 +156,25 @@ const AccountingDashboard = ({ onNavigate }: AccountingDashboardProps) => {
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
-                  <TableRow>
-                    <TableHead>Property</TableHead>
-                    <TableHead>Agent</TableHead>
-                    <TableHead>Closing Date</TableHead>
-                    <TableHead className="text-right">Commission</TableHead>
-                    <TableHead>Status</TableHead>
-                  </TableRow>
+                 <TableRow>
+                     <TableHead>Closing Date</TableHead>
+                     <TableHead>Property</TableHead>
+                     <TableHead>Agent</TableHead>
+                     <TableHead className="text-right">Commission</TableHead>
+                     <TableHead>Check</TableHead>
+                     <TableHead>Paperwork</TableHead>
+                     <TableHead>Status</TableHead>
+                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {closings.map((closing) => (
                     <TableRow key={closing.id} className="cursor-pointer hover:bg-muted/40" onClick={() => onNavigate(`edit-closing:${closing.id}`)}>
+                      <TableCell>{format(new Date(closing.closing_date + "T00:00:00"), "MMM d, yyyy")}</TableCell>
                       <TableCell className="font-medium">{closing.property_address}</TableCell>
                       <TableCell>{closing.agent_name}</TableCell>
-                      <TableCell>{format(new Date(closing.closing_date + "T00:00:00"), "MMM d, yyyy")}</TableCell>
                       <TableCell className="text-right">{formatCurrency(Number(closing.total_commission))}</TableCell>
+                      <TableCell>—</TableCell>
+                      <TableCell>—</TableCell>
                       <TableCell>{statusBadge(closing.status)}</TableCell>
                     </TableRow>
                   ))}
