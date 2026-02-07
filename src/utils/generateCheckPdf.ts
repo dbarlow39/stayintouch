@@ -86,7 +86,7 @@ export const generateCheckPdf = (data: CheckData) => {
   doc.setFontSize(10);
   doc.text(data.propertyNames, leftMargin, y);
 
-  y += 36;
+  y += 72;
 
   // Line items table
   doc.setFontSize(11);
