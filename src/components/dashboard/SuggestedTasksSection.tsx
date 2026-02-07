@@ -5,7 +5,7 @@ import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Sparkles, RefreshCw, Mail } from "lucide-react";
+import { Sparkles, RefreshCw, Mail, Check } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from "date-fns";
 import { getSuggestedTaskGmailSearchUrl, getSuggestedTaskGmailUrl } from "@/components/dashboard/suggestedTasks/getGmailUrl";
@@ -38,7 +38,23 @@ const SuggestedTasksSection = () => {
 
   // Track last refresh time
   const [lastRefreshTime, setLastRefreshTime] = useState<Date | null>(null);
+  const [selectedDigestIds, setSelectedDigestIds] = useState<Set<string>>(new Set());
 
+  const toggleDigestSelection = (id: string) => {
+    setSelectedDigestIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const bulkDismissSelected = () => {
+    if (selectedDigestIds.size === 0) return;
+    markAllReadMutation.mutate(Array.from(selectedDigestIds), {
+      onSuccess: () => setSelectedDigestIds(new Set()),
+    });
+  };
   // Fetch persisted suggestions with email data
   const { data: suggestions, isLoading, dataUpdatedAt } = useQuery({
     queryKey: ["suggested-tasks", user?.id, existingTaskTitles],
@@ -260,22 +276,34 @@ const SuggestedTasksSection = () => {
               <Badge variant="secondary" className="ml-2">{totalCount}</Badge>
             )}
           </CardTitle>
-          <div className="flex flex-col items-end gap-1">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => refreshMutation.mutate()}
-              disabled={isLoading || refreshMutation.isPending}
-            >
-              <RefreshCw className={`w-4 h-4 mr-1 ${refreshMutation.isPending ? 'animate-spin' : ''}`} />
-              Refresh
-            </Button>
-            {lastRefreshTime && (
-              <span className="text-xs text-muted-foreground text-center">
-                Updated {formatDistanceToNow(lastRefreshTime, { addSuffix: true })} at{' '}
-                {lastRefreshTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-              </span>
+          <div className="flex items-center gap-2">
+            {selectedDigestIds.size > 0 && (
+              <Button
+                size="sm"
+                onClick={bulkDismissSelected}
+                disabled={markAllReadMutation.isPending}
+              >
+                <Check className="w-4 h-4 mr-1" />
+                Mark {selectedDigestIds.size} Done
+              </Button>
             )}
+            <div className="flex flex-col items-end gap-1">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => refreshMutation.mutate()}
+                disabled={isLoading || refreshMutation.isPending}
+              >
+                <RefreshCw className={`w-4 h-4 mr-1 ${refreshMutation.isPending ? 'animate-spin' : ''}`} />
+                Refresh
+              </Button>
+              {lastRefreshTime && (
+                <span className="text-xs text-muted-foreground text-center">
+                  Updated {formatDistanceToNow(lastRefreshTime, { addSuffix: true })} at{' '}
+                  {lastRefreshTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </span>
+              )}
+            </div>
           </div>
         </div>
         <p className="text-xs text-muted-foreground">
@@ -307,6 +335,8 @@ const SuggestedTasksSection = () => {
               onMarkAllRead={(ids) => markAllReadMutation.mutate(ids)}
               onOpenEmail={openGmailEmail}
               isDismissing={dismissMutation.isPending}
+              selectedIds={selectedDigestIds}
+              onToggleSelection={toggleDigestSelection}
             />
             
             <TriageCategorySection
@@ -318,6 +348,8 @@ const SuggestedTasksSection = () => {
               onMarkAllRead={(ids) => markAllReadMutation.mutate(ids)}
               onOpenEmail={openGmailEmail}
               isDismissing={dismissMutation.isPending}
+              selectedIds={selectedDigestIds}
+              onToggleSelection={toggleDigestSelection}
             />
             
             {showFyi && (
@@ -330,6 +362,8 @@ const SuggestedTasksSection = () => {
                 onMarkAllRead={(ids) => markAllReadMutation.mutate(ids)}
                 onOpenEmail={openGmailEmail}
                 isDismissing={dismissMutation.isPending}
+                selectedIds={selectedDigestIds}
+                onToggleSelection={toggleDigestSelection}
               />
             )}
             
@@ -342,6 +376,8 @@ const SuggestedTasksSection = () => {
               onMarkAllRead={(ids) => markAllReadMutation.mutate(ids)}
               onOpenEmail={openGmailEmail}
               isDismissing={dismissMutation.isPending}
+              selectedIds={selectedDigestIds}
+              onToggleSelection={toggleDigestSelection}
             />
           </>
         )}
