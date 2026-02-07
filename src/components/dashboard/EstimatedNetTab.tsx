@@ -599,8 +599,8 @@ const EstimatedNetTab = ({ selectedClient, onClearSelectedClient, navigateToProp
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold">Estimated Net Sheets</h2>
-          <p className="text-muted-foreground">Create and manage property estimates</p>
+          <h2 className="text-2xl font-bold">Working Deals</h2>
+          <p className="text-muted-foreground">Keeping Track of Your deals</p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => setViewState('upcoming-closings')}>
