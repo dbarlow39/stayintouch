@@ -194,7 +194,6 @@ const AccountingDashboard = ({ onNavigate }: AccountingDashboardProps) => {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-10">Ready to Pay</TableHead>
                     <TableHead>Closing Date</TableHead>
                     <TableHead>Property</TableHead>
                     <TableHead>Agent</TableHead>
@@ -202,19 +201,12 @@ const AccountingDashboard = ({ onNavigate }: AccountingDashboardProps) => {
                     <TableHead>Check</TableHead>
                     <TableHead>Paperwork</TableHead>
                     <TableHead>Paid</TableHead>
+                    <TableHead className="w-10">Ready to Pay</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {closings.map((closing) => (
                     <TableRow key={closing.id} className="cursor-pointer hover:bg-muted/40">
-                      <TableCell onClick={(e) => e.stopPropagation()}>
-                        {!closing.paid ? (
-                          <Checkbox
-                            checked={selectedIds.includes(closing.id)}
-                            onCheckedChange={() => toggleSelect(closing.id)}
-                          />
-                        ) : null}
-                      </TableCell>
                       <TableCell onClick={() => onNavigate(`edit-closing:${closing.id}`)}>
                         {format(new Date(closing.closing_date + "T00:00:00"), "MMM d, yyyy")}
                       </TableCell>
@@ -241,6 +233,14 @@ const AccountingDashboard = ({ onNavigate }: AccountingDashboardProps) => {
                         {closing.paid
                           ? <CheckCircle2 className="h-4 w-4 text-emerald-600" />
                           : null}
+                      </TableCell>
+                      <TableCell onClick={(e) => e.stopPropagation()}>
+                        {!closing.paid ? (
+                          <Checkbox
+                            checked={selectedIds.includes(closing.id)}
+                            onCheckedChange={() => toggleSelect(closing.id)}
+                          />
+                        ) : null}
                       </TableCell>
                     </TableRow>
                   ))}
