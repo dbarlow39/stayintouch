@@ -1,0 +1,1 @@
+ALTER TABLE public.closings ALTER COLUMN caliber_title_bonus SET DEFAULT true;
