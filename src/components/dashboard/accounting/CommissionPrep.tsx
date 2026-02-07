@@ -175,8 +175,8 @@ const CommissionPrep = ({ onBack }: CommissionPrepProps) => {
                   <TableBody>
                     {readyClosings.map(closing => (
                       <TableRow key={closing.id} className="cursor-pointer" onClick={() => toggleSelect(closing.id)}>
-                        <TableCell>
-                          <Checkbox checked={selectedIds.includes(closing.id)} onCheckedChange={() => toggleSelect(closing.id)} />
+                        <TableCell onClick={(e) => e.stopPropagation()}>
+                          <Checkbox checked={selectedIds.includes(closing.id)} onCheckedChange={() => toggleSelect(closing.id)} onClick={(e) => e.stopPropagation()} />
                         </TableCell>
                         <TableCell className="font-medium">{closing.agent_name}</TableCell>
                         <TableCell>{closing.property_address}</TableCell>
