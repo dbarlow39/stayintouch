@@ -249,7 +249,6 @@ const DepositLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigat
     { label: "Title Letter", icon: Home, onClick: () => onNavigate('title-letter') },
     { label: "Agent Letter", icon: Mail, onClick: () => onNavigate('agent-letter') },
     { label: "Request to Remedy", icon: FileText, onClick: () => onNavigate('request-to-remedy') },
-    { label: "Settlement Statement", icon: FileText, onClick: () => onNavigate('settlement-statement') },
     { label: "Notices", icon: Bell, onClick: () => onNavigate('notices') },
     { label: "Deposit", icon: DollarSign, onClick: () => {}, active: true },
   ];
