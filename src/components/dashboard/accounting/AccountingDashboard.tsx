@@ -143,9 +143,6 @@ const AccountingDashboard = ({ onNavigate }: AccountingDashboardProps) => {
 
       {/* Quick Actions */}
       <div className="flex flex-wrap gap-3">
-        <Button onClick={() => onNavigate("check-logging")} className="bg-[hsl(220,13%,38%)] hover:bg-[hsl(220,13%,30%)] text-white">
-          Process Next Check
-        </Button>
         <Button onClick={() => onNavigate("add-closing")} variant="outline">
           Add Closing
         </Button>
