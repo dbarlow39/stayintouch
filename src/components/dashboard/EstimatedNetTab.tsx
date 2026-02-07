@@ -442,6 +442,19 @@ const EstimatedNetTab = ({ selectedClient, onClearSelectedClient, navigateToProp
     setViewState('list');
   };
 
+  const handleBackToForm = () => {
+    if (currentPropertyId) {
+      setEditingId(currentPropertyId);
+      setViewState('form');
+    } else {
+      handleBackToList();
+    }
+  };
+
+  const handleBackToNotices = () => {
+    setViewState('notices');
+  };
+
   const handleDelete = async () => {
     if (!deleteId) return;
 
@@ -576,7 +589,7 @@ const EstimatedNetTab = ({ selectedClient, onClearSelectedClient, navigateToProp
       <RequestToRemedyView
         propertyData={currentPropertyData}
         propertyId={currentPropertyId}
-        onBack={handleBackToList}
+        onBack={handleBackToNotices}
         onEdit={handleEditEstimate}
         onNavigate={(view) => setViewState(view as ViewState)}
       />
@@ -588,7 +601,7 @@ const EstimatedNetTab = ({ selectedClient, onClearSelectedClient, navigateToProp
       <SettlementStatementView
         propertyData={currentPropertyData}
         propertyId={currentPropertyId}
-        onBack={handleBackToList}
+        onBack={handleBackToNotices}
         onEdit={handleEditEstimate}
         onNavigate={(view) => setViewState(view as ViewState)}
       />
@@ -600,7 +613,7 @@ const EstimatedNetTab = ({ selectedClient, onClearSelectedClient, navigateToProp
       <NoticesView
         propertyData={currentPropertyData}
         propertyId={currentPropertyId}
-        onBack={handleBackToList}
+        onBack={handleBackToForm}
         onEdit={handleEditEstimate}
         onNavigate={(view) => setViewState(view as ViewState)}
       />
@@ -612,7 +625,7 @@ const EstimatedNetTab = ({ selectedClient, onClearSelectedClient, navigateToProp
       <ClearToCloseLetterView
         propertyData={currentPropertyData}
         propertyId={currentPropertyId}
-        onBack={handleBackToList}
+        onBack={handleBackToNotices}
         onEdit={handleEditEstimate}
         onNavigate={(view) => setViewState(view as ViewState)}
       />
@@ -624,7 +637,7 @@ const EstimatedNetTab = ({ selectedClient, onClearSelectedClient, navigateToProp
       <HomeInspectionLetterView
         propertyData={currentPropertyData}
         propertyId={currentPropertyId}
-        onBack={handleBackToList}
+        onBack={handleBackToNotices}
         onEdit={handleEditEstimate}
         onNavigate={(view) => setViewState(view as ViewState)}
       />
@@ -636,7 +649,7 @@ const EstimatedNetTab = ({ selectedClient, onClearSelectedClient, navigateToProp
       <DepositLetterView
         propertyData={currentPropertyData}
         propertyId={currentPropertyId}
-        onBack={handleBackToList}
+        onBack={handleBackToNotices}
         onEdit={handleEditEstimate}
         onNavigate={(view) => setViewState(view as ViewState)}
       />
@@ -648,7 +661,7 @@ const EstimatedNetTab = ({ selectedClient, onClearSelectedClient, navigateToProp
       <AppraisalLetterView
         propertyData={currentPropertyData}
         propertyId={currentPropertyId}
-        onBack={handleBackToList}
+        onBack={handleBackToNotices}
         onEdit={handleEditEstimate}
         onNavigate={(view) => setViewState(view as ViewState)}
       />
@@ -660,7 +673,7 @@ const EstimatedNetTab = ({ selectedClient, onClearSelectedClient, navigateToProp
       <LoanApplicationLetterView
         propertyData={currentPropertyData}
         propertyId={currentPropertyId}
-        onBack={handleBackToList}
+        onBack={handleBackToNotices}
         onEdit={handleEditEstimate}
         onNavigate={(view) => setViewState(view as ViewState)}
       />
@@ -672,7 +685,7 @@ const EstimatedNetTab = ({ selectedClient, onClearSelectedClient, navigateToProp
       <TitleCommitmentLetterView
         propertyData={currentPropertyData}
         propertyId={currentPropertyId}
-        onBack={handleBackToList}
+        onBack={handleBackToNotices}
         onEdit={handleEditEstimate}
         onNavigate={(view) => setViewState(view as ViewState)}
       />
