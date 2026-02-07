@@ -231,15 +231,15 @@ const HomeInspectionLetterView = ({ propertyData, propertyId, onBack, onEdit, on
               <p className="mb-4">Hey {propertyData.name?.split(' ')[0] || "there"},</p>
 
               <p className="mb-4">
-                You may have already seen that the buyers have scheduled their home inspection. The biggest item is to make sure all of the utilities are turned on so the inspector can test everything. If for some reason you have something turned off go ahead and turn it back on and after the inspection you can turn it off again. If a utility cannot be turned back on let me know so I can let the buyer agent know.
+                The home inspection has been confirmed. The biggest item is to make sure all of the utilities are turned on so the inspector can test everything. If for some reason you have something turned off go ahead and turn it back on and after the inspection you can turn it off again. If a utility cannot be turned back on let me know so I can let the buyer agent know.
               </p>
 
               <p className="mb-4">
-                Otherwise we treat home inspections just like we do showings, if you are still living in the home treat it like you would a showing. The only difference being home inspections typically can take anywhere from 3 to 4 hours so make sure you have a place to go.
+                We treat home inspections just like we do showings, if you are still living in the home treat it like you would a showing by leaving the home prior to the scheduled time and giving the home inspector, the buyers agent and the buyer the time to do the inspection. Typically, a home inspection will take anywhere from 3 to 4 hours so make sure you have a place to go.
               </p>
 
               <p className="mb-4">
-                Once the inspection is completed it normally takes a day or so for the buyer to digest the report and if they have the right to ask for a remedy we should see it a day or 2 after the inspection. I typically do not call the buyer agent to ask them how it went, I recommend we sit tight and if they send over a remedy we'll deal with it then.
+                Once the inspection is completed it normally takes a day or so for the buyer to digest the report and if they have the right to ask for a remedy, we should see it a day or 2 after the inspection. I typically do not call the buyer agent to ask them how it went, I recommend we sit tight and if they send over a remedy we'll deal with it then.
               </p>
 
               <p className="mb-4">
