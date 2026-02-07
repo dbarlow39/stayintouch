@@ -21,18 +21,13 @@ serve(async (req) => {
     // Extract the JWT token from the Authorization header
     const token = authHeader.replace('Bearer ', '');
 
-    const supabaseClient = createClient(
+    // Use service role client to verify the token
+    const serviceClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      { 
-        global: { 
-          headers: { Authorization: authHeader } 
-        } 
-      }
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
     );
 
-    // Validate the user token
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token);
+    const { data: { user }, error: authError } = await serviceClient.auth.getUser(token);
     
     if (authError || !user) {
       console.error('Authentication error:', authError);
@@ -41,6 +36,13 @@ serve(async (req) => {
     
     const userId = user.id;
     console.log('User authenticated:', userId);
+
+    // Create RLS-scoped client for data queries
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      { global: { headers: { Authorization: authHeader } } }
+    );
 
     // Fetch agent's data
     const [
