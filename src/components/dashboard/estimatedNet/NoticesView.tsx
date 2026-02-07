@@ -252,11 +252,6 @@ const NoticesView = ({
       onClick: () => onNavigate("request-to-remedy"),
     },
     {
-      label: "Settlement Statement",
-      icon: FileText,
-      onClick: () => onNavigate("settlement-statement"),
-    },
-    {
       label: "Notices",
       icon: Bell,
       onClick: () => {},
@@ -292,6 +287,10 @@ const NoticesView = ({
     }
     if (noticeType === "title-commitment-received") {
       onNavigate("title-commitment-letter");
+      return;
+    }
+    if (noticeType === "hud-settlement-statement") {
+      onNavigate("settlement-statement");
       return;
     }
     console.log("Sending notice:", noticeType);
