@@ -342,21 +342,21 @@ const NoticesView = ({
         </div>
         <Card>
           <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Bell className="h-5 w-5 text-primary" />
+              Client Notices
+            </CardTitle>
             <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center gap-2">
-                <Bell className="h-5 w-5 text-primary" />
-                Client Notices
-              </CardTitle>
+              <CardDescription>
+                Select a notice to send to {propertyData.name || "the client"} regarding{" "}
+                {propertyData.streetAddress}
+              </CardDescription>
               {propertyData.closingDate && (
                 <p className="text-sm font-medium text-muted-foreground">
                   Closing Date: <span className="text-foreground">{format(parseLocalDate(propertyData.closingDate)!, "MM/dd/yyyy")}</span>
                 </p>
               )}
             </div>
-            <CardDescription>
-              Select a notice to send to {propertyData.name || "the client"} regarding{" "}
-              {propertyData.streetAddress}
-            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             {/* Overdue Notices Warning */}
