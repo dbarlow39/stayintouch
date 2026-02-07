@@ -4,7 +4,7 @@ import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Users, Mail, LogOut, Calendar, Briefcase, CheckSquare, MessageSquare, Sparkles, Settings, UserPlus } from "lucide-react";
+import { Users, Mail, LogOut, Calendar, Briefcase, CheckSquare, MessageSquare, Sparkles, Settings, UserPlus, DollarSign } from "lucide-react";
 import ClientsTab from "@/components/dashboard/ClientsTab";
 import LeadsTab from "@/components/dashboard/LeadsTab";
 import WeeklyUpdateTab from "@/components/dashboard/WeeklyUpdateTab";
@@ -12,6 +12,7 @@ import EstimatedNetTab from "@/components/dashboard/EstimatedNetTab";
 import TasksTab from "@/components/dashboard/TasksTab";
 import SMSTab from "@/components/dashboard/SMSTab";
 import SmartAssistantTab from "@/components/dashboard/SmartAssistantTab";
+import AccountingTab from "@/components/dashboard/AccountingTab";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import logo from "@/assets/logo.jpg";
@@ -85,6 +86,17 @@ const Dashboard = () => {
       
       if (error) throw error;
       return count || 0;
+    },
+    enabled: !!user,
+  });
+
+  const { data: isAdmin = false } = useQuery({
+    queryKey: ["user-is-admin", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .rpc("has_role", { _user_id: user!.id, _role: "admin" });
+      if (error) throw error;
+      return !!data;
     },
     enabled: !!user,
   });
@@ -191,6 +203,12 @@ const Dashboard = () => {
                   <MessageSquare className="w-4 h-4 mr-2" />
                   SMS
                 </TabsTrigger>
+                {isAdmin && (
+                  <TabsTrigger value="accounting">
+                    <DollarSign className="w-4 h-4 mr-2" />
+                    Accounting
+                  </TabsTrigger>
+                )}
               </TabsList>
             </CardHeader>
             <CardContent>
@@ -220,6 +238,11 @@ const Dashboard = () => {
               <TabsContent value="sms">
                 <SMSTab />
               </TabsContent>
+              {isAdmin && (
+                <TabsContent value="accounting">
+                  <AccountingTab />
+                </TabsContent>
+              )}
             </CardContent>
           </Tabs>
         </Card>
