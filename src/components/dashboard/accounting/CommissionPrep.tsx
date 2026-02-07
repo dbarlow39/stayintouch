@@ -2,13 +2,12 @@ import { useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { ArrowLeft, Printer, Trash2, FileDown } from "lucide-react";
+import { ArrowLeft, Trash2, FileDown } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { generateCheckPdf } from "@/utils/generateCheckPdf";
@@ -18,27 +17,14 @@ interface CommissionPrepProps {
   onBack: () => void;
 }
 
+const formatCurrency = (val: number) =>
+  new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(val);
+
 const CommissionPrep = ({ onBack }: CommissionPrepProps) => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [creating, setCreating] = useState(false);
 
-  // Get closings with checks received that haven't been paid yet
-  const { data: readyClosings = [] } = useQuery({
-    queryKey: ["accounting-ready-closings"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("closings")
-        .select("*")
-        .in("status", ["received", "check_received", "processed"])
-        .order("agent_name", { ascending: true });
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: !!user,
-  });
-
+  // Fetch payouts that are not yet paid
   const { data: payouts = [] } = useQuery({
     queryKey: ["accounting-payouts"],
     queryFn: async () => {
@@ -52,111 +38,89 @@ const CommissionPrep = ({ onBack }: CommissionPrepProps) => {
     enabled: !!user,
   });
 
-  const toggleSelect = (id: string) => {
-    setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  // Fetch all payout_closing_links with closing details
+  const payoutIds = payouts.map(p => p.id);
+  const { data: allLinks = [] } = useQuery({
+    queryKey: ["accounting-payout-links", payoutIds],
+    queryFn: async () => {
+      if (payoutIds.length === 0) return [];
+      const { data, error } = await supabase
+        .from("payout_closing_links")
+        .select("*, closings(id, property_address, closing_date, agent_share, caliber_title_bonus, caliber_title_amount, agent_name)")
+        .in("payout_id", payoutIds);
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!user && payoutIds.length > 0,
+  });
+
+  const invalidateAll = () => {
+    queryClient.invalidateQueries({ queryKey: ["accounting-payouts"] });
+    queryClient.invalidateQueries({ queryKey: ["accounting-payout-links"] });
+    queryClient.invalidateQueries({ queryKey: ["accounting-pending-payouts"] });
+    queryClient.invalidateQueries({ queryKey: ["accounting-closings-summary"] });
   };
 
-  const selectedClosings = readyClosings.filter(c => selectedIds.includes(c.id));
-  const totalPayout = selectedClosings.reduce((sum, c) => sum + Number(c.agent_share), 0);
-  const agentName = selectedClosings.length > 0 ? selectedClosings[0].agent_name : "";
-
-  // Check if all selected are same agent
-  const sameAgent = selectedClosings.every(c => c.agent_name === agentName);
-
-  const formatCurrency = (val: number) =>
-    new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(val);
-
-  const handleCreatePayout = async () => {
-    if (!user || selectedIds.length === 0) return;
-    if (!sameAgent) {
-      toast.error("Please select closings for one agent at a time.");
-      return;
-    }
-    setCreating(true);
+  const removeClosingFromPayout = async (linkId: string, payoutId: string, agentShare: number) => {
     try {
-      const { data: payout, error } = await supabase.from("commission_payouts").insert({
-        agent_id: selectedClosings[0].agent_id,
-        agent_name: agentName,
-        total_amount: totalPayout,
-        status: "approved",
-        created_by: user.id,
-      }).select().single();
-      if (error) throw error;
+      // Delete the link
+      await supabase.from("payout_closing_links").delete().eq("id", linkId);
 
-      // Link closings to payout
-      const links = selectedIds.map(closingId => ({
-        payout_id: payout.id,
-        closing_id: closingId,
-        agent_share: Number(readyClosings.find(c => c.id === closingId)?.agent_share || 0),
-      }));
-      await supabase.from("payout_closing_links").insert(links);
+      // Check remaining links for this payout
+      const { data: remaining } = await supabase
+        .from("payout_closing_links")
+        .select("agent_share")
+        .eq("payout_id", payoutId);
 
-      // Update closing statuses
-      await supabase.from("closings").update({ status: "processed" }).in("id", selectedIds);
+      if (!remaining || remaining.length === 0) {
+        // No closings left, delete the payout entirely
+        await supabase.from("commission_payouts").delete().eq("id", payoutId);
+        toast.success("Last closing removed — payout deleted.");
+      } else {
+        // Update payout total
+        const newTotal = remaining.reduce((sum, l) => sum + Number(l.agent_share), 0);
+        await supabase.from("commission_payouts").update({ total_amount: newTotal }).eq("id", payoutId);
+        toast.success("Closing removed from check.");
+      }
 
-      toast.success("All clear—ready to print your agent's check.");
-      queryClient.invalidateQueries({ queryKey: ["accounting-ready-closings"] });
-      queryClient.invalidateQueries({ queryKey: ["accounting-payouts"] });
-      queryClient.invalidateQueries({ queryKey: ["accounting-closings-summary"] });
-      setSelectedIds([]);
+      invalidateAll();
     } catch (err: any) {
-      toast.error(err.message || "Failed to create payout");
-    } finally {
-      setCreating(false);
+      toast.error(err.message || "Failed to remove closing");
+    }
+  };
+
+  const deletePayout = async (payoutId: string) => {
+    try {
+      await supabase.from("payout_closing_links").delete().eq("payout_id", payoutId);
+      const { error } = await supabase.from("commission_payouts").delete().eq("id", payoutId);
+      if (error) throw error;
+      toast.success("Payout deleted.");
+      invalidateAll();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to delete payout");
     }
   };
 
   const markPaid = async (payoutId: string) => {
     await supabase.from("commission_payouts").update({ status: "paid", payout_date: new Date().toISOString().split("T")[0] }).eq("id", payoutId);
     toast.success("Payout marked as paid.");
-    queryClient.invalidateQueries({ queryKey: ["accounting-payouts"] });
-    queryClient.invalidateQueries({ queryKey: ["accounting-pending-payouts"] });
-  };
-
-  const deletePayout = async (payoutId: string) => {
-    try {
-      // Delete linked closing references first
-      await supabase.from("payout_closing_links").delete().eq("payout_id", payoutId);
-      // Delete the payout record
-      const { error } = await supabase.from("commission_payouts").delete().eq("id", payoutId);
-      if (error) throw error;
-      toast.success("Payout deleted.");
-      queryClient.invalidateQueries({ queryKey: ["accounting-payouts"] });
-      queryClient.invalidateQueries({ queryKey: ["accounting-pending-payouts"] });
-      queryClient.invalidateQueries({ queryKey: ["accounting-closings-summary"] });
-      queryClient.invalidateQueries({ queryKey: ["accounting-ready-closings"] });
-    } catch (err: any) {
-      toast.error(err.message || "Failed to delete payout");
-    }
+    invalidateAll();
   };
 
   const handlePrintCheck = async (payoutId: string, agentName: string, totalAmount: number) => {
     try {
-      // Get linked closings for this payout
-      const { data: links, error: linksError } = await supabase
-        .from("payout_closing_links")
-        .select("closing_id, agent_share")
-        .eq("payout_id", payoutId);
-      if (linksError) throw linksError;
+      const payoutLinks = allLinks.filter(l => l.payout_id === payoutId);
+      const closingsData = payoutLinks.map((l: any) => l.closings).filter(Boolean);
 
-      const closingIds = (links || []).map(l => l.closing_id);
-      const { data: closingsData, error: closingsError } = await supabase
-        .from("closings")
-        .select("property_address, agent_share, caliber_title_bonus, caliber_title_amount")
-        .in("id", closingIds);
-      if (closingsError) throw closingsError;
-
-      // Get agent address
       const { data: agentData } = await supabase
         .from("agents")
         .select("home_address, city, state, zip")
         .eq("full_name", agentName)
         .maybeSingle();
 
-      // Build line items: each property + bonus if applicable
       const lineItems: CheckLineItem[] = [];
       const propertyNames: string[] = [];
-      (closingsData || []).forEach(c => {
+      closingsData.forEach((c: any) => {
         propertyNames.push(c.property_address);
         lineItems.push({ amount: Number(c.agent_share), label: c.property_address });
         if (c.caliber_title_bonus) {
@@ -164,7 +128,6 @@ const CommissionPrep = ({ onBack }: CommissionPrepProps) => {
         }
       });
 
-      // Calculate YTD: sum all paid/approved payouts for this agent this year
       const yearStart = new Date().getFullYear() + "-01-01";
       const { data: ytdPayouts } = await supabase
         .from("commission_payouts")
@@ -173,10 +136,8 @@ const CommissionPrep = ({ onBack }: CommissionPrepProps) => {
         .gte("created_at", yearStart);
       const ytdTotal = (ytdPayouts || []).reduce((sum, p) => sum + Number(p.total_amount), 0);
 
-      const today = format(new Date(), "MMMM d, yyyy");
-
       generateCheckPdf({
-        date: today,
+        date: format(new Date(), "MMMM d, yyyy"),
         totalAmount: totalAmount,
         agentName: agentName,
         agentAddress: agentData?.home_address || "",
@@ -210,134 +171,93 @@ const CommissionPrep = ({ onBack }: CommissionPrepProps) => {
 
       <div>
         <h2 className="text-xl font-medium">Commission Prep</h2>
-        <p className="text-sm text-muted-foreground">Select closings to prepare agent payouts</p>
+        <p className="text-sm text-muted-foreground">Review and print agent commission checks</p>
       </div>
 
-      {/* Select Closings */}
+      {/* Checks Ready to Print */}
       <Card className="border-0 shadow-sm">
         <CardHeader>
-          <CardTitle className="text-lg font-medium">Ready for Payout</CardTitle>
-          <CardDescription>Select closings for the same agent, then generate their check</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {readyClosings.length === 0 ? (
-            <p className="text-muted-foreground text-sm py-8 text-center">No closings ready for payout yet.</p>
-          ) : (
-            <>
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-10"></TableHead>
-                      <TableHead>Agent</TableHead>
-                      <TableHead>Property</TableHead>
-                      <TableHead>Closing Date</TableHead>
-                      <TableHead className="text-right">Agent Share</TableHead>
-                      <TableHead className="w-10"></TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {readyClosings.map(closing => (
-                      <TableRow key={closing.id} className="cursor-pointer" onClick={() => toggleSelect(closing.id)}>
-                        <TableCell onClick={(e) => e.stopPropagation()}>
-                          <Checkbox checked={selectedIds.includes(closing.id)} onCheckedChange={() => toggleSelect(closing.id)} onClick={(e) => e.stopPropagation()} />
-                        </TableCell>
-                        <TableCell className="font-medium">{closing.agent_name}</TableCell>
-                        <TableCell>{closing.property_address}</TableCell>
-                        <TableCell>{format(new Date(closing.closing_date + "T00:00:00"), "MMM d, yyyy")}</TableCell>
-                        <TableCell className="text-right font-medium text-emerald-700">{formatCurrency(Number(closing.agent_share))}</TableCell>
-                        <TableCell onClick={(e) => e.stopPropagation()}>
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive">
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Delete Closing</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  This will permanently delete the closing for {closing.property_address} ({closing.agent_name}). This cannot be undone.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction
-                                  onClick={async () => {
-                                    try {
-                                      const { error } = await supabase.from("closings").delete().eq("id", closing.id);
-                                      if (error) throw error;
-                                      toast.success("Closing deleted.");
-                                      setSelectedIds(prev => prev.filter(x => x !== closing.id));
-                                      queryClient.invalidateQueries({ queryKey: ["accounting-ready-closings"] });
-                                      queryClient.invalidateQueries({ queryKey: ["accounting-closings-summary"] });
-                                    } catch (err: any) {
-                                      toast.error(err.message || "Failed to delete closing");
-                                    }
-                                  }}
-                                  className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
-                                >
-                                  Delete
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-
-              {selectedIds.length > 0 && (
-                <div className="mt-6 bg-emerald-50 rounded-lg p-5 flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Payout for <strong>{agentName}</strong></p>
-                    <p className="text-2xl font-semibold text-emerald-800">{formatCurrency(totalPayout)}</p>
-                    {!sameAgent && <p className="text-xs text-red-600 mt-1">⚠ Select closings for one agent only</p>}
-                  </div>
-                  <Button
-                    onClick={handleCreatePayout}
-                    disabled={creating || !sameAgent}
-                    className="bg-emerald-700 hover:bg-emerald-800 text-white"
-                  >
-                    <Printer className="w-4 h-4 mr-2" /> Generate Check
-                  </Button>
-                </div>
-              )}
-            </>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Recent Payouts */}
-      <Card className="border-0 shadow-sm">
-        <CardHeader>
-          <CardTitle className="text-lg font-medium">Recent Payouts</CardTitle>
+          <CardTitle className="text-lg font-medium">Checks Ready to Print</CardTitle>
         </CardHeader>
         <CardContent>
           {payouts.length === 0 ? (
-            <p className="text-muted-foreground text-sm py-4 text-center">No payouts yet.</p>
+            <p className="text-muted-foreground text-sm py-8 text-center">No checks ready to print.</p>
           ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Agent</TableHead>
-                    <TableHead className="text-right">Amount</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {payouts.map(payout => (
-                    <TableRow key={payout.id}>
-                      <TableCell className="font-medium">{payout.agent_name}</TableCell>
-                      <TableCell className="text-right">{formatCurrency(Number(payout.total_amount))}</TableCell>
-                      <TableCell>{payout.payout_date ? format(new Date(payout.payout_date + "T00:00:00"), "MMM d, yyyy") : "—"}</TableCell>
-                      <TableCell>{statusBadge(payout.status)}</TableCell>
-                      <TableCell className="text-right space-x-1">
+            <div className="space-y-6">
+              {payouts.map(payout => {
+                const payoutLinks = allLinks.filter(l => l.payout_id === payout.id);
+                return (
+                  <Card key={payout.id} className="border shadow-none">
+                    <CardContent className="pt-5">
+                      {/* Payout header */}
+                      <div className="flex items-center justify-between mb-4">
+                        <div>
+                          <p className="font-semibold text-base">{payout.agent_name}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {payout.created_at ? format(new Date(payout.created_at), "MMM d, yyyy") : ""}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <p className="text-xl font-semibold">{formatCurrency(Number(payout.total_amount))}</p>
+                          {statusBadge(payout.status)}
+                        </div>
+                      </div>
+
+                      {/* Linked closings */}
+                      {payoutLinks.length > 0 && (
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Property</TableHead>
+                              <TableHead>Closing Date</TableHead>
+                              <TableHead className="text-right">Agent Share</TableHead>
+                              <TableHead className="w-10"></TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {payoutLinks.map((link: any) => {
+                              const closing = link.closings;
+                              if (!closing) return null;
+                              return (
+                                <TableRow key={link.id}>
+                                  <TableCell className="font-medium">{closing.property_address}</TableCell>
+                                  <TableCell>{format(new Date(closing.closing_date + "T00:00:00"), "MMM d, yyyy")}</TableCell>
+                                  <TableCell className="text-right">{formatCurrency(Number(closing.agent_share))}</TableCell>
+                                  <TableCell>
+                                    <AlertDialog>
+                                      <AlertDialogTrigger asChild>
+                                        <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive">
+                                          <Trash2 className="w-4 h-4" />
+                                        </Button>
+                                      </AlertDialogTrigger>
+                                      <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                          <AlertDialogTitle>Remove from Check</AlertDialogTitle>
+                                          <AlertDialogDescription>
+                                            Remove {closing.property_address} from this check? The check total will be updated automatically.
+                                          </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                          <AlertDialogAction
+                                            onClick={() => removeClosingFromPayout(link.id, payout.id, Number(link.agent_share))}
+                                            className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
+                                          >
+                                            Remove
+                                          </AlertDialogAction>
+                                        </AlertDialogFooter>
+                                      </AlertDialogContent>
+                                    </AlertDialog>
+                                  </TableCell>
+                                </TableRow>
+                              );
+                            })}
+                          </TableBody>
+                        </Table>
+                      )}
+
+                      {/* Actions */}
+                      <div className="flex justify-end gap-2 mt-4 pt-3 border-t">
                         <Button variant="ghost" size="sm" onClick={() => handlePrintCheck(payout.id, payout.agent_name, Number(payout.total_amount))}>
                           <FileDown className="w-4 h-4 mr-1" /> PDF
                         </Button>
@@ -347,14 +267,14 @@ const CommissionPrep = ({ onBack }: CommissionPrepProps) => {
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
                             <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive">
-                              <Trash2 className="w-4 h-4" />
+                              <Trash2 className="w-4 h-4 mr-1" /> Delete Check
                             </Button>
                           </AlertDialogTrigger>
                           <AlertDialogContent>
                             <AlertDialogHeader>
-                              <AlertDialogTitle>Delete Payout</AlertDialogTitle>
+                              <AlertDialogTitle>Delete Check</AlertDialogTitle>
                               <AlertDialogDescription>
-                                This will permanently delete the payout for {payout.agent_name} ({formatCurrency(Number(payout.total_amount))}). This cannot be undone.
+                                This will permanently delete this check for {payout.agent_name} ({formatCurrency(Number(payout.total_amount))}). This cannot be undone.
                               </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
@@ -365,11 +285,11 @@ const CommissionPrep = ({ onBack }: CommissionPrepProps) => {
                             </AlertDialogFooter>
                           </AlertDialogContent>
                         </AlertDialog>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
           )}
         </CardContent>
