@@ -1,19 +1,19 @@
 project_id = "ujhohggsvijjqoatvwnl"
 
 [functions.ai-recommendations]
-verify_jwt = true
+verify_jwt = false
 
 [functions.ai-lead-scoring]
-verify_jwt = true
+verify_jwt = false
 
 [functions.ai-deal-priority]
-verify_jwt = true
+verify_jwt = false
 
 [functions.ai-personalize-message]
-verify_jwt = true
+verify_jwt = false
 
 [functions.ai-predictive-analytics]
-verify_jwt = true
+verify_jwt = false
 
 [functions.parse-zillow]
 verify_jwt = false
