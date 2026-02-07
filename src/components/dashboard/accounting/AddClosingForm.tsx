@@ -8,8 +8,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
+import { useAgentsList } from "./useAgentsList";
 
 interface AddClosingFormProps {
   onBack: () => void;
@@ -18,6 +20,7 @@ interface AddClosingFormProps {
 const AddClosingForm = ({ onBack }: AddClosingFormProps) => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const { data: agentOptions = [] } = useAgentsList();
   const [saving, setSaving] = useState(false);
 
   const [form, setForm] = useState({
@@ -114,7 +117,14 @@ const AddClosingForm = ({ onBack }: AddClosingFormProps) => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Agent Name *</Label>
-              <Input value={form.agent_name} onChange={e => update("agent_name", e.target.value)} placeholder="Agent's full name" />
+              <Select value={form.agent_name} onValueChange={v => update("agent_name", v)}>
+                <SelectTrigger><SelectValue placeholder="Select agent" /></SelectTrigger>
+                <SelectContent>
+                  {agentOptions.map(a => (
+                    <SelectItem key={a.id} value={a.full_name}>{a.full_name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-2">
               <Label>Property Address *</Label>
