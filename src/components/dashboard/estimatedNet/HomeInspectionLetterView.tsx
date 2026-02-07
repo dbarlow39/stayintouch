@@ -167,7 +167,6 @@ const HomeInspectionLetterView = ({ propertyData, propertyId, onBack, onEdit, on
     { label: "Important Dates Letter", icon: Calendar, onClick: () => onNavigate('important-dates') },
     { label: "Title Letter", icon: Home, onClick: () => onNavigate('title-letter') },
     { label: "Agent Letter", icon: Mail, onClick: () => onNavigate('agent-letter') },
-    { label: "Request to Remedy", icon: FileText, onClick: () => onNavigate('request-to-remedy') },
     { label: "Notices", icon: Bell, onClick: () => onNavigate('notices') },
     { label: "Home Inspection", icon: FileText, onClick: () => {}, active: true },
   ];
