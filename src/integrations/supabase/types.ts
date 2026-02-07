@@ -356,10 +356,13 @@ export type Database = {
       }
       closings: {
         Row: {
+          admin_fee: number
           agent_id: string
           agent_name: string
           agent_share: number
           agent_split_pct: number
+          caliber_title_amount: number
+          caliber_title_bonus: boolean
           city: string | null
           closing_date: string
           company_share: number
@@ -377,10 +380,13 @@ export type Database = {
           zip: string | null
         }
         Insert: {
+          admin_fee?: number
           agent_id: string
           agent_name: string
           agent_share?: number
           agent_split_pct?: number
+          caliber_title_amount?: number
+          caliber_title_bonus?: boolean
           city?: string | null
           closing_date: string
           company_share?: number
@@ -398,10 +404,13 @@ export type Database = {
           zip?: string | null
         }
         Update: {
+          admin_fee?: number
           agent_id?: string
           agent_name?: string
           agent_share?: number
           agent_split_pct?: number
+          caliber_title_amount?: number
+          caliber_title_bonus?: boolean
           city?: string | null
           closing_date?: string
           company_share?: number
