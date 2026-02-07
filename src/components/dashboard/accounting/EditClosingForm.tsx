@@ -38,7 +38,8 @@ const EditClosingForm = ({ closingId, onBack }: EditClosingFormProps) => {
     agent_split_pct: "60",
     caliber_title_bonus: true,
     caliber_title_amount: "150",
-    status: "pending",
+    status: "not_received",
+    paperwork_status: "not_received",
     notes: "",
   });
 
@@ -72,7 +73,8 @@ const EditClosingForm = ({ closingId, onBack }: EditClosingFormProps) => {
         agent_split_pct: String(closing.agent_split_pct || "60"),
         caliber_title_bonus: closing.caliber_title_bonus ?? true,
         caliber_title_amount: String(closing.caliber_title_amount ?? "150"),
-        status: closing.status || "pending",
+        status: closing.status || "not_received",
+        paperwork_status: (closing as any).paperwork_status || "not_received",
         notes: closing.notes || "",
       });
     }
@@ -123,6 +125,7 @@ const EditClosingForm = ({ closingId, onBack }: EditClosingFormProps) => {
         caliber_title_bonus: form.caliber_title_bonus,
         caliber_title_amount: caliberAmount > 0 ? caliberAmount : 150,
         status: form.status,
+        paperwork_status: form.paperwork_status,
         notes: form.notes,
       }).eq("id", closingId);
       if (error) throw error;
@@ -242,14 +245,22 @@ const EditClosingForm = ({ closingId, onBack }: EditClosingFormProps) => {
               </div>
             </div>
             <div className="space-y-2">
-              <Label>Status</Label>
+              <Label>Check</Label>
               <Select value={form.status} onValueChange={v => update("status", v)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="check_received">Check Received</SelectItem>
-                  <SelectItem value="processed">Processed</SelectItem>
-                  <SelectItem value="paid">Paid</SelectItem>
+                  <SelectItem value="received">Received</SelectItem>
+                  <SelectItem value="not_received">Not Received</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Paperwork</Label>
+              <Select value={form.paperwork_status} onValueChange={v => update("paperwork_status", v)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="received">Received</SelectItem>
+                  <SelectItem value="not_received">Not Received</SelectItem>
                 </SelectContent>
               </Select>
             </div>
