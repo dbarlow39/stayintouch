@@ -36,11 +36,13 @@ const AccountingDashboard = ({ onNavigate }: AccountingDashboardProps) => {
   });
 
   const hasCheckReceived = (closing: typeof closings[0]) =>
+    closing.status === "received" ||
     closing.status === "check_received" ||
     (closing.notes?.toLowerCase().includes("check received") ?? false);
 
   const hasPaperworkReceived = (closing: typeof closings[0]) =>
-    closing.notes?.toLowerCase().includes("paperwork complete") ?? false;
+    closing.paperwork_status === "received" ||
+    (closing.notes?.toLowerCase().includes("paperwork complete") ?? false);
 
   const { data: pendingChecks = [] } = useQuery({
     queryKey: ["accounting-pending-checks"],
