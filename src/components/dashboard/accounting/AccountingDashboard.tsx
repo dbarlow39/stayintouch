@@ -177,6 +177,7 @@ const AccountingDashboard = ({ onNavigate }: AccountingDashboardProps) => {
                      <TableHead className="text-right">Commission</TableHead>
                      <TableHead>Check</TableHead>
                      <TableHead>Paperwork</TableHead>
+                     <TableHead>Paid</TableHead>
                    </TableRow>
                  </TableHeader>
                  <TableBody>
@@ -191,12 +192,17 @@ const AccountingDashboard = ({ onNavigate }: AccountingDashboardProps) => {
                            ? <CheckCircle2 className="h-4 w-4 text-emerald-600" /> 
                            : <XCircle className="h-4 w-4 text-muted-foreground/40" />}
                        </TableCell>
-                       <TableCell>
-                         {hasPaperworkReceived(closing) 
-                           ? <CheckCircle2 className="h-4 w-4 text-emerald-600" /> 
-                           : <XCircle className="h-4 w-4 text-muted-foreground/40" />}
-                       </TableCell>
-                     </TableRow>
+                        <TableCell>
+                          {hasPaperworkReceived(closing) 
+                            ? <CheckCircle2 className="h-4 w-4 text-emerald-600" /> 
+                            : <XCircle className="h-4 w-4 text-muted-foreground/40" />}
+                        </TableCell>
+                        <TableCell>
+                          {closing.paid 
+                            ? <CheckCircle2 className="h-4 w-4 text-emerald-600" /> 
+                            : null}
+                        </TableCell>
+                      </TableRow>
                    ))}
                 </TableBody>
               </Table>
