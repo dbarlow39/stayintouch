@@ -222,7 +222,10 @@ const CommissionPrep = ({ onBack }: CommissionPrepProps) => {
       printed: "bg-indigo-100 text-indigo-800",
       paid: "bg-emerald-100 text-emerald-800",
     };
-    return <Badge className={`border-0 ${variants[status] || ""}`}>{status}</Badge>;
+    const labels: Record<string, string> = {
+      approved: "Ready to Print",
+    };
+    return <Badge className={`border-0 ${variants[status] || ""}`}>{labels[status] || status}</Badge>;
   };
 
   return (
