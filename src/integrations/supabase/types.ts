@@ -254,6 +254,211 @@ export type Database = {
         }
         Relationships: []
       }
+      closing_checks: {
+        Row: {
+          check_amount: number
+          check_number: string | null
+          closing_id: string
+          created_at: string
+          created_by: string
+          deposited: boolean
+          deposited_date: string | null
+          id: string
+          notes: string | null
+          payer_name: string | null
+          received_date: string
+        }
+        Insert: {
+          check_amount?: number
+          check_number?: string | null
+          closing_id: string
+          created_at?: string
+          created_by: string
+          deposited?: boolean
+          deposited_date?: string | null
+          id?: string
+          notes?: string | null
+          payer_name?: string | null
+          received_date?: string
+        }
+        Update: {
+          check_amount?: number
+          check_number?: string | null
+          closing_id?: string
+          created_at?: string
+          created_by?: string
+          deposited?: boolean
+          deposited_date?: string | null
+          id?: string
+          notes?: string | null
+          payer_name?: string | null
+          received_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "closing_checks_closing_id_fkey"
+            columns: ["closing_id"]
+            isOneToOne: false
+            referencedRelation: "closings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      closing_documents: {
+        Row: {
+          closing_id: string
+          created_at: string
+          created_by: string
+          document_name: string
+          document_type: string
+          file_name: string | null
+          file_path: string | null
+          id: string
+          is_received: boolean
+          notes: string | null
+          received_date: string | null
+        }
+        Insert: {
+          closing_id: string
+          created_at?: string
+          created_by: string
+          document_name: string
+          document_type?: string
+          file_name?: string | null
+          file_path?: string | null
+          id?: string
+          is_received?: boolean
+          notes?: string | null
+          received_date?: string | null
+        }
+        Update: {
+          closing_id?: string
+          created_at?: string
+          created_by?: string
+          document_name?: string
+          document_type?: string
+          file_name?: string | null
+          file_path?: string | null
+          id?: string
+          is_received?: boolean
+          notes?: string | null
+          received_date?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "closing_documents_closing_id_fkey"
+            columns: ["closing_id"]
+            isOneToOne: false
+            referencedRelation: "closings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      closings: {
+        Row: {
+          agent_id: string
+          agent_name: string
+          agent_share: number
+          agent_split_pct: number
+          city: string | null
+          closing_date: string
+          company_share: number
+          company_split_pct: number
+          created_at: string
+          created_by: string
+          id: string
+          notes: string | null
+          property_address: string
+          sale_price: number
+          state: string | null
+          status: string
+          total_commission: number
+          updated_at: string
+          zip: string | null
+        }
+        Insert: {
+          agent_id: string
+          agent_name: string
+          agent_share?: number
+          agent_split_pct?: number
+          city?: string | null
+          closing_date: string
+          company_share?: number
+          company_split_pct?: number
+          created_at?: string
+          created_by: string
+          id?: string
+          notes?: string | null
+          property_address: string
+          sale_price?: number
+          state?: string | null
+          status?: string
+          total_commission?: number
+          updated_at?: string
+          zip?: string | null
+        }
+        Update: {
+          agent_id?: string
+          agent_name?: string
+          agent_share?: number
+          agent_split_pct?: number
+          city?: string | null
+          closing_date?: string
+          company_share?: number
+          company_split_pct?: number
+          created_at?: string
+          created_by?: string
+          id?: string
+          notes?: string | null
+          property_address?: string
+          sale_price?: number
+          state?: string | null
+          status?: string
+          total_commission?: number
+          updated_at?: string
+          zip?: string | null
+        }
+        Relationships: []
+      }
+      commission_payouts: {
+        Row: {
+          agent_id: string
+          agent_name: string
+          check_number: string | null
+          created_at: string
+          created_by: string
+          id: string
+          notes: string | null
+          payout_date: string | null
+          status: string
+          total_amount: number
+        }
+        Insert: {
+          agent_id: string
+          agent_name: string
+          check_number?: string | null
+          created_at?: string
+          created_by: string
+          id?: string
+          notes?: string | null
+          payout_date?: string | null
+          status?: string
+          total_amount?: number
+        }
+        Update: {
+          agent_id?: string
+          agent_name?: string
+          check_number?: string | null
+          created_at?: string
+          created_by?: string
+          id?: string
+          notes?: string | null
+          payout_date?: string | null
+          status?: string
+          total_amount?: number
+        }
+        Relationships: []
+      }
       deals: {
         Row: {
           agent_id: string
@@ -815,6 +1020,42 @@ export type Database = {
           zip?: string | null
         }
         Relationships: []
+      }
+      payout_closing_links: {
+        Row: {
+          agent_share: number
+          closing_id: string
+          id: string
+          payout_id: string
+        }
+        Insert: {
+          agent_share?: number
+          closing_id: string
+          id?: string
+          payout_id: string
+        }
+        Update: {
+          agent_share?: number
+          closing_id?: string
+          id?: string
+          payout_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payout_closing_links_closing_id_fkey"
+            columns: ["closing_id"]
+            isOneToOne: false
+            referencedRelation: "closings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payout_closing_links_payout_id_fkey"
+            columns: ["payout_id"]
+            isOneToOne: false
+            referencedRelation: "commission_payouts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
