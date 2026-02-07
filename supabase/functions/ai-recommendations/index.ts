@@ -20,11 +20,11 @@ serve(async (req) => {
     const token = authHeader.replace('Bearer ', '');
     const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
 
-    // Validate token via Supabase Auth REST API directly
+    // Validate token via Supabase Auth REST API with service role key
     const authResponse = await fetch(`${supabaseUrl}/auth/v1/user`, {
       headers: {
         'Authorization': `Bearer ${token}`,
-        'apikey': Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+        'apikey': Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
       },
     });
 
