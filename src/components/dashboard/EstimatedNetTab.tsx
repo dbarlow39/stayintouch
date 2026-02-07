@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -27,6 +27,7 @@ import LoanApplicationLetterView from "./estimatedNet/LoanApplicationLetterView"
 import TitleCommitmentLetterView from "./estimatedNet/TitleCommitmentLetterView";
 import ClientSelectionView from "./estimatedNet/ClientSelectionView";
 import UpcomingClosingsView from "./estimatedNet/UpcomingClosingsView";
+import ContractNoticesSection from "./ContractNoticesSection";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -613,6 +614,11 @@ const EstimatedNetTab = ({ selectedClient, onClearSelectedClient, navigateToProp
           </Button>
         </div>
       </div>
+
+      <ContractNoticesSection onNavigateToProperty={(propertyId) => {
+        handleEditEstimate(propertyId);
+        setTimeout(() => setViewState('notices'), 100);
+      }} />
 
       {isLoading ? (
         <div className="flex items-center justify-center py-12">
