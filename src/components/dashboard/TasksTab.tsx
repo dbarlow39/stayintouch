@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -44,6 +45,7 @@ const TasksTab = ({ onNavigateToProperty }: TasksTabProps) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
+  const [selectedTaskIds, setSelectedTaskIds] = useState<Set<string>>(new Set());
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -114,6 +116,47 @@ const TasksTab = ({ onNavigateToProperty }: TasksTabProps) => {
       toast({ title: "Error archiving task", description: error.message, variant: "destructive" });
     },
   });
+
+  // Bulk archive selected tasks
+  const bulkArchiveMutation = useMutation({
+    mutationFn: async (ids: string[]) => {
+      const { error } = await supabase
+        .from("tasks")
+        .update({
+          status: "completed",
+          completed_at: new Date().toISOString(),
+          is_archived: true,
+        })
+        .in("id", ids);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      setSelectedTaskIds(new Set());
+      queryClient.invalidateQueries({ queryKey: ["manual-tasks"] });
+      queryClient.invalidateQueries({ queryKey: ["archived-tasks"] });
+      toast({ title: "Selected tasks marked as done" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error archiving tasks", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const toggleTaskSelection = (id: string) => {
+    setSelectedTaskIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleAllTasks = (tasks: Task[]) => {
+    if (selectedTaskIds.size === tasks.length) {
+      setSelectedTaskIds(new Set());
+    } else {
+      setSelectedTaskIds(new Set(tasks.map(t => t.id)));
+    }
+  };
 
   const resetForm = () => {
     setFormData({
@@ -238,14 +281,32 @@ const TasksTab = ({ onNavigateToProperty }: TasksTabProps) => {
       ) : (
         <div className="space-y-6">
           <div>
-            <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
-              <Circle className="w-4 h-4" />
-              Active Tasks ({pendingTasks.length})
-            </h4>
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="text-sm font-semibold flex items-center gap-2">
+                <Circle className="w-4 h-4" />
+                Active Tasks ({pendingTasks.length})
+              </h4>
+              {selectedTaskIds.size > 0 && (
+                <Button
+                  size="sm"
+                  onClick={() => bulkArchiveMutation.mutate(Array.from(selectedTaskIds))}
+                  disabled={bulkArchiveMutation.isPending}
+                >
+                  <Check className="w-4 h-4 mr-1" />
+                  Mark {selectedTaskIds.size} Done
+                </Button>
+              )}
+            </div>
             <div className="border rounded-lg">
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-10">
+                      <Checkbox
+                        checked={pendingTasks.length > 0 && selectedTaskIds.size === pendingTasks.length}
+                        onCheckedChange={() => toggleAllTasks(pendingTasks)}
+                      />
+                    </TableHead>
                     <TableHead>Task</TableHead>
                     <TableHead>Priority</TableHead>
                     <TableHead>Due Date</TableHead>
@@ -256,6 +317,12 @@ const TasksTab = ({ onNavigateToProperty }: TasksTabProps) => {
                 <TableBody>
                   {pendingTasks.map((task) => (
                     <TableRow key={task.id}>
+                      <TableCell>
+                        <Checkbox
+                          checked={selectedTaskIds.has(task.id)}
+                          onCheckedChange={() => toggleTaskSelection(task.id)}
+                        />
+                      </TableCell>
                       <TableCell>
                         <div className="min-w-0">
                           <p className="font-medium">{task.title}</p>
