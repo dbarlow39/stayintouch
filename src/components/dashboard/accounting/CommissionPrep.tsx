@@ -31,7 +31,7 @@ const CommissionPrep = ({ onBack }: CommissionPrepProps) => {
       const { data, error } = await supabase
         .from("closings")
         .select("*")
-        .in("status", ["check_received", "processed"])
+        .in("status", ["received", "check_received", "processed"])
         .order("agent_name", { ascending: true });
       if (error) throw error;
       return data || [];
