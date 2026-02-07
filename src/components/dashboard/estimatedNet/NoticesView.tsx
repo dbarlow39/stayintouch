@@ -335,24 +335,24 @@ const NoticesView = ({
       {/* Main Content */}
       <div className="flex-1">
         <div className="mb-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-xl font-semibold">{propertyData.name || "Client"}</h2>
-              <p className="text-muted-foreground">{propertyData.streetAddress}{propertyData.city ? `, ${propertyData.city}` : ""}{propertyData.state ? `, ${propertyData.state}` : ""}{propertyData.zip ? ` ${propertyData.zip}` : ""}</p>
-            </div>
-            {propertyData.closingDate && (
-              <p className="text-sm font-medium text-muted-foreground">
-                Closing Date: <span className="text-foreground">{format(parseLocalDate(propertyData.closingDate)!, "MM/dd/yyyy")}</span>
-              </p>
-            )}
+          <div>
+            <h2 className="text-xl font-semibold">{propertyData.name || "Client"}</h2>
+            <p className="text-muted-foreground">{propertyData.streetAddress}{propertyData.city ? `, ${propertyData.city}` : ""}{propertyData.state ? `, ${propertyData.state}` : ""}{propertyData.zip ? ` ${propertyData.zip}` : ""}</p>
           </div>
         </div>
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Bell className="h-5 w-5 text-primary" />
-              Client Notices
-            </CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2">
+                <Bell className="h-5 w-5 text-primary" />
+                Client Notices
+              </CardTitle>
+              {propertyData.closingDate && (
+                <p className="text-sm font-medium text-muted-foreground">
+                  Closing Date: <span className="text-foreground">{format(parseLocalDate(propertyData.closingDate)!, "MM/dd/yyyy")}</span>
+                </p>
+              )}
+            </div>
             <CardDescription>
               Select a notice to send to {propertyData.name || "the client"} regarding{" "}
               {propertyData.streetAddress}
