@@ -616,8 +616,7 @@ const EstimatedNetTab = ({ selectedClient, onClearSelectedClient, navigateToProp
       </div>
 
       <ContractNoticesSection onNavigateToProperty={(propertyId) => {
-        handleEditEstimate(propertyId);
-        setTimeout(() => setViewState('notices'), 100);
+        handleViewResults(propertyId, 'notices');
       }} />
 
       {isLoading ? (
