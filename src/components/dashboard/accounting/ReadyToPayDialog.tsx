@@ -67,7 +67,7 @@ const ReadyToPayDialog = ({ open, onOpenChange, closings }: ReadyToPayDialogProp
           agent_share: Number(c.agent_share),
         }));
         await supabase.from("payout_closing_links").insert(links);
-        await supabase.from("closings").update({ status: "processed" }).in("id", agentClosings.map(c => c.id));
+        // Don't change closing status — preserve check/paperwork indicators
       }
 
       toast.success("Commission checks prepared successfully.");
