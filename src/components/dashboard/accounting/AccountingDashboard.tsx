@@ -237,7 +237,7 @@ const AccountingDashboard = ({ onNavigate }: AccountingDashboardProps) => {
                           : null}
                       </TableCell>
                       <TableCell onClick={(e) => e.stopPropagation()}>
-                        {!closing.paid ? (
+                        {!closing.paid && hasCheckReceived(closing) && hasPaperworkReceived(closing) ? (
                           <Checkbox
                             checked={selectedIds.includes(closing.id)}
                             onCheckedChange={() => toggleSelect(closing.id)}
