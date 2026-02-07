@@ -29,40 +29,13 @@ const AccountingDashboard = ({ onNavigate }: AccountingDashboardProps) => {
     enabled: !!user,
   });
 
-  // Fetch all checks grouped by closing_id
-  const closingIds = closings.map(c => c.id);
-  const { data: allChecks = [] } = useQuery({
-    queryKey: ["accounting-all-checks", closingIds],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("closing_checks")
-        .select("closing_id")
-        .in("closing_id", closingIds);
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: closingIds.length > 0,
-  });
+  // Derive check/paperwork status from closing data
+  const hasCheckReceived = (closing: typeof closings[0]) =>
+    closing.status === "check_received" || 
+    (closing.notes?.toLowerCase().includes("check received") ?? false);
 
-  // Fetch all documents grouped by closing_id
-  const { data: allDocs = [] } = useQuery({
-    queryKey: ["accounting-all-docs", closingIds],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("closing_documents")
-        .select("closing_id, is_received")
-        .in("closing_id", closingIds);
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: closingIds.length > 0,
-  });
-
-  // Build lookup sets
-  const checksReceivedSet = new Set(allChecks.map(c => c.closing_id));
-  const paperworkReceivedSet = new Set(
-    allDocs.filter(d => d.is_received).map(d => d.closing_id)
-  );
+  const hasPaperworkReceived = (closing: typeof closings[0]) =>
+    closing.notes?.toLowerCase().includes("paperwork complete") ?? false;
 
   const { data: pendingChecks = [] } = useQuery({
     queryKey: ["accounting-pending-checks"],
@@ -198,29 +171,27 @@ const AccountingDashboard = ({ onNavigate }: AccountingDashboardProps) => {
                      <TableHead className="text-right">Commission</TableHead>
                      <TableHead>Check</TableHead>
                      <TableHead>Paperwork</TableHead>
-                     <TableHead>Status</TableHead>
                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {closings.map((closing) => (
-                    <TableRow key={closing.id} className="cursor-pointer hover:bg-muted/40" onClick={() => onNavigate(`edit-closing:${closing.id}`)}>
-                      <TableCell>{format(new Date(closing.closing_date + "T00:00:00"), "MMM d, yyyy")}</TableCell>
-                      <TableCell className="font-medium">{closing.property_address}</TableCell>
-                      <TableCell>{closing.agent_name}</TableCell>
-                      <TableCell className="text-right">{formatCurrency(Number(closing.total_commission))}</TableCell>
-                      <TableCell>
-                        {checksReceivedSet.has(closing.id) 
-                          ? <CheckCircle2 className="h-4 w-4 text-emerald-600" /> 
-                          : <XCircle className="h-4 w-4 text-muted-foreground/40" />}
-                      </TableCell>
-                      <TableCell>
-                        {paperworkReceivedSet.has(closing.id) 
-                          ? <CheckCircle2 className="h-4 w-4 text-emerald-600" /> 
-                          : <XCircle className="h-4 w-4 text-muted-foreground/40" />}
-                      </TableCell>
-                      <TableCell>{statusBadge(closing.status)}</TableCell>
-                    </TableRow>
-                  ))}
+                 </TableHeader>
+                 <TableBody>
+                   {closings.map((closing) => (
+                     <TableRow key={closing.id} className="cursor-pointer hover:bg-muted/40" onClick={() => onNavigate(`edit-closing:${closing.id}`)}>
+                       <TableCell>{format(new Date(closing.closing_date + "T00:00:00"), "MMM d, yyyy")}</TableCell>
+                       <TableCell className="font-medium">{closing.property_address}</TableCell>
+                       <TableCell>{closing.agent_name}</TableCell>
+                       <TableCell className="text-right">{formatCurrency(Number(closing.total_commission))}</TableCell>
+                       <TableCell>
+                         {hasCheckReceived(closing) 
+                           ? <CheckCircle2 className="h-4 w-4 text-emerald-600" /> 
+                           : <XCircle className="h-4 w-4 text-muted-foreground/40" />}
+                       </TableCell>
+                       <TableCell>
+                         {hasPaperworkReceived(closing) 
+                           ? <CheckCircle2 className="h-4 w-4 text-emerald-600" /> 
+                           : <XCircle className="h-4 w-4 text-muted-foreground/40" />}
+                       </TableCell>
+                     </TableRow>
+                   ))}
                 </TableBody>
               </Table>
             </div>
