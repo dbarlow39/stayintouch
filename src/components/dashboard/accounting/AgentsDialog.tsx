@@ -14,6 +14,9 @@ interface Agent {
   id: string;
   full_name: string;
   home_address: string | null;
+  city: string | null;
+  state: string | null;
+  zip: string | null;
   phone: string | null;
   email: string | null;
   ssn: string | null;
@@ -22,12 +25,15 @@ interface Agent {
 interface AgentFormData {
   full_name: string;
   home_address: string;
+  city: string;
+  state: string;
+  zip: string;
   phone: string;
   email: string;
   ssn: string;
 }
 
-const emptyForm: AgentFormData = { full_name: "", home_address: "", phone: "", email: "", ssn: "" };
+const emptyForm: AgentFormData = { full_name: "", home_address: "", city: "", state: "", zip: "", phone: "", email: "", ssn: "" };
 
 const AgentsDialog = () => {
   const { user } = useAuth();
@@ -56,6 +62,9 @@ const AgentsDialog = () => {
         created_by: user!.id,
         full_name: data.full_name,
         home_address: data.home_address || null,
+        city: data.city || null,
+        state: data.state || null,
+        zip: data.zip || null,
         phone: data.phone || null,
         email: data.email || null,
         ssn: data.ssn || null,
@@ -76,6 +85,9 @@ const AgentsDialog = () => {
       const { error } = await supabase.from("agents").update({
         full_name: data.full_name,
         home_address: data.home_address || null,
+        city: data.city || null,
+        state: data.state || null,
+        zip: data.zip || null,
         phone: data.phone || null,
         email: data.email || null,
         ssn: data.ssn || null,
@@ -109,6 +121,9 @@ const AgentsDialog = () => {
     setForm({
       full_name: agent.full_name,
       home_address: agent.home_address || "",
+      city: agent.city || "",
+      state: agent.state || "",
+      zip: agent.zip || "",
       phone: agent.phone || "",
       email: agent.email || "",
       ssn: agent.ssn || "",
@@ -147,7 +162,19 @@ const AgentsDialog = () => {
       </div>
       <div className="space-y-1.5">
         <Label className="text-xs">Home Address</Label>
-        <Input value={form.home_address} onChange={(e) => setForm({ ...form, home_address: e.target.value })} placeholder="123 Main St, City, ST 12345" />
+        <Input value={form.home_address} onChange={(e) => setForm({ ...form, home_address: e.target.value })} placeholder="123 Main St" />
+      </div>
+      <div className="space-y-1.5">
+        <Label className="text-xs">City</Label>
+        <Input value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} placeholder="Columbus" />
+      </div>
+      <div className="space-y-1.5">
+        <Label className="text-xs">State</Label>
+        <Input value={form.state} onChange={(e) => setForm({ ...form, state: e.target.value })} placeholder="OH" />
+      </div>
+      <div className="space-y-1.5">
+        <Label className="text-xs">Zip</Label>
+        <Input value={form.zip} onChange={(e) => setForm({ ...form, zip: e.target.value })} placeholder="43215" />
       </div>
       <div className="space-y-1.5">
         <Label className="text-xs">Phone</Label>
@@ -210,6 +237,9 @@ const AgentsDialog = () => {
                   <TableRow>
                     <TableHead>Name</TableHead>
                     <TableHead>Address</TableHead>
+                    <TableHead>City</TableHead>
+                    <TableHead>State</TableHead>
+                    <TableHead>Zip</TableHead>
                     <TableHead>Phone</TableHead>
                     <TableHead>Email</TableHead>
                     <TableHead>SSN</TableHead>
@@ -221,6 +251,9 @@ const AgentsDialog = () => {
                     <TableRow key={agent.id}>
                       <TableCell className="font-medium">{agent.full_name}</TableCell>
                       <TableCell className="max-w-[180px] truncate">{agent.home_address || "—"}</TableCell>
+                      <TableCell>{agent.city || "—"}</TableCell>
+                      <TableCell>{agent.state || "—"}</TableCell>
+                      <TableCell>{agent.zip || "—"}</TableCell>
                       <TableCell>{agent.phone || "—"}</TableCell>
                       <TableCell>{agent.email || "—"}</TableCell>
                       <TableCell>{maskSSN(agent.ssn)}</TableCell>
