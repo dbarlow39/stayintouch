@@ -371,6 +371,7 @@ export type Database = {
           created_by: string
           id: string
           notes: string | null
+          paid: boolean
           paperwork_status: string
           property_address: string
           sale_price: number
@@ -396,6 +397,7 @@ export type Database = {
           created_by: string
           id?: string
           notes?: string | null
+          paid?: boolean
           paperwork_status?: string
           property_address: string
           sale_price?: number
@@ -421,6 +423,7 @@ export type Database = {
           created_by?: string
           id?: string
           notes?: string | null
+          paid?: boolean
           paperwork_status?: string
           property_address?: string
           sale_price?: number

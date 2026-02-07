@@ -1,0 +1,1 @@
+ALTER TABLE public.closings ADD COLUMN paid boolean NOT NULL DEFAULT false;
