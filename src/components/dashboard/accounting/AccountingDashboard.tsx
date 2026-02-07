@@ -166,7 +166,7 @@ const AccountingDashboard = ({ onNavigate }: AccountingDashboardProps) => {
                 </TableHeader>
                 <TableBody>
                   {closings.map((closing) => (
-                    <TableRow key={closing.id} className="cursor-pointer hover:bg-muted/40">
+                    <TableRow key={closing.id} className="cursor-pointer hover:bg-muted/40" onClick={() => onNavigate(`edit-closing:${closing.id}`)}>
                       <TableCell className="font-medium">{closing.property_address}</TableCell>
                       <TableCell>{closing.agent_name}</TableCell>
                       <TableCell>{format(new Date(closing.closing_date + "T00:00:00"), "MMM d, yyyy")}</TableCell>

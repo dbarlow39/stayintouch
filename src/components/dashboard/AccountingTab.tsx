@@ -1,18 +1,34 @@
 import { useState } from "react";
 import AccountingDashboard from "./accounting/AccountingDashboard";
 import AddClosingForm from "./accounting/AddClosingForm";
+import EditClosingForm from "./accounting/EditClosingForm";
 import CheckLogging from "./accounting/CheckLogging";
 import CommissionPrep from "./accounting/CommissionPrep";
 import TaxSummaryExport from "./accounting/TaxSummaryExport";
 
 const AccountingTab = () => {
   const [view, setView] = useState("dashboard");
+  const [editClosingId, setEditClosingId] = useState<string | null>(null);
 
-  const goToDashboard = () => setView("dashboard");
+  const goToDashboard = () => {
+    setView("dashboard");
+    setEditClosingId(null);
+  };
+
+  const handleNavigate = (target: string) => {
+    if (target.startsWith("edit-closing:")) {
+      setEditClosingId(target.replace("edit-closing:", ""));
+      setView("edit-closing");
+    } else {
+      setView(target);
+    }
+  };
 
   switch (view) {
     case "add-closing":
       return <AddClosingForm onBack={goToDashboard} />;
+    case "edit-closing":
+      return editClosingId ? <EditClosingForm closingId={editClosingId} onBack={goToDashboard} /> : null;
     case "check-logging":
       return <CheckLogging onBack={goToDashboard} />;
     case "commission-prep":
@@ -20,7 +36,7 @@ const AccountingTab = () => {
     case "1099-export":
       return <TaxSummaryExport onBack={goToDashboard} />;
     default:
-      return <AccountingDashboard onNavigate={setView} />;
+      return <AccountingDashboard onNavigate={handleNavigate} />;
   }
 };
 
