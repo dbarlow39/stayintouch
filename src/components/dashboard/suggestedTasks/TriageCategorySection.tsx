@@ -2,6 +2,7 @@ import { useState } from "react";
 import { ChevronDown, ChevronRight, Check, Clock, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { GmailOpenMenu } from "./GmailOpenMenu";
 import { getSuggestedTaskGmailUrl } from "./getGmailUrl";
@@ -16,6 +17,8 @@ interface TriageCategorySectionProps {
   onMarkAllRead: (ids: string[]) => void;
   onOpenEmail: (suggestion: SuggestedTask, opts: { accountIndex: number | null; mode: "direct" | "search" }) => void;
   isDismissing?: boolean;
+  selectedIds?: Set<string>;
+  onToggleSelection?: (id: string) => void;
 }
 
 const categoryConfig: Record<TriageCategory, {
@@ -64,6 +67,8 @@ export const TriageCategorySection = ({
   onMarkAllRead,
   onOpenEmail,
   isDismissing,
+  selectedIds,
+  onToggleSelection,
 }: TriageCategorySectionProps) => {
   const [isOpen, setIsOpen] = useState(defaultOpen);
   const config = categoryConfig[category];
@@ -138,6 +143,14 @@ export const TriageCategorySection = ({
               }}
             >
               <div className="flex items-start justify-between gap-3">
+                {onToggleSelection && (
+                  <div className="pt-1 shrink-0" onClick={(e) => e.stopPropagation()}>
+                    <Checkbox
+                      checked={selectedIds?.has(item.id) || false}
+                      onCheckedChange={() => onToggleSelection(item.id)}
+                    />
+                  </div>
+                )}
                 <div className="flex-1 min-w-0">
                   {/* Header row: badge + sender + timestamp */}
                   <div className="flex items-center gap-2 mb-1.5 flex-wrap">
