@@ -24,14 +24,37 @@ const CommissionPrep = ({ onBack }: CommissionPrepProps) => {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [creating, setCreating] = useState(false);
 
-  // Get closings with checks received that haven't been paid yet
+  // Get closings that are linked to unpaid payouts (i.e. actually marked "Ready to Pay")
   const { data: readyClosings = [] } = useQuery({
     queryKey: ["accounting-ready-closings"],
     queryFn: async () => {
+      // Get closing IDs linked to non-paid payouts
+      const { data: links, error: linksError } = await supabase
+        .from("payout_closing_links")
+        .select("closing_id, payout_id");
+      if (linksError) throw linksError;
+      if (!links || links.length === 0) return [];
+
+      // Get payouts that are NOT paid yet
+      const payoutIds = [...new Set(links.map(l => l.payout_id))];
+      const { data: payouts, error: payoutsError } = await supabase
+        .from("commission_payouts")
+        .select("id")
+        .in("id", payoutIds)
+        .neq("status", "paid");
+      if (payoutsError) throw payoutsError;
+
+      const unpaidPayoutIds = new Set((payouts || []).map(p => p.id));
+      const closingIds = links
+        .filter(l => unpaidPayoutIds.has(l.payout_id))
+        .map(l => l.closing_id);
+      if (closingIds.length === 0) return [];
+
       const { data, error } = await supabase
         .from("closings")
         .select("*")
-        .in("status", ["received", "check_received", "processed"])
+        .in("id", closingIds)
+        .eq("paid", false)
         .order("agent_name", { ascending: true });
       if (error) throw error;
       return data || [];
@@ -255,9 +278,9 @@ const CommissionPrep = ({ onBack }: CommissionPrepProps) => {
                             </AlertDialogTrigger>
                             <AlertDialogContent>
                               <AlertDialogHeader>
-                                <AlertDialogTitle>Delete Closing</AlertDialogTitle>
+                                <AlertDialogTitle>Remove from Payout</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                  This will permanently delete the closing for {closing.property_address} ({closing.agent_name}). This cannot be undone.
+                                  This will remove {closing.property_address} ({closing.agent_name}) from the payout list. The closing record will NOT be deleted.
                                 </AlertDialogDescription>
                               </AlertDialogHeader>
                               <AlertDialogFooter>
@@ -265,19 +288,21 @@ const CommissionPrep = ({ onBack }: CommissionPrepProps) => {
                                 <AlertDialogAction
                                   onClick={async () => {
                                     try {
-                                      const { error } = await supabase.from("closings").delete().eq("id", closing.id);
+                                      // Remove the payout link, not the closing itself
+                                      const { error } = await supabase.from("payout_closing_links").delete().eq("closing_id", closing.id);
                                       if (error) throw error;
-                                      toast.success("Closing deleted.");
+                                      toast.success("Removed from payout list.");
                                       setSelectedIds(prev => prev.filter(x => x !== closing.id));
                                       queryClient.invalidateQueries({ queryKey: ["accounting-ready-closings"] });
+                                      queryClient.invalidateQueries({ queryKey: ["accounting-payouts"] });
                                       queryClient.invalidateQueries({ queryKey: ["accounting-closings-summary"] });
                                     } catch (err: any) {
-                                      toast.error(err.message || "Failed to delete closing");
+                                      toast.error(err.message || "Failed to remove from payout");
                                     }
                                   }}
                                   className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
                                 >
-                                  Delete
+                                  Remove
                                 </AlertDialogAction>
                               </AlertDialogFooter>
                             </AlertDialogContent>
