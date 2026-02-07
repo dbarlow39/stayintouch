@@ -16,6 +16,7 @@ export type Database = {
     Tables: {
       agents: {
         Row: {
+          city: string | null
           created_at: string
           created_by: string
           email: string | null
@@ -24,9 +25,12 @@ export type Database = {
           id: string
           phone: string | null
           ssn: string | null
+          state: string | null
           updated_at: string
+          zip: string | null
         }
         Insert: {
+          city?: string | null
           created_at?: string
           created_by: string
           email?: string | null
@@ -35,9 +39,12 @@ export type Database = {
           id?: string
           phone?: string | null
           ssn?: string | null
+          state?: string | null
           updated_at?: string
+          zip?: string | null
         }
         Update: {
+          city?: string | null
           created_at?: string
           created_by?: string
           email?: string | null
@@ -46,7 +53,9 @@ export type Database = {
           id?: string
           phone?: string | null
           ssn?: string | null
+          state?: string | null
           updated_at?: string
+          zip?: string | null
         }
         Relationships: []
       }
