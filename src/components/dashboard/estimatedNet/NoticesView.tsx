@@ -335,8 +335,17 @@ const NoticesView = ({
       {/* Main Content */}
       <div className="flex-1">
         <div className="mb-4">
-          <h2 className="text-xl font-semibold">{propertyData.name || "Client"}</h2>
-          <p className="text-muted-foreground">{propertyData.streetAddress}{propertyData.city ? `, ${propertyData.city}` : ""}{propertyData.state ? `, ${propertyData.state}` : ""}{propertyData.zip ? ` ${propertyData.zip}` : ""}</p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-xl font-semibold">{propertyData.name || "Client"}</h2>
+              <p className="text-muted-foreground">{propertyData.streetAddress}{propertyData.city ? `, ${propertyData.city}` : ""}{propertyData.state ? `, ${propertyData.state}` : ""}{propertyData.zip ? ` ${propertyData.zip}` : ""}</p>
+            </div>
+            {propertyData.closingDate && (
+              <p className="text-sm font-medium text-muted-foreground">
+                Closing Date: <span className="text-foreground">{format(parseLocalDate(propertyData.closingDate)!, "MM/dd/yyyy")}</span>
+              </p>
+            )}
+          </div>
         </div>
         <Card>
           <CardHeader>
