@@ -43,6 +43,7 @@ type NoticeType =
 interface NoticeStatus {
   notice_type: string;
   completed: boolean;
+  completed_at: string | null;
 }
 
 // Helper to parse date string as local date
@@ -74,7 +75,7 @@ const NoticesView = ({
   onEdit,
   onNavigate,
 }: NoticesViewProps) => {
-  const [noticeStatuses, setNoticeStatuses] = useState<Record<string, boolean>>({});
+  const [noticeStatuses, setNoticeStatuses] = useState<Record<string, { completed: boolean; completed_at: string | null }>>({});
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
@@ -83,14 +84,14 @@ const NoticesView = ({
     try {
       const { data, error } = await supabase
         .from('property_notice_status')
-        .select('notice_type, completed')
+        .select('notice_type, completed, completed_at')
         .eq('property_id', propertyId);
 
       if (error) throw error;
 
-      const statuses: Record<string, boolean> = {};
+      const statuses: Record<string, { completed: boolean; completed_at: string | null }> = {};
       (data || []).forEach((status: NoticeStatus) => {
-        statuses[status.notice_type] = status.completed;
+        statuses[status.notice_type] = { completed: status.completed, completed_at: status.completed_at };
       });
       setNoticeStatuses(statuses);
     } catch (error) {
@@ -107,8 +108,9 @@ const NoticesView = ({
   // Toggle notice completion status
   const toggleNoticeCompletion = async (noticeType: NoticeType, completed: boolean) => {
     try {
+      const completedAt = completed ? new Date().toISOString() : null;
       // Optimistically update UI
-      setNoticeStatuses(prev => ({ ...prev, [noticeType]: completed }));
+      setNoticeStatuses(prev => ({ ...prev, [noticeType]: { completed, completed_at: completedAt } }));
 
       const { error } = await supabase
         .from('property_notice_status')
@@ -116,7 +118,7 @@ const NoticesView = ({
           property_id: propertyId,
           notice_type: noticeType,
           completed,
-          completed_at: completed ? new Date().toISOString() : null,
+          completed_at: completedAt,
         }, {
           onConflict: 'property_id,notice_type'
         });
@@ -129,7 +131,7 @@ const NoticesView = ({
       });
     } catch (error) {
       // Revert on error
-      setNoticeStatuses(prev => ({ ...prev, [noticeType]: !completed }));
+      setNoticeStatuses(prev => ({ ...prev, [noticeType]: { completed: !completed, completed_at: null } }));
       console.error('Error updating notice status:', error);
       toast({
         title: "Error",
@@ -197,7 +199,7 @@ const NoticesView = ({
   // Check for overdue incomplete notices
   const today = startOfDay(new Date());
   const overdueNotices = noticeOptions.filter(option => {
-    const isCompleted = noticeStatuses[option.value] || false;
+    const isCompleted = noticeStatuses[option.value]?.completed || false;
     if (isCompleted) return false;
     if (!option.dueDateObj) return false;
     return isBefore(option.dueDateObj, today);
@@ -290,7 +292,7 @@ const NoticesView = ({
   // Check if a notice is overdue
   const isOverdue = (option: { value: NoticeType; dueDateObj: Date | null }) => {
     if (!option.dueDateObj) return false;
-    const isCompleted = noticeStatuses[option.value] || false;
+    const isCompleted = noticeStatuses[option.value]?.completed || false;
     if (isCompleted) return false;
     return isBefore(option.dueDateObj, today);
   };
@@ -349,7 +351,9 @@ const NoticesView = ({
             <TooltipProvider delayDuration={300}>
               <div className="space-y-3">
                 {noticeOptions.map((option) => {
-                  const isCompleted = noticeStatuses[option.value] || false;
+                  const statusEntry = noticeStatuses[option.value];
+                  const isCompleted = statusEntry?.completed || false;
+                  const completedAt = statusEntry?.completed_at;
                   const overdue = isOverdue(option);
 
                   return (
@@ -378,11 +382,15 @@ const NoticesView = ({
                             )}
                           </div>
                           <div className="flex items-center space-x-3">
+                            {isCompleted && completedAt && (
+                              <span className="text-xs text-muted-foreground">
+                                Completed: {format(new Date(completedAt), "MM/dd/yyyy h:mm a")}
+                              </span>
+                            )}
                             <Checkbox
                               id={`checkbox-${option.value}`}
                               checked={isCompleted}
                               onCheckedChange={(checked) => {
-                                // Stop click from triggering the parent div's onClick
                                 toggleNoticeCompletion(option.value, checked as boolean);
                               }}
                               onClick={(e) => e.stopPropagation()}
