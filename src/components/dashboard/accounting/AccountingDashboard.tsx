@@ -28,7 +28,7 @@ const AccountingDashboard = ({ onNavigate }: AccountingDashboardProps) => {
         .from("closings")
         .select("*")
         .order("closing_date", { ascending: false })
-        .limit(10);
+        .limit(50);
       if (error) throw error;
       return data || [];
     },
