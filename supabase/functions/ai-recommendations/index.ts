@@ -12,34 +12,34 @@ serve(async (req) => {
   }
 
   try {
-    // Get the authorization header
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
       throw new Error('Unauthorized: Missing authorization header');
     }
 
-    // Extract the JWT token from the Authorization header
     const token = authHeader.replace('Bearer ', '');
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
 
-    // Use service role client to verify the token
-    const serviceClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-    );
+    // Validate token via Supabase Auth REST API directly
+    const authResponse = await fetch(`${supabaseUrl}/auth/v1/user`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'apikey': Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      },
+    });
 
-    const { data: { user }, error: authError } = await serviceClient.auth.getUser(token);
-    
-    if (authError || !user) {
-      console.error('Authentication error:', authError);
+    if (!authResponse.ok) {
+      console.error('Auth API error:', authResponse.status);
       throw new Error('Unauthorized: Invalid token');
     }
-    
+
+    const user = await authResponse.json();
     const userId = user.id;
     console.log('User authenticated:', userId);
 
     // Create RLS-scoped client for data queries
     const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
+      supabaseUrl,
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
       { global: { headers: { Authorization: authHeader } } }
     );
