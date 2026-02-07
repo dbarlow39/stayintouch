@@ -387,7 +387,7 @@ const CommissionPrep = ({ onBack }: CommissionPrepProps) => {
                     <TableRow key={payout.id}>
                       <TableCell className="font-medium">{payout.agent_name}</TableCell>
                       <TableCell className="text-right">{formatCurrency(Number(payout.total_amount))}</TableCell>
-                      <TableCell>{payout.payout_date ? format(new Date(payout.payout_date + "T00:00:00"), "MMM d, yyyy") : "—"}</TableCell>
+                      <TableCell>{payout.payout_date ? format(new Date(payout.payout_date + "T00:00:00"), "MMM d, yyyy") : format(new Date(), "MMM d, yyyy")}</TableCell>
                       <TableCell>{statusBadge(payout.status)}</TableCell>
                       <TableCell className="text-right space-x-1">
                         <Button variant="ghost" size="sm" onClick={() => handlePrintCheck(payout.id, payout.agent_name, Number(payout.total_amount))}>
