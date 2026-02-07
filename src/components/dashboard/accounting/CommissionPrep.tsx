@@ -399,27 +399,29 @@ const CommissionPrep = ({ onBack }: CommissionPrepProps) => {
                         {payout.status !== "paid" && (
                           <Button variant="ghost" size="sm" onClick={() => markPaid(payout.id)}>Mark Paid</Button>
                         )}
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive">
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Delete Payout</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                This will permanently delete the payout for {payout.agent_name} ({formatCurrency(Number(payout.total_amount))}). This cannot be undone.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancel</AlertDialogCancel>
-                              <AlertDialogAction onClick={() => deletePayout(payout.id)} className="bg-destructive hover:bg-destructive/90 text-destructive-foreground">
-                                Delete
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
+                        {payout.status !== "paid" && (
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive">
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Delete Payout</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  This will permanently delete the payout for {payout.agent_name} ({formatCurrency(Number(payout.total_amount))}). This cannot be undone.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => deletePayout(payout.id)} className="bg-destructive hover:bg-destructive/90 text-destructive-foreground">
+                                  Delete
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        )}
                       </TableCell>
                     </TableRow>
                   ))}
