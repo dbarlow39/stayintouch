@@ -32,7 +32,7 @@ const AddClosingForm = ({ onBack }: AddClosingFormProps) => {
     admin_fee: "499",
     company_split_pct: "40",
     agent_split_pct: "60",
-    caliber_title_bonus: false,
+    caliber_title_bonus: true,
     caliber_title_amount: "150",
     notes: "",
   });
@@ -166,7 +166,7 @@ const AddClosingForm = ({ onBack }: AddClosingFormProps) => {
                 checked={form.caliber_title_bonus}
                 onCheckedChange={(checked) => setForm(prev => ({ ...prev, caliber_title_bonus: !!checked }))}
               />
-              <Label htmlFor="caliber_title_add" className="cursor-pointer">Caliber Title</Label>
+              <Label htmlFor="caliber_title_add" className="cursor-pointer">Caliber Title Bonus</Label>
             </div>
             {form.caliber_title_bonus && (
               <div className="flex items-center gap-2">
