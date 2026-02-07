@@ -60,7 +60,7 @@ export const generateCheckPdf = (data: CheckData) => {
   doc.setFont("helvetica", "bold");
   doc.text(`**${formatCurrency(data.totalAmount)}`, rightMargin, y, { align: "right" });
 
-  y += 30;
+  y += 14;
 
   // Written amount with dashes
   doc.setFontSize(11);
