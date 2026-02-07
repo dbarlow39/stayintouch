@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ArrowLeft, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { useAgentsList } from "./useAgentsList";
 
 interface EditClosingFormProps {
   closingId: string;
@@ -21,6 +22,7 @@ interface EditClosingFormProps {
 const EditClosingForm = ({ closingId, onBack }: EditClosingFormProps) => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const { data: agentOptions = [] } = useAgentsList();
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
@@ -202,7 +204,14 @@ const EditClosingForm = ({ closingId, onBack }: EditClosingFormProps) => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Agent Name *</Label>
-              <Input value={form.agent_name} onChange={e => update("agent_name", e.target.value)} />
+              <Select value={form.agent_name} onValueChange={v => update("agent_name", v)}>
+                <SelectTrigger><SelectValue placeholder="Select agent" /></SelectTrigger>
+                <SelectContent>
+                  {agentOptions.map(a => (
+                    <SelectItem key={a.id} value={a.full_name}>{a.full_name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-2">
               <Label>Property Address *</Label>
