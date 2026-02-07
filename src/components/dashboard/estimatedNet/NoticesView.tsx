@@ -286,6 +286,10 @@ const NoticesView = ({
       onNavigate("appraisal-letter");
       return;
     }
+    if (noticeType === "loan-application") {
+      onNavigate("loan-application-letter");
+      return;
+    }
     console.log("Sending notice:", noticeType);
   };
 
