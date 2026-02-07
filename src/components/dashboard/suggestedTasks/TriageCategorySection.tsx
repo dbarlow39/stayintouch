@@ -92,17 +92,6 @@ export const TriageCategorySection = ({
           </Badge>
         </CollapsibleTrigger>
         
-        {items.length > 1 && (
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-xs h-7"
-            onClick={() => onMarkAllRead(items.map(i => i.id))}
-          >
-            <Check className="w-3 h-3 mr-1" />
-            Mark all done
-          </Button>
-        )}
       </div>
 
       <CollapsibleContent className="space-y-2 pl-4">
