@@ -288,13 +288,40 @@ const CommissionPrep = ({ onBack }: CommissionPrepProps) => {
                                 <AlertDialogAction
                                   onClick={async () => {
                                     try {
-                                      // Remove the payout link, not the closing itself
+                                      // Find which payout this closing belongs to
+                                      const { data: linkData } = await supabase
+                                        .from("payout_closing_links")
+                                        .select("payout_id, agent_share")
+                                        .eq("closing_id", closing.id);
+                                      
+                                      // Remove the payout link
                                       const { error } = await supabase.from("payout_closing_links").delete().eq("closing_id", closing.id);
                                       if (error) throw error;
+
+                                      // For each affected payout, check remaining links and update/delete
+                                      if (linkData) {
+                                        for (const link of linkData) {
+                                          const { data: remaining } = await supabase
+                                            .from("payout_closing_links")
+                                            .select("agent_share")
+                                            .eq("payout_id", link.payout_id);
+                                          
+                                          if (!remaining || remaining.length === 0) {
+                                            // No closings left — delete the payout
+                                            await supabase.from("commission_payouts").delete().eq("id", link.payout_id);
+                                          } else {
+                                            // Recalculate payout total
+                                            const newTotal = remaining.reduce((sum, r) => sum + Number(r.agent_share), 0);
+                                            await supabase.from("commission_payouts").update({ total_amount: newTotal }).eq("id", link.payout_id);
+                                          }
+                                        }
+                                      }
+
                                       toast.success("Removed from payout list.");
                                       setSelectedIds(prev => prev.filter(x => x !== closing.id));
                                       queryClient.invalidateQueries({ queryKey: ["accounting-ready-closings"] });
                                       queryClient.invalidateQueries({ queryKey: ["accounting-payouts"] });
+                                      queryClient.invalidateQueries({ queryKey: ["accounting-pending-payouts"] });
                                       queryClient.invalidateQueries({ queryKey: ["accounting-closings-summary"] });
                                     } catch (err: any) {
                                       toast.error(err.message || "Failed to remove from payout");
