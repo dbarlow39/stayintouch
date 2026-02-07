@@ -143,14 +143,6 @@ export const TriageCategorySection = ({
               }}
             >
               <div className="flex items-start justify-between gap-3">
-                {onToggleSelection && (
-                  <div className="pt-1 shrink-0" onClick={(e) => e.stopPropagation()}>
-                    <Checkbox
-                      checked={selectedIds?.has(item.id) || false}
-                      onCheckedChange={() => onToggleSelection(item.id)}
-                    />
-                  </div>
-                )}
                 <div className="flex-1 min-w-0">
                   {/* Header row: badge + sender + timestamp */}
                   <div className="flex items-center gap-2 mb-1.5 flex-wrap">
@@ -200,7 +192,7 @@ export const TriageCategorySection = ({
                   )}
                 </div>
                 
-                <div className="flex gap-1 shrink-0">
+                <div className="flex items-center gap-1 shrink-0">
                   {category !== 'fyi' && (
                     <Button
                       size="sm"
@@ -227,6 +219,14 @@ export const TriageCategorySection = ({
                     <Check className="w-4 h-4 mr-1" />
                     Done
                   </Button>
+                  {onToggleSelection && (
+                    <div className="pl-1 shrink-0" onClick={(e) => e.stopPropagation()}>
+                      <Checkbox
+                        checked={selectedIds?.has(item.id) || false}
+                        onCheckedChange={() => onToggleSelection(item.id)}
+                      />
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

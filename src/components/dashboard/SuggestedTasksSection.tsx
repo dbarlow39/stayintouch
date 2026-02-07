@@ -277,16 +277,6 @@ const SuggestedTasksSection = () => {
             )}
           </CardTitle>
           <div className="flex items-center gap-2">
-            {selectedDigestIds.size > 0 && (
-              <Button
-                size="sm"
-                onClick={bulkDismissSelected}
-                disabled={markAllReadMutation.isPending}
-              >
-                <Check className="w-4 h-4 mr-1" />
-                Mark {selectedDigestIds.size} Done
-              </Button>
-            )}
             <div className="flex flex-col items-end gap-1">
               <Button
                 variant="outline"
@@ -325,6 +315,19 @@ const SuggestedTasksSection = () => {
         ) : (
           <>
             <EmailDigestSummary stats={triageStats} isLoading={isLoading} />
+            
+            {selectedDigestIds.size > 0 && (
+              <div className="flex justify-end mb-2">
+                <Button
+                  size="sm"
+                  onClick={bulkDismissSelected}
+                  disabled={markAllReadMutation.isPending}
+                >
+                  <Check className="w-4 h-4 mr-1" />
+                  Mark {selectedDigestIds.size} Done
+                </Button>
+              </div>
+            )}
             
             <TriageCategorySection
               category="urgent"
