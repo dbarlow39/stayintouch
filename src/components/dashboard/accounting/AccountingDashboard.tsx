@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { DollarSign, FileCheck, Clock, Users, CheckCircle2, XCircle } from "lucide-react";
+import AgentsDialog from "./AgentsDialog";
 import { format } from "date-fns";
 
 interface AccountingDashboardProps {
@@ -154,6 +155,7 @@ const AccountingDashboard = ({ onNavigate }: AccountingDashboardProps) => {
         <Button onClick={() => onNavigate("1099-export")} variant="outline">
           1099 Export
         </Button>
+        <AgentsDialog />
       </div>
 
       {/* Recent Closings */}

@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      agents: {
+        Row: {
+          created_at: string
+          created_by: string
+          email: string | null
+          full_name: string
+          home_address: string | null
+          id: string
+          phone: string | null
+          ssn: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          email?: string | null
+          full_name: string
+          home_address?: string | null
+          id?: string
+          phone?: string | null
+          ssn?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          email?: string | null
+          full_name?: string
+          home_address?: string | null
+          id?: string
+          phone?: string | null
+          ssn?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       analytics_events: {
         Row: {
           agent_id: string | null
