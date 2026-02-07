@@ -31,15 +31,16 @@ serve(async (req) => {
       }
     );
 
-    // Use getUser with the token directly
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token);
+    // Use getClaims for Lovable Cloud compatibility
+    const { data: claimsData, error: authError } = await supabaseClient.auth.getClaims(token);
     
-    if (authError || !user) {
+    if (authError || !claimsData?.claims) {
       console.error('Authentication error:', authError);
       throw new Error('Unauthorized: Invalid token');
     }
     
-    console.log('User authenticated:', user.id);
+    const userId = claimsData.claims.sub;
+    console.log('User authenticated:', userId);
 
     // Fetch agent's data
     const [
@@ -48,10 +49,10 @@ serve(async (req) => {
       { data: tasks },
       { data: clients }
     ] = await Promise.all([
-      supabaseClient.from('leads').select('*').eq('agent_id', user.id).limit(20),
-      supabaseClient.from('deals').select('*').eq('agent_id', user.id).limit(20),
-      supabaseClient.from('tasks').select('*').eq('agent_id', user.id).limit(20),
-      supabaseClient.from('clients').select('*').eq('agent_id', user.id).limit(20)
+      supabaseClient.from('leads').select('*').eq('agent_id', userId).limit(20),
+      supabaseClient.from('deals').select('*').eq('agent_id', userId).limit(20),
+      supabaseClient.from('tasks').select('*').eq('agent_id', userId).limit(20),
+      supabaseClient.from('clients').select('*').eq('agent_id', userId).limit(20)
     ]);
 
     // Call Lovable AI for recommendations
