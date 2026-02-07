@@ -46,14 +46,14 @@ export const generateCheckPdf = (data: CheckData) => {
   const pageWidth = doc.internal.pageSize.getWidth();
   const leftMargin = 50;
   const rightMargin = pageWidth - 50;
-  let y = 60;
+  let y = 69;
 
   // Date - right aligned
   doc.setFontSize(12);
   doc.setFont("helvetica", "normal");
   doc.text(data.date, rightMargin, y, { align: "right" });
 
-  y += 36;
+  y += 45;
 
   // Total amount - right aligned with asterisks
   doc.setFontSize(14);
