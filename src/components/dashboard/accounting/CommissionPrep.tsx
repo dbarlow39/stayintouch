@@ -365,7 +365,7 @@ const CommissionPrep = ({ onBack }: CommissionPrepProps) => {
       {/* Recent Payouts */}
       <Card className="border-0 shadow-sm">
         <CardHeader>
-          <CardTitle className="text-lg font-medium">Recent Payouts</CardTitle>
+          <CardTitle className="text-lg font-medium">Checks Ready to Go</CardTitle>
         </CardHeader>
         <CardContent>
           {payouts.length === 0 ? (
