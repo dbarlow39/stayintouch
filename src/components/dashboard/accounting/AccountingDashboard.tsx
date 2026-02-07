@@ -169,7 +169,7 @@ const AccountingDashboard = ({ onNavigate }: AccountingDashboardProps) => {
                     <TableRow key={closing.id} className="cursor-pointer hover:bg-muted/40">
                       <TableCell className="font-medium">{closing.property_address}</TableCell>
                       <TableCell>{closing.agent_name}</TableCell>
-                      <TableCell>{format(new Date(closing.closing_date), "MMM d, yyyy")}</TableCell>
+                      <TableCell>{format(new Date(closing.closing_date + "T00:00:00"), "MMM d, yyyy")}</TableCell>
                       <TableCell className="text-right">{formatCurrency(Number(closing.total_commission))}</TableCell>
                       <TableCell>{statusBadge(closing.status)}</TableCell>
                     </TableRow>

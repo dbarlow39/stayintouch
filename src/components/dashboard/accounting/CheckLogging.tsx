@@ -202,7 +202,7 @@ const CheckLogging = ({ onBack }: CheckLoggingProps) => {
                       <TableCell>{check.closings?.agent_name || "—"}</TableCell>
                       <TableCell>{check.check_number || "—"}</TableCell>
                       <TableCell className="text-right">{formatCurrency(Number(check.check_amount))}</TableCell>
-                      <TableCell>{format(new Date(check.received_date), "MMM d, yyyy")}</TableCell>
+                      <TableCell>{format(new Date(check.received_date + "T00:00:00"), "MMM d, yyyy")}</TableCell>
                       <TableCell>
                         <Badge className={`border-0 ${check.deposited ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"}`}>
                           {check.deposited ? "Deposited" : "Pending"}

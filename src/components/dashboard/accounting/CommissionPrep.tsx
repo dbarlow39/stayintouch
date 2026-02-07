@@ -161,7 +161,7 @@ const CommissionPrep = ({ onBack }: CommissionPrepProps) => {
                         </TableCell>
                         <TableCell className="font-medium">{closing.agent_name}</TableCell>
                         <TableCell>{closing.property_address}</TableCell>
-                        <TableCell>{format(new Date(closing.closing_date), "MMM d, yyyy")}</TableCell>
+                        <TableCell>{format(new Date(closing.closing_date + "T00:00:00"), "MMM d, yyyy")}</TableCell>
                         <TableCell className="text-right font-medium text-emerald-700">{formatCurrency(Number(closing.agent_share))}</TableCell>
                       </TableRow>
                     ))}
@@ -215,7 +215,7 @@ const CommissionPrep = ({ onBack }: CommissionPrepProps) => {
                     <TableRow key={payout.id}>
                       <TableCell className="font-medium">{payout.agent_name}</TableCell>
                       <TableCell className="text-right">{formatCurrency(Number(payout.total_amount))}</TableCell>
-                      <TableCell>{payout.payout_date ? format(new Date(payout.payout_date), "MMM d, yyyy") : "—"}</TableCell>
+                      <TableCell>{payout.payout_date ? format(new Date(payout.payout_date + "T00:00:00"), "MMM d, yyyy") : "—"}</TableCell>
                       <TableCell>{statusBadge(payout.status)}</TableCell>
                       <TableCell>
                         {payout.status !== "paid" && (
