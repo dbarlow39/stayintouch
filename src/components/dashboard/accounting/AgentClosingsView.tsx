@@ -20,6 +20,7 @@ const AgentClosingsView = ({ agentName, onBack }: AgentClosingsViewProps) => {
         .from("closings")
         .select("id, closing_date, property_address, agent_share, caliber_title_bonus, caliber_title_amount, paid")
         .eq("agent_name", agentName)
+        .eq("paid", true)
         .gte("closing_date", yearStart)
         .order("closing_date", { ascending: true });
       if (error) throw error;
