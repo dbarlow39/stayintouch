@@ -70,7 +70,7 @@ export const generateCheckPdf = (data: CheckData) => {
   const writtenAmount = `${numberToWords(data.totalAmount)} --------------`;
   doc.text(writtenAmount, (pageWidth / 2) + 40, y, { align: "center" });
 
-  y += 32;
+  y += 24;
 
   // Agent name and address - indented
   const addressX = 128;
