@@ -34,7 +34,7 @@ interface VendorFormData {
   notes: string;
 }
 
-const emptyForm: VendorFormData = { name: "", address: "", attention: "", city: "", state: "", zip: "", phone: "", email: "", notes: "" };
+const emptyForm: VendorFormData = { name: "", address: "", attention: "", city: "Columbus", state: "OH", zip: "", phone: "", email: "", notes: "" };
 
 interface VendorsPageProps {
   onBack: () => void;
