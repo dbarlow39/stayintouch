@@ -5,20 +5,26 @@ import EditClosingForm from "./accounting/EditClosingForm";
 import CheckLogging from "./accounting/CheckLogging";
 import CommissionPrep from "./accounting/CommissionPrep";
 import TaxSummaryExport from "./accounting/TaxSummaryExport";
+import AgentClosingsView from "./accounting/AgentClosingsView";
 
 const AccountingTab = () => {
   const [view, setView] = useState("dashboard");
   const [editClosingId, setEditClosingId] = useState<string | null>(null);
+  const [agentClosingsName, setAgentClosingsName] = useState<string | null>(null);
 
   const goToDashboard = () => {
     setView("dashboard");
     setEditClosingId(null);
+    setAgentClosingsName(null);
   };
 
   const handleNavigate = (target: string) => {
     if (target.startsWith("edit-closing:")) {
       setEditClosingId(target.replace("edit-closing:", ""));
       setView("edit-closing");
+    } else if (target.startsWith("agent-closings:")) {
+      setAgentClosingsName(target.replace("agent-closings:", ""));
+      setView("agent-closings");
     } else {
       setView(target);
     }
@@ -35,6 +41,8 @@ const AccountingTab = () => {
       return <CommissionPrep onBack={goToDashboard} />;
     case "1099-export":
       return <TaxSummaryExport onBack={goToDashboard} />;
+    case "agent-closings":
+      return agentClosingsName ? <AgentClosingsView agentName={agentClosingsName} onBack={goToDashboard} /> : null;
     default:
       return <AccountingDashboard onNavigate={handleNavigate} />;
   }

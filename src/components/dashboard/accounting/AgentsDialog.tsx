@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import AgentClosingsView from "./AgentClosingsView";
+
 import { useAuth } from "@/lib/auth";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -36,14 +36,17 @@ interface AgentFormData {
 
 const emptyForm: AgentFormData = { full_name: "", home_address: "", city: "", state: "", zip: "", phone: "", email: "", ssn: "" };
 
-const AgentsDialog = () => {
+interface AgentsDialogProps {
+  onNavigate?: (view: string) => void;
+}
+
+const AgentsDialog = ({ onNavigate }: AgentsDialogProps = {}) => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [form, setForm] = useState<AgentFormData>(emptyForm);
-  const [viewClosingsAgent, setViewClosingsAgent] = useState<string | null>(null);
 
   const { data: agents = [], isLoading } = useQuery({
     queryKey: ["accounting-agents"],
@@ -216,9 +219,6 @@ const AgentsDialog = () => {
           <DialogTitle>Manage Agents</DialogTitle>
         </DialogHeader>
 
-        {viewClosingsAgent ? (
-          <AgentClosingsView agentName={viewClosingsAgent} onBack={() => setViewClosingsAgent(null)} />
-        ) : (
         <div className="space-y-4">
           {!showAddForm && !editingId && (
             <Button size="sm" onClick={() => { setShowAddForm(true); setForm(emptyForm); }}>
@@ -276,7 +276,7 @@ const AgentsDialog = () => {
                           >
                             <Trash2 className="h-3.5 w-3.5" />
                           </Button>
-                          <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setViewClosingsAgent(agent.full_name)}>
+                          <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => { setOpen(false); onNavigate?.(`agent-closings:${agent.full_name}`); }}>
                             <List className="h-3.5 w-3.5 mr-1" /> Closings
                           </Button>
                         </div>
@@ -288,7 +288,6 @@ const AgentsDialog = () => {
             </div>
           )}
         </div>
-        )}
       </DialogContent>
     </Dialog>
   );
