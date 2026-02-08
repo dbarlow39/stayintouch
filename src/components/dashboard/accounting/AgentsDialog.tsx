@@ -1,13 +1,14 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import AgentClosingsView from "./AgentClosingsView";
 import { useAuth } from "@/lib/auth";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Users, Plus, Pencil, Trash2, Save, X } from "lucide-react";
+import { Users, Plus, Pencil, Trash2, Save, X, List } from "lucide-react";
 import { toast } from "sonner";
 
 interface Agent {
@@ -42,6 +43,7 @@ const AgentsDialog = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [form, setForm] = useState<AgentFormData>(emptyForm);
+  const [viewClosingsAgent, setViewClosingsAgent] = useState<string | null>(null);
 
   const { data: agents = [], isLoading } = useQuery({
     queryKey: ["accounting-agents"],
@@ -214,6 +216,9 @@ const AgentsDialog = () => {
           <DialogTitle>Manage Agents</DialogTitle>
         </DialogHeader>
 
+        {viewClosingsAgent ? (
+          <AgentClosingsView agentName={viewClosingsAgent} onBack={() => setViewClosingsAgent(null)} />
+        ) : (
         <div className="space-y-4">
           {!showAddForm && !editingId && (
             <Button size="sm" onClick={() => { setShowAddForm(true); setForm(emptyForm); }}>
@@ -243,7 +248,7 @@ const AgentsDialog = () => {
                     <TableHead>Phone</TableHead>
                     <TableHead>Email</TableHead>
                     <TableHead>SSN</TableHead>
-                    <TableHead className="w-[80px]" />
+                    <TableHead className="w-[120px]" />
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -271,6 +276,9 @@ const AgentsDialog = () => {
                           >
                             <Trash2 className="h-3.5 w-3.5" />
                           </Button>
+                          <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setViewClosingsAgent(agent.full_name)}>
+                            <List className="h-3.5 w-3.5 mr-1" /> Closings
+                          </Button>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -280,6 +288,7 @@ const AgentsDialog = () => {
             </div>
           )}
         </div>
+        )}
       </DialogContent>
     </Dialog>
   );
