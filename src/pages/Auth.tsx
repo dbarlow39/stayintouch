@@ -5,7 +5,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Mail, Lock, User } from "lucide-react";
+import { Mail, Lock, User, KeyRound } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import logo from "@/assets/logo.jpg";
 
 const Auth = () => {
@@ -14,7 +16,7 @@ const Auth = () => {
   const [googleLoading, setGoogleLoading] = useState(false);
 
   const [signInData, setSignInData] = useState({ email: "", password: "" });
-  const [signUpData, setSignUpData] = useState({ email: "", password: "", fullName: "" });
+  const [signUpData, setSignUpData] = useState({ email: "", password: "", fullName: "", inviteCode: "" });
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,8 +28,19 @@ const Auth = () => {
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    await signUp(signUpData.email, signUpData.password, signUpData.fullName);
-    setLoading(false);
+    try {
+      // Validate invite code server-side
+      const { data, error } = await supabase.functions.invoke("validate-invite-code", {
+        body: { code: signUpData.inviteCode },
+      });
+      if (error || !data?.valid) {
+        toast.error("Invalid invite code. Please contact your administrator.");
+        return;
+      }
+      await signUp(signUpData.email, signUpData.password, signUpData.fullName);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleGoogleSignIn = async () => {
@@ -136,6 +149,21 @@ const Auth = () => {
 
               <TabsContent value="signup">
                 <form onSubmit={handleSignUp} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-invite">Invite Code</Label>
+                    <div className="relative">
+                      <KeyRound className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="signup-invite"
+                        type="text"
+                        placeholder="Enter your invite code"
+                        className="pl-10"
+                        value={signUpData.inviteCode}
+                        onChange={(e) => setSignUpData({ ...signUpData, inviteCode: e.target.value })}
+                        required
+                      />
+                    </div>
+                  </div>
                   <div className="space-y-2">
                     <Label htmlFor="signup-name">Full Name</Label>
                     <div className="relative">
