@@ -13,6 +13,7 @@ interface Vendor {
   id: string;
   name: string;
   address: string | null;
+  attention: string | null;
   city: string | null;
   state: string | null;
   zip: string | null;
@@ -24,6 +25,7 @@ interface Vendor {
 interface VendorFormData {
   name: string;
   address: string;
+  attention: string;
   city: string;
   state: string;
   zip: string;
@@ -32,7 +34,7 @@ interface VendorFormData {
   notes: string;
 }
 
-const emptyForm: VendorFormData = { name: "", address: "", city: "", state: "", zip: "", phone: "", email: "", notes: "" };
+const emptyForm: VendorFormData = { name: "", address: "", attention: "", city: "", state: "", zip: "", phone: "", email: "", notes: "" };
 
 interface VendorsPageProps {
   onBack: () => void;
@@ -60,7 +62,7 @@ const VendorsPage = ({ onBack, onNavigate }: VendorsPageProps) => {
     mutationFn: async (data: VendorFormData) => {
       const { error } = await supabase.from("vendors").insert({
         created_by: user!.id, name: data.name,
-        address: data.address || null, city: data.city || null, state: data.state || null,
+        address: data.address || null, attention: data.attention || null, city: data.city || null, state: data.state || null,
         zip: data.zip || null, phone: data.phone || null, email: data.email || null, notes: data.notes || null,
       });
       if (error) throw error;
@@ -72,7 +74,7 @@ const VendorsPage = ({ onBack, onNavigate }: VendorsPageProps) => {
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: VendorFormData }) => {
       const { error } = await supabase.from("vendors").update({
-        name: data.name, address: data.address || null, city: data.city || null, state: data.state || null,
+        name: data.name, address: data.address || null, attention: data.attention || null, city: data.city || null, state: data.state || null,
         zip: data.zip || null, phone: data.phone || null, email: data.email || null, notes: data.notes || null,
       }).eq("id", id);
       if (error) throw error;
@@ -93,7 +95,7 @@ const VendorsPage = ({ onBack, onNavigate }: VendorsPageProps) => {
   const startEdit = (vendor: Vendor) => {
     setEditingId(vendor.id);
     setShowAddForm(false);
-    setForm({ name: vendor.name, address: vendor.address || "", city: vendor.city || "", state: vendor.state || "", zip: vendor.zip || "", phone: vendor.phone || "", email: vendor.email || "", notes: vendor.notes || "" });
+    setForm({ name: vendor.name, address: vendor.address || "", attention: vendor.attention || "", city: vendor.city || "", state: vendor.state || "", zip: vendor.zip || "", phone: vendor.phone || "", email: vendor.email || "", notes: vendor.notes || "" });
   };
 
   const cancelEdit = () => { setEditingId(null); setShowAddForm(false); setForm(emptyForm); };
@@ -106,8 +108,9 @@ const VendorsPage = ({ onBack, onNavigate }: VendorsPageProps) => {
 
   const handleVendorClick = (vendor: Vendor) => {
     const addr = vendor.address || "";
+    const attn = vendor.attention || "";
     const csz = [vendor.city, vendor.state, vendor.zip].filter(Boolean).join(", ");
-    onNavigate(`vendor-check:${vendor.id}:${vendor.name}:${addr}:${csz}`);
+    onNavigate(`vendor-check:${vendor.id}:${vendor.name}:${addr}:${attn}:${csz}`);
   };
 
   return (
@@ -137,6 +140,10 @@ const VendorsPage = ({ onBack, onNavigate }: VendorsPageProps) => {
           <div className="space-y-1.5">
             <Label className="text-xs">Address</Label>
             <Input value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} placeholder="123 Main St" />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs">Attention</Label>
+            <Input value={form.attention} onChange={(e) => setForm({ ...form, attention: e.target.value })} placeholder="Attn: John Doe" />
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs">City</Label>

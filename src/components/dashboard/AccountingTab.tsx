@@ -14,7 +14,7 @@ const AccountingTab = () => {
   const [view, setView] = useState("dashboard");
   const [editClosingId, setEditClosingId] = useState<string | null>(null);
   const [agentClosingsName, setAgentClosingsName] = useState<string | null>(null);
-  const [vendorCheckData, setVendorCheckData] = useState<{ id: string; name: string; address: string; csz: string } | null>(null);
+  const [vendorCheckData, setVendorCheckData] = useState<{ id: string; name: string; address: string; attention: string; csz: string } | null>(null);
 
   const goToDashboard = () => {
     setView("dashboard");
@@ -32,7 +32,7 @@ const AccountingTab = () => {
       setView("agent-closings");
     } else if (target.startsWith("vendor-check:")) {
       const parts = target.replace("vendor-check:", "").split(":");
-      setVendorCheckData({ id: parts[0], name: parts[1], address: parts[2] || "", csz: parts[3] || "" });
+      setVendorCheckData({ id: parts[0], name: parts[1], address: parts[2] || "", attention: parts[3] || "", csz: parts[4] || "" });
       setView("vendor-check");
     } else {
       setView(target);
@@ -60,6 +60,7 @@ const AccountingTab = () => {
           vendorId={vendorCheckData.id}
           vendorName={vendorCheckData.name}
           vendorAddress={vendorCheckData.address}
+          vendorAttention={vendorCheckData.attention}
           vendorCityStateZip={vendorCheckData.csz}
           onBack={() => handleNavigate("vendors")}
         />

@@ -10,6 +10,7 @@ interface CheckData {
   totalAmount: number;
   agentName: string;
   agentAddress: string;
+  agentAttention?: string;
   agentCityStateZip: string;
   propertyNames: string;
   lineItems: CheckLineItem[];
@@ -79,6 +80,10 @@ export const generateCheckPdf = (data: CheckData) => {
   doc.text(data.agentAddress, addressX, y);
   y += 16;
   doc.text(data.agentCityStateZip, addressX, y);
+  if (data.agentAttention) {
+    y += 16;
+    doc.text(data.agentAttention, addressX, y);
+  }
 
   y += 23;
 
