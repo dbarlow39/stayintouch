@@ -8,7 +8,6 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { DollarSign, FileCheck, Clock, Users, CheckCircle2, XCircle } from "lucide-react";
-import AgentsDialog from "./AgentsDialog";
 import ReadyToPayDialog from "./ReadyToPayDialog";
 import { format } from "date-fns";
 
@@ -169,7 +168,10 @@ const AccountingDashboard = ({ onNavigate }: AccountingDashboardProps) => {
         <Button onClick={() => onNavigate("1099-export")} variant="outline">
           1099 Export
         </Button>
-        <AgentsDialog onNavigate={onNavigate} />
+        <Button onClick={() => onNavigate("agents")} variant="outline">
+          <Users className="h-4 w-4 mr-2" />
+          Agent(s)
+        </Button>
       </div>
 
       {/* Recent Closings */}
