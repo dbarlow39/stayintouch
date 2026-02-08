@@ -86,7 +86,7 @@ export const generateCheckPdf = (data: CheckData) => {
     doc.text(data.agentAttention, addressX, y);
   }
 
-  y += 23;
+  y += 19;
 
   // Memo (printed one line below address block, no label)
   if (data.memo) {
