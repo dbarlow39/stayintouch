@@ -142,10 +142,6 @@ const VendorsPage = ({ onBack, onNavigate }: VendorsPageProps) => {
             <Input value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} placeholder="123 Main St" />
           </div>
           <div className="space-y-1.5">
-            <Label className="text-xs">Attention</Label>
-            <Input value={form.attention} onChange={(e) => setForm({ ...form, attention: e.target.value })} placeholder="Attn: John Doe" />
-          </div>
-          <div className="space-y-1.5">
             <Label className="text-xs">City</Label>
             <Input value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} placeholder="Columbus" />
           </div>
@@ -156,6 +152,10 @@ const VendorsPage = ({ onBack, onNavigate }: VendorsPageProps) => {
           <div className="space-y-1.5">
             <Label className="text-xs">Zip</Label>
             <Input value={form.zip} onChange={(e) => setForm({ ...form, zip: e.target.value })} placeholder="43215" />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs">Attention</Label>
+            <Input value={form.attention} onChange={(e) => setForm({ ...form, attention: e.target.value })} placeholder="Attn: John Doe" />
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs">Phone</Label>
