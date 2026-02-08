@@ -88,6 +88,13 @@ export const generateCheckPdf = (data: CheckData) => {
 
   y += 23;
 
+  // Memo (printed one line below address block, no label)
+  if (data.memo) {
+    doc.setFontSize(10);
+    doc.text(data.memo, addressX, y);
+    y += 16;
+  }
+
   // Property names summary line
   doc.setFontSize(10);
   doc.text(data.propertyNames, leftMargin, y);
@@ -109,14 +116,6 @@ export const generateCheckPdf = (data: CheckData) => {
   doc.setFontSize(12);
   doc.text(formatCurrency(data.ytdTotal), leftMargin + 60, y, { align: "right" });
   doc.text("YTD", leftMargin + 80, y);
-
-  // Memo
-  if (data.memo) {
-    y += 28;
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(10);
-    doc.text(`Memo: ${data.memo}`, leftMargin, y);
-  }
 
   // Save
   const fileName = `Commission_Check_${data.agentName.replace(/\s+/g, "_")}_${data.date.replace(/[\s,]+/g, "_")}.pdf`;
