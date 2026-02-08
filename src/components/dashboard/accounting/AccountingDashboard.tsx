@@ -169,7 +169,7 @@ const AccountingDashboard = ({ onNavigate }: AccountingDashboardProps) => {
         <Button onClick={() => onNavigate("1099-export")} variant="outline">
           1099 Export
         </Button>
-        <AgentsDialog />
+        <AgentsDialog onNavigate={onNavigate} />
       </div>
 
       {/* Recent Closings */}
