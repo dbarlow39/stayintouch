@@ -6,10 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ArrowLeft, Plus, Save, X, FileDown, Trash2 } from "lucide-react";
+import { ArrowLeft, Plus, X, FileDown, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
-import jsPDF from "jspdf";
+import { generateCheckPdf } from "@/utils/generateCheckPdf";
 
 interface VendorCheckPageProps {
   vendorId: string;
@@ -67,12 +67,27 @@ const VendorCheckPage = ({ vendorId, vendorName, vendorAddress, vendorCityStateZ
         notes: data.notes || null,
       });
       if (error) throw error;
+      return { amount: parseFloat(data.amount), payment_date: data.payment_date, description: data.description, check_number: data.check_number };
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["vendor-payments", vendorId] });
+
+      // Generate check PDF immediately
+      const dateStr = format(new Date(result.payment_date + "T00:00:00"), "MMMM d, yyyy");
+      generateCheckPdf({
+        date: dateStr,
+        totalAmount: result.amount,
+        agentName: vendorName,
+        agentAddress: vendorAddress,
+        agentCityStateZip: vendorCityStateZip,
+        propertyNames: result.description || "",
+        lineItems: [{ amount: result.amount, label: result.description || "Payment" }],
+        ytdTotal: payments.reduce((sum, p) => sum + Number(p.amount), 0) + result.amount,
+      });
+
       setForm(emptyPaymentForm);
       setShowForm(false);
-      toast.success("Payment recorded");
+      toast.success("Check generated and payment recorded");
     },
     onError: () => toast.error("Failed to record payment"),
   });
@@ -100,86 +115,6 @@ const VendorCheckPage = ({ vendorId, vendorName, vendorAddress, vendorCityStateZ
   const formatCurrency = (val: number) =>
     new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(val);
 
-  const numberToWords = (num: number): string => {
-    const ones = ["", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine",
-      "Ten", "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen", "Seventeen", "Eighteen", "Nineteen"];
-    const tens = ["", "", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety"];
-    if (num === 0) return "Zero";
-    const convert = (n: number): string => {
-      if (n < 20) return ones[n];
-      if (n < 100) return tens[Math.floor(n / 10)] + (n % 10 ? " " + ones[n % 10] : "");
-      if (n < 1000) return ones[Math.floor(n / 100)] + " Hundred" + (n % 100 ? " " + convert(n % 100) : "");
-      if (n < 1000000) return convert(Math.floor(n / 1000)) + " Thousand" + (n % 1000 ? " " + convert(n % 1000) : "");
-      return convert(Math.floor(n / 1000000)) + " Million" + (n % 1000000 ? " " + convert(n % 1000000) : "");
-    };
-    const dollars = Math.floor(num);
-    const cents = Math.round((num - dollars) * 100);
-    const centsStr = cents.toString().padStart(2, "0");
-    return `${convert(dollars)} and ${centsStr}/100`;
-  };
-
-  const generateVendorCheckPdf = (payment: typeof payments[0]) => {
-    const doc = new jsPDF({ orientation: "portrait", unit: "pt", format: "letter" });
-    const pageWidth = doc.internal.pageSize.getWidth();
-    const leftMargin = 50;
-    const rightMargin = pageWidth - 50;
-    let y = 69;
-
-    const dateStr = format(new Date(payment.payment_date + "T00:00:00"), "MMMM d, yyyy");
-    const amount = Number(payment.amount);
-
-    // Date
-    doc.setFontSize(12);
-    doc.setFont("helvetica", "normal");
-    doc.text(dateStr, rightMargin, y, { align: "right" });
-
-    y += 45;
-
-    // Amount
-    doc.setFontSize(14);
-    doc.setFont("helvetica", "bold");
-    doc.text(`**${formatCurrency(amount)}`, rightMargin, y, { align: "right" });
-
-    y += 14;
-
-    // Written amount
-    doc.setFontSize(11);
-    doc.setFont("helvetica", "normal");
-    doc.text(`${numberToWords(amount)} --------------`, pageWidth / 2, y, { align: "center" });
-
-    y += 32;
-
-    // Vendor name and address
-    const addressX = 200;
-    doc.setFontSize(12);
-    doc.text(vendorName, addressX, y);
-    if (vendorAddress) {
-      y += 16;
-      doc.text(vendorAddress, addressX, y);
-    }
-    if (vendorCityStateZip) {
-      y += 16;
-      doc.text(vendorCityStateZip, addressX, y);
-    }
-
-    y += 23;
-
-    // Description / memo
-    if (payment.description) {
-      doc.setFontSize(10);
-      doc.text(payment.description, leftMargin, y);
-      y += 18;
-    }
-
-    if (payment.check_number) {
-      doc.setFontSize(10);
-      doc.text(`Check #${payment.check_number}`, leftMargin, y);
-    }
-
-    const fileName = `Vendor_Check_${vendorName.replace(/\s+/g, "_")}_${dateStr.replace(/[\s,]+/g, "_")}.pdf`;
-    doc.save(fileName);
-  };
-
   const totalPayments = payments.reduce((sum, p) => sum + Number(p.amount), 0);
 
   // Build YTD running totals (ascending by date)
@@ -190,6 +125,21 @@ const VendorCheckPage = ({ vendorId, vendorName, vendorAddress, vendorCityStateZ
     runningTotal += Number(p.amount);
     ytdMap.set(p.id, runningTotal);
   }
+
+  const reprintCheckPdf = (payment: typeof payments[0]) => {
+    const dateStr = format(new Date(payment.payment_date + "T00:00:00"), "MMMM d, yyyy");
+    const amount = Number(payment.amount);
+    generateCheckPdf({
+      date: dateStr,
+      totalAmount: amount,
+      agentName: vendorName,
+      agentAddress: vendorAddress,
+      agentCityStateZip: vendorCityStateZip,
+      propertyNames: payment.description || "",
+      lineItems: [{ amount, label: payment.description || "Payment" }],
+      ytdTotal: ytdMap.get(payment.id) || amount,
+    });
+  };
 
   return (
     <div className="space-y-4">
@@ -235,7 +185,7 @@ const VendorCheckPage = ({ vendorId, vendorName, vendorAddress, vendorCityStateZ
           </div>
           <div className="flex items-end gap-2">
             <Button size="sm" onClick={handleSave} disabled={addPaymentMutation.isPending}>
-              <Save className="h-3.5 w-3.5 mr-1" /> Save & Record
+              <FileDown className="h-3.5 w-3.5 mr-1" /> Generate Check
             </Button>
             <Button size="sm" variant="ghost" onClick={() => setShowForm(false)}>
               <X className="h-3.5 w-3.5 mr-1" /> Cancel
@@ -269,7 +219,7 @@ const VendorCheckPage = ({ vendorId, vendorName, vendorAddress, vendorCityStateZ
                   <TableCell className="text-right font-semibold">{formatCurrency(ytdMap.get(payment.id) || 0)}</TableCell>
                   <TableCell>
                     <div className="flex gap-1">
-                      <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => generateVendorCheckPdf(payment)} title="Print Check PDF">
+                      <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => reprintCheckPdf(payment)} title="Re-print Check PDF">
                         <FileDown className="h-3.5 w-3.5" />
                       </Button>
                       <Button
