@@ -72,7 +72,7 @@ export const generateCheckPdf = (data: CheckData) => {
   y += 32;
 
   // Agent name and address - indented
-  const addressX = 200;
+  const addressX = 128;
   doc.setFontSize(12);
   doc.setFont("helvetica", "normal");
   doc.text(data.agentName, addressX, y);
