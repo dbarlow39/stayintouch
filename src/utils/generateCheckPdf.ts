@@ -68,7 +68,7 @@ export const generateCheckPdf = (data: CheckData) => {
   doc.setFontSize(11);
   doc.setFont("helvetica", "normal");
   const writtenAmount = `${numberToWords(data.totalAmount)} --------------`;
-  doc.text(writtenAmount, pageWidth / 2, y, { align: "center" });
+  doc.text(writtenAmount, (pageWidth / 2) + 40, y, { align: "center" });
 
   y += 32;
 
