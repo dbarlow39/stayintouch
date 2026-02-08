@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Upload, Pencil, Trash2, Filter, CalendarIcon, FileUp, MessageSquare } from "lucide-react";
+import { Plus, Upload, Pencil, Trash2, Filter, CalendarIcon, FileUp, MessageSquare, Search } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth";
 import { z } from "zod";
@@ -121,6 +121,7 @@ const ClientsTab = ({ onSelectClientForEstimate }: ClientsTabProps) => {
   const [csvData, setCsvData] = useState<string[][]>([]);
   const [columnMapping, setColumnMapping] = useState<Record<string, string>>({});
   const [statusFilter, setStatusFilter] = useState<string>("A");
+  const [searchQuery, setSearchQuery] = useState("");
   const [formData, setFormData] = useState({
     first_name: "",
     last_name: "",
@@ -168,6 +169,14 @@ const ClientsTab = ({ onSelectClientForEstimate }: ClientsTabProps) => {
       return data as Client[];
     },
     enabled: !!user,
+  });
+
+  const filteredClients = clients.filter((client) => {
+    if (!searchQuery) return true;
+    const q = searchQuery.toLowerCase();
+    const fullName = `${client.first_name || ""} ${client.last_name || ""}`.toLowerCase();
+    const address = `${client.street_number || ""} ${client.street_name || ""}`.toLowerCase();
+    return fullName.includes(q) || address.includes(q);
   });
 
   const createMutation = useMutation({
@@ -514,7 +523,16 @@ const ClientsTab = ({ onSelectClientForEstimate }: ClientsTabProps) => {
           <h3 className="text-lg font-semibold">Client Management</h3>
           <p className="text-sm text-muted-foreground">Add and manage your client contacts</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search clients..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9 w-[200px] h-9"
+            />
+          </div>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="w-[180px]">
               <Filter className="w-4 h-4 mr-2" />
@@ -958,7 +976,7 @@ const ClientsTab = ({ onSelectClientForEstimate }: ClientsTabProps) => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {clients.map((client) => (
+              {filteredClients.map((client) => (
                 <TableRow 
                   key={client.id}
                   onClick={() => setViewingClient(client)}
