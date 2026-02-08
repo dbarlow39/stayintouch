@@ -91,7 +91,7 @@ export const generateCheckPdf = (data: CheckData) => {
   // Memo (printed one line below address block, no label)
   if (data.memo) {
     doc.setFontSize(10);
-    doc.text(data.memo, addressX - 38, y);
+    doc.text(data.memo, addressX - 58, y);
     y += 16;
   }
 
