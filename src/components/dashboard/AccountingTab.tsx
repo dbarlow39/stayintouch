@@ -6,6 +6,7 @@ import CheckLogging from "./accounting/CheckLogging";
 import CommissionPrep from "./accounting/CommissionPrep";
 import TaxSummaryExport from "./accounting/TaxSummaryExport";
 import AgentClosingsView from "./accounting/AgentClosingsView";
+import AgentsPage from "./accounting/AgentsPage";
 
 const AccountingTab = () => {
   const [view, setView] = useState("dashboard");
@@ -41,8 +42,10 @@ const AccountingTab = () => {
       return <CommissionPrep onBack={goToDashboard} />;
     case "1099-export":
       return <TaxSummaryExport onBack={goToDashboard} />;
+    case "agents":
+      return <AgentsPage onBack={goToDashboard} onNavigate={handleNavigate} />;
     case "agent-closings":
-      return agentClosingsName ? <AgentClosingsView agentName={agentClosingsName} onBack={goToDashboard} /> : null;
+      return agentClosingsName ? <AgentClosingsView agentName={agentClosingsName} onBack={() => handleNavigate("agents")} /> : null;
     default:
       return <AccountingDashboard onNavigate={handleNavigate} />;
   }
