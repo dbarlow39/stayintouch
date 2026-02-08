@@ -55,7 +55,7 @@ export const generateCheckPdf = (data: CheckData) => {
   doc.setFont("helvetica", "normal");
   doc.text(data.date, rightMargin, y, { align: "right" });
 
-  y += 45;
+  y += 37;
 
   // Total amount - right aligned with asterisks
   doc.setFontSize(14);
