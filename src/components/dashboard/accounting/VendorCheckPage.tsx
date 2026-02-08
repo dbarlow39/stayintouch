@@ -85,6 +85,7 @@ const VendorCheckPage = ({ vendorId, vendorName, vendorAddress, vendorAttention,
         propertyNames: result.description || "",
         lineItems: [{ amount: result.amount, label: result.description || "Payment" }],
         ytdTotal: payments.reduce((sum, p) => sum + Number(p.amount), 0) + result.amount,
+        memo: form.notes || undefined,
       });
 
       setForm(emptyPaymentForm);
@@ -141,6 +142,7 @@ const VendorCheckPage = ({ vendorId, vendorName, vendorAddress, vendorAttention,
       propertyNames: payment.description || "",
       lineItems: [{ amount, label: payment.description || "Payment" }],
       ytdTotal: ytdMap.get(payment.id) || amount,
+      memo: payment.notes || undefined,
     });
   };
 
@@ -183,8 +185,8 @@ const VendorCheckPage = ({ vendorId, vendorName, vendorAddress, vendorAttention,
             <Input value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Monthly service" />
           </div>
           <div className="space-y-1.5 sm:col-span-2">
-            <Label className="text-xs">Notes</Label>
-            <Input value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} placeholder="Optional notes" />
+            <Label className="text-xs">Memo</Label>
+            <Input value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} placeholder="Optional memo" />
           </div>
           <div className="flex items-end gap-2">
             <Button size="sm" onClick={handleSave} disabled={addPaymentMutation.isPending}>
