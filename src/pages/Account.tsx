@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Save, User, Mail, RefreshCw, CheckCircle, XCircle, Settings } from "lucide-react";
+import { ArrowLeft, Save, User, Mail, RefreshCw, CheckCircle, XCircle, Settings, KeyRound } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { EmailClient, EMAIL_CLIENT_OPTIONS, getEmailClientPreference, setEmailClientPreference } from "@/utils/emailClientUtils";
@@ -81,6 +81,58 @@ const Account = () => {
 
   const [isSyncing, setIsSyncing] = useState(false);
   const [emailClient, setEmailClientState] = useState<EmailClient>(getEmailClientPreference);
+  const [inviteCode, setInviteCode] = useState("");
+  const [inviteCodeLoading, setInviteCodeLoading] = useState(false);
+
+  // Check if user is admin
+  const { data: isAdmin } = useQuery({
+    queryKey: ["user-is-admin", user?.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user!.id)
+        .eq("role", "admin")
+        .maybeSingle();
+      return !!data;
+    },
+    enabled: !!user,
+  });
+
+  // Fetch current invite code (admin only)
+  const { data: currentInviteCode } = useQuery({
+    queryKey: ["invite-code"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("app_settings")
+        .select("invite_code")
+        .eq("id", "default")
+        .single();
+      return data?.invite_code || "";
+    },
+    enabled: !!isAdmin,
+  });
+
+  useEffect(() => {
+    if (currentInviteCode) setInviteCode(currentInviteCode);
+  }, [currentInviteCode]);
+
+  const handleSaveInviteCode = async () => {
+    if (!inviteCode.trim()) return;
+    setInviteCodeLoading(true);
+    try {
+      const { error } = await supabase
+        .from("app_settings")
+        .update({ invite_code: inviteCode.trim(), updated_at: new Date().toISOString() })
+        .eq("id", "default");
+      if (error) throw error;
+      toast({ title: "Invite code updated", description: "New users will need this code to sign up." });
+    } catch (err) {
+      toast({ title: "Error", description: "Failed to update invite code", variant: "destructive" });
+    } finally {
+      setInviteCodeLoading(false);
+    }
+  };
 
   const handleEmailClientChange = (value: string) => {
     const client = value as EmailClient;
@@ -484,6 +536,41 @@ const Account = () => {
             </div>
           </CardContent>
         </Card>
+
+        {/* Invite Code Management (Admin Only) */}
+        {isAdmin && (
+          <Card className="shadow-medium animate-fade-in mt-6">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <KeyRound className="w-5 h-5" />
+                Invite Code
+              </CardTitle>
+              <CardDescription>
+                Set the code that new users must enter to create an account
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="invite-code">Current Invite Code</Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="invite-code"
+                    value={inviteCode}
+                    onChange={(e) => setInviteCode(e.target.value)}
+                    placeholder="Enter invite code"
+                    className="max-w-xs"
+                  />
+                  <Button onClick={handleSaveInviteCode} disabled={inviteCodeLoading}>
+                    {inviteCodeLoading ? "Saving..." : "Save"}
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Share this code with people you want to grant access to the app
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </main>
     </div>
   );
