@@ -1778,6 +1778,7 @@ export type Database = {
       vendors: {
         Row: {
           address: string | null
+          attention: string | null
           city: string | null
           created_at: string
           created_by: string
@@ -1792,6 +1793,7 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          attention?: string | null
           city?: string | null
           created_at?: string
           created_by: string
@@ -1806,6 +1808,7 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          attention?: string | null
           city?: string | null
           created_at?: string
           created_by?: string

@@ -15,6 +15,7 @@ interface VendorCheckPageProps {
   vendorId: string;
   vendorName: string;
   vendorAddress: string;
+  vendorAttention: string;
   vendorCityStateZip: string;
   onBack: () => void;
 }
@@ -35,7 +36,7 @@ const emptyPaymentForm: PaymentFormData = {
   notes: "",
 };
 
-const VendorCheckPage = ({ vendorId, vendorName, vendorAddress, vendorCityStateZip, onBack }: VendorCheckPageProps) => {
+const VendorCheckPage = ({ vendorId, vendorName, vendorAddress, vendorAttention, vendorCityStateZip, onBack }: VendorCheckPageProps) => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [showForm, setShowForm] = useState(false);
@@ -79,6 +80,7 @@ const VendorCheckPage = ({ vendorId, vendorName, vendorAddress, vendorCityStateZ
         totalAmount: result.amount,
         agentName: vendorName,
         agentAddress: vendorAddress,
+        agentAttention: vendorAttention || undefined,
         agentCityStateZip: vendorCityStateZip,
         propertyNames: result.description || "",
         lineItems: [{ amount: result.amount, label: result.description || "Payment" }],
@@ -134,6 +136,7 @@ const VendorCheckPage = ({ vendorId, vendorName, vendorAddress, vendorCityStateZ
       totalAmount: amount,
       agentName: vendorName,
       agentAddress: vendorAddress,
+      agentAttention: vendorAttention || undefined,
       agentCityStateZip: vendorCityStateZip,
       propertyNames: payment.description || "",
       lineItems: [{ amount, label: payment.description || "Payment" }],
