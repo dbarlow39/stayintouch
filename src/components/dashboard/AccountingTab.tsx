@@ -8,16 +8,19 @@ import TaxSummaryExport from "./accounting/TaxSummaryExport";
 import AgentClosingsView from "./accounting/AgentClosingsView";
 import AgentsPage from "./accounting/AgentsPage";
 import VendorsPage from "./accounting/VendorsPage";
+import VendorCheckPage from "./accounting/VendorCheckPage";
 
 const AccountingTab = () => {
   const [view, setView] = useState("dashboard");
   const [editClosingId, setEditClosingId] = useState<string | null>(null);
   const [agentClosingsName, setAgentClosingsName] = useState<string | null>(null);
+  const [vendorCheckData, setVendorCheckData] = useState<{ id: string; name: string; address: string; csz: string } | null>(null);
 
   const goToDashboard = () => {
     setView("dashboard");
     setEditClosingId(null);
     setAgentClosingsName(null);
+    setVendorCheckData(null);
   };
 
   const handleNavigate = (target: string) => {
@@ -27,6 +30,10 @@ const AccountingTab = () => {
     } else if (target.startsWith("agent-closings:")) {
       setAgentClosingsName(target.replace("agent-closings:", ""));
       setView("agent-closings");
+    } else if (target.startsWith("vendor-check:")) {
+      const parts = target.replace("vendor-check:", "").split(":");
+      setVendorCheckData({ id: parts[0], name: parts[1], address: parts[2] || "", csz: parts[3] || "" });
+      setView("vendor-check");
     } else {
       setView(target);
     }
@@ -46,7 +53,17 @@ const AccountingTab = () => {
     case "agents":
       return <AgentsPage onBack={goToDashboard} onNavigate={handleNavigate} />;
     case "vendors":
-      return <VendorsPage onBack={goToDashboard} />;
+      return <VendorsPage onBack={goToDashboard} onNavigate={handleNavigate} />;
+    case "vendor-check":
+      return vendorCheckData ? (
+        <VendorCheckPage
+          vendorId={vendorCheckData.id}
+          vendorName={vendorCheckData.name}
+          vendorAddress={vendorCheckData.address}
+          vendorCityStateZip={vendorCheckData.csz}
+          onBack={() => handleNavigate("vendors")}
+        />
+      ) : null;
     case "agent-closings":
       return agentClosingsName ? <AgentClosingsView agentName={agentClosingsName} onBack={() => handleNavigate("agents")} /> : null;
     default:
