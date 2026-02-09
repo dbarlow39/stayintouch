@@ -26,7 +26,7 @@ const AddClosingForm = ({ onBack }: AddClosingFormProps) => {
   const [form, setForm] = useState({
     agent_name: "",
     property_address: "",
-    city: "",
+    city: "Columbus",
     state: "OH",
     zip: "",
     closing_date: "",
