@@ -68,7 +68,7 @@ const MarketingTab = () => {
     return matchesSearch && matchesStatus;
   });
 
-  const totalValue = listings.reduce((sum, l) => sum + l.price, 0);
+  
   const activeCount = listings.filter(l => l.status === 'active').length;
   const publishedCount = listings.filter(l => l.published).length;
 
@@ -105,12 +105,11 @@ const MarketingTab = () => {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
         {[
           { label: 'Total Listings', value: listings.length, sub: isLive ? 'From MLS' : 'Demo data' },
           { label: 'Active', value: activeCount, sub: 'On market' },
           { label: 'Published Sites', value: publishedCount, sub: 'Live websites' },
-          { label: 'Portfolio Value', value: formatListingPrice(totalValue), sub: 'Combined' },
         ].map((stat) => (
           <div key={stat.label} className="bg-card rounded-lg p-4 border border-border">
             <p className="text-sm text-muted-foreground">{stat.label}</p>
