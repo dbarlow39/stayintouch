@@ -170,6 +170,22 @@ const AddClosingForm = ({ onBack }: AddClosingFormProps) => {
                 {formatCurrency(totalCommission)}
               </div>
             </div>
+            <div className="flex items-center space-x-2 pt-7">
+              <Checkbox
+                id="check_received"
+                checked={form.check_status === "received"}
+                onCheckedChange={(checked) => setForm(prev => ({ ...prev, check_status: checked ? "received" : "" }))}
+              />
+              <Label htmlFor="check_received" className="cursor-pointer">Check Received</Label>
+            </div>
+            <div className="flex items-center space-x-2 pt-7">
+              <Checkbox
+                id="paperwork_received"
+                checked={form.paperwork_received}
+                onCheckedChange={(checked) => setForm(prev => ({ ...prev, paperwork_received: !!checked }))}
+              />
+              <Label htmlFor="paperwork_received" className="cursor-pointer">Paperwork Received</Label>
+            </div>
           </div>
 
           {/* Caliber Title Bonus */}
@@ -229,25 +245,6 @@ const AddClosingForm = ({ onBack }: AddClosingFormProps) => {
             </CardContent>
           </Card>
 
-          {/* Check & Paperwork Status */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="check_received"
-                checked={form.check_status === "received"}
-                onCheckedChange={(checked) => setForm(prev => ({ ...prev, check_status: checked ? "received" : "" }))}
-              />
-              <Label htmlFor="check_received" className="cursor-pointer">Check Received</Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="paperwork_received"
-                checked={form.paperwork_received}
-                onCheckedChange={(checked) => setForm(prev => ({ ...prev, paperwork_received: !!checked }))}
-              />
-              <Label htmlFor="paperwork_received" className="cursor-pointer">Paperwork Received</Label>
-            </div>
-          </div>
 
           <div className="space-y-2">
             <Label>Notes</Label>
