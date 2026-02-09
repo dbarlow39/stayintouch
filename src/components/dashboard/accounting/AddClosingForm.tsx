@@ -154,7 +154,20 @@ const AddClosingForm = ({ onBack }: AddClosingFormProps) => {
             </div>
             <div className="space-y-2">
               <Label>Sale Price</Label>
-              <Input type="number" value={form.sale_price} onChange={e => update("sale_price", e.target.value)} placeholder="0.00" />
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+                <Input
+                  type="text"
+                  inputMode="numeric"
+                  className="pl-7"
+                  value={form.sale_price ? Number(form.sale_price.replace(/,/g, "")).toLocaleString("en-US") : ""}
+                  onChange={e => {
+                    const raw = e.target.value.replace(/[^0-9]/g, "");
+                    update("sale_price", raw);
+                  }}
+                  placeholder="0"
+                />
+              </div>
             </div>
             <div className="space-y-2">
               <Label>Total Check</Label>
