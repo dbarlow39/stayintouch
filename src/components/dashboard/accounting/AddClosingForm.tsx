@@ -170,7 +170,10 @@ const AddClosingForm = ({ onBack }: AddClosingFormProps) => {
                 {formatCurrency(totalCommission)}
               </div>
             </div>
-            <div className="flex items-center space-x-2 pt-7">
+          </div>
+
+          <div className="flex items-center gap-8">
+            <div className="flex items-center space-x-2">
               <Checkbox
                 id="check_received"
                 checked={form.check_status === "received"}
@@ -178,7 +181,7 @@ const AddClosingForm = ({ onBack }: AddClosingFormProps) => {
               />
               <Label htmlFor="check_received" className="cursor-pointer">Check Received</Label>
             </div>
-            <div className="flex items-center space-x-2 pt-7">
+            <div className="flex items-center space-x-2">
               <Checkbox
                 id="paperwork_received"
                 checked={form.paperwork_received}
