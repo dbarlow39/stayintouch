@@ -165,7 +165,7 @@ const ListingDetail = () => {
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
           <h1 className="text-3xl font-bold mb-2">Listing Not Found</h1>
-          <Button variant="link" onClick={() => navigate('/dashboard')}>Back to Dashboard</Button>
+          <Button variant="link" onClick={() => navigate('/dashboard?tab=marketing')}>Back to Marketing</Button>
         </div>
       </div>
     );
@@ -184,9 +184,9 @@ const ListingDetail = () => {
       {/* Top bar */}
       <div className="bg-primary text-primary-foreground sticky top-0 z-50">
         <div className="container mx-auto px-6 py-3 flex items-center justify-between">
-          <Button variant="ghost" size="sm" className="text-primary-foreground/80 hover:text-primary-foreground hover:bg-primary-foreground/10" onClick={() => navigate('/dashboard')}>
+          <Button variant="ghost" size="sm" className="text-primary-foreground/80 hover:text-primary-foreground hover:bg-primary-foreground/10" onClick={() => navigate('/dashboard?tab=marketing')}>
             <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Dashboard
+            Back to Marketing
           </Button>
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="sm" className="text-primary-foreground/80 hover:text-primary-foreground hover:bg-primary-foreground/10">
