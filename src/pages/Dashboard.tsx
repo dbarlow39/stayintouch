@@ -4,13 +4,12 @@ import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Users, Mail, LogOut, Calendar, Briefcase, CheckSquare, MessageSquare, Sparkles, Settings, UserPlus, DollarSign, Megaphone } from "lucide-react";
+import { Users, Mail, LogOut, Calendar, Briefcase, CheckSquare, Sparkles, Settings, UserPlus, DollarSign, Megaphone } from "lucide-react";
 import ClientsTab from "@/components/dashboard/ClientsTab";
 import LeadsTab from "@/components/dashboard/LeadsTab";
 import WeeklyUpdateTab from "@/components/dashboard/WeeklyUpdateTab";
 import EstimatedNetTab from "@/components/dashboard/EstimatedNetTab";
 import TasksTab from "@/components/dashboard/TasksTab";
-import SMSTab from "@/components/dashboard/SMSTab";
 import SmartAssistantTab from "@/components/dashboard/SmartAssistantTab";
 import AccountingTab from "@/components/dashboard/AccountingTab";
 import MarketingTab from "@/components/dashboard/MarketingTab";
@@ -204,10 +203,6 @@ const Dashboard = () => {
                   <CheckSquare className="w-4 h-4 mr-2" />
                   Tasks
                 </TabsTrigger>
-                <TabsTrigger value="sms">
-                  <MessageSquare className="w-4 h-4 mr-2" />
-                  SMS
-                </TabsTrigger>
                 <TabsTrigger value="marketing">
                   <Megaphone className="w-4 h-4 mr-2" />
                   Marketing
@@ -243,9 +238,6 @@ const Dashboard = () => {
               </TabsContent>
               <TabsContent value="tasks">
                 <TasksTab onNavigateToProperty={handleNavigateToProperty} />
-              </TabsContent>
-              <TabsContent value="sms">
-                <SMSTab />
               </TabsContent>
               <TabsContent value="marketing">
                 <MarketingTab />
