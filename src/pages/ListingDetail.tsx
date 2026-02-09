@@ -378,7 +378,7 @@ const ListingDetail = () => {
             <div className="bg-card rounded-lg p-5 border border-border sticky top-20">
               <h3 className="text-lg font-bold text-card-foreground mb-1">Listed by</h3>
               <p className="text-foreground font-medium">{listing.agent.name}</p>
-              {listing.agent.phone && (
+              {listing.agent.phone && !/^\*+$/.test(listing.agent.phone) && (
                 <a href={`tel:${listing.agent.phone}`} className="text-sm text-primary hover:underline block mt-1">
                   {listing.agent.phone}
                 </a>
