@@ -38,6 +38,8 @@ const AddClosingForm = ({ onBack }: AddClosingFormProps) => {
     caliber_title_bonus: true,
     caliber_title_amount: "150",
     notes: "",
+    check_status: "",
+    paperwork_received: false,
   });
 
   const update = (field: string, value: string) => setForm(prev => ({ ...prev, [field]: value }));
@@ -86,6 +88,8 @@ const AddClosingForm = ({ onBack }: AddClosingFormProps) => {
         caliber_title_bonus: form.caliber_title_bonus,
         caliber_title_amount: caliberAmount > 0 ? caliberAmount : 150,
         notes: form.notes,
+        status: form.check_status || "pending",
+        paperwork_status: form.paperwork_received ? "received" : "pending",
         created_by: user.id,
       });
       if (error) throw error;
@@ -224,6 +228,26 @@ const AddClosingForm = ({ onBack }: AddClosingFormProps) => {
               </div>
             </CardContent>
           </Card>
+
+          {/* Check & Paperwork Status */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Check Received</Label>
+              <Input
+                value={form.check_status}
+                onChange={e => update("check_status", e.target.value)}
+                placeholder="e.g. check received, pending, etc."
+              />
+            </div>
+            <div className="flex items-center space-x-2 pt-7">
+              <Checkbox
+                id="paperwork_received"
+                checked={form.paperwork_received}
+                onCheckedChange={(checked) => setForm(prev => ({ ...prev, paperwork_received: !!checked }))}
+              />
+              <Label htmlFor="paperwork_received" className="cursor-pointer">Paperwork Received</Label>
+            </div>
+          </div>
 
           <div className="space-y-2">
             <Label>Notes</Label>
