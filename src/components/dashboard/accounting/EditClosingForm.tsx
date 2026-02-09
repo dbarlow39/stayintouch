@@ -40,8 +40,8 @@ const EditClosingForm = ({ closingId, onBack }: EditClosingFormProps) => {
     agent_split_pct: "60",
     caliber_title_bonus: true,
     caliber_title_amount: "150",
-    status: "not_received",
-    paperwork_status: "not_received",
+    check_received: false,
+    paperwork_received: false,
     notes: "",
   });
 
@@ -75,8 +75,8 @@ const EditClosingForm = ({ closingId, onBack }: EditClosingFormProps) => {
         agent_split_pct: String(closing.agent_split_pct || "60"),
         caliber_title_bonus: closing.caliber_title_bonus ?? true,
         caliber_title_amount: String(closing.caliber_title_amount ?? "150"),
-        status: closing.status || "not_received",
-        paperwork_status: (closing as any).paperwork_status || "not_received",
+        check_received: closing.status === "received",
+        paperwork_received: closing.paperwork_status === "received",
         notes: closing.notes || "",
       });
     }
@@ -86,7 +86,9 @@ const EditClosingForm = ({ closingId, onBack }: EditClosingFormProps) => {
 
   const companyPct = parseFloat(form.company_split_pct) || 0;
   const agentPct = parseFloat(form.agent_split_pct) || 0;
-  const totalCheck = parseFloat(form.total_check) || 0;
+  const salePrice = parseFloat(String(form.sale_price).replace(/,/g, "")) || 0;
+  const calculatedCheck = salePrice > 0 ? Math.max(salePrice * 0.01, 2250) + 499 : 0;
+  const totalCheck = form.total_check ? (parseFloat(String(form.total_check).replace(/,/g, "")) || 0) : calculatedCheck;
   const adminFee = parseFloat(form.admin_fee) || 0;
   const totalCommission = totalCheck - adminFee;
   const companyShare = totalCommission * (companyPct / 100);
@@ -126,8 +128,8 @@ const EditClosingForm = ({ closingId, onBack }: EditClosingFormProps) => {
         agent_share: agentShare,
         caliber_title_bonus: form.caliber_title_bonus,
         caliber_title_amount: caliberAmount > 0 ? caliberAmount : 150,
-        status: form.status,
-        paperwork_status: form.paperwork_status,
+        status: form.check_received ? "received" : "not_received",
+        paperwork_status: form.paperwork_received ? "received" : "not_received",
         notes: form.notes,
       }).eq("id", closingId);
       if (error) throw error;
@@ -237,11 +239,41 @@ const EditClosingForm = ({ closingId, onBack }: EditClosingFormProps) => {
             </div>
             <div className="space-y-2">
               <Label>Sale Price</Label>
-              <Input type="number" value={form.sale_price} onChange={e => update("sale_price", e.target.value)} />
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+                <Input
+                  type="text"
+                  inputMode="numeric"
+                  className="pl-7"
+                  value={form.sale_price ? Number(String(form.sale_price).replace(/,/g, "")).toLocaleString("en-US") : ""}
+                  onChange={e => {
+                    const raw = e.target.value.replace(/[^0-9]/g, "");
+                    update("sale_price", raw);
+                  }}
+                  placeholder="0"
+                />
+              </div>
             </div>
             <div className="space-y-2">
               <Label>Total Check</Label>
-              <Input type="number" value={form.total_check} onChange={e => update("total_check", e.target.value)} />
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+                <Input
+                  type="text"
+                  inputMode="numeric"
+                  className="pl-7"
+                  value={(() => {
+                    const raw = form.total_check || (calculatedCheck > 0 ? String(calculatedCheck) : "");
+                    const num = parseFloat(String(raw).replace(/,/g, ""));
+                    return num ? num.toLocaleString("en-US") : "";
+                  })()}
+                  onChange={e => {
+                    const raw = e.target.value.replace(/[^0-9.]/g, "");
+                    update("total_check", raw);
+                  }}
+                  placeholder="Auto-calculated"
+                />
+              </div>
             </div>
             <div className="space-y-2">
               <Label>Admin Fee</Label>
@@ -253,25 +285,24 @@ const EditClosingForm = ({ closingId, onBack }: EditClosingFormProps) => {
                 {formatCurrency(totalCommission)}
               </div>
             </div>
-            <div className="space-y-2">
-              <Label>Check</Label>
-              <Select value={form.status} onValueChange={v => update("status", v)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="received">Received</SelectItem>
-                  <SelectItem value="not_received">Not Received</SelectItem>
-                </SelectContent>
-              </Select>
+          </div>
+
+          <div className="flex items-center gap-8">
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="check_received"
+                checked={form.check_received}
+                onCheckedChange={(checked) => setForm(prev => ({ ...prev, check_received: !!checked }))}
+              />
+              <Label htmlFor="check_received" className="cursor-pointer">Check Received</Label>
             </div>
-            <div className="space-y-2">
-              <Label>Paperwork</Label>
-              <Select value={form.paperwork_status} onValueChange={v => update("paperwork_status", v)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="received">Received</SelectItem>
-                  <SelectItem value="not_received">Not Received</SelectItem>
-                </SelectContent>
-              </Select>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="paperwork_received"
+                checked={form.paperwork_received}
+                onCheckedChange={(checked) => setForm(prev => ({ ...prev, paperwork_received: !!checked }))}
+              />
+              <Label htmlFor="paperwork_received" className="cursor-pointer">Paperwork Received</Label>
             </div>
           </div>
 
