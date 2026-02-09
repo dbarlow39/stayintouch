@@ -378,11 +378,21 @@ const ListingDetail = () => {
             <div className="bg-card rounded-lg p-5 border border-border sticky top-20">
               <h3 className="text-lg font-bold text-card-foreground mb-1">Listed by</h3>
               <p className="text-foreground font-medium">{listing.agent.name}</p>
-              {listing.agent.phone && !/^\*+$/.test(listing.agent.phone) && (
-                <a href={`tel:${listing.agent.phone}`} className="text-sm text-primary hover:underline block mt-1">
-                  {listing.agent.phone}
-                </a>
-              )}
+              {(() => {
+                const agentPhoneMap: Record<string, string> = {
+                  'David E Barlow': '614-778-6616',
+                  'Jaysen E Barlow': '614-579-1442',
+                  'Jaime Barlow': '614-493-8541',
+                };
+                const phone = (listing.agent.phone && !/^\*+$/.test(listing.agent.phone))
+                  ? listing.agent.phone
+                  : agentPhoneMap[listing.agent.name] || '';
+                return phone ? (
+                  <a href={`tel:${phone}`} className="text-sm text-primary hover:underline block mt-1">
+                    {phone}
+                  </a>
+                ) : null;
+              })()}
               {listing.agent.email && (
                 <a href={`mailto:${listing.agent.email}`} className="text-sm text-primary hover:underline block mt-1">
                   {listing.agent.email}
