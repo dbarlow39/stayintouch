@@ -173,12 +173,24 @@ const AddClosingForm = ({ onBack }: AddClosingFormProps) => {
             </div>
             <div className="space-y-2">
               <Label>Total Check</Label>
-              <Input
-                type="number"
-                value={form.total_check || (calculatedCheck > 0 ? String(calculatedCheck) : "")}
-                onChange={e => update("total_check", e.target.value)}
-                placeholder="Auto-calculated from sale price"
-              />
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+                <Input
+                  type="text"
+                  inputMode="numeric"
+                  className="pl-7"
+                  value={(() => {
+                    const raw = form.total_check || (calculatedCheck > 0 ? String(calculatedCheck) : "");
+                    const num = parseFloat(String(raw).replace(/,/g, ""));
+                    return num ? num.toLocaleString("en-US") : "";
+                  })()}
+                  onChange={e => {
+                    const raw = e.target.value.replace(/[^0-9.]/g, "");
+                    update("total_check", raw);
+                  }}
+                  placeholder="Auto-calculated"
+                />
+              </div>
             </div>
             <div className="space-y-2">
               <Label>Admin Fee</Label>
