@@ -4,7 +4,7 @@ import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Users, Mail, LogOut, Calendar, Briefcase, CheckSquare, MessageSquare, Sparkles, Settings, UserPlus, DollarSign } from "lucide-react";
+import { Users, Mail, LogOut, Calendar, Briefcase, CheckSquare, MessageSquare, Sparkles, Settings, UserPlus, DollarSign, Megaphone } from "lucide-react";
 import ClientsTab from "@/components/dashboard/ClientsTab";
 import LeadsTab from "@/components/dashboard/LeadsTab";
 import WeeklyUpdateTab from "@/components/dashboard/WeeklyUpdateTab";
@@ -13,6 +13,7 @@ import TasksTab from "@/components/dashboard/TasksTab";
 import SMSTab from "@/components/dashboard/SMSTab";
 import SmartAssistantTab from "@/components/dashboard/SmartAssistantTab";
 import AccountingTab from "@/components/dashboard/AccountingTab";
+import MarketingTab from "@/components/dashboard/MarketingTab";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import logo from "@/assets/logo.jpg";
@@ -207,6 +208,10 @@ const Dashboard = () => {
                   <MessageSquare className="w-4 h-4 mr-2" />
                   SMS
                 </TabsTrigger>
+                <TabsTrigger value="marketing">
+                  <Megaphone className="w-4 h-4 mr-2" />
+                  Marketing
+                </TabsTrigger>
                 {isAdmin && (
                   <TabsTrigger value="accounting">
                     <DollarSign className="w-4 h-4 mr-2" />
@@ -241,6 +246,9 @@ const Dashboard = () => {
               </TabsContent>
               <TabsContent value="sms">
                 <SMSTab />
+              </TabsContent>
+              <TabsContent value="marketing">
+                <MarketingTab />
               </TabsContent>
               {isAdmin && (
                 <TabsContent value="accounting">
