@@ -15,6 +15,15 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
+const isListingsSubdomain = () => {
+  const host = window.location.hostname;
+  return host.startsWith('listings.');
+};
+
+const IndexOrListings = () => {
+  return isListingsSubdomain() ? <PublicListings /> : <Index />;
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
@@ -23,7 +32,7 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <Routes>
-            <Route path="/" element={<Index />} />
+            <Route path="/" element={<IndexOrListings />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/account" element={<Account />} />
