@@ -1,0 +1,289 @@
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
+};
+
+Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    const apiKey = Deno.env.get('FLEXMLS_API_KEY');
+    if (!apiKey) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Flexmls API key not configured' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const officeId = Deno.env.get('FLEXMLS_OFFICE_ID');
+    const { action, params } = await req.json();
+
+    const baseUrl = 'https://replication.sparkapi.com/v1';
+    const sparkHeaders = {
+      'Authorization': `Bearer ${apiKey}`,
+      'Accept': 'application/json',
+      'X-SparkApi-User-Agent': 'LovableListingSites/1.0',
+    };
+
+    function toArr(v: any): string[] {
+      if (Array.isArray(v)) return v.filter(Boolean);
+      if (typeof v === 'string' && v) return [v];
+      return [];
+    }
+
+    function transformListing(item: any, photos: string[] = [], fieldMaps: Record<string, Record<string, string>> = {}) {
+      const sf = item.StandardFields || {};
+      const rawPropType = sf.PropertyType || '';
+      const resolvedPropType = fieldMaps.PropertyType?.[rawPropType] || rawPropType || 'Residential';
+      const sqft = sf.BuildingAreaTotal || sf.LivingArea || 0;
+      const price = sf.ListPrice || sf.CurrentPrice || 0;
+      return {
+        id: item.Id || '',
+        mlsNumber: sf.ListingId || sf.MLSNumber || item.Id || '',
+        address: sf.UnparsedFirstLineAddress || `${sf.StreetNumber || ''} ${sf.StreetDirPrefix || ''} ${sf.StreetName || ''} ${sf.StreetSuffix || ''}`.replace(/\s+/g, ' ').trim(),
+        city: sf.City || '',
+        state: sf.StateOrProvince || 'OH',
+        zip: sf.PostalCode || '',
+        county: sf.CountyOrParish || '',
+        subdivision: sf.SubdivisionName || '',
+        price,
+        beds: sf.BedsTotal || 0,
+        baths: sf.BathroomsTotalInteger || sf.BathroomsTotalDecimal || sf.BathsFull || 0,
+        bathsFull: sf.BathsFull || 0,
+        bathsHalf: sf.BathsHalf || 0,
+        sqft,
+        lotSize: sf.LotSizeArea ? `${sf.LotSizeArea} ${sf.LotSizeUnits || 'sqft'}` : (sf.LotSizeAcres ? `${sf.LotSizeAcres} acres` : 'N/A'),
+        yearBuilt: sf.YearBuilt || 0,
+        propertyType: resolvedPropType,
+        propertySubType: sf.PropertySubType || '',
+        status: (() => {
+          const raw = (sf.MlsStatus || sf.StandardStatus || 'active').toLowerCase();
+          if (raw.startsWith('contingent')) return 'contingent';
+          if (raw.startsWith('pending')) return 'pending';
+          if (raw === 'closed') return 'sold';
+          return raw;
+        })(),
+        description: sf.PublicRemarks || '',
+        features: [
+          ...(Array.isArray(sf.ExteriorFeatures) ? sf.ExteriorFeatures : []),
+          ...(Array.isArray(sf.InteriorFeatures) ? sf.InteriorFeatures : []),
+        ].filter(Boolean).slice(0, 12),
+        photos,
+        agent: {
+          name: sf.ListAgentName || `${sf.ListAgentFirstName || ''} ${sf.ListAgentLastName || ''}`.trim(),
+          phone: sf.ListAgentDirectPhone || sf.ListAgentCellPhone || sf.ListAgentOfficePhone || '',
+          email: sf.ListAgentEmail || '',
+          photo: '',
+        },
+        coordinates: { lat: sf.Latitude || 0, lng: sf.Longitude || 0 },
+        published: false,
+        daysOnMarket: sf.DaysOnMarket || 0,
+        heating: toArr(sf.Heating),
+        cooling: toArr(sf.Cooling),
+        parking: toArr(sf.ParkingFeatures),
+        garageSpaces: sf.GarageSpaces || 0,
+        flooring: toArr(sf.Flooring),
+        appliances: toArr(sf.Appliances),
+        basement: sf.Basement || '',
+        roof: sf.Roof || '',
+        constructionMaterials: toArr(sf.ConstructionMaterials),
+        stories: sf.Stories || sf.StoriesTotal || 0,
+        taxAnnualAmount: sf.TaxAnnualAmount || 0,
+        taxYear: sf.TaxYear || 0,
+        hoaFee: sf.AssociationFee || 0,
+        hoaFrequency: sf.AssociationFeeFrequency || '',
+        waterSource: toArr(sf.WaterSource),
+        sewer: toArr(sf.Sewer),
+        schoolDistrict: sf.SchoolDistrict || '',
+        elementarySchool: sf.ElementarySchool || '',
+        middleSchool: sf.MiddleSchool || '',
+        highSchool: sf.HighSchool || '',
+        listDate: sf.ListingContractDate || sf.OnMarketDate || '',
+        pricePerSqft: sqft > 0 ? Math.round(price / sqft) : 0,
+      };
+    }
+
+    // ─── STANDARD FIELDS METADATA ───
+    if (action === 'standardfields') {
+      const labels: Record<string, string> = {
+        BedsTotal: 'Total Bedrooms',
+        BathroomsTotalInteger: 'Total Bathrooms',
+        BathsFull: 'Full Baths',
+        BuildingAreaTotal: 'Total Building Area',
+        LivingArea: 'Living Area',
+        ListPrice: 'Listing Price',
+        City: 'City',
+        StateOrProvince: 'State',
+        PostalCode: 'Zip Code',
+        PropertyType: 'Property Type',
+        YearBuilt: 'Year Built',
+        LotSizeArea: 'Lot Size',
+        DaysOnMarket: 'Days on Market',
+        ListingId: 'MLS Number',
+        MlsStatus: 'Status',
+        ListAgentName: 'Listing Agent',
+        ListOfficeName: 'Listing Office',
+        PublicRemarks: 'Description',
+        ExteriorFeatures: 'Exterior Features',
+        InteriorFeatures: 'Interior Features',
+        Latitude: 'Latitude',
+        Longitude: 'Longitude',
+      };
+      const propertyTypes: Record<string, string> = {
+        A: 'Residential', B: 'Multi-Family', C: 'Commercial',
+        D: 'Lots & Land', E: 'Rental', F: 'Farm & Ranch',
+        G: 'Mobile/Manufactured', H: 'Condominium', I: 'Business Opportunity',
+      };
+      return new Response(
+        JSON.stringify({ success: true, data: { labels, propertyTypes } }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // ─── MY LISTINGS ───
+    if (action === 'my_listings') {
+      const wantedCount = params?.limit || 50;
+      const statusParam = params?.status || 'active';
+      const desiredStatuses: string[] = Array.isArray(statusParam)
+        ? statusParam.map((s: string) => s.toLowerCase())
+        : [statusParam.toLowerCase()];
+
+      const matchedIds: string[] = [];
+      const perPage = 1000;
+      const scanFields = 'ListOfficeMlsId,MlsStatus';
+      let startPage = 1;
+      let scanDone = false;
+      const SCAN_PARALLEL = 4;
+
+      while (matchedIds.length < wantedCount && !scanDone && startPage <= 20) {
+        const pages = Array.from({ length: SCAN_PARALLEL }, (_, i) => startPage + i).filter(p => p <= 20);
+        const results = await Promise.allSettled(
+          pages.map(p =>
+            fetch(`${baseUrl}/listings?_limit=${perPage}&_page=${p}&_select=${scanFields}`, { method: 'GET', headers: sparkHeaders })
+              .then(r => r.ok ? r.json() : null)
+          )
+        );
+
+        for (const [idx, r] of results.entries()) {
+          if (r.status !== 'fulfilled' || !r.value) { scanDone = true; break; }
+          const pageListings = r.value?.D?.Results || [];
+          if (pageListings.length === 0) { scanDone = true; break; }
+
+          for (const item of pageListings) {
+            const sf = item.StandardFields || {};
+            const isOffice = !officeId || String(sf.ListOfficeMlsId).trim() === String(officeId).trim();
+            const status = (sf.MlsStatus || '').toLowerCase();
+            const statusMatch = desiredStatuses.some(ds => status === ds || status.startsWith(ds + ' '));
+            if (isOffice && statusMatch) {
+              matchedIds.push(item.Id);
+              if (matchedIds.length >= wantedCount) { scanDone = true; break; }
+            }
+          }
+          console.log(`Scan page ${pages[idx]}: ${pageListings.length} listings, ${matchedIds.length} matched`);
+          if (pageListings.length < perPage) { scanDone = true; break; }
+          if (scanDone) break;
+        }
+        startPage += SCAN_PARALLEL;
+      }
+
+      console.log(`Found ${matchedIds.length} active listings for office ${officeId}`);
+
+      const propertyTypeMap: Record<string, string> = {
+        'A': 'Residential', 'B': 'Multi-Family', 'C': 'Commercial',
+        'D': 'Lots & Land', 'E': 'Rental', 'F': 'Farm & Ranch',
+        'G': 'Mobile/Manufactured', 'H': 'Condominium', 'I': 'Business Opportunity',
+      };
+
+      const detailFields = 'ListingId,ListPrice,BedsTotal,BathroomsTotalInteger,BathroomsTotalDecimal,BathsFull,BathsHalf,BuildingAreaTotal,LivingArea,City,StateOrProvince,PostalCode,UnparsedFirstLineAddress,StreetNumber,StreetDirPrefix,StreetName,StreetSuffix,PropertyType,PropertySubType,MlsStatus,StandardStatus,ListOfficeMlsId,ListAgentName,ListAgentFirstName,ListAgentLastName,ListAgentDirectPhone,ListAgentCellPhone,ListAgentOfficePhone,ListAgentEmail,YearBuilt,LotSizeArea,LotSizeUnits,LotSizeAcres,DaysOnMarket,PublicRemarks,Latitude,Longitude,CurrentPrice,MLSNumber,CountyOrParish,SubdivisionName,Heating,Cooling,ParkingFeatures,GarageSpaces,Flooring,Appliances,Basement,Roof,ConstructionMaterials,Stories,StoriesTotal,TaxAnnualAmount,TaxYear,AssociationFee,AssociationFeeFrequency,WaterSource,Sewer,SchoolDistrict,ElementarySchool,MiddleSchool,HighSchool,ListingContractDate,OnMarketDate,ExteriorFeatures,InteriorFeatures';
+      const BATCH = 10;
+      const transformed: any[] = [];
+
+      for (let i = 0; i < matchedIds.length; i += BATCH) {
+        const batch = matchedIds.slice(i, i + BATCH);
+        const results = await Promise.allSettled(
+          batch.map(id =>
+            fetch(`${baseUrl}/listings/${id}?_select=${detailFields}&_expand=Photos`, { method: 'GET', headers: sparkHeaders })
+              .then(r => r.ok ? r.json() : null)
+          )
+        );
+        for (const r of results) {
+          if (r.status === 'fulfilled' && r.value) {
+            const item = r.value?.D?.Results?.[0];
+            if (item) {
+              const photos: string[] = [];
+              const sf = item.StandardFields || {};
+              if (sf.Photos && Array.isArray(sf.Photos)) {
+                for (const p of sf.Photos) {
+                  const u = p.Uri1600 || p.Uri800 || p.Uri640 || p.UriLarge || p.Uri || '';
+                  if (u) photos.push(u);
+                }
+              }
+              transformed.push(transformListing(item, photos, { PropertyType: propertyTypeMap }));
+            }
+          }
+        }
+      }
+
+      console.log(`Fetched details for ${transformed.length} listings`);
+
+      return new Response(
+        JSON.stringify({ success: true, data: transformed, total: transformed.length }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // ─── SINGLE LISTING ───
+    if (action === 'single_listing') {
+      const singleDetailFields = 'ListingId,ListPrice,BedsTotal,BathroomsTotalInteger,BathroomsTotalDecimal,BathsFull,BathsHalf,BuildingAreaTotal,LivingArea,City,StateOrProvince,PostalCode,UnparsedFirstLineAddress,StreetNumber,StreetDirPrefix,StreetName,StreetSuffix,PropertyType,PropertySubType,MlsStatus,StandardStatus,ListOfficeMlsId,ListAgentName,ListAgentFirstName,ListAgentLastName,ListAgentDirectPhone,ListAgentCellPhone,ListAgentOfficePhone,ListAgentEmail,YearBuilt,LotSizeArea,LotSizeUnits,LotSizeAcres,DaysOnMarket,PublicRemarks,Latitude,Longitude,CurrentPrice,MLSNumber,CountyOrParish,SubdivisionName,Heating,Cooling,ParkingFeatures,GarageSpaces,Flooring,Appliances,Basement,Roof,ConstructionMaterials,Stories,StoriesTotal,TaxAnnualAmount,TaxYear,AssociationFee,AssociationFeeFrequency,WaterSource,Sewer,SchoolDistrict,ElementarySchool,MiddleSchool,HighSchool,ListingContractDate,OnMarketDate,ExteriorFeatures,InteriorFeatures';
+      const singleUrl = `${baseUrl}/listings/${params.listingId}?_select=${singleDetailFields}&_expand=Photos`;
+      console.log('Fetching single:', singleUrl);
+      const singleRes = await fetch(singleUrl, { method: 'GET', headers: sparkHeaders });
+      const singleData = await singleRes.json();
+      if (!singleRes.ok) {
+        return new Response(
+          JSON.stringify({ success: false, error: singleData?.D?.Message || `API returned ${singleRes.status}` }),
+          { status: singleRes.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      const item = singleData?.D?.Results?.[0];
+      if (!item) {
+        return new Response(
+          JSON.stringify({ success: false, error: 'Listing not found' }),
+          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      const sf = item.StandardFields || {};
+      const photos: string[] = [];
+      if (sf.Photos && Array.isArray(sf.Photos)) {
+        for (const p of sf.Photos) {
+          const u = p.Uri1600 || p.Uri800 || p.Uri640 || p.UriLarge || p.Uri || '';
+          if (u) photos.push(u);
+        }
+      }
+      const propertyTypeMap: Record<string, string> = {
+        'A': 'Residential', 'B': 'Multi-Family', 'C': 'Commercial',
+        'D': 'Lots & Land', 'E': 'Rental', 'F': 'Farm & Ranch',
+        'G': 'Mobile/Manufactured', 'H': 'Condominium', 'I': 'Business Opportunity',
+      };
+      const transformed = transformListing(item, photos, { PropertyType: propertyTypeMap });
+      return new Response(
+        JSON.stringify({ success: true, data: transformed }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    return new Response(
+      JSON.stringify({ success: false, error: `Unknown action: ${action}` }),
+      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+
+  } catch (err) {
+    console.error('Edge function error:', err);
+    return new Response(
+      JSON.stringify({ success: false, error: err instanceof Error ? err.message : 'Unknown error' }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+});
