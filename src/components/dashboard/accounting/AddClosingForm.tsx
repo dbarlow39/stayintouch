@@ -47,7 +47,7 @@ const AddClosingForm = ({ onBack }: AddClosingFormProps) => {
   const companyPct = parseFloat(form.company_split_pct) || 0;
   const agentPct = parseFloat(form.agent_split_pct) || 0;
   const salePrice = parseFloat(form.sale_price.replace(/,/g, "")) || 0;
-  const calculatedCheck = Math.max(salePrice * 0.01, salePrice > 0 ? 2250 : 0);
+  const calculatedCheck = salePrice > 0 ? Math.max(salePrice * 0.01, 2250) + 499 : 0;
   const totalCheck = form.total_check ? (parseFloat(form.total_check) || 0) : calculatedCheck;
   const adminFee = parseFloat(form.admin_fee) || 0;
   const totalCommission = totalCheck - adminFee;
