@@ -231,15 +231,15 @@ const AddClosingForm = ({ onBack }: AddClosingFormProps) => {
 
           {/* Check & Paperwork Status */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Check Received</Label>
-              <Input
-                value={form.check_status}
-                onChange={e => update("check_status", e.target.value)}
-                placeholder="e.g. check received, pending, etc."
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="check_received"
+                checked={form.check_status === "received"}
+                onCheckedChange={(checked) => setForm(prev => ({ ...prev, check_status: checked ? "received" : "" }))}
               />
+              <Label htmlFor="check_received" className="cursor-pointer">Check Received</Label>
             </div>
-            <div className="flex items-center space-x-2 pt-7">
+            <div className="flex items-center space-x-2">
               <Checkbox
                 id="paperwork_received"
                 checked={form.paperwork_received}
