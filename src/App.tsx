@@ -15,15 +15,13 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
-const isListingsDomain = () => {
-  const host = window.location.hostname.toLowerCase();
-  console.log('[Router] hostname:', host);
-  return host.includes('listings') || host.includes('sellfor1percent');
+const isListingsSubdomain = () => {
+  const host = window.location.hostname;
+  return host.startsWith('listings.');
 };
 
 const IndexOrListings = () => {
-  if (isListingsDomain()) return <PublicListings />;
-  return <Index />;
+  return isListingsSubdomain() ? <PublicListings /> : <Index />;
 };
 
 const App = () => (
