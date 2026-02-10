@@ -7,7 +7,7 @@ import PhotoGallery from '@/components/dashboard/marketing/PhotoGallery';
 import {
   ArrowLeft, Bed, Bath, Maximize, Calendar, MapPin, Home, Share2, Heart,
   Thermometer, Wind, Car, Layers, DollarSign, GraduationCap, Droplets, Building,
-  Ruler, Clock, FileText
+  Ruler, Clock, FileText, Facebook, Instagram, Twitter, Megaphone, Sparkles, Youtube, Linkedin
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -129,6 +129,7 @@ const ListingDetail = () => {
   const navigate = useNavigate();
   const [listing, setListing] = useState<MarketingListing | null>(null);
   const [loading, setLoading] = useState(true);
+  const [activeTool, setActiveTool] = useState<string | null>(null);
 
   useEffect(() => {
     async function load() {
@@ -179,15 +180,92 @@ const ListingDetail = () => {
     ? `https://www.openstreetmap.org/export/embed.html?bbox=${lng - 0.01},${lat - 0.01},${lng + 0.01},${lat + 0.01}&layer=mapnik&marker=${lat},${lng}`
     : null;
 
+  const sidebarItems = [
+    { id: 'facebook', label: 'Facebook', icon: Facebook, group: 'social' },
+    { id: 'instagram', label: 'Instagram', icon: Instagram, group: 'social' },
+    { id: 'youtube', label: 'YouTube', icon: Youtube, group: 'social' },
+    { id: 'linkedin', label: 'LinkedIn', icon: Linkedin, group: 'social' },
+    { id: 'twitter', label: 'X / Twitter', icon: Twitter, group: 'social' },
+    { id: 'paid-ads', label: 'Paid Ads', icon: Megaphone, group: 'advertising' },
+    { id: 'ai-suggestions', label: 'AI Suggestions', icon: Sparkles, group: 'ai' },
+  ];
+
   return (
-    <div className="min-h-screen bg-background">
-      {/* Top bar */}
-      <div className="bg-primary text-primary-foreground sticky top-0 z-50">
-        <div className="container mx-auto px-6 py-3 flex items-center justify-between">
-          <Button variant="ghost" size="sm" className="text-primary-foreground/80 hover:text-primary-foreground hover:bg-primary-foreground/10" onClick={() => navigate('/dashboard?tab=marketing')}>
+    <div className="min-h-screen bg-background flex">
+      {/* Left Sidebar */}
+      <aside className="w-56 bg-card border-r border-border flex-shrink-0 sticky top-0 h-screen overflow-y-auto hidden md:block">
+        <div className="p-4">
+          <Button variant="ghost" size="sm" className="w-full justify-start text-muted-foreground hover:text-foreground mb-4" onClick={() => navigate('/dashboard?tab=marketing')}>
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Marketing
           </Button>
+
+          <div className="mb-5">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-2">Post to Social</p>
+            {sidebarItems.filter(i => i.group === 'social').map(item => (
+              <button
+                key={item.id}
+                onClick={() => setActiveTool(activeTool === item.id ? null : item.id)}
+                className={`w-full flex items-center gap-2.5 px-2 py-2 rounded-md text-sm transition-colors ${
+                  activeTool === item.id
+                    ? 'bg-primary/10 text-primary font-medium'
+                    : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                }`}
+              >
+                <item.icon className="w-4 h-4 flex-shrink-0" />
+                {item.label}
+              </button>
+            ))}
+          </div>
+
+          <div className="mb-5">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-2">Advertising</p>
+            {sidebarItems.filter(i => i.group === 'advertising').map(item => (
+              <button
+                key={item.id}
+                onClick={() => setActiveTool(activeTool === item.id ? null : item.id)}
+                className={`w-full flex items-center gap-2.5 px-2 py-2 rounded-md text-sm transition-colors ${
+                  activeTool === item.id
+                    ? 'bg-primary/10 text-primary font-medium'
+                    : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                }`}
+              >
+                <item.icon className="w-4 h-4 flex-shrink-0" />
+                {item.label}
+              </button>
+            ))}
+          </div>
+
+          <div>
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-2">AI Tools</p>
+            {sidebarItems.filter(i => i.group === 'ai').map(item => (
+              <button
+                key={item.id}
+                onClick={() => setActiveTool(activeTool === item.id ? null : item.id)}
+                className={`w-full flex items-center gap-2.5 px-2 py-2 rounded-md text-sm transition-colors ${
+                  activeTool === item.id
+                    ? 'bg-primary/10 text-primary font-medium'
+                    : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                }`}
+              >
+                <item.icon className="w-4 h-4 flex-shrink-0" />
+                {item.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </aside>
+
+      {/* Main Content */}
+      <div className="flex-1 min-w-0">
+      {/* Top bar */}
+      <div className="bg-primary text-primary-foreground sticky top-0 z-50">
+        <div className="container mx-auto px-6 py-3 flex items-center justify-between">
+          <Button variant="ghost" size="sm" className="text-primary-foreground/80 hover:text-primary-foreground hover:bg-primary-foreground/10 md:hidden" onClick={() => navigate('/dashboard?tab=marketing')}>
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back
+          </Button>
+          <div className="hidden md:block" />
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="sm" className="text-primary-foreground/80 hover:text-primary-foreground hover:bg-primary-foreground/10">
               <Heart className="w-4 h-4 mr-1" /> Save
@@ -404,6 +482,7 @@ const ListingDetail = () => {
           </div>
         </div>
       </main>
+      </div>{/* end flex-1 */}
     </div>
   );
 };
