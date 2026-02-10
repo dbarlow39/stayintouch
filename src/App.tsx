@@ -16,12 +16,13 @@ import NotFound from "./pages/NotFound";
 const queryClient = new QueryClient();
 
 const isListingsSubdomain = () => {
-  const host = window.location.hostname;
-  return host.startsWith('listings.');
+  const host = window.location.hostname.toLowerCase();
+  return host.startsWith('listings.') || host === 'listings';
 };
 
 const IndexOrListings = () => {
-  return isListingsSubdomain() ? <PublicListings /> : <Index />;
+  if (isListingsSubdomain()) return <PublicListings />;
+  return <Index />;
 };
 
 const App = () => (
