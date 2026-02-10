@@ -60,13 +60,15 @@ const MarketingTab = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const statusOrder: Record<string, number> = { active: 0, contingent: 1, pending: 2, sold: 3 };
+
   const filtered = listings.filter(l => {
     const matchesSearch = l.address.toLowerCase().includes(searchTerm.toLowerCase()) ||
       l.city.toLowerCase().includes(searchTerm.toLowerCase()) ||
       l.mlsNumber.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'all' || l.status === statusFilter;
     return matchesSearch && matchesStatus;
-  });
+  }).sort((a, b) => (statusOrder[a.status] ?? 99) - (statusOrder[b.status] ?? 99));
 
   
   const activeCount = listings.filter(l => l.status === 'active').length;
