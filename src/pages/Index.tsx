@@ -5,20 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Users, Mail, Shield, Clock } from "lucide-react";
 import logo from "@/assets/logo.jpg";
 
-const isListingsSubdomain = () => {
-  const host = window.location.hostname;
-  return host.startsWith('listings.');
-};
-
 const Index = () => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (isListingsSubdomain()) {
-      navigate("/listings", { replace: true });
-      return;
-    }
     if (!loading && user) {
       navigate("/dashboard");
     }
