@@ -125,12 +125,18 @@ function safeListing(raw: any): MarketingListing {
   };
 }
 
+const isPublicSite = () => {
+  const host = window.location.hostname;
+  return host.startsWith('listings.');
+};
+
 const ListingDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [listing, setListing] = useState<MarketingListing | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTool, setActiveTool] = useState<string | null>(null);
+  const isPublic = isPublicSite();
 
   useEffect(() => {
     async function load() {
@@ -167,7 +173,7 @@ const ListingDetail = () => {
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
           <h1 className="text-3xl font-bold mb-2">Listing Not Found</h1>
-          <Button variant="link" onClick={() => navigate('/dashboard?tab=marketing')}>Back to Marketing</Button>
+          <Button variant="link" onClick={() => navigate(isPublic ? '/' : '/dashboard?tab=marketing')}>{isPublic ? 'Back to Listings' : 'Back to Marketing'}</Button>
         </div>
       </div>
     );
@@ -193,74 +199,76 @@ const ListingDetail = () => {
 
   return (
     <div className="min-h-screen bg-background flex">
-      {/* Left Sidebar */}
-      <aside className="w-56 bg-card border-r border-border flex-shrink-0 sticky top-0 h-screen overflow-y-auto hidden md:block">
-        <div className="p-4">
-          <Button variant="ghost" size="sm" className="w-full justify-start text-muted-foreground hover:text-foreground mb-4" onClick={() => navigate('/dashboard?tab=marketing')}>
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Marketing
-          </Button>
+      {/* Left Sidebar - hidden on public site */}
+      {!isPublic && (
+        <aside className="w-56 bg-card border-r border-border flex-shrink-0 sticky top-0 h-screen overflow-y-auto hidden md:block">
+          <div className="p-4">
+            <Button variant="ghost" size="sm" className="w-full justify-start text-muted-foreground hover:text-foreground mb-4" onClick={() => navigate('/dashboard?tab=marketing')}>
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back to Marketing
+            </Button>
 
-          <div className="mb-5">
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-2">Post to Social</p>
-            {sidebarItems.filter(i => i.group === 'social').map(item => (
-              <button
-                key={item.id}
-                onClick={() => setActiveTool(activeTool === item.id ? null : item.id)}
-                className={`w-full flex items-center gap-2.5 px-2 py-2 rounded-md text-sm transition-colors ${
-                  activeTool === item.id
-                    ? 'bg-primary/10 text-primary font-medium'
-                    : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-                }`}
-              >
-                <item.icon className="w-4 h-4 flex-shrink-0" />
-                {item.label}
-              </button>
-            ))}
-          </div>
+            <div className="mb-5">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-2">Post to Social</p>
+              {sidebarItems.filter(i => i.group === 'social').map(item => (
+                <button
+                  key={item.id}
+                  onClick={() => setActiveTool(activeTool === item.id ? null : item.id)}
+                  className={`w-full flex items-center gap-2.5 px-2 py-2 rounded-md text-sm transition-colors ${
+                    activeTool === item.id
+                      ? 'bg-primary/10 text-primary font-medium'
+                      : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                  }`}
+                >
+                  <item.icon className="w-4 h-4 flex-shrink-0" />
+                  {item.label}
+                </button>
+              ))}
+            </div>
 
-          <div className="mb-5">
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-2">Advertising</p>
-            {sidebarItems.filter(i => i.group === 'advertising').map(item => (
-              <button
-                key={item.id}
-                onClick={() => setActiveTool(activeTool === item.id ? null : item.id)}
-                className={`w-full flex items-center gap-2.5 px-2 py-2 rounded-md text-sm transition-colors ${
-                  activeTool === item.id
-                    ? 'bg-primary/10 text-primary font-medium'
-                    : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-                }`}
-              >
-                <item.icon className="w-4 h-4 flex-shrink-0" />
-                {item.label}
-              </button>
-            ))}
-          </div>
+            <div className="mb-5">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-2">Advertising</p>
+              {sidebarItems.filter(i => i.group === 'advertising').map(item => (
+                <button
+                  key={item.id}
+                  onClick={() => setActiveTool(activeTool === item.id ? null : item.id)}
+                  className={`w-full flex items-center gap-2.5 px-2 py-2 rounded-md text-sm transition-colors ${
+                    activeTool === item.id
+                      ? 'bg-primary/10 text-primary font-medium'
+                      : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                  }`}
+                >
+                  <item.icon className="w-4 h-4 flex-shrink-0" />
+                  {item.label}
+                </button>
+              ))}
+            </div>
 
-          <div>
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-2">AI Tools</p>
-            {sidebarItems.filter(i => i.group === 'ai').map(item => (
-              <button
-                key={item.id}
-                onClick={() => setActiveTool(activeTool === item.id ? null : item.id)}
-                className={`w-full flex items-center gap-2.5 px-2 py-2 rounded-md text-sm transition-colors ${
-                  activeTool === item.id
-                    ? 'bg-primary/10 text-primary font-medium'
-                    : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-                }`}
-              >
-                <item.icon className="w-4 h-4 flex-shrink-0" />
-                {item.label}
-              </button>
-            ))}
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-2">AI Tools</p>
+              {sidebarItems.filter(i => i.group === 'ai').map(item => (
+                <button
+                  key={item.id}
+                  onClick={() => setActiveTool(activeTool === item.id ? null : item.id)}
+                  className={`w-full flex items-center gap-2.5 px-2 py-2 rounded-md text-sm transition-colors ${
+                    activeTool === item.id
+                      ? 'bg-primary/10 text-primary font-medium'
+                      : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                  }`}
+                >
+                  <item.icon className="w-4 h-4 flex-shrink-0" />
+                  {item.label}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
-      </aside>
+        </aside>
+      )}
 
       {/* Main Content */}
       <div className="flex-1 min-w-0">
-      {/* Tool Panel Overlay */}
-      {activeTool && (
+      {/* Tool Panel Overlay - hidden on public site */}
+      {!isPublic && activeTool && (
         <div className="sticky top-0 z-40 bg-background/95 backdrop-blur border-b border-border p-4">
           <ListingToolPanel platform={activeTool} listing={listing} autoGenerate={activeTool === 'ai-suggestions'} />
         </div>
@@ -268,9 +276,9 @@ const ListingDetail = () => {
       {/* Top bar */}
       <div className="bg-primary text-primary-foreground sticky top-0 z-50">
         <div className="container mx-auto px-6 py-3 flex items-center justify-between">
-          <Button variant="ghost" size="sm" className="text-primary-foreground/80 hover:text-primary-foreground hover:bg-primary-foreground/10 md:hidden" onClick={() => navigate('/dashboard?tab=marketing')}>
+          <Button variant="ghost" size="sm" className="text-primary-foreground/80 hover:text-primary-foreground hover:bg-primary-foreground/10 md:hidden" onClick={() => navigate(isPublic ? '/' : '/dashboard?tab=marketing')}>
             <ArrowLeft className="w-4 h-4 mr-2" />
-            Back
+            {isPublic ? 'Listings' : 'Back'}
           </Button>
           <div className="hidden md:block" />
           <div className="flex items-center gap-2">
