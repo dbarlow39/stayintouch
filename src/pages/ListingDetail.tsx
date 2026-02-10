@@ -276,11 +276,11 @@ const ListingDetail = () => {
       {/* Top bar */}
       <div className="bg-primary text-primary-foreground sticky top-0 z-50">
         <div className="container mx-auto px-6 py-3 flex items-center justify-between">
-          <Button variant="ghost" size="sm" className="text-primary-foreground/80 hover:text-primary-foreground hover:bg-primary-foreground/10 md:hidden" onClick={() => navigate(isPublic ? '/' : '/dashboard?tab=marketing')}>
+          <Button variant="ghost" size="sm" className={`text-primary-foreground/80 hover:text-primary-foreground hover:bg-primary-foreground/10 ${isPublic ? '' : 'md:hidden'}`} onClick={() => navigate(isPublic ? '/' : '/dashboard?tab=marketing')}>
             <ArrowLeft className="w-4 h-4 mr-2" />
-            {isPublic ? 'Listings' : 'Back'}
+            {isPublic ? 'Back to Listings' : 'Back'}
           </Button>
-          <div className="hidden md:block" />
+          {!isPublic && <div className="hidden md:block" />}
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="sm" className="text-primary-foreground/80 hover:text-primary-foreground hover:bg-primary-foreground/10">
               <Heart className="w-4 h-4 mr-1" /> Save
