@@ -262,7 +262,7 @@ const ListingDetail = () => {
       {/* Tool Panel Overlay */}
       {activeTool && (
         <div className="sticky top-0 z-40 bg-background/95 backdrop-blur border-b border-border p-4">
-          <ListingToolPanel platform={activeTool} listing={listing} />
+          <ListingToolPanel platform={activeTool} listing={listing} autoGenerate={activeTool === 'ai-suggestions'} />
         </div>
       )}
       {/* Top bar */}
