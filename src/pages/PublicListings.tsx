@@ -45,7 +45,6 @@ const PublicListings = () => {
   }, []);
 
   useEffect(() => {
-    document.title = 'Sell for 1 Percent — Columbus Listings';
     const hasCached = sessionStorage.getItem('public_mls_listings');
     if (!hasCached) fetchListings();
   }, [fetchListings]);
