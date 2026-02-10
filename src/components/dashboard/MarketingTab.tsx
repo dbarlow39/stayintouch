@@ -157,15 +157,26 @@ const MarketingTab = () => {
             }
 
             const headers = ['MLS Number', 'Address', 'City', 'State', 'Zip', 'Listing Price', 'Status', 'Total Bedrooms', 'Total Bathrooms', 'Sq Ft', 'Year Built', 'Property Type', 'Lot Size', 'Days on Market', 'Listing Agent', 'Agent Phone', 'Agent Email', 'Remarks', 'School District'];
-            const rows = exportListings.map(l => [
-              l.mlsNumber, l.address, l.city, l.state, l.zip,
-              l.price, l.status, l.beds, l.baths, l.sqft,
-              l.yearBuilt, l.propertyType, l.lotSize, l.daysOnMarket,
-              l.agent.name, l.agent.phone, l.agent.email, l.description, l.schoolDistrict,
-            ].map(v => {
-              const s = String(v ?? '');
-              return s.includes(',') || s.includes('"') || s.includes('\n') ? `"${s.replace(/"/g, '""')}"` : s;
-            }));
+            const agentPhoneMap: Record<string, string> = {
+              'David E Barlow': '614-778-6616',
+              'Jaysen E Barlow': '614-579-1442',
+              'Jaime Barlow': '614-493-8541',
+              'Jaime E Barlow': '614-493-8541',
+            };
+            const rows = exportListings.map(l => {
+              const phone = (l.agent.phone && !/^\*+$/.test(l.agent.phone))
+                ? l.agent.phone
+                : agentPhoneMap[l.agent.name] || l.agent.phone;
+              return [
+                l.mlsNumber, l.address, l.city, l.state, l.zip,
+                l.price, l.status, l.beds, l.baths, l.sqft,
+                l.yearBuilt, l.propertyType, l.lotSize, l.daysOnMarket,
+                l.agent.name, phone, l.agent.email, l.description, l.schoolDistrict,
+              ].map(v => {
+                const s = String(v ?? '');
+                return s.includes(',') || s.includes('"') || s.includes('\n') ? `"${s.replace(/"/g, '""')}"` : s;
+              });
+            });
 
             const bom = '\uFEFF';
             const csv = bom + [headers.join(','), ...rows.map(r => r.join(','))].join('\r\n');
