@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
@@ -6,8 +6,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { DollarSign, FileCheck, Clock, Users, CheckCircle2, XCircle, Store } from "lucide-react";
+import { DollarSign, FileCheck, Clock, Users, CheckCircle2, XCircle, Store, Search } from "lucide-react";
 import ReadyToPayDialog from "./ReadyToPayDialog";
 import { format } from "date-fns";
 
@@ -19,6 +20,7 @@ const AccountingDashboard = ({ onNavigate }: AccountingDashboardProps) => {
   const { user } = useAuth();
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [readyToPayOpen, setReadyToPayOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const { data: closings = [] } = useQuery({
     queryKey: ["accounting-closings-summary"],
@@ -97,6 +99,15 @@ const AccountingDashboard = ({ onNavigate }: AccountingDashboardProps) => {
 
   const unpaidClosings = closings.filter(c => !c.paid);
   const selectedClosings = closings.filter(c => selectedIds.includes(c.id));
+
+  const filteredClosings = useMemo(() => {
+    if (!searchQuery.trim()) return closings;
+    const q = searchQuery.toLowerCase();
+    return closings.filter(c =>
+      c.property_address?.toLowerCase().includes(q) ||
+      c.agent_name?.toLowerCase().includes(q)
+    );
+  }, [closings, searchQuery]);
 
   const handleReadyToPay = () => {
     if (selectedIds.length === 0) return;
@@ -180,17 +191,28 @@ const AccountingDashboard = ({ onNavigate }: AccountingDashboardProps) => {
 
       {/* Recent Closings */}
       <Card className="border-0 shadow-sm">
-        <CardHeader className="flex flex-row items-center justify-between">
+        <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <CardTitle className="text-lg font-medium">Recent Closings</CardTitle>
-          {selectedIds.length > 0 && (
-            <Button
-              onClick={handleReadyToPay}
-              className="bg-emerald-700 hover:bg-emerald-800 text-white"
-              size="sm"
-            >
-              Ready to Pay ({selectedIds.length})
-            </Button>
-          )}
+          <div className="flex items-center gap-3">
+            <div className="relative">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search property or agent..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9 w-64"
+              />
+            </div>
+            {selectedIds.length > 0 && (
+              <Button
+                onClick={handleReadyToPay}
+                className="bg-emerald-700 hover:bg-emerald-800 text-white"
+                size="sm"
+              >
+                Ready to Pay ({selectedIds.length})
+              </Button>
+            )}
+          </div>
         </CardHeader>
         <CardContent>
           {closings.length === 0 ? (
@@ -213,7 +235,7 @@ const AccountingDashboard = ({ onNavigate }: AccountingDashboardProps) => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {closings.map((closing) => (
+                  {filteredClosings.map((closing) => (
                     <TableRow key={closing.id} className="cursor-pointer hover:bg-muted/40">
                       <TableCell onClick={() => onNavigate(`edit-closing:${closing.id}`)}>
                         {format(new Date(closing.closing_date + "T00:00:00"), "MMM d, yyyy")}
