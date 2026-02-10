@@ -156,12 +156,12 @@ const MarketingTab = () => {
               return;
             }
 
-            const headers = ['MLS Number', 'Address', 'City', 'State', 'Zip', 'Listing Price', 'Status', 'Total Bedrooms', 'Total Bathrooms', 'Sq Ft', 'Year Built', 'Property Type', 'Lot Size', 'Days on Market', 'Listing Agent', 'Agent Email', 'Remarks', 'School District'];
+            const headers = ['MLS Number', 'Address', 'City', 'State', 'Zip', 'Listing Price', 'Status', 'Total Bedrooms', 'Total Bathrooms', 'Sq Ft', 'Year Built', 'Property Type', 'Lot Size', 'Days on Market', 'Listing Agent', 'Agent Phone', 'Agent Email', 'Remarks', 'School District'];
             const rows = exportListings.map(l => [
               l.mlsNumber, l.address, l.city, l.state, l.zip,
               l.price, l.status, l.beds, l.baths, l.sqft,
               l.yearBuilt, l.propertyType, l.lotSize, l.daysOnMarket,
-              l.agent.name, l.agent.email, l.description, l.schoolDistrict,
+              l.agent.name, l.agent.phone, l.agent.email, l.description, l.schoolDistrict,
             ].map(v => {
               const s = String(v ?? '');
               return s.includes(',') || s.includes('"') || s.includes('\n') ? `"${s.replace(/"/g, '""')}"` : s;
