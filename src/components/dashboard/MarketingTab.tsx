@@ -26,7 +26,7 @@ const MarketingTab = () => {
   const syncFromMLS = useCallback(async () => {
     setIsSyncing(true);
     try {
-      const result = await flexmlsApi.fetchListings({ limit: 100, status: ['active', 'pending', 'contingent'] });
+      const result = await flexmlsApi.fetchListings({ limit: 200, status: ['active', 'pending', 'contingent'] });
       if (result.success && result.data && result.data.length > 0) {
         setListings(result.data);
         setIsLive(true);
