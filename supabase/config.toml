@@ -62,3 +62,6 @@ verify_jwt = true
 
 [functions.flexmls-sync]
 verify_jwt = false
+
+[functions.ai-listing-content]
+verify_jwt = false

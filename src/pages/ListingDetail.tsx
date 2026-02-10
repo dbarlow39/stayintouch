@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
+import ListingToolPanel from '@/components/dashboard/marketing/ListingToolPanel';
 
 const statusStyles: Record<string, string> = {
   active: 'bg-emerald-100 text-emerald-800 border-emerald-200',
@@ -258,6 +259,12 @@ const ListingDetail = () => {
 
       {/* Main Content */}
       <div className="flex-1 min-w-0">
+      {/* Tool Panel Overlay */}
+      {activeTool && (
+        <div className="sticky top-0 z-40 bg-background/95 backdrop-blur border-b border-border p-4">
+          <ListingToolPanel platform={activeTool} listing={listing} />
+        </div>
+      )}
       {/* Top bar */}
       <div className="bg-primary text-primary-foreground sticky top-0 z-50">
         <div className="container mx-auto px-6 py-3 flex items-center justify-between">

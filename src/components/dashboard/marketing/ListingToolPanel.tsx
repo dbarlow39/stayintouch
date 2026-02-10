@@ -1,0 +1,135 @@
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import { Copy, Check, RefreshCw, Sparkles, Facebook, Instagram, Youtube, Linkedin, Twitter, Megaphone } from 'lucide-react';
+import { toast } from 'sonner';
+import { MarketingListing } from '@/data/marketingListings';
+
+const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-listing-content`;
+
+const platformMeta: Record<string, { label: string; icon: React.ElementType; color: string }> = {
+  facebook: { label: 'Facebook Post', icon: Facebook, color: 'text-blue-600' },
+  instagram: { label: 'Instagram Caption', icon: Instagram, color: 'text-pink-500' },
+  youtube: { label: 'YouTube Content', icon: Youtube, color: 'text-red-500' },
+  linkedin: { label: 'LinkedIn Post', icon: Linkedin, color: 'text-blue-700' },
+  twitter: { label: 'X / Twitter Tweets', icon: Twitter, color: 'text-foreground' },
+  'paid-ads': { label: 'Paid Ad Copy', icon: Megaphone, color: 'text-orange-500' },
+  'ai-suggestions': { label: 'AI Suggestions', icon: Sparkles, color: 'text-primary' },
+};
+
+interface ListingToolPanelProps {
+  platform: string;
+  listing: MarketingListing;
+}
+
+const ListingToolPanel = ({ platform, listing }: ListingToolPanelProps) => {
+  const [content, setContent] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const meta = platformMeta[platform];
+  if (!meta) return null;
+  const Icon = meta.icon;
+
+  const generate = async () => {
+    setLoading(true);
+    setContent('');
+    let buffer = '';
+
+    try {
+      const resp = await fetch(CHAT_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        },
+        body: JSON.stringify({ listing, platform }),
+      });
+
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({ error: 'Failed to generate content' }));
+        throw new Error(err.error || `Error ${resp.status}`);
+      }
+
+      if (!resp.body) throw new Error('No response body');
+
+      const reader = resp.body.getReader();
+      const decoder = new TextDecoder();
+      let textBuffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        textBuffer += decoder.decode(value, { stream: true });
+
+        let newlineIndex: number;
+        while ((newlineIndex = textBuffer.indexOf('\n')) !== -1) {
+          let line = textBuffer.slice(0, newlineIndex);
+          textBuffer = textBuffer.slice(newlineIndex + 1);
+          if (line.endsWith('\r')) line = line.slice(0, -1);
+          if (line.startsWith(':') || line.trim() === '') continue;
+          if (!line.startsWith('data: ')) continue;
+          const jsonStr = line.slice(6).trim();
+          if (jsonStr === '[DONE]') break;
+          try {
+            const parsed = JSON.parse(jsonStr);
+            const delta = parsed.choices?.[0]?.delta?.content;
+            if (delta) {
+              buffer += delta;
+              setContent(buffer);
+            }
+          } catch {
+            textBuffer = line + '\n' + textBuffer;
+            break;
+          }
+        }
+      }
+    } catch (e: any) {
+      toast.error(e.message || 'Failed to generate content');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const copyToClipboard = async () => {
+    await navigator.clipboard.writeText(content);
+    setCopied(true);
+    toast.success('Copied to clipboard!');
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <div className="bg-card border border-border rounded-lg p-5">
+      <div className="flex items-center gap-2 mb-4">
+        <Icon className={`w-5 h-5 ${meta.color}`} />
+        <h3 className="text-lg font-bold text-card-foreground">{meta.label}</h3>
+      </div>
+
+      <Button onClick={generate} disabled={loading} className="w-full mb-4" size="sm">
+        {loading ? (
+          <><RefreshCw className="w-4 h-4 mr-2 animate-spin" /> Generating...</>
+        ) : (
+          <><Sparkles className="w-4 h-4 mr-2" /> {content ? 'Regenerate' : 'Generate'} Content</>
+        )}
+      </Button>
+
+      {(content || loading) && (
+        <>
+          <Textarea
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            className="min-h-[200px] text-sm mb-3 font-mono"
+            placeholder={loading ? 'Generating...' : ''}
+          />
+          {content && (
+            <Button variant="outline" size="sm" onClick={copyToClipboard} className="w-full">
+              {copied ? <><Check className="w-4 h-4 mr-2" /> Copied!</> : <><Copy className="w-4 h-4 mr-2" /> Copy to Clipboard</>}
+            </Button>
+          )}
+        </>
+      )}
+    </div>
+  );
+};
+
+export default ListingToolPanel;
