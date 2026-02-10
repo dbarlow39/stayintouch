@@ -4,7 +4,8 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { Send } from 'lucide-react';
+import { Send, Loader2 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 interface ContactFormProps {
   address: string;
@@ -18,11 +19,34 @@ const ContactForm = ({ address, agentName }: ContactFormProps) => {
     phone: '',
     message: `I'm interested in the property at ${address}. Please send me more information.`,
   });
+  const [isSending, setIsSending] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast.success('Your inquiry has been sent! We\'ll be in touch soon.');
-    setFormData({ name: '', email: '', phone: '', message: '' });
+    setIsSending(true);
+
+    try {
+      const { error } = await supabase.functions.invoke('send-contact-inquiry', {
+        body: {
+          name: formData.name,
+          email: formData.email,
+          phone: formData.phone,
+          message: formData.message,
+          address,
+          agentName,
+        },
+      });
+
+      if (error) throw error;
+
+      toast.success("Your inquiry has been sent! We'll be in touch soon.");
+      setFormData({ name: '', email: '', phone: '', message: '' });
+    } catch (error) {
+      console.error('Error sending inquiry:', error);
+      toast.error('Failed to send inquiry. Please try again or call us directly.');
+    } finally {
+      setIsSending(false);
+    }
   };
 
   return (
@@ -67,9 +91,12 @@ const ContactForm = ({ address, agentName }: ContactFormProps) => {
           rows={4}
         />
       </div>
-      <Button type="submit" className="w-full">
-        <Send className="w-4 h-4 mr-2" />
-        Send Inquiry to {agentName}
+      <Button type="submit" className="w-full" disabled={isSending}>
+        {isSending ? (
+          <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Sending...</>
+        ) : (
+          <><Send className="w-4 h-4 mr-2" /> Send Inquiry to {agentName}</>
+        )}
       </Button>
     </form>
   );

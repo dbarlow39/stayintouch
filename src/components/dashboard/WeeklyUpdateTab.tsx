@@ -765,7 +765,7 @@ const WeeklyUpdateTab = () => {
   };
 
   const handleSendTestEmail = async () => {
-    const testEmail = 'dave@sellfor1percent.com';
+    const testEmail = agentProfile?.preferred_email || user?.email;
     
     if (!testEmail) {
       toast({ title: "No email found", description: "Please set your preferred email in Account settings", variant: "destructive" });
