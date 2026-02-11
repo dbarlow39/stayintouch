@@ -223,8 +223,9 @@ const CommissionPrep = ({ onBack }: CommissionPrepProps) => {
       // Build line items: each property + bonus if applicable
       const lineItems: CheckLineItem[] = [];
       const propertyNames: string[] = [];
+      const stripStreetNumber = (addr: string) => addr.replace(/^\d+\s+/, "");
       (closingsData || []).forEach(c => {
-        propertyNames.push(c.property_address);
+        propertyNames.push(stripStreetNumber(c.property_address));
         lineItems.push({ amount: Number(c.agent_share), label: c.property_address });
         if (c.caliber_title_bonus) {
           lineItems.push({ amount: Number(c.caliber_title_amount), label: `${c.property_address} Bonus` });
