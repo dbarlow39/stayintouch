@@ -265,11 +265,11 @@ const AdGeneratorPanel = ({ listing, autoGenerate = false }: AdGeneratorPanelPro
       </div>
 
       {/* Hidden ad template for html2canvas */}
-      <div style={{ position: 'absolute', left: '-9999px', top: 0 }}>
+      <div style={{ position: 'fixed', left: '-9999px', top: 0, width: 540, height: 540, overflow: 'visible', zIndex: -1 }}>
         <div
           ref={adRef}
           style={{
-            width: 540, height: 540,
+            width: 540, minWidth: 540, height: 540, minHeight: 540,
             fontFamily: "'Segoe UI', Arial, sans-serif",
             position: 'relative', overflow: 'hidden',
             backgroundColor: '#1a1a2e',
