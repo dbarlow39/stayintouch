@@ -60,7 +60,7 @@ export const generateCheckPdf = (data: CheckData) => {
   // Total amount - right aligned with asterisks
   doc.setFontSize(14);
   doc.setFont("helvetica", "bold");
-  doc.text(`**${formatCurrency(data.totalAmount)}`, rightMargin, y, { align: "right" });
+  doc.text(`**${formatCurrency(data.totalAmount)}`, rightMargin + 7, y, { align: "right" });
 
   y += 14;
 
