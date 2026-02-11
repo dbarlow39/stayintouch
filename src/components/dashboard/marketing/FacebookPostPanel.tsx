@@ -59,13 +59,14 @@ const FacebookPostPanel = ({ listing }: FacebookPostPanelProps) => {
         .from('facebook_oauth_tokens' as any)
         .select('page_name')
         .eq('agent_id', user!.id)
-        .single();
+        .maybeSingle();
+      console.log('[FB] checkConnection result:', data);
       if (data && (data as any).page_name) {
         setConnected(true);
         setPageName((data as any).page_name);
       }
-    } catch {
-      // Not connected
+    } catch (err) {
+      console.error('[FB] checkConnection error:', err);
     }
     setLoading(false);
   };
