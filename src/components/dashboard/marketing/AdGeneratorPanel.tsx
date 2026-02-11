@@ -161,18 +161,13 @@ const AdGeneratorPanel = ({ listing, autoGenerate = false }: AdGeneratorPanelPro
   const captureCanvas = async () => {
     if (!adRef.current) { setGenerating(false); return; }
     try {
-      const el = adRef.current;
-      // Force exact dimensions before capture
-      el.style.width = '540px';
-      el.style.height = '540px';
-      el.style.overflow = 'hidden';
-      const canvas = await html2canvas(el, {
+      const canvas = await html2canvas(adRef.current, {
         scale: 1,
         useCORS: true,
         allowTaint: false,
-        backgroundColor: '#ffffff',
-        width: 540,
-        height: 540,
+        backgroundColor: '#1a1a2e',
+        width: 1080,
+        height: 1080,
         scrollX: 0,
         scrollY: 0,
       });
@@ -272,11 +267,11 @@ const AdGeneratorPanel = ({ listing, autoGenerate = false }: AdGeneratorPanelPro
       </div>
 
       {/* Hidden ad template for html2canvas */}
-      <div style={{ position: 'fixed', left: '-9999px', top: 0, width: 540, height: 540, overflow: 'visible', zIndex: -1 }}>
+      <div style={{ position: 'fixed', left: '-9999px', top: 0, width: 1080, height: 1080, overflow: 'visible', zIndex: -1 }}>
         <div
           ref={adRef}
           style={{
-            width: 540, minWidth: 540, height: 540, minHeight: 540,
+            width: 1080, minWidth: 1080, height: 1080, minHeight: 1080,
             fontFamily: "'Segoe UI', Arial, sans-serif",
             position: 'relative', overflow: 'hidden',
             backgroundColor: '#1a1a2e',
@@ -296,42 +291,42 @@ const AdGeneratorPanel = ({ listing, autoGenerate = false }: AdGeneratorPanelPro
           <div style={{
             position: 'absolute', top: 0, left: 0, right: 0,
             backgroundColor: '#cc0000', color: '#ffffff', textAlign: 'center',
-            padding: '12px 20px', fontSize: 22, fontWeight: 800,
-            letterSpacing: 3, textTransform: 'uppercase', zIndex: 10,
+            padding: '24px 40px', fontSize: 44, fontWeight: 800,
+            letterSpacing: 6, textTransform: 'uppercase', zIndex: 10,
           }}>
             {bannerText}
           </div>
 
           {/* Property details */}
-          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '20px 24px', zIndex: 10 }}>
-            <div style={{ color: '#ffffff', fontSize: 36, fontWeight: 800, marginBottom: 4,
-              textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>
+          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '40px 48px', zIndex: 10 }}>
+            <div style={{ color: '#ffffff', fontSize: 72, fontWeight: 800, marginBottom: 8,
+              textShadow: '0 4px 8px rgba(0,0,0,0.5)' }}>
               {formatListingPrice(listing.price)}
             </div>
-            <div style={{ color: '#e0e0e0', fontSize: 16, fontWeight: 600, marginBottom: 10,
-              textShadow: '0 1px 3px rgba(0,0,0,0.5)' }}>
+            <div style={{ color: '#e0e0e0', fontSize: 32, fontWeight: 600, marginBottom: 20,
+              textShadow: '0 2px 6px rgba(0,0,0,0.5)' }}>
               {fullAddress}
             </div>
-            <div style={{ display: 'flex', gap: 20, color: '#ffffff', fontSize: 15, fontWeight: 600,
-              marginBottom: 14, textShadow: '0 1px 3px rgba(0,0,0,0.5)' }}>
+            <div style={{ display: 'flex', gap: 40, color: '#ffffff', fontSize: 30, fontWeight: 600,
+              marginBottom: 28, textShadow: '0 2px 6px rgba(0,0,0,0.5)' }}>
               <span>{listing.beds} Beds</span>
               <span>{listing.baths} Baths</span>
               <span>{(listing.sqft || 0).toLocaleString()} Sq Ft</span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 6, padding: '8px 12px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <img src={logo} alt="Logo" style={{ height: 30, borderRadius: 4 }} />
+              backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 12, padding: '16px 24px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                <img src={logo} alt="Logo" style={{ height: 60, borderRadius: 8 }} />
                 <div>
-                  <div style={{ color: '#ffffff', fontSize: 12, fontWeight: 700 }}>
+                  <div style={{ color: '#ffffff', fontSize: 24, fontWeight: 700 }}>
                     {listing.agent?.name || 'Agent'}
                   </div>
-                  <div style={{ color: '#bbbbbb', fontSize: 10 }}>
+                  <div style={{ color: '#bbbbbb', fontSize: 20 }}>
                     {listing.agent?.phone || ''}
                   </div>
                 </div>
               </div>
-              <div style={{ color: '#cccccc', fontSize: 10 }}>MLS# {listing.mlsNumber}</div>
+              <div style={{ color: '#cccccc', fontSize: 20 }}>MLS# {listing.mlsNumber}</div>
             </div>
           </div>
         </div>
