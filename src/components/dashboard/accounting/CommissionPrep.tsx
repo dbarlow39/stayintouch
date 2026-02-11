@@ -147,12 +147,10 @@ const CommissionPrep = ({ onBack }: CommissionPrepProps) => {
       }));
       await supabase.from("payout_closing_links").insert(links);
 
-      // Update closing statuses
-      await supabase.from("closings").update({ status: "processed" }).in("id", selectedIds);
-
       toast.success("All clear—ready to print your agent's check.");
       queryClient.invalidateQueries({ queryKey: ["accounting-ready-closings"] });
       queryClient.invalidateQueries({ queryKey: ["accounting-payouts"] });
+      queryClient.invalidateQueries({ queryKey: ["accounting-payout-links"] });
       queryClient.invalidateQueries({ queryKey: ["accounting-closings-summary"] });
       setSelectedIds([]);
     } catch (err: any) {
@@ -163,10 +161,23 @@ const CommissionPrep = ({ onBack }: CommissionPrepProps) => {
   };
 
   const markPaid = async (payoutId: string) => {
+    // Mark the payout as paid
     await supabase.from("commission_payouts").update({ status: "paid", payout_date: new Date().toISOString().split("T")[0] }).eq("id", payoutId);
+    
+    // Also mark all linked closings as paid
+    const { data: links } = await supabase
+      .from("payout_closing_links")
+      .select("closing_id")
+      .eq("payout_id", payoutId);
+    if (links && links.length > 0) {
+      const closingIds = links.map(l => l.closing_id);
+      await supabase.from("closings").update({ paid: true }).in("id", closingIds);
+    }
+
     toast.success("Payout marked as paid.");
     queryClient.invalidateQueries({ queryKey: ["accounting-payouts"] });
     queryClient.invalidateQueries({ queryKey: ["accounting-pending-payouts"] });
+    queryClient.invalidateQueries({ queryKey: ["accounting-closings-summary"] });
   };
 
   const deletePayout = async (payoutId: string) => {
