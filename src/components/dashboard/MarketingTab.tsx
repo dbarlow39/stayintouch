@@ -11,15 +11,28 @@ import { toast } from 'sonner';
 const MarketingTab = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const CACHE_KEY = 'mls_listings_cache';
+  const CACHE_TTL = 1000 * 60 * 60; // 1 hour
+
   const [listings, setListings] = useState<MarketingListing[]>(() => {
     try {
-      const cached = sessionStorage.getItem('mls_listings');
-      if (cached) return JSON.parse(cached);
+      const raw = localStorage.getItem(CACHE_KEY);
+      if (raw) {
+        const { data, ts } = JSON.parse(raw);
+        if (Date.now() - ts < CACHE_TTL && data?.length) return data;
+      }
     } catch {}
     return mockMarketingListings;
   });
   const [isLive, setIsLive] = useState(() => {
-    return sessionStorage.getItem('mls_is_live') === 'true';
+    try {
+      const raw = localStorage.getItem(CACHE_KEY);
+      if (raw) {
+        const { ts, data } = JSON.parse(raw);
+        return Date.now() - ts < CACHE_TTL && data?.length > 0;
+      }
+    } catch {}
+    return false;
   });
   const [isSyncing, setIsSyncing] = useState(false);
 
@@ -30,31 +43,37 @@ const MarketingTab = () => {
       if (result.success && result.data && result.data.length > 0) {
         setListings(result.data);
         setIsLive(true);
-        sessionStorage.setItem('mls_listings', JSON.stringify(result.data));
-        sessionStorage.setItem('mls_is_live', 'true');
+        localStorage.setItem(CACHE_KEY, JSON.stringify({ data: result.data, ts: Date.now() }));
         toast.success(`Synced ${result.data.length} listings from MLS`);
       } else {
         toast.error(result.error || 'No listings returned. Using demo data.');
         setListings(mockMarketingListings);
         setIsLive(false);
-        sessionStorage.removeItem('mls_listings');
-        sessionStorage.setItem('mls_is_live', 'false');
+        localStorage.removeItem(CACHE_KEY);
       }
     } catch (err) {
       console.error('Sync error:', err);
       toast.error('Could not connect to MLS. Using demo data.');
       setListings(mockMarketingListings);
       setIsLive(false);
-      sessionStorage.removeItem('mls_listings');
-      sessionStorage.setItem('mls_is_live', 'false');
+      localStorage.removeItem(CACHE_KEY);
     } finally {
       setIsSyncing(false);
     }
   }, []);
 
   useEffect(() => {
-    const hasCached = sessionStorage.getItem('mls_listings');
-    if (!hasCached) {
+    const hasFreshCache = (() => {
+      try {
+        const raw = localStorage.getItem(CACHE_KEY);
+        if (raw) {
+          const { ts, data } = JSON.parse(raw);
+          return Date.now() - ts < CACHE_TTL && data?.length > 0;
+        }
+      } catch {}
+      return false;
+    })();
+    if (!hasFreshCache) {
       syncFromMLS();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
