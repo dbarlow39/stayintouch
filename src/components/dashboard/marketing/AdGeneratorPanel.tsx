@@ -301,9 +301,16 @@ const AdGeneratorPanel = ({ listing, autoGenerate = false }: AdGeneratorPanelPro
 
           {/* Property details */}
           <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '40px 48px', zIndex: 10 }}>
-            <div style={{ color: '#ffffff', fontSize: 72, fontWeight: 800, marginBottom: 8,
-              textShadow: '0 4px 8px rgba(0,0,0,0.5)' }}>
-              {formatListingPrice(listing.price)}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+              <div style={{ color: '#ffffff', fontSize: 72, fontWeight: 800,
+                textShadow: '0 4px 8px rgba(0,0,0,0.5)' }}>
+                {formatListingPrice(listing.price)}
+              </div>
+              <div style={{ backgroundColor: '#cc0000', borderRadius: 10, padding: '12px 24px', cursor: 'pointer' }}>
+                <span style={{ color: '#ffffff', fontSize: 20, fontWeight: 800, letterSpacing: 1, textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
+                  Click Here for More Info
+                </span>
+              </div>
             </div>
             <div style={{ color: '#e0e0e0', fontSize: 32, fontWeight: 600, marginBottom: 20,
               textShadow: '0 2px 6px rgba(0,0,0,0.5)' }}>
@@ -314,12 +321,6 @@ const AdGeneratorPanel = ({ listing, autoGenerate = false }: AdGeneratorPanelPro
               <span>{listing.beds} Beds</span>
               <span>{listing.baths} Baths</span>
               <span>{(listing.sqft || 0).toLocaleString()} Sq Ft</span>
-            </div>
-            <div style={{ backgroundColor: '#cc0000', borderRadius: 12, padding: '16px 0', textAlign: 'center',
-              marginBottom: 20, cursor: 'pointer' }}>
-              <span style={{ color: '#ffffff', fontSize: 28, fontWeight: 800, letterSpacing: 2, textTransform: 'uppercase' }}>
-                Click Here for More Information
-              </span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
               backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 12, padding: '16px 24px' }}>
