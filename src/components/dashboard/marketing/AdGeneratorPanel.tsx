@@ -93,21 +93,16 @@ const AdGeneratorPanel = ({ listing }: AdGeneratorPanelProps) => {
     }
   };
 
-  // Convert external image to data URL to avoid CORS tainting
-  const toDataUrl = (url: string): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const img = new window.Image();
-      img.crossOrigin = 'anonymous';
-      img.onload = () => {
-        const c = document.createElement('canvas');
-        c.width = img.naturalWidth;
-        c.height = img.naturalHeight;
-        c.getContext('2d')!.drawImage(img, 0, 0);
-        resolve(c.toDataURL('image/png'));
-      };
-      img.onerror = () => reject(new Error('Failed to load image'));
-      img.src = url;
+  // Proxy external image through edge function to bypass CORS
+  const toDataUrl = async (url: string): Promise<string> => {
+    const resp = await fetch(`${SUPABASE_URL}/functions/v1/proxy-image`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${ANON_KEY}` },
+      body: JSON.stringify({ url }),
     });
+    const data = await resp.json();
+    if (data.error) throw new Error(data.error);
+    return data.data;
   };
 
   const [heroDataUrl, setHeroDataUrl] = useState<string | null>(null);
