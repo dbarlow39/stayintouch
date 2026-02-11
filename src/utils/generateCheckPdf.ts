@@ -95,9 +95,16 @@ export const generateCheckPdf = (data: CheckData) => {
     y += 16;
   }
 
-  // Property names summary line
+  // Property names summary line (wrap at 70 chars)
   doc.setFontSize(8);
-  doc.text(data.propertyNames, leftMargin, y);
+  const propText = data.propertyNames;
+  if (propText.length > 70) {
+    doc.text(propText.substring(0, 70), leftMargin, y);
+    y += 12;
+    doc.text(propText.substring(70), leftMargin, y);
+  } else {
+    doc.text(propText, leftMargin, y);
+  }
 
   y += 72;
 
