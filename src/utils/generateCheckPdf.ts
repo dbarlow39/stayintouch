@@ -96,7 +96,7 @@ export const generateCheckPdf = (data: CheckData) => {
   }
 
   // Property names summary line
-  doc.setFontSize(10);
+  doc.setFontSize(8);
   doc.text(data.propertyNames, leftMargin, y);
 
   y += 72;
