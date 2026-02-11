@@ -60,6 +60,16 @@ const AdGeneratorPanel = ({ listing, autoGenerate = false }: AdGeneratorPanelPro
   const heroPhoto = listing.photos?.[0];
   const fullAddress = `${listing.address}, ${listing.city}, ${listing.state} ${listing.zip}`;
 
+  const agentPhoneMap: Record<string, string> = {
+    'David E Barlow': '614-778-6616',
+    'Jaysen E Barlow': '614-579-1442',
+    'Jaime Barlow': '614-493-8541',
+    'Jaime E Barlow': '614-493-8541',
+  };
+  const agentPhone = (listing.agent?.phone && !/^\*+$/.test(listing.agent.phone))
+    ? listing.agent.phone
+    : (listing.agent?.name ? agentPhoneMap[listing.agent.name] || '' : '');
+
   // Check Facebook connection
   useEffect(() => {
     if (!user) return;
@@ -332,9 +342,9 @@ const AdGeneratorPanel = ({ listing, autoGenerate = false }: AdGeneratorPanelPro
                   <div style={{ color: '#ffffff', fontSize: 24, fontWeight: 700 }}>
                     {listing.agent?.name || 'Agent'}
                   </div>
-                  <div style={{ color: '#bbbbbb', fontSize: 20 }}>
-                    {listing.agent?.phone || ''}
-                  </div>
+                   <div style={{ color: '#bbbbbb', fontSize: 20 }}>
+                     {agentPhone}
+                   </div>
                 </div>
               </div>
               <div style={{ color: '#cccccc', fontSize: 20 }}>MLS# {listing.mlsNumber}</div>
