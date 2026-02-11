@@ -865,6 +865,39 @@ export type Database = {
           },
         ]
       }
+      facebook_oauth_tokens: {
+        Row: {
+          access_token: string
+          agent_id: string
+          created_at: string
+          id: string
+          page_access_token: string | null
+          page_id: string | null
+          page_name: string | null
+          updated_at: string
+        }
+        Insert: {
+          access_token: string
+          agent_id: string
+          created_at?: string
+          id?: string
+          page_access_token?: string | null
+          page_id?: string | null
+          page_name?: string | null
+          updated_at?: string
+        }
+        Update: {
+          access_token?: string
+          agent_id?: string
+          created_at?: string
+          id?: string
+          page_access_token?: string | null
+          page_id?: string | null
+          page_name?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       follow_up_sequences: {
         Row: {
           agent_id: string

@@ -68,3 +68,12 @@ verify_jwt = false
 
 [functions.send-contact-inquiry]
 verify_jwt = false
+
+[functions.facebook-auth-url]
+verify_jwt = false
+
+[functions.facebook-oauth-callback]
+verify_jwt = false
+
+[functions.facebook-post-listing]
+verify_jwt = false

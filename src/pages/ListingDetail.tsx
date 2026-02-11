@@ -12,6 +12,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import ListingToolPanel from '@/components/dashboard/marketing/ListingToolPanel';
+import FacebookPostPanel from '@/components/dashboard/marketing/FacebookPostPanel';
 
 const statusStyles: Record<string, string> = {
   active: 'bg-emerald-100 text-emerald-800 border-emerald-200',
@@ -188,7 +189,8 @@ const ListingDetail = () => {
     : null;
 
   const sidebarItems = [
-    { id: 'facebook', label: 'Facebook', icon: Facebook, group: 'social' },
+    { id: 'fb-post', label: 'Post to Page', icon: Facebook, group: 'facebook' },
+    { id: 'facebook', label: 'Facebook Copy', icon: Facebook, group: 'social' },
     { id: 'instagram', label: 'Instagram', icon: Instagram, group: 'social' },
     { id: 'youtube', label: 'YouTube', icon: Youtube, group: 'social' },
     { id: 'linkedin', label: 'LinkedIn', icon: Linkedin, group: 'social' },
@@ -207,6 +209,24 @@ const ListingDetail = () => {
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back to Marketing
             </Button>
+
+            <div className="mb-5">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-2">Facebook</p>
+              {sidebarItems.filter(i => i.group === 'facebook').map(item => (
+                <button
+                  key={item.id}
+                  onClick={() => setActiveTool(activeTool === item.id ? null : item.id)}
+                  className={`w-full flex items-center gap-2.5 px-2 py-2 rounded-md text-sm transition-colors ${
+                    activeTool === item.id
+                      ? 'bg-primary/10 text-primary font-medium'
+                      : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                  }`}
+                >
+                  <item.icon className="w-4 h-4 flex-shrink-0" />
+                  {item.label}
+                </button>
+              ))}
+            </div>
 
             <div className="mb-5">
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-2">Post to Social</p>
@@ -270,7 +290,11 @@ const ListingDetail = () => {
       {/* Tool Panel Overlay - hidden on public site */}
       {!isPublic && activeTool && (
         <div className="sticky top-0 z-40 bg-background/95 backdrop-blur border-b border-border p-4">
-          <ListingToolPanel platform={activeTool} listing={listing} autoGenerate={activeTool === 'ai-suggestions'} />
+          {activeTool === 'fb-post' ? (
+            <FacebookPostPanel listing={listing} />
+          ) : (
+            <ListingToolPanel platform={activeTool} listing={listing} autoGenerate={activeTool === 'ai-suggestions'} />
+          )}
         </div>
       )}
       {/* Top bar */}
