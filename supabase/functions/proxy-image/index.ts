@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { encode as base64Encode } from "https://deno.land/std@0.168.0/encoding/base64.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -16,7 +17,6 @@ serve(async (req) => {
       throw new Error("url is required");
     }
 
-    // Fetch the image server-side (no CORS restrictions)
     const imgResp = await fetch(url);
     if (!imgResp.ok) {
       throw new Error(`Failed to fetch image: ${imgResp.status}`);
@@ -24,9 +24,9 @@ serve(async (req) => {
 
     const contentType = imgResp.headers.get("content-type") || "image/jpeg";
     const arrayBuffer = await imgResp.arrayBuffer();
-    const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+    const b64 = base64Encode(new Uint8Array(arrayBuffer));
 
-    return new Response(JSON.stringify({ data: `data:${contentType};base64,${base64}` }), {
+    return new Response(JSON.stringify({ data: `data:${contentType};base64,${b64}` }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
