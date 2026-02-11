@@ -7,12 +7,13 @@ import PhotoGallery from '@/components/dashboard/marketing/PhotoGallery';
 import {
   ArrowLeft, Bed, Bath, Maximize, Calendar, MapPin, Home, Share2, Heart,
   Thermometer, Wind, Car, Layers, DollarSign, GraduationCap, Droplets, Building,
-  Ruler, Clock, FileText, Facebook, Instagram, Twitter, Megaphone, Sparkles, Youtube, Linkedin
+  Ruler, Clock, FileText, Facebook, Instagram, Twitter, Megaphone, Sparkles, Youtube, Linkedin, ImageIcon
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import ListingToolPanel from '@/components/dashboard/marketing/ListingToolPanel';
 import FacebookPostPanel from '@/components/dashboard/marketing/FacebookPostPanel';
+import AdGeneratorPanel from '@/components/dashboard/marketing/AdGeneratorPanel';
 
 const statusStyles: Record<string, string> = {
   active: 'bg-emerald-100 text-emerald-800 border-emerald-200',
@@ -189,6 +190,7 @@ const ListingDetail = () => {
     : null;
 
   const sidebarItems = [
+    { id: 'generate-ad', label: 'Generate Ad', icon: ImageIcon, group: 'facebook' },
     { id: 'fb-post', label: 'Post to Page', icon: Facebook, group: 'facebook' },
     { id: 'facebook', label: 'Facebook Copy', icon: Facebook, group: 'social' },
     { id: 'instagram', label: 'Instagram', icon: Instagram, group: 'social' },
@@ -290,7 +292,9 @@ const ListingDetail = () => {
       {/* Tool Panel Overlay - hidden on public site */}
       {!isPublic && activeTool && (
         <div className="sticky top-0 z-40 bg-background/95 backdrop-blur border-b border-border p-4">
-          {activeTool === 'fb-post' ? (
+          {activeTool === 'generate-ad' ? (
+            <AdGeneratorPanel listing={listing} />
+          ) : activeTool === 'fb-post' ? (
             <FacebookPostPanel listing={listing} />
           ) : (
             <ListingToolPanel platform={activeTool} listing={listing} autoGenerate={activeTool === 'ai-suggestions'} />
