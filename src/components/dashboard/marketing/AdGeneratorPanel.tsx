@@ -318,8 +318,8 @@ const AdGeneratorPanel = ({ listing, autoGenerate = false }: AdGeneratorPanelPro
               </div>
               <div style={{ backgroundColor: '#cc0000', borderRadius: 10, cursor: 'pointer',
                 paddingLeft: 24, paddingRight: 24, paddingTop: 8, paddingBottom: 8, textAlign: 'center', overflow: 'hidden' }}>
-                <span style={{ color: '#ffffff', fontSize: 22, fontWeight: 800, letterSpacing: 1, textTransform: 'uppercase', whiteSpace: 'nowrap',
-                  display: 'inline-block', transform: 'scaleY(1.3)', transformOrigin: 'center center' }}>
+                <span style={{ color: '#ffffff', fontSize: 20, fontWeight: 800, letterSpacing: 1, textTransform: 'uppercase', whiteSpace: 'nowrap',
+                  display: 'inline-block', position: 'relative', top: -3 }}>
                   Click for More Info
                 </span>
               </div>
