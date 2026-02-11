@@ -290,11 +290,13 @@ const AdGeneratorPanel = ({ listing, autoGenerate = false }: AdGeneratorPanelPro
           {/* Red banner */}
           <div style={{
             position: 'absolute', top: 0, left: 0, right: 0,
-            backgroundColor: '#cc0000', color: '#ffffff', textAlign: 'center',
+            backgroundColor: '#cc0000', color: '#ffffff',
             padding: '24px 40px', fontSize: 44, fontWeight: 800,
             letterSpacing: 6, textTransform: 'uppercase', zIndex: 10,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
-            {bannerText}
+            <span style={{ flex: 1, textAlign: 'center' }}>{bannerText}</span>
+            <img src={logo} alt="Logo" style={{ height: 60, borderRadius: 6, marginLeft: 16 }} />
           </div>
 
           {/* Property details */}
