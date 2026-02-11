@@ -57,13 +57,13 @@ const FacebookPostPanel = ({ listing }: FacebookPostPanelProps) => {
     try {
       const { data } = await supabase
         .from('facebook_oauth_tokens' as any)
-        .select('page_name')
+        .select('page_name, access_token')
         .eq('agent_id', user!.id)
         .maybeSingle();
       console.log('[FB] checkConnection result:', data);
-      if (data && (data as any).page_name) {
+      if (data && (data as any).access_token) {
         setConnected(true);
-        setPageName((data as any).page_name);
+        setPageName((data as any).page_name || 'Facebook');
       }
     } catch (err) {
       console.error('[FB] checkConnection error:', err);
