@@ -279,7 +279,7 @@ const AdGeneratorPanel = ({ listing, autoGenerate = false }: AdGeneratorPanelPro
         >
           {(heroDataUrl || heroPhoto) ? (
             <img src={heroDataUrl || heroPhoto} alt="" crossOrigin="anonymous"
-              style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'absolute', top: 0, left: 0 }} />
+              style={{ width: 540, height: 540, objectFit: 'cover', position: 'absolute', top: 0, left: 0 }} />
           ) : (
             <div style={{ width: '100%', height: '100%', position: 'absolute', top: 0, left: 0,
               background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)' }} />
