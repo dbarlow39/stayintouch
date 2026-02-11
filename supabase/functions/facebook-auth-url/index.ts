@@ -23,7 +23,8 @@ serve(async (req) => {
       throw new Error("FACEBOOK_APP_ID not configured");
     }
 
-    const redirectUri = "https://stayintouch.lovable.app/dashboard";
+    const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
+    const redirectUri = `${SUPABASE_URL}/functions/v1/facebook-oauth-callback`;
     const scope = "pages_manage_posts,pages_read_engagement";
 
     const authUrl = `https://www.facebook.com/v21.0/dialog/oauth?client_id=${FACEBOOK_APP_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(scope)}&state=${agent_id}`;

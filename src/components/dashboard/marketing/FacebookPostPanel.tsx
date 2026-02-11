@@ -31,21 +31,26 @@ const FacebookPostPanel = ({ listing }: FacebookPostPanelProps) => {
     checkConnection();
   }, [user]);
 
-  // Handle OAuth callback code from URL
+  // Handle redirect back from OAuth
   useEffect(() => {
-    if (!user) return;
     const params = new URLSearchParams(window.location.search);
-    const code = params.get('code');
-    const state = params.get('state');
-    if (code && state === user.id) {
-      handleOAuthCallback(code);
-      // Clean URL
+    const fbConnected = params.get('fb_connected');
+    const fbError = params.get('fb_error');
+    if (fbConnected) {
+      setConnected(true);
+      setPageName(fbConnected);
+      setLoading(false);
+      toast.success(`Connected to ${fbConnected}!`);
       const url = new URL(window.location.href);
-      url.searchParams.delete('code');
-      url.searchParams.delete('state');
+      url.searchParams.delete('fb_connected');
+      window.history.replaceState({}, '', url.toString());
+    } else if (fbError) {
+      toast.error(`Facebook connection failed: ${fbError}`);
+      const url = new URL(window.location.href);
+      url.searchParams.delete('fb_error');
       window.history.replaceState({}, '', url.toString());
     }
-  }, [user]);
+  }, []);
 
   const checkConnection = async () => {
     setLoading(true);
