@@ -75,6 +75,39 @@ const CommissionPrep = ({ onBack }: CommissionPrepProps) => {
     enabled: !!user,
   });
 
+  // Fetch linked closings for each payout to show property addresses
+  const payoutIds = payouts.map(p => p.id);
+  const { data: payoutLinks = [] } = useQuery({
+    queryKey: ["accounting-payout-links", payoutIds],
+    queryFn: async () => {
+      if (payoutIds.length === 0) return [];
+      const { data: links, error: linksError } = await supabase
+        .from("payout_closing_links")
+        .select("payout_id, closing_id")
+        .in("payout_id", payoutIds);
+      if (linksError) throw linksError;
+      if (!links || links.length === 0) return [];
+
+      const closingIds = [...new Set(links.map(l => l.closing_id))];
+      const { data: closingsData, error: closingsError } = await supabase
+        .from("closings")
+        .select("id, property_address")
+        .in("id", closingIds);
+      if (closingsError) throw closingsError;
+
+      const closingMap = new Map((closingsData || []).map(c => [c.id, c.property_address]));
+      return links.map(l => ({ payout_id: l.payout_id, property_address: closingMap.get(l.closing_id) || "" }));
+    },
+    enabled: !!user && payoutIds.length > 0,
+  });
+
+  const getPayoutProperties = (payoutId: string): string => {
+    const addresses = payoutLinks
+      .filter(l => l.payout_id === payoutId && l.property_address)
+      .map(l => l.property_address);
+    return addresses.join(", ");
+  };
+
   const toggleSelect = (id: string) => {
     setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
   };
@@ -377,18 +410,20 @@ const CommissionPrep = ({ onBack }: CommissionPrepProps) => {
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
-                  <TableRow>
-                    <TableHead>Agent</TableHead>
-                    <TableHead className="text-right">Amount</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead></TableHead>
+                   <TableRow>
+                     <TableHead>Agent</TableHead>
+                     <TableHead>Property</TableHead>
+                     <TableHead className="text-right">Amount</TableHead>
+                     <TableHead>Date</TableHead>
+                     <TableHead>Status</TableHead>
+                     <TableHead></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {payouts.map(payout => (
                     <TableRow key={payout.id}>
-                      <TableCell className="font-medium">{payout.agent_name}</TableCell>
+                     <TableCell className="font-medium">{payout.agent_name}</TableCell>
+                      <TableCell className="text-sm text-muted-foreground">{getPayoutProperties(payout.id)}</TableCell>
                       <TableCell className="text-right">{formatCurrency(Number(payout.total_amount))}</TableCell>
                       <TableCell>{payout.payout_date ? format(new Date(payout.payout_date + "T00:00:00"), "MMM d, yyyy") : format(new Date(), "MMM d, yyyy")}</TableCell>
                       <TableCell>{statusBadge(payout.status)}</TableCell>
