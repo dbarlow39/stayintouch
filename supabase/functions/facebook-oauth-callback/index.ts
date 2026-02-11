@@ -15,11 +15,19 @@ serve(async (req) => {
   const FACEBOOK_APP_SECRET = Deno.env.get("FACEBOOK_APP_SECRET");
   const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
   const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-  
-  // Extract origin from request to handle both preview and published URLs
-  const url = new URL(req.url);
-  const requestOrigin = url.origin;
-  const APP_URL = requestOrigin.includes('lovable.app') ? requestOrigin : "https://stayintouch.lovable.app";
+  const DEFAULT_APP_URL = "https://stayintouch.lovable.app";
+
+  // Helper to decode state parameter which contains agent_id and app_origin
+  const decodeState = (stateParam: string | null): { agent_id: string | null; app_origin: string } => {
+    if (!stateParam) return { agent_id: null, app_origin: DEFAULT_APP_URL };
+    try {
+      const decoded = JSON.parse(atob(decodeURIComponent(stateParam)));
+      return { agent_id: decoded.agent_id || null, app_origin: decoded.app_origin || DEFAULT_APP_URL };
+    } catch {
+      // Legacy: state was just the agent_id string
+      return { agent_id: stateParam, app_origin: DEFAULT_APP_URL };
+    }
+  };
 
   // Handle GET redirect from Facebook
   if (req.method === "GET") {
@@ -27,8 +35,10 @@ serve(async (req) => {
       const url = new URL(req.url);
       console.log("[FB Callback] GET request received, full URL:", url.toString());
       const code = url.searchParams.get("code");
-      const agent_id = url.searchParams.get("state");
+      const stateParam = url.searchParams.get("state");
       const error = url.searchParams.get("error");
+      
+      const { agent_id, app_origin: APP_URL } = decodeState(stateParam);
 
       if (error) {
         return Response.redirect(`${APP_URL}/dashboard?fb_error=${encodeURIComponent(error)}`, 302);

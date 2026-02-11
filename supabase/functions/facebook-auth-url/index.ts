@@ -11,7 +11,7 @@ serve(async (req) => {
   }
 
   try {
-    const { agent_id } = await req.json();
+    const { agent_id, app_origin } = await req.json();
 
     if (!agent_id) {
       throw new Error("agent_id is required");
@@ -27,7 +27,11 @@ serve(async (req) => {
     const redirectUri = `${SUPABASE_URL}/functions/v1/facebook-oauth-callback`;
     const scope = "pages_manage_posts,pages_read_engagement,pages_show_list";
 
-    const authUrl = `https://www.facebook.com/v21.0/dialog/oauth?client_id=${FACEBOOK_APP_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(scope)}&state=${agent_id}`;
+    // Encode agent_id and app_origin together in state so the callback knows where to redirect
+    const statePayload = JSON.stringify({ agent_id, app_origin: app_origin || "https://stayintouch.lovable.app" });
+    const encodedState = btoa(statePayload);
+
+    const authUrl = `https://www.facebook.com/v21.0/dialog/oauth?client_id=${FACEBOOK_APP_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(scope)}&state=${encodeURIComponent(encodedState)}`;
 
     return new Response(JSON.stringify({ auth_url: authUrl }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
