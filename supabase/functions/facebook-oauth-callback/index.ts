@@ -21,6 +21,7 @@ serve(async (req) => {
   if (req.method === "GET") {
     try {
       const url = new URL(req.url);
+      console.log("[FB Callback] GET request received, full URL:", url.toString());
       const code = url.searchParams.get("code");
       const agent_id = url.searchParams.get("state");
       const error = url.searchParams.get("error");
