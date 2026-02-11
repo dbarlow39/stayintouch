@@ -75,26 +75,26 @@ serve(async (req) => {
       const pagesData = await pagesResp.json();
       console.log("[FB Callback] Pages response:", JSON.stringify(pagesData).substring(0, 500));
 
-      if (!pagesData.data || pagesData.data.length === 0) {
-        return Response.redirect(`${APP_URL}/dashboard?fb_error=no_pages`, 302);
-      }
+      const page = pagesData.data?.[0] || null;
+      console.log("[FB Callback] Using page:", page?.name || "NO PAGE FOUND", page?.id || "N/A");
 
-      const page = pagesData.data[0];
-      console.log("[FB Callback] Using page:", page.name, page.id);
-
-      // Store in database
+      // Store in database - save token even without a page
       const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!);
+
+      const upsertData: Record<string, any> = {
+        agent_id,
+        access_token: longLivedToken,
+        updated_at: new Date().toISOString(),
+      };
+      if (page) {
+        upsertData.page_id = page.id;
+        upsertData.page_name = page.name;
+        upsertData.page_access_token = page.access_token;
+      }
 
       const { error: upsertError } = await supabase
         .from("facebook_oauth_tokens")
-        .upsert({
-          agent_id,
-          access_token: longLivedToken,
-          page_id: page.id,
-          page_name: page.name,
-          page_access_token: page.access_token,
-          updated_at: new Date().toISOString(),
-        }, { onConflict: "agent_id" });
+        .upsert(upsertData, { onConflict: "agent_id" });
 
       if (upsertError) {
         console.error("[FB Callback] Database error:", JSON.stringify(upsertError));
@@ -102,7 +102,10 @@ serve(async (req) => {
       }
 
       console.log("[FB Callback] SUCCESS - token stored for agent:", agent_id);
-      return Response.redirect(`${APP_URL}/dashboard?fb_connected=${encodeURIComponent(page.name)}`, 302);
+      const redirectParam = page 
+        ? `fb_connected=${encodeURIComponent(page.name)}`
+        : `fb_connected=Facebook&fb_no_pages=1`;
+      return Response.redirect(`${APP_URL}/dashboard?${redirectParam}`, 302);
 
     } catch (err) {
       console.error("Facebook OAuth callback error:", err);
