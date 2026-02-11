@@ -79,7 +79,7 @@ const FacebookPostPanel = ({ listing }: FacebookPostPanelProps) => {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${ANON_KEY}`,
         },
-        body: JSON.stringify({ agent_id: user!.id }),
+        body: JSON.stringify({ agent_id: user!.id, app_origin: window.location.origin }),
       });
       const data = await resp.json();
       if (data.error) throw new Error(data.error);
