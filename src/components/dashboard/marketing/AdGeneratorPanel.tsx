@@ -292,7 +292,7 @@ const AdGeneratorPanel = ({ listing, autoGenerate = false }: AdGeneratorPanelPro
           <div style={{
             position: 'absolute', top: 0, left: 0, right: 0,
             backgroundColor: '#cc0000', color: '#ffffff', textAlign: 'center',
-            padding: '24px 120px 24px 120px', fontSize: 44, fontWeight: 800,
+            padding: '24px 120px 24px 120px', fontSize: 55, fontWeight: 800,
             letterSpacing: 6, textTransform: 'uppercase', zIndex: 10,
           }}>
             {bannerText}
