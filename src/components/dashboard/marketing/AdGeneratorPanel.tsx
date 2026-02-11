@@ -293,10 +293,11 @@ const AdGeneratorPanel = ({ listing, autoGenerate = false }: AdGeneratorPanelPro
             backgroundColor: '#cc0000', color: '#ffffff',
             padding: '24px 40px', fontSize: 44, fontWeight: 800,
             letterSpacing: 6, textTransform: 'uppercase', zIndex: 10,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            display: 'flex', alignItems: 'center',
           }}>
+            <div style={{ width: 60 }} />
             <span style={{ flex: 1, textAlign: 'center' }}>{bannerText}</span>
-            <img src={logo} alt="Logo" style={{ height: 60, borderRadius: 6, marginLeft: 16 }} />
+            <img src={logo} alt="Logo" style={{ height: 60, borderRadius: 6 }} />
           </div>
 
           {/* Property details */}
