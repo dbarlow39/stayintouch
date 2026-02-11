@@ -57,18 +57,38 @@ const FacebookPostPanel = ({ listing }: FacebookPostPanelProps) => {
     try {
       const { data } = await supabase
         .from('facebook_oauth_tokens' as any)
-        .select('page_name, access_token')
+        .select('page_name, access_token, page_access_token')
         .eq('agent_id', user!.id)
         .maybeSingle();
       console.log('[FB] checkConnection result:', data);
       if (data && (data as any).access_token) {
         setConnected(true);
         setPageName((data as any).page_name || 'Facebook');
+        // Flag if page token is missing (needs reconnect)
+        if (!(data as any).page_access_token) {
+          setPageName('');
+          setConnected(false);
+        }
       }
     } catch (err) {
       console.error('[FB] checkConnection error:', err);
     }
     setLoading(false);
+  };
+
+  const disconnectFacebook = async () => {
+    try {
+      await supabase
+        .from('facebook_oauth_tokens' as any)
+        .delete()
+        .eq('agent_id', user!.id);
+      setConnected(false);
+      setPageName('');
+      setMessage('');
+      toast.success('Facebook disconnected. You can reconnect now.');
+    } catch (err) {
+      console.error('[FB] disconnect error:', err);
+    }
   };
 
   const connectFacebook = async () => {
@@ -190,10 +210,15 @@ const FacebookPostPanel = ({ listing }: FacebookPostPanelProps) => {
         </div>
       ) : (
         <>
-          <p className="text-xs text-muted-foreground mb-3 flex items-center gap-1">
-            <Check className="w-3 h-3 text-emerald-500" />
-            Connected to <span className="font-medium text-foreground">{pageName}</span>
-          </p>
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-xs text-muted-foreground flex items-center gap-1">
+              <Check className="w-3 h-3 text-emerald-500" />
+              Connected to <span className="font-medium text-foreground">{pageName}</span>
+            </p>
+            <Button variant="ghost" size="sm" className="text-xs h-6 px-2 text-muted-foreground" onClick={disconnectFacebook}>
+              Disconnect
+            </Button>
+          </div>
 
           <Textarea
             value={message}
