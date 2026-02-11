@@ -77,7 +77,7 @@ const FacebookPostPanel = ({ listing }: FacebookPostPanelProps) => {
       });
       const data = await resp.json();
       if (data.error) throw new Error(data.error);
-      window.location.href = data.auth_url;
+      window.open(data.auth_url, '_blank');
     } catch (err: any) {
       toast.error(err.message || 'Failed to start Facebook login');
     }
