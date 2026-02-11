@@ -162,12 +162,14 @@ const AdGeneratorPanel = ({ listing, autoGenerate = false }: AdGeneratorPanelPro
     if (!adRef.current) { setGenerating(false); return; }
     try {
       const canvas = await html2canvas(adRef.current, {
-        scale: 2,
+        scale: 1,
         useCORS: true,
         allowTaint: false,
         backgroundColor: '#ffffff',
         width: 540,
         height: 540,
+        windowWidth: 540,
+        windowHeight: 540,
       });
       const url = canvas.toDataURL('image/png');
       setPreviewUrl(url);
