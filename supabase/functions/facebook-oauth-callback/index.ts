@@ -15,7 +15,11 @@ serve(async (req) => {
   const FACEBOOK_APP_SECRET = Deno.env.get("FACEBOOK_APP_SECRET");
   const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
   const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-  const APP_URL = "https://stayintouch.lovable.app";
+  
+  // Extract origin from request to handle both preview and published URLs
+  const url = new URL(req.url);
+  const requestOrigin = url.origin;
+  const APP_URL = requestOrigin.includes('lovable.app') ? requestOrigin : "https://stayintouch.lovable.app";
 
   // Handle GET redirect from Facebook
   if (req.method === "GET") {
