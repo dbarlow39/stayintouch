@@ -1,11 +1,16 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Download, Image, Loader2 } from 'lucide-react';
+import { Image, Loader2, Check, Link2, Facebook, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
 import html2canvas from 'html2canvas';
 import { MarketingListing, formatListingPrice } from '@/data/marketingListings';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/lib/auth';
 import logo from '@/assets/logo.jpg';
+
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const ANON_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
 const bannerOptions = [
   { value: 'auto', label: 'Auto-detect from Status' },
@@ -36,14 +41,57 @@ interface AdGeneratorPanelProps {
 }
 
 const AdGeneratorPanel = ({ listing }: AdGeneratorPanelProps) => {
+  const { user } = useAuth();
   const [bannerType, setBannerType] = useState('auto');
   const [generating, setGenerating] = useState(false);
+  const [posting, setPosting] = useState(false);
+  const [posted, setPosted] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [fbConnected, setFbConnected] = useState(false);
+  const [fbPageName, setFbPageName] = useState('');
+  const [fbLoading, setFbLoading] = useState(true);
   const adRef = useRef<HTMLDivElement>(null);
 
   const bannerText = getBannerText(listing, bannerType);
   const heroPhoto = listing.photos?.[0];
   const fullAddress = `${listing.address}, ${listing.city}, ${listing.state} ${listing.zip}`;
+
+  // Check Facebook connection
+  useEffect(() => {
+    if (!user) return;
+    (async () => {
+      setFbLoading(true);
+      try {
+        const { data } = await supabase
+          .from('facebook_oauth_tokens' as any)
+          .select('page_name, access_token')
+          .eq('agent_id', user.id)
+          .maybeSingle();
+        if (data && (data as any).access_token) {
+          setFbConnected(true);
+          setFbPageName((data as any).page_name || 'Facebook');
+        }
+      } catch (err) {
+        console.error('[FB] check error:', err);
+      }
+      setFbLoading(false);
+    })();
+  }, [user]);
+
+  const connectFacebook = async () => {
+    try {
+      const resp = await fetch(`${SUPABASE_URL}/functions/v1/facebook-auth-url`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${ANON_KEY}` },
+        body: JSON.stringify({ agent_id: user!.id, app_origin: window.location.origin }),
+      });
+      const data = await resp.json();
+      if (data.error) throw new Error(data.error);
+      window.open(data.auth_url, '_blank');
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to start Facebook login');
+    }
+  };
 
   const generateAd = async () => {
     if (!adRef.current) return;
@@ -59,7 +107,8 @@ const AdGeneratorPanel = ({ listing }: AdGeneratorPanelProps) => {
       });
       const url = canvas.toDataURL('image/png');
       setPreviewUrl(url);
-      toast.success('Ad generated!');
+      setPosted(false);
+      toast.success('Ad generated! Ready to post.');
     } catch (err: any) {
       toast.error('Failed to generate ad image');
       console.error(err);
@@ -67,20 +116,75 @@ const AdGeneratorPanel = ({ listing }: AdGeneratorPanelProps) => {
     setGenerating(false);
   };
 
-  const downloadAd = () => {
-    if (!previewUrl) return;
-    const a = document.createElement('a');
-    a.href = previewUrl;
-    a.download = `ad-${listing.mlsNumber || listing.id}.png`;
-    a.click();
+  const postToFacebook = async () => {
+    if (!previewUrl || !user) return;
+    setPosting(true);
+    try {
+      // Convert data URL to blob
+      const res = await fetch(previewUrl);
+      const blob = await res.blob();
+      const fileName = `ad-${listing.mlsNumber || listing.id}-${Date.now()}.png`;
+
+      // Upload to storage
+      const { data: uploadData, error: uploadErr } = await supabase.storage
+        .from('ad-images')
+        .upload(fileName, blob, { contentType: 'image/png', upsert: true });
+
+      if (uploadErr) throw new Error(`Upload failed: ${uploadErr.message}`);
+
+      // Get public URL
+      const { data: urlData } = supabase.storage.from('ad-images').getPublicUrl(fileName);
+      const publicUrl = urlData.publicUrl;
+
+      // Post to Facebook with the image
+      const price = formatListingPrice(listing.price);
+      const message = `🏠 ${bannerText}\n\n📍 ${fullAddress}\n💰 ${price}\n🛏️ ${listing.beds} Beds | 🛁 ${listing.baths} Baths | 📐 ${listing.sqft.toLocaleString()} sqft\n\n📞 Contact ${listing.agent?.name || 'us'} for details!\n\n#RealEstate #${listing.city.replace(/\s/g, '')} #HomeForSale`;
+
+      const postResp = await fetch(`${SUPABASE_URL}/functions/v1/facebook-post-listing`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${ANON_KEY}` },
+        body: JSON.stringify({
+          agent_id: user.id,
+          message,
+          photo_url: publicUrl,
+        }),
+      });
+      const postData = await postResp.json();
+      if (postData.error) throw new Error(postData.error);
+
+      setPosted(true);
+      toast.success('Ad posted to Facebook! 🎉');
+      setTimeout(() => setPosted(false), 5000);
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to post to Facebook');
+    }
+    setPosting(false);
   };
 
   return (
     <div className="bg-card border border-border rounded-lg p-5">
       <div className="flex items-center gap-2 mb-4">
         <Image className="w-5 h-5 text-primary" />
-        <h3 className="text-lg font-bold text-card-foreground">Generate Graphic Ad</h3>
+        <h3 className="text-lg font-bold text-card-foreground">Generate & Post Ad</h3>
       </div>
+
+      {/* Facebook connection status */}
+      {fbLoading ? (
+        <div className="flex items-center gap-2 text-xs text-muted-foreground mb-3">
+          <Loader2 className="w-3 h-3 animate-spin" /> Checking Facebook...
+        </div>
+      ) : fbConnected ? (
+        <p className="text-xs text-muted-foreground mb-3 flex items-center gap-1">
+          <Check className="w-3 h-3 text-emerald-500" />
+          Connected to <span className="font-medium text-foreground">{fbPageName}</span>
+        </p>
+      ) : (
+        <div className="mb-3">
+          <Button onClick={connectFacebook} variant="outline" size="sm" className="w-full">
+            <Link2 className="w-4 h-4 mr-2" /> Connect Facebook Page First
+          </Button>
+        </div>
+      )}
 
       <div className="mb-4">
         <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Banner Type</label>
@@ -97,153 +201,56 @@ const AdGeneratorPanel = ({ listing }: AdGeneratorPanelProps) => {
       </div>
 
       {/* Hidden ad template for html2canvas */}
-      <div
-        style={{
-          position: 'absolute',
-          left: '-9999px',
-          top: 0,
-        }}
-      >
+      <div style={{ position: 'absolute', left: '-9999px', top: 0 }}>
         <div
           ref={adRef}
           style={{
-            width: 540,
-            height: 540,
+            width: 540, height: 540,
             fontFamily: "'Segoe UI', Arial, sans-serif",
-            position: 'relative',
-            overflow: 'hidden',
+            position: 'relative', overflow: 'hidden',
             backgroundColor: '#1a1a2e',
           }}
         >
-          {/* Property photo */}
           {heroPhoto ? (
-            <img
-              src={heroPhoto}
-              alt=""
-              crossOrigin="anonymous"
-              style={{
-                width: '100%',
-                height: '100%',
-                objectFit: 'cover',
-                position: 'absolute',
-                top: 0,
-                left: 0,
-              }}
-            />
+            <img src={heroPhoto} alt="" crossOrigin="anonymous"
+              style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'absolute', top: 0, left: 0 }} />
           ) : (
-            <div
-              style={{
-                width: '100%',
-                height: '100%',
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)',
-              }}
-            />
+            <div style={{ width: '100%', height: '100%', position: 'absolute', top: 0, left: 0,
+              background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)' }} />
           )}
-
-          {/* Dark overlay for text readability */}
-          <div
-            style={{
-              position: 'absolute',
-              inset: 0,
-              background: 'linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.15) 40%, rgba(0,0,0,0.7) 75%, rgba(0,0,0,0.85) 100%)',
-            }}
-          />
+          <div style={{ position: 'absolute', inset: 0,
+            background: 'linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.15) 40%, rgba(0,0,0,0.7) 75%, rgba(0,0,0,0.85) 100%)' }} />
 
           {/* Red banner */}
-          <div
-            style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              right: 0,
-              backgroundColor: '#cc0000',
-              color: '#ffffff',
-              textAlign: 'center',
-              padding: '12px 20px',
-              fontSize: 22,
-              fontWeight: 800,
-              letterSpacing: 3,
-              textTransform: 'uppercase',
-              zIndex: 10,
-            }}
-          >
+          <div style={{
+            position: 'absolute', top: 0, left: 0, right: 0,
+            backgroundColor: '#cc0000', color: '#ffffff', textAlign: 'center',
+            padding: '12px 20px', fontSize: 22, fontWeight: 800,
+            letterSpacing: 3, textTransform: 'uppercase', zIndex: 10,
+          }}>
             {bannerText}
           </div>
 
-          {/* Property details at bottom */}
-          <div
-            style={{
-              position: 'absolute',
-              bottom: 0,
-              left: 0,
-              right: 0,
-              padding: '20px 24px',
-              zIndex: 10,
-            }}
-          >
-            {/* Price */}
-            <div
-              style={{
-                color: '#ffffff',
-                fontSize: 36,
-                fontWeight: 800,
-                marginBottom: 4,
-                textShadow: '0 2px 4px rgba(0,0,0,0.5)',
-              }}
-            >
+          {/* Property details */}
+          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '20px 24px', zIndex: 10 }}>
+            <div style={{ color: '#ffffff', fontSize: 36, fontWeight: 800, marginBottom: 4,
+              textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>
               {formatListingPrice(listing.price)}
             </div>
-
-            {/* Address */}
-            <div
-              style={{
-                color: '#e0e0e0',
-                fontSize: 16,
-                fontWeight: 600,
-                marginBottom: 10,
-                textShadow: '0 1px 3px rgba(0,0,0,0.5)',
-              }}
-            >
+            <div style={{ color: '#e0e0e0', fontSize: 16, fontWeight: 600, marginBottom: 10,
+              textShadow: '0 1px 3px rgba(0,0,0,0.5)' }}>
               {fullAddress}
             </div>
-
-            {/* Stats row */}
-            <div
-              style={{
-                display: 'flex',
-                gap: 20,
-                color: '#ffffff',
-                fontSize: 15,
-                fontWeight: 600,
-                marginBottom: 14,
-                textShadow: '0 1px 3px rgba(0,0,0,0.5)',
-              }}
-            >
+            <div style={{ display: 'flex', gap: 20, color: '#ffffff', fontSize: 15, fontWeight: 600,
+              marginBottom: 14, textShadow: '0 1px 3px rgba(0,0,0,0.5)' }}>
               <span>{listing.beds} Beds</span>
               <span>{listing.baths} Baths</span>
               <span>{(listing.sqft || 0).toLocaleString()} Sq Ft</span>
             </div>
-
-            {/* Agent / branding bar */}
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                backgroundColor: 'rgba(0,0,0,0.5)',
-                borderRadius: 6,
-                padding: '8px 12px',
-              }}
-            >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 6, padding: '8px 12px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <img
-                  src={logo}
-                  alt="Logo"
-                  style={{ height: 30, borderRadius: 4 }}
-                />
+                <img src={logo} alt="Logo" style={{ height: 30, borderRadius: 4 }} />
                 <div>
                   <div style={{ color: '#ffffff', fontSize: 12, fontWeight: 700 }}>
                     {listing.agent?.name || 'Agent'}
@@ -253,15 +260,13 @@ const AdGeneratorPanel = ({ listing }: AdGeneratorPanelProps) => {
                   </div>
                 </div>
               </div>
-              <div style={{ color: '#cccccc', fontSize: 10 }}>
-                MLS# {listing.mlsNumber}
-              </div>
+              <div style={{ color: '#cccccc', fontSize: 10 }}>MLS# {listing.mlsNumber}</div>
             </div>
           </div>
         </div>
       </div>
 
-      <Button onClick={generateAd} disabled={generating} className="w-full mb-4" size="sm">
+      <Button onClick={generateAd} disabled={generating} className="w-full mb-3" size="sm">
         {generating ? (
           <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Generating...</>
         ) : (
@@ -274,9 +279,23 @@ const AdGeneratorPanel = ({ listing }: AdGeneratorPanelProps) => {
           <div className="border border-border rounded-lg overflow-hidden mb-3">
             <img src={previewUrl} alt="Generated ad" className="w-full" />
           </div>
-          <Button variant="outline" size="sm" onClick={downloadAd} className="w-full">
-            <Download className="w-4 h-4 mr-2" /> Download Ad
-          </Button>
+
+          {fbConnected && (
+            <Button
+              onClick={postToFacebook}
+              disabled={posting || posted}
+              className="w-full"
+              size="sm"
+            >
+              {posted ? (
+                <><Check className="w-4 h-4 mr-2" /> Posted!</>
+              ) : posting ? (
+                <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Posting...</>
+              ) : (
+                <><Facebook className="w-4 h-4 mr-2" /> Post Ad to Facebook</>
+              )}
+            </Button>
+          )}
         </>
       )}
     </div>
