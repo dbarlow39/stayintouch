@@ -293,7 +293,7 @@ const ListingDetail = () => {
       {!isPublic && activeTool && (
         <div className="sticky top-0 z-40 bg-background/95 backdrop-blur border-b border-border p-4">
           {activeTool === 'generate-ad' ? (
-            <AdGeneratorPanel listing={listing} />
+            <AdGeneratorPanel listing={listing} autoGenerate />
           ) : activeTool === 'fb-post' ? (
             <FacebookPostPanel listing={listing} />
           ) : (
