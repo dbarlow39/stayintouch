@@ -317,8 +317,8 @@ const AdGeneratorPanel = ({ listing, autoGenerate = false }: AdGeneratorPanelPro
                 <span>{(listing.sqft || 0).toLocaleString()} Sq Ft</span>
               </div>
               <div style={{ backgroundColor: '#cc0000', borderRadius: 10, cursor: 'pointer',
-                height: 46, lineHeight: '46px', paddingLeft: 24, paddingRight: 24, textAlign: 'center' }}>
-                <span style={{ color: '#ffffff', fontSize: 18, fontWeight: 800, letterSpacing: 1, textTransform: 'uppercase', whiteSpace: 'nowrap', verticalAlign: 'middle' }}>
+                paddingLeft: 24, paddingRight: 24, paddingTop: 16, paddingBottom: 10, textAlign: 'center' }}>
+                <span style={{ color: '#ffffff', fontSize: 18, fontWeight: 800, letterSpacing: 1, textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
                   Click for More Info
                 </span>
               </div>
