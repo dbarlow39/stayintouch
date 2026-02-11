@@ -93,14 +93,66 @@ const AdGeneratorPanel = ({ listing }: AdGeneratorPanelProps) => {
     }
   };
 
+  // Convert external image to data URL to avoid CORS tainting
+  const toDataUrl = (url: string): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const img = new window.Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        const c = document.createElement('canvas');
+        c.width = img.naturalWidth;
+        c.height = img.naturalHeight;
+        c.getContext('2d')!.drawImage(img, 0, 0);
+        resolve(c.toDataURL('image/png'));
+      };
+      img.onerror = () => reject(new Error('Failed to load image'));
+      img.src = url;
+    });
+  };
+
+  const [heroDataUrl, setHeroDataUrl] = useState<string | null>(null);
+
   const generateAd = async () => {
     if (!adRef.current) return;
     setGenerating(true);
     try {
+      // Pre-load hero photo as data URL to avoid CORS
+      if (heroPhoto && !heroDataUrl) {
+        try {
+          const dataUrl = await toDataUrl(heroPhoto);
+          setHeroDataUrl(dataUrl);
+          // Wait for React to re-render with the data URL, then re-trigger
+          setTimeout(() => generateAfterImageLoad(dataUrl), 200);
+          return;
+        } catch {
+          console.warn('Could not load hero photo, generating without it');
+        }
+      }
+      await captureCanvas();
+    } catch (err: any) {
+      toast.error('Failed to generate ad image');
+      console.error(err);
+      setGenerating(false);
+    }
+  };
+
+  const generateAfterImageLoad = async (_dataUrl: string) => {
+    try {
+      await captureCanvas();
+    } catch (err: any) {
+      toast.error('Failed to generate ad image');
+      console.error(err);
+      setGenerating(false);
+    }
+  };
+
+  const captureCanvas = async () => {
+    if (!adRef.current) { setGenerating(false); return; }
+    try {
       const canvas = await html2canvas(adRef.current, {
         scale: 2,
         useCORS: true,
-        allowTaint: true,
+        allowTaint: false,
         backgroundColor: '#ffffff',
         width: 540,
         height: 540,
@@ -211,8 +263,8 @@ const AdGeneratorPanel = ({ listing }: AdGeneratorPanelProps) => {
             backgroundColor: '#1a1a2e',
           }}
         >
-          {heroPhoto ? (
-            <img src={heroPhoto} alt="" crossOrigin="anonymous"
+          {(heroDataUrl || heroPhoto) ? (
+            <img src={heroDataUrl || heroPhoto} alt="" crossOrigin="anonymous"
               style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'absolute', top: 0, left: 0 }} />
           ) : (
             <div style={{ width: '100%', height: '100%', position: 'absolute', top: 0, left: 0,
