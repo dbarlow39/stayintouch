@@ -170,7 +170,7 @@ export async function renderAdCanvas(opts: RenderOptions): Promise<string> {
   // Price
   curY -= 32;
   ctx.fillStyle = '#ffffff';
-  ctx.font = '800 52px "Segoe UI", Arial, sans-serif';
+  ctx.font = '800 69px "Segoe UI", Arial, sans-serif';
   ctx.shadowBlur = 6;
   ctx.shadowOffsetY = 3;
   ctx.fillText(formatListingPrice(listing.price), bottomPad, curY);
