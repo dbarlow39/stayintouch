@@ -157,7 +157,7 @@ export async function renderAdCanvas(opts: RenderOptions): Promise<string> {
   ctx.fillText(ctaText, ctaX + ctaW / 2, ctaY + ctaH / 2);
 
   // Address
-  curY = ctaY - 12;
+  curY = ctaY - 16;
   ctx.textAlign = 'left';
   ctx.textBaseline = 'bottom';
   ctx.fillStyle = '#e0e0e0';
@@ -168,7 +168,7 @@ export async function renderAdCanvas(opts: RenderOptions): Promise<string> {
   ctx.fillText(fullAddress, bottomPad, curY);
 
   // Price
-  curY -= 8;
+  curY -= 32;
   ctx.fillStyle = '#ffffff';
   ctx.font = '800 52px "Segoe UI", Arial, sans-serif';
   ctx.shadowBlur = 6;
