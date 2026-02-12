@@ -1,4 +1,5 @@
 import logoSrc from '@/assets/logo.jpg';
+import fairHousingSrc from '@/assets/equal-housing-white.png';
 import { MarketingListing, formatListingPrice } from '@/data/marketingListings';
 
 const W = 1200;
@@ -120,11 +121,23 @@ export async function renderAdCanvas(opts: RenderOptions): Promise<string> {
     ctx.fillText(agentPhone, bottomPad + 14 + lw + 12, curY + agentBarH / 2 + 11);
   } catch {}
 
-  // MLS number
+  // MLS number + Fair Housing logo
   ctx.textAlign = 'right';
   ctx.fillStyle = '#cccccc';
   ctx.font = '400 15px "Segoe UI", Arial, sans-serif';
-  ctx.fillText(`MLS# ${listing.mlsNumber}`, W - bottomPad - 14, curY + agentBarH / 2);
+  const mlsText = `MLS# ${listing.mlsNumber}`;
+  const mlsTextWidth = ctx.measureText(mlsText).width;
+  ctx.fillText(mlsText, W - bottomPad - 14, curY + agentBarH / 2);
+
+  // Fair Housing logo to the left of MLS#
+  try {
+    const fhImg = await loadImage(fairHousingSrc);
+    const fhH = 30;
+    const fhW = (fhImg.naturalWidth / fhImg.naturalHeight) * fhH;
+    const fhX = W - bottomPad - 14 - mlsTextWidth - 10 - fhW;
+    const fhY = curY + (agentBarH - fhH) / 2;
+    ctx.drawImage(fhImg, fhX, fhY, fhW, fhH);
+  } catch {}
 
   // Specs row + CTA button
   curY -= 14; // gap
