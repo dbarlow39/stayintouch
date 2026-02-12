@@ -189,6 +189,10 @@ const AdGeneratorPanel = ({ listing, autoGenerate = false }: AdGeneratorPanelPro
       const price = formatListingPrice(listing.price);
       const message = `🏠 ${bannerText}\n\n📍 ${fullAddress}\n💰 ${price}\n🛏️ ${listing.beds} Beds | 🛁 ${listing.baths} Baths | 📐 ${listing.sqft.toLocaleString()} sqft\n\n👉 More info: ${listingUrl}\n\n📞 Contact ${listing.agent?.name || 'us'} for details!\n\n#RealEstate #${listing.city.replace(/\s/g, '')} #HomeForSale`;
 
+      // Post as a link post: pass the branded ad image URL and the og-listing base URL.
+      // The edge function will append &img=<ad_image> to the og-listing URL so Facebook's
+      // scraper picks up the branded image as the OG image, showing it large with
+      // a link preview card underneath (like Back At You / ListingMachine).
       const postResp = await fetch(`${SUPABASE_URL}/functions/v1/facebook-post-listing`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${ANON_KEY}` },
@@ -196,6 +200,7 @@ const AdGeneratorPanel = ({ listing, autoGenerate = false }: AdGeneratorPanelPro
           agent_id: user.id,
           message,
           photo_url: publicUrl,
+          link: ogListingUrl,
         }),
       });
       const postData = await postResp.json();
