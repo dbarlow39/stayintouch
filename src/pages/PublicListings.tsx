@@ -176,8 +176,14 @@ const PublicListings = () => {
 
       {/* Footer */}
       <footer className="border-t border-border/50 bg-card/50 mt-16 py-8">
-        <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
-          <p>© {new Date().getFullYear()} Sell for 1 Percent. All rights reserved.</p>
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-8">
+            <h3 className="text-lg font-bold text-foreground">Sellfor1Percent.com</h3>
+            <p className="text-muted-foreground mt-1">Full Service Real Estate for just a 1% Commission</p>
+          </div>
+          <div className="text-center text-sm text-muted-foreground">
+            <p>© {new Date().getFullYear()} Sell for 1 Percent. All rights reserved.</p>
+          </div>
         </div>
       </footer>
     </div>
