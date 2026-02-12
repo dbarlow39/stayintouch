@@ -7,13 +7,20 @@ import PhotoGallery from '@/components/dashboard/marketing/PhotoGallery';
 import {
   ArrowLeft, Bed, Bath, Maximize, Calendar, MapPin, Home, Share2, Heart,
   Thermometer, Wind, Car, Layers, DollarSign, GraduationCap, Droplets, Building,
-  Ruler, Clock, FileText, Facebook, Instagram, Twitter, Megaphone, Sparkles, Youtube, Linkedin, ImageIcon
+  Ruler, Clock, FileText, Facebook, Instagram, Twitter, Megaphone, Sparkles, Youtube, Linkedin, ImageIcon,
+  Link2, Check, Loader2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import ListingToolPanel from '@/components/dashboard/marketing/ListingToolPanel';
 import FacebookPostPanel from '@/components/dashboard/marketing/FacebookPostPanel';
 import AdGeneratorPanel from '@/components/dashboard/marketing/AdGeneratorPanel';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/lib/auth';
+import { toast } from 'sonner';
+
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const ANON_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
 const statusStyles: Record<string, string> = {
   active: 'bg-emerald-100 text-emerald-800 border-emerald-200',
@@ -135,10 +142,65 @@ const isPublicSite = () => {
 const ListingDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [listing, setListing] = useState<MarketingListing | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTool, setActiveTool] = useState<string | null>(null);
   const isPublic = isPublicSite();
+
+  // Facebook connection state for sidebar
+  const [fbConnected, setFbConnected] = useState(false);
+  const [fbPageName, setFbPageName] = useState('');
+  const [fbLoading, setFbLoading] = useState(false);
+
+  useEffect(() => {
+    if (!user || isPublic) return;
+    (async () => {
+      try {
+        const { data } = await supabase
+          .from('facebook_oauth_tokens' as any)
+          .select('page_name, access_token, page_access_token')
+          .eq('agent_id', user.id)
+          .maybeSingle();
+        if (data && (data as any).access_token && (data as any).page_access_token) {
+          setFbConnected(true);
+          setFbPageName((data as any).page_name || 'Facebook');
+        }
+      } catch (err) {
+        console.error('[FB sidebar] check error:', err);
+      }
+    })();
+  }, [user, isPublic]);
+
+  const connectFacebookFromSidebar = async () => {
+    if (!user) return;
+    setFbLoading(true);
+    try {
+      const resp = await fetch(`${SUPABASE_URL}/functions/v1/facebook-auth-url`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${ANON_KEY}` },
+        body: JSON.stringify({ agent_id: user.id, app_origin: window.location.origin }),
+      });
+      const data = await resp.json();
+      if (data.error) throw new Error(data.error);
+      window.open(data.auth_url, '_blank');
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to start Facebook login');
+    }
+    setFbLoading(false);
+  };
+
+  const disconnectFacebookFromSidebar = async () => {
+    if (!user) return;
+    try {
+      await supabase.from('facebook_oauth_tokens' as any).delete().eq('agent_id', user.id);
+      setFbConnected(false);
+      setFbPageName('');
+      toast.success('Facebook disconnected.');
+    } catch (err) {
+      console.error('[FB sidebar] disconnect error:', err);
+    }
+  };
 
   useEffect(() => {
     async function load() {
@@ -228,6 +290,38 @@ const ListingDetail = () => {
                   {item.label}
                 </button>
               ))}
+              {/* Facebook connection status */}
+              <div className="mt-2 px-2">
+                {fbConnected ? (
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-emerald-600 flex items-center gap-1">
+                      <Check className="w-3 h-3" />
+                      {fbPageName}
+                    </span>
+                    <button
+                      onClick={disconnectFacebookFromSidebar}
+                      className="text-xs text-muted-foreground hover:text-foreground"
+                    >
+                      Disconnect
+                    </button>
+                  </div>
+                ) : (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full text-xs h-7"
+                    onClick={connectFacebookFromSidebar}
+                    disabled={fbLoading}
+                  >
+                    {fbLoading ? (
+                      <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                    ) : (
+                      <Link2 className="w-3 h-3 mr-1" />
+                    )}
+                    Connect Facebook
+                  </Button>
+                )}
+              </div>
             </div>
 
             <div className="mb-5">
