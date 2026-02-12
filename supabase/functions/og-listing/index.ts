@@ -96,10 +96,10 @@ Deno.serve(async (req) => {
   <meta name="twitter:title" content="${esc(ogTitle)}" />
   <meta name="twitter:description" content="${esc(ogDescription)}" />
   <meta name="twitter:image" content="${esc(ogImage)}" />
-  <meta http-equiv="refresh" content="0;url=${esc(listingPageUrl)}" />
 </head>
 <body>
-  <p>Redirecting to <a href="${esc(listingPageUrl)}">${esc(ogTitle)}</a>...</p>
+   <p>Redirecting to <a href="${esc(listingPageUrl)}">${esc(ogTitle)}</a>...</p>
+   <script>window.location.href = "${esc(listingPageUrl)}";</script>
 </body>
 </html>`;
 
