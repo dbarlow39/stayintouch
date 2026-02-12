@@ -42,22 +42,9 @@ serve(async (req) => {
 
     let result;
 
-    if (link) {
-      // Link share post — Facebook scrapes OG tags from the link URL for image/title
-      const body: any = {
-        message,
-        link,
-        access_token: page_access_token,
-      };
-
-      const postResp = await fetch(`https://graph.facebook.com/v21.0/${page_id}/feed`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-      result = await postResp.json();
-    } else if (photo_url) {
-      // Photo-only post (no link)
+    if (photo_url) {
+      // Photo post — shows the branded ad image prominently
+      // The link is included in the message text and will be clickable
       const postResp = await fetch(`https://graph.facebook.com/v21.0/${page_id}/photos`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
