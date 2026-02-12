@@ -77,3 +77,6 @@ verify_jwt = false
 
 [functions.facebook-post-listing]
 verify_jwt = false
+
+[functions.og-listing]
+verify_jwt = false
