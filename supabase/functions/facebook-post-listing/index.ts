@@ -42,8 +42,24 @@ serve(async (req) => {
 
     let result;
 
-    if (photo_url) {
-      // Post with photo
+    if (link) {
+      // Link share post — creates a clickable card on Facebook
+      const body: any = {
+        message,
+        link,
+        access_token: page_access_token,
+      };
+      // Attach the ad image as the preview picture for the link card
+      if (photo_url) body.picture = photo_url;
+
+      const postResp = await fetch(`https://graph.facebook.com/v21.0/${page_id}/feed`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      result = await postResp.json();
+    } else if (photo_url) {
+      // Photo-only post (no link)
       const postResp = await fetch(`https://graph.facebook.com/v21.0/${page_id}/photos`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -55,17 +71,14 @@ serve(async (req) => {
       });
       result = await postResp.json();
     } else {
-      // Text post (with optional link)
-      const body: any = {
-        message,
-        access_token: page_access_token,
-      };
-      if (link) body.link = link;
-
+      // Text-only post
       const postResp = await fetch(`https://graph.facebook.com/v21.0/${page_id}/feed`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
+        body: JSON.stringify({
+          message,
+          access_token: page_access_token,
+        }),
       });
       result = await postResp.json();
     }
