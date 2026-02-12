@@ -204,10 +204,13 @@ const AdGeneratorPanel = ({ listing, autoGenerate = false }: AdGeneratorPanelPro
         }),
       });
       const postData = await postResp.json();
+      console.log('[FB] Post response:', postData);
       if (postData.error) throw new Error(postData.error);
 
+      const returnedPostId = postData.post_id || postData.id || null;
+      console.log('[FB] Setting postId to:', returnedPostId);
       setPosted(true);
-      setPostId(postData.post_id || null);
+      setPostId(returnedPostId);
       
       // Show warning if scrape had issues
       if (postData.warning) {
