@@ -386,7 +386,7 @@ const ListingDetail = () => {
       <div className="flex-1 min-w-0">
       {/* Tool Panel Overlay - hidden on public site */}
       {!isPublic && activeTool && (
-        <div className="sticky top-0 z-40 bg-background/95 backdrop-blur border-b border-border p-4">
+        <div className="sticky top-0 z-40 bg-background/95 backdrop-blur border-b border-border p-4 max-h-screen overflow-y-auto">
           {activeTool === 'generate-ad' ? (
             <AdGeneratorPanel listing={listing} autoGenerate />
           ) : activeTool === 'fb-post' ? (
