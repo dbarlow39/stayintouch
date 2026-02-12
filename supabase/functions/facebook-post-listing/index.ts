@@ -43,14 +43,12 @@ serve(async (req) => {
     let result;
 
     if (link) {
-      // Link share post — creates a clickable card on Facebook
+      // Link share post — Facebook will scrape OG tags from the link for the preview
       const body: any = {
         message,
         link,
         access_token: page_access_token,
       };
-      // Attach the ad image as the preview picture for the link card
-      if (photo_url) body.picture = photo_url;
 
       const postResp = await fetch(`https://graph.facebook.com/v21.0/${page_id}/feed`, {
         method: "POST",
