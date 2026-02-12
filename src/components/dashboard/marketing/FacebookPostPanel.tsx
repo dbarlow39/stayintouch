@@ -21,6 +21,7 @@ const FacebookPostPanel = ({ listing }: FacebookPostPanelProps) => {
   const [loading, setLoading] = useState(true);
   const [posting, setPosting] = useState(false);
   const [posted, setPosted] = useState(false);
+  const [postId, setPostId] = useState<string | null>(null);
   const [message, setMessage] = useState('');
 
   const fullAddress = `${listing.address}, ${listing.city}, ${listing.state} ${listing.zip}`;
@@ -169,6 +170,7 @@ const FacebookPostPanel = ({ listing }: FacebookPostPanelProps) => {
       const data = await resp.json();
       if (data.error) throw new Error(data.error);
       setPosted(true);
+      setPostId(data.post_id || null);
       toast.success('Posted to Facebook! 🎉');
       setTimeout(() => setPosted(false), 5000);
     } catch (err: any) {
@@ -241,6 +243,16 @@ const FacebookPostPanel = ({ listing }: FacebookPostPanelProps) => {
               <><ExternalLink className="w-4 h-4 mr-2" /> Post to Facebook Page</>
             )}
           </Button>
+          {postId && (
+            <Button
+              onClick={() => window.open(`https://www.facebook.com/${postId}`, '_blank')}
+              variant="outline"
+              className="w-full mt-2"
+              size="sm"
+            >
+              <ExternalLink className="w-4 h-4 mr-2" /> Boost This Post on Facebook
+            </Button>
+          )}
         </>
       )}
     </div>
