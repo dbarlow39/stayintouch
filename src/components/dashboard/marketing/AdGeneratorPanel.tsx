@@ -173,7 +173,7 @@ const AdGeneratorPanel = ({ listing, autoGenerate = false }: AdGeneratorPanelPro
     if (!adRef.current) { setGenerating(false); return; }
     try {
       const canvas = await html2canvas(adRef.current, {
-        scale: 1,
+        scale: 2,
         useCORS: true,
         allowTaint: false,
         backgroundColor: '#1a1a2e',
