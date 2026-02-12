@@ -326,11 +326,11 @@ const AdGeneratorPanel = ({ listing, autoGenerate = false }: AdGeneratorPanelPro
                 <span>{listing.baths} Baths</span>
                 <span>{(listing.sqft || 0).toLocaleString()} Sq Ft</span>
               </div>
-              <div style={{ backgroundColor: '#cc0000', borderRadius: 10, cursor: 'pointer',
+              <div style={{ backgroundColor: '#cc0000', borderRadius: 10,
                 paddingLeft: 24, paddingRight: 24, paddingTop: 8, paddingBottom: 8, textAlign: 'center', overflow: 'hidden' }}>
-                <span style={{ color: '#ffffff', fontSize: 27, fontWeight: 800, letterSpacing: 1, whiteSpace: 'nowrap',
+                <span style={{ color: '#ffffff', fontSize: 22, fontWeight: 800, letterSpacing: 1, whiteSpace: 'nowrap',
                   display: 'inline-block', position: 'relative', top: -12 }}>
-                  Click for more info
+                  listings.sellfor1percent.com
                 </span>
               </div>
             </div>
