@@ -16,6 +16,7 @@ import ListingToolPanel from '@/components/dashboard/marketing/ListingToolPanel'
 import FacebookPostPanel from '@/components/dashboard/marketing/FacebookPostPanel';
 import AdGeneratorPanel from '@/components/dashboard/marketing/AdGeneratorPanel';
 import { supabase } from '@/integrations/supabase/client';
+import PhoneCallTextLink from '@/components/PhoneCallTextLink';
 import { useAuth } from '@/lib/auth';
 import { toast } from 'sonner';
 
@@ -603,9 +604,9 @@ const ListingDetail = () => {
                   ? listing.agent.phone
                   : agentPhoneMap[listing.agent.name] || '';
                 return phone ? (
-                  <a href={`tel:${phone}`} className="text-sm text-primary hover:underline block mt-1">
+                  <PhoneCallTextLink phone={phone} inline className="text-sm block mt-1">
                     {phone}
-                  </a>
+                  </PhoneCallTextLink>
                 ) : null;
               })()}
               {listing.agent.email && (

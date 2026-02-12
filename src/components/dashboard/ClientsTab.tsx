@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Plus, Upload, Pencil, Trash2, Filter, CalendarIcon, FileUp, MessageSquare, Search } from "lucide-react";
+import PhoneCallTextLink from "@/components/PhoneCallTextLink";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth";
 import { z } from "zod";
@@ -1025,31 +1026,23 @@ const ClientsTab = ({ onSelectClientForEstimate }: ClientsTabProps) => {
                         const hasDigits = /\d/.test(client.cell_phone);
                         
                         if (hasDigits && phoneMatch) {
-                          const phoneNumber = phoneMatch[0].trim();
+                         const phoneNumber = phoneMatch[0].trim();
                           if (hasLetters) {
-                            // Has both name and number - split them
                             const parts = client.cell_phone.split(phoneNumber);
                             return (
                               <span>
                                 {parts[0]}
-                                <a 
-                                  href={`tel:${phoneNumber}`}
-                                  className="text-primary hover:underline"
-                                >
+                                <PhoneCallTextLink phone={phoneNumber} inline>
                                   {phoneNumber}
-                                </a>
+                                </PhoneCallTextLink>
                                 {parts[1]}
                               </span>
                             );
                           } else {
-                            // Only number - make it all clickable
                             return (
-                              <a 
-                                href={`tel:${phoneNumber}`}
-                                className="text-primary hover:underline"
-                              >
+                              <PhoneCallTextLink phone={phoneNumber} inline>
                                 {client.cell_phone}
-                              </a>
+                              </PhoneCallTextLink>
                             );
                           }
                         }
@@ -1072,21 +1065,9 @@ const ClientsTab = ({ onSelectClientForEstimate }: ClientsTabProps) => {
                   </TableCell>
                   <TableCell>
                     {client.cell_phone ? (
-                      (() => {
-                        const digits = client.cell_phone.replace(/\D/g, '');
-                        if (digits.length >= 3) {
-                          return (
-                            <a 
-                              href={`tel:${digits}`}
-                              onClick={(e) => e.stopPropagation()}
-                              className="text-primary hover:underline"
-                            >
-                              {client.cell_phone}
-                            </a>
-                          );
-                        }
-                        return <span>{client.cell_phone}</span>;
-                      })()
+                      <PhoneCallTextLink phone={client.cell_phone} inline>
+                        {client.cell_phone}
+                      </PhoneCallTextLink>
                     ) : "—"}
                   </TableCell>
                   <TableCell>{client.showings_to_date ?? "—"}</TableCell>
