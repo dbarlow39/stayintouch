@@ -250,7 +250,7 @@ const AdGeneratorPanel = ({ listing, autoGenerate = false }: AdGeneratorPanelPro
 
 
 
-      <Button onClick={generateAd} disabled={generating} className="w-full mb-3" size="sm">
+      <Button onClick={generateAd} disabled={generating} className="w-full mb-3 !bg-green-600 hover:!bg-green-700 !text-white" size="sm">
         {generating ? (
           <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Generating...</>
         ) : (
@@ -264,11 +264,11 @@ const AdGeneratorPanel = ({ listing, autoGenerate = false }: AdGeneratorPanelPro
             <img src={previewUrl} alt="Generated ad" className="w-full" />
           </div>
 
-          {fbConnected && (
+           {fbConnected && (
             <Button
               onClick={postToFacebook}
               disabled={posting || posted}
-              className="w-full"
+              className="w-full !bg-green-600 hover:!bg-green-700 !text-white"
               size="sm"
             >
               {posted ? (
