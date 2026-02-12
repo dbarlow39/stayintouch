@@ -177,8 +177,8 @@ const AdGeneratorPanel = ({ listing, autoGenerate = false }: AdGeneratorPanelPro
         useCORS: true,
         allowTaint: false,
         backgroundColor: '#1a1a2e',
-        width: 1080,
-        height: 1080,
+        width: 1200,
+        height: 630,
         scrollX: 0,
         scrollY: 0,
       });
@@ -278,12 +278,12 @@ const AdGeneratorPanel = ({ listing, autoGenerate = false }: AdGeneratorPanelPro
         </Select>
       </div>
 
-      {/* Hidden ad template for html2canvas */}
-      <div style={{ position: 'fixed', left: '-9999px', top: 0, width: 1080, height: 1080, overflow: 'visible', zIndex: -1 }}>
+      {/* Hidden ad template for html2canvas — 1200×630 for Facebook link share */}
+      <div style={{ position: 'fixed', left: '-9999px', top: 0, width: 1200, height: 630, overflow: 'visible', zIndex: -1 }}>
         <div
           ref={adRef}
           style={{
-            width: 1080, minWidth: 1080, height: 1080, minHeight: 1080,
+            width: 1200, minWidth: 1200, height: 630, minHeight: 630,
             fontFamily: "'Segoe UI', Arial, sans-serif",
             position: 'relative', overflow: 'hidden',
             backgroundColor: '#1a1a2e',
@@ -297,58 +297,57 @@ const AdGeneratorPanel = ({ listing, autoGenerate = false }: AdGeneratorPanelPro
               background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)' }} />
           )}
           <div style={{ position: 'absolute', inset: 0,
-            background: 'linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.15) 40%, rgba(0,0,0,0.7) 75%, rgba(0,0,0,0.85) 100%)' }} />
+            background: 'linear-gradient(to bottom, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.1) 40%, rgba(0,0,0,0.65) 70%, rgba(0,0,0,0.85) 100%)' }} />
 
           {/* Red banner */}
           <div style={{
             position: 'absolute', top: 0, left: 0, right: 0,
             backgroundColor: '#cc0000', color: '#ffffff', textAlign: 'center',
-            padding: '14px 120px 68px 120px', fontSize: 55, fontWeight: 800,
-            letterSpacing: 6, textTransform: 'uppercase', zIndex: 10,
+            padding: '10px 100px', fontSize: 36, fontWeight: 800,
+            letterSpacing: 5, textTransform: 'uppercase', zIndex: 10,
           }}>
             {bannerText}
-            <img src={logo} alt="Logo" style={{ position: 'absolute', right: 30, top: '50%', transform: 'translateY(-50%)', height: 70, borderRadius: 6 }} />
+            <img src={logo} alt="Logo" style={{ position: 'absolute', right: 20, top: '50%', transform: 'translateY(-50%)', height: 44, borderRadius: 4 }} />
           </div>
 
           {/* Property details */}
-          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '40px 48px', zIndex: 10 }}>
-            <div style={{ color: '#ffffff', fontSize: 72, fontWeight: 800, marginBottom: 8,
-              textShadow: '0 4px 8px rgba(0,0,0,0.5)' }}>
+          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '20px 36px', zIndex: 10 }}>
+            <div style={{ color: '#ffffff', fontSize: 52, fontWeight: 800, marginBottom: 4,
+              textShadow: '0 3px 6px rgba(0,0,0,0.5)' }}>
               {formatListingPrice(listing.price)}
             </div>
-            <div style={{ color: '#e0e0e0', fontSize: 32, fontWeight: 600, marginBottom: 20,
-              textShadow: '0 2px 6px rgba(0,0,0,0.5)' }}>
+            <div style={{ color: '#e0e0e0', fontSize: 24, fontWeight: 600, marginBottom: 12,
+              textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>
               {fullAddress}
             </div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              marginBottom: 28, textShadow: '0 2px 6px rgba(0,0,0,0.5)' }}>
-              <div style={{ display: 'flex', gap: 40, color: '#ffffff', fontSize: 30, fontWeight: 600 }}>
+              marginBottom: 14, textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>
+              <div style={{ display: 'flex', gap: 30, color: '#ffffff', fontSize: 22, fontWeight: 600 }}>
                 <span>{listing.beds} Beds</span>
                 <span>{listing.baths} Baths</span>
                 <span>{(listing.sqft || 0).toLocaleString()} Sq Ft</span>
               </div>
-              <div style={{ backgroundColor: '#cc0000', borderRadius: 10, cursor: 'pointer',
-                paddingLeft: 24, paddingRight: 24, paddingTop: 8, paddingBottom: 8, textAlign: 'center', overflow: 'hidden' }}>
-                <span style={{ color: '#ffffff', fontSize: 27, fontWeight: 800, letterSpacing: 1, whiteSpace: 'nowrap',
-                  display: 'inline-block', position: 'relative', top: -12 }}>
+              <div style={{ backgroundColor: '#cc0000', borderRadius: 8,
+                paddingLeft: 18, paddingRight: 18, paddingTop: 6, paddingBottom: 6, textAlign: 'center' }}>
+                <span style={{ color: '#ffffff', fontSize: 20, fontWeight: 800, letterSpacing: 1, whiteSpace: 'nowrap' }}>
                   Click for more info
                 </span>
               </div>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 12, padding: '16px 24px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                <img src={logo} alt="Logo" style={{ height: 60, borderRadius: 8 }} />
+              backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 8, padding: '10px 18px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <img src={logo} alt="Logo" style={{ height: 40, borderRadius: 6 }} />
                 <div>
-                  <div style={{ color: '#ffffff', fontSize: 24, fontWeight: 700 }}>
+                  <div style={{ color: '#ffffff', fontSize: 18, fontWeight: 700 }}>
                     {listing.agent?.name || 'Agent'}
                   </div>
-                   <div style={{ color: '#bbbbbb', fontSize: 20 }}>
+                   <div style={{ color: '#bbbbbb', fontSize: 15 }}>
                      {agentPhone}
                    </div>
                 </div>
               </div>
-              <div style={{ color: '#cccccc', fontSize: 20 }}>MLS# {listing.mlsNumber}</div>
+              <div style={{ color: '#cccccc', fontSize: 15 }}>MLS# {listing.mlsNumber}</div>
             </div>
           </div>
         </div>
