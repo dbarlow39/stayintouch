@@ -78,6 +78,9 @@ Deno.serve(async (req) => {
   const esc = (s: string) =>
     s.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
+  // Build the edge function's own URL for og:url so Facebook doesn't follow to the SPA
+  const selfUrl = `${SUPABASE_URL}/functions/v1/og-listing?id=${listingId}`;
+
   const html = `<!DOCTYPE html>
 <html>
 <head>
@@ -86,7 +89,7 @@ Deno.serve(async (req) => {
   <meta property="og:title" content="${esc(ogTitle)}" />
   <meta property="og:description" content="${esc(ogDescription)}" />
   <meta property="og:image" content="${esc(ogImage)}" />
-  <meta property="og:url" content="${esc(listingPageUrl)}" />
+  <meta property="og:url" content="${esc(selfUrl)}" />
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="Sellfor1Percent.com" />
   <meta name="twitter:card" content="summary_large_image" />
