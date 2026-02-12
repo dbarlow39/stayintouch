@@ -168,9 +168,12 @@ const FacebookPostPanel = ({ listing }: FacebookPostPanelProps) => {
         body: JSON.stringify(body),
       });
       const data = await resp.json();
+      console.log('[FB] Post response:', data);
       if (data.error) throw new Error(data.error);
+      const returnedPostId = data.post_id || data.id || null;
+      console.log('[FB] Setting postId to:', returnedPostId);
       setPosted(true);
-      setPostId(data.post_id || null);
+      setPostId(returnedPostId);
       toast.success('Posted to Facebook! 🎉');
       setTimeout(() => setPosted(false), 5000);
     } catch (err: any) {
