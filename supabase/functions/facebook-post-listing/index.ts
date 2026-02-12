@@ -41,10 +41,54 @@ serve(async (req) => {
     }
 
     let result;
+    let warning: string | undefined;
 
     if (link) {
-      // Link share post — creates a clickable card on Facebook
-      // Facebook will scrape the OG image from the edge function URL
+      // Link share post — creates a clickable card on Facebook with OG metadata
+      // Pre-scrape with HEAD request verification and retries
+      let scrapedSuccessfully = false;
+      let retries = 0;
+      const MAX_RETRIES = 3;
+      
+      // Verify image URL is accessible and scrape the link for og:image
+      if (link.includes("&image=")) {
+        while (retries < MAX_RETRIES && !scrapedSuccessfully) {
+          try {
+            const headResp = await fetch(link, { method: "HEAD" });
+            if (headResp.ok) {
+              // URL is accessible, now scrape it
+              const scrapeResp = await fetch(
+                `https://graph.facebook.com/?id=${encodeURIComponent(link)}&scrape=true`,
+                {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                }
+              );
+              scrapedSuccessfully = scrapeResp.ok;
+              if (scrapedSuccessfully) {
+                console.log("[facebook-post] Pre-scrape successful for link:", link);
+              }
+            }
+          } catch (scrapeErr) {
+            console.error(`[facebook-post] Scrape attempt ${retries + 1} failed:`, scrapeErr);
+          }
+          
+          if (!scrapedSuccessfully && retries < MAX_RETRIES - 1) {
+            // Wait 2 seconds before retrying
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            retries++;
+          } else {
+            break;
+          }
+        }
+        
+        if (!scrapedSuccessfully) {
+          console.warn("[facebook-post] Pre-scrape failed after retries, posting anyway");
+          warning = "Post published but the preview image may take a moment to appear. You can refresh it from Facebook.";
+        }
+      }
+
+      // Post the link with OG metadata
       const body: any = {
         message,
         link,
@@ -90,6 +134,7 @@ serve(async (req) => {
     return new Response(JSON.stringify({
       success: true,
       post_id: result.id || result.post_id,
+      warning,
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

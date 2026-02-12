@@ -3,7 +3,7 @@
  * Facebook's scraper hits this URL and gets proper title/image/description.
  * Real browsers get redirected to the actual listing page.
  *
- * Usage: GET /og-listing?id=<listing_id>
+ * Usage: GET /og-listing?id=<listing_id>&image=<branded_image_url>
  */
 
 Deno.serve(async (req) => {
@@ -18,6 +18,7 @@ Deno.serve(async (req) => {
 
   const url = new URL(req.url);
   const listingId = url.searchParams.get("id");
+  const brandedImageUrl = url.searchParams.get("image");
 
   if (!listingId) {
     return new Response("Missing id parameter", { status: 400 });
@@ -75,6 +76,16 @@ Deno.serve(async (req) => {
     console.error("[og-listing] Error fetching listing:", err);
   }
 
+  // Use branded image if provided (for Facebook link posts with custom ad images)
+  if (brandedImageUrl) {
+    try {
+      ogImage = decodeURIComponent(brandedImageUrl);
+      }
+    } catch (err) {
+      console.error("[og-listing] Error with branded image URL:", err);
+    }
+  }
+
   const esc = (s: string) =>
     s.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
@@ -85,18 +96,20 @@ Deno.serve(async (req) => {
   const html = `<!DOCTYPE html>
 <html>
 <head>
-  <meta charset="utf-8" />
-  <title>${esc(ogTitle)}</title>
-  <meta property="og:title" content="${esc(ogTitle)}" />
-  <meta property="og:description" content="${esc(ogDescription)}" />
-  <meta property="og:image" content="${esc(ogImage)}" />
-  <meta property="og:url" content="${esc(ogUrl)}" />
-  <meta property="og:type" content="website" />
-  <meta property="og:site_name" content="Sellfor1Percent.com" />
-  <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="${esc(ogTitle)}" />
-  <meta name="twitter:description" content="${esc(ogDescription)}" />
-  <meta name="twitter:image" content="${esc(ogImage)}" />
+   <meta charset="utf-8" />
+   <title>${esc(ogTitle)}</title>
+   <meta property="og:title" content="${esc(ogTitle)}" />
+   <meta property="og:description" content="${esc(ogDescription)}" />
+   <meta property="og:image" content="${esc(ogImage)}" />
+   <meta property="og:image:width" content="2400" />
+   <meta property="og:image:height" content="1260" />
+   <meta property="og:url" content="${esc(ogUrl)}" />
+   <meta property="og:type" content="website" />
+   <meta property="og:site_name" content="Sellfor1Percent.com" />
+   <meta name="twitter:card" content="summary_large_image" />
+   <meta name="twitter:title" content="${esc(ogTitle)}" />
+   <meta name="twitter:description" content="${esc(ogDescription)}" />
+   <meta name="twitter:image" content="${esc(ogImage)}" />
 </head>
 <body>
    <p>Redirecting to <a href="${esc(listingPageUrl)}">${esc(ogTitle)}</a>...</p>
