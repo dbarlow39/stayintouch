@@ -196,7 +196,7 @@ const AdGeneratorPanel = ({ listing, autoGenerate = false }: AdGeneratorPanelPro
           agent_id: user.id,
           message,
           photo_url: publicUrl,
-          link: ogListingUrl,
+          link: listingUrl,
         }),
       });
       const postData = await postResp.json();
