@@ -34,11 +34,9 @@ const PublicListings = () => {
       if (result.success && result.data && result.data.length > 0) {
         setListings(result.data);
         sessionStorage.setItem('public_mls_listings', JSON.stringify(result.data));
-      } else {
-        setListings(mockMarketingListings);
       }
     } catch {
-      setListings(mockMarketingListings);
+      // Keep cached data on error
     } finally {
       setIsLoading(false);
     }

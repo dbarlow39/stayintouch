@@ -12,14 +12,13 @@ const MarketingTab = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const CACHE_KEY = 'mls_listings_cache';
-  const CACHE_TTL = 1000 * 60 * 60; // 1 hour
 
   const [listings, setListings] = useState<MarketingListing[]>(() => {
     try {
       const raw = localStorage.getItem(CACHE_KEY);
       if (raw) {
-        const { data, ts } = JSON.parse(raw);
-        if (Date.now() - ts < CACHE_TTL && data?.length) return data;
+        const { data } = JSON.parse(raw);
+        if (data?.length) return data;
       }
     } catch {}
     return mockMarketingListings;
@@ -28,8 +27,8 @@ const MarketingTab = () => {
     try {
       const raw = localStorage.getItem(CACHE_KEY);
       if (raw) {
-        const { ts, data } = JSON.parse(raw);
-        return Date.now() - ts < CACHE_TTL && data?.length > 0;
+        const { data } = JSON.parse(raw);
+        return data?.length > 0;
       }
     } catch {}
     return false;
@@ -43,37 +42,33 @@ const MarketingTab = () => {
       if (result.success && result.data && result.data.length > 0) {
         setListings(result.data);
         setIsLive(true);
-        localStorage.setItem(CACHE_KEY, JSON.stringify({ data: result.data, ts: Date.now() }));
+        localStorage.setItem(CACHE_KEY, JSON.stringify({ data: result.data }));
         toast.success(`Synced ${result.data.length} listings from MLS`);
       } else {
-        toast.error(result.error || 'No listings returned. Using demo data.');
-        setListings(mockMarketingListings);
+        toast.error(result.error || 'No listings returned. Using cached data.');
         setIsLive(false);
-        localStorage.removeItem(CACHE_KEY);
       }
     } catch (err) {
       console.error('Sync error:', err);
-      toast.error('Could not connect to MLS. Using demo data.');
-      setListings(mockMarketingListings);
+      toast.error('Could not connect to MLS. Using cached data.');
       setIsLive(false);
-      localStorage.removeItem(CACHE_KEY);
     } finally {
       setIsSyncing(false);
     }
   }, []);
 
   useEffect(() => {
-    const hasFreshCache = (() => {
+    const hasCachedData = (() => {
       try {
         const raw = localStorage.getItem(CACHE_KEY);
         if (raw) {
-          const { ts, data } = JSON.parse(raw);
-          return Date.now() - ts < CACHE_TTL && data?.length > 0;
+          const { data } = JSON.parse(raw);
+          return data?.length > 0;
         }
       } catch {}
       return false;
     })();
-    if (!hasFreshCache) {
+    if (!hasCachedData) {
       syncFromMLS();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
