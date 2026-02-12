@@ -42,23 +42,32 @@ serve(async (req) => {
 
     let result;
 
-    if (link) {
-      // Link share post — creates a clickable card on Facebook
-      const body: any = {
-        message,
-        link,
-        access_token: page_access_token,
-      };
-      // Attach the ad image as the preview picture for the link card
-      if (photo_url) body.picture = photo_url;
-
+    if (photo_url) {
+      // Photo post with the link included in the message text
+      const fullMessage = link ? `${message}\n\n${link}` : message;
+      const postResp = await fetch(`https://graph.facebook.com/v21.0/${page_id}/photos`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          url: photo_url,
+          message: fullMessage,
+          access_token: page_access_token,
+        }),
+      });
+      result = await postResp.json();
+    } else if (link) {
+      // Link-only post (no photo) — lets Facebook scrape OG tags
       const postResp = await fetch(`https://graph.facebook.com/v21.0/${page_id}/feed`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
+        body: JSON.stringify({
+          message,
+          link,
+          access_token: page_access_token,
+        }),
       });
       result = await postResp.json();
-    } else if (photo_url) {
+    } else if (false) {
       // Photo-only post (no link)
       const postResp = await fetch(`https://graph.facebook.com/v21.0/${page_id}/photos`, {
         method: "POST",
