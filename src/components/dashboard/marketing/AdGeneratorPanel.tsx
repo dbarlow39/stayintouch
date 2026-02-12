@@ -218,8 +218,6 @@ const AdGeneratorPanel = ({ listing, autoGenerate = false }: AdGeneratorPanelPro
       } else {
         toast.success('Ad posted to Facebook! 🎉');
       }
-      
-      setTimeout(() => setPosted(false), 5000);
     } catch (err: any) {
       toast.error(err.message || 'Failed to post to Facebook');
     }

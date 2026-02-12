@@ -175,7 +175,6 @@ const FacebookPostPanel = ({ listing }: FacebookPostPanelProps) => {
       setPosted(true);
       setPostId(returnedPostId);
       toast.success('Posted to Facebook! 🎉');
-      setTimeout(() => setPosted(false), 5000);
     } catch (err: any) {
       toast.error(err.message || 'Failed to post to Facebook');
     }
