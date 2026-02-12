@@ -185,7 +185,11 @@ const AdGeneratorPanel = ({ listing, autoGenerate = false }: AdGeneratorPanelPro
       const { data: urlData } = supabase.storage.from('ad-images').getPublicUrl(fileName);
       const publicUrl = urlData.publicUrl;
 
-      // Post to Facebook with the image
+      // Build OG URL with cache-busting timestamp for fresh metadata on each post
+      const timestamp = Math.floor(Date.now() / 1000);
+      const ogUrlWithImage = `${ogListingUrl}&image=${encodeURIComponent(publicUrl)}&v=${timestamp}`;
+
+      // Post to Facebook as a link post (shows OG preview card with branded image)
       const price = formatListingPrice(listing.price);
       const message = `🏠 ${bannerText}\n\n📍 ${fullAddress}\n💰 ${price}\n🛏️ ${listing.beds} Beds | 🛁 ${listing.baths} Baths | 📐 ${listing.sqft.toLocaleString()} sqft\n\n👉 More info: ${listingUrl}\n\n📞 Contact ${listing.agent?.name || 'us'} for details!\n\n#RealEstate #${listing.city.replace(/\s/g, '')} #HomeForSale`;
 
@@ -195,14 +199,21 @@ const AdGeneratorPanel = ({ listing, autoGenerate = false }: AdGeneratorPanelPro
         body: JSON.stringify({
           agent_id: user.id,
           message,
-          photo_url: publicUrl,
+          link: ogUrlWithImage,
         }),
       });
       const postData = await postResp.json();
       if (postData.error) throw new Error(postData.error);
 
       setPosted(true);
-      toast.success('Ad posted to Facebook! 🎉');
+      
+      // Show warning if scrape had issues
+      if (postData.warning) {
+        toast.info(postData.warning);
+      } else {
+        toast.success('Ad posted to Facebook! 🎉');
+      }
+      
       setTimeout(() => setPosted(false), 5000);
     } catch (err: any) {
       toast.error(err.message || 'Failed to post to Facebook');
