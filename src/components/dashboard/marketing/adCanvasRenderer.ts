@@ -132,7 +132,7 @@ export async function renderAdCanvas(opts: RenderOptions): Promise<string> {
   ctx.textAlign = 'left';
   ctx.textBaseline = 'bottom';
   ctx.fillStyle = '#ffffff';
-  ctx.font = '600 22px "Segoe UI", Arial, sans-serif';
+  ctx.font = '600 29px "Segoe UI", Arial, sans-serif';
   ctx.shadowColor = 'rgba(0,0,0,0.5)';
   ctx.shadowBlur = 4;
   ctx.shadowOffsetY = 2;
