@@ -42,41 +42,24 @@ serve(async (req) => {
 
     let result;
 
-    if (photo_url && link) {
-      // Strategy: Post as a LINK post where the og:image is the branded ad image.
-      // The link points to the og-listing edge function with &img= param,
-      // so Facebook's scraper picks up the branded image as the OG image
-      // and shows the link preview card underneath.
+    if (link) {
+      // Link share post — creates a clickable card on Facebook
+      const body: any = {
+        message,
+        link,
+        access_token: page_access_token,
+      };
+      // Attach the ad image as the preview picture for the link card
+      if (photo_url) body.picture = photo_url;
 
-      // Build the OG link URL with the custom image parameter
-      const ogLinkUrl = `${link}${link.includes("?") ? "&" : "?"}img=${encodeURIComponent(photo_url)}`;
-
-      // Step 1: Force Facebook to scrape/re-scrape the URL so it picks up the branded image
-      console.log("[FB] Force-scraping OG URL:", ogLinkUrl);
-      try {
-        const scrapeResp = await fetch(
-          `https://graph.facebook.com/v21.0/?id=${encodeURIComponent(ogLinkUrl)}&scrape=true&access_token=${page_access_token}`,
-          { method: "POST" }
-        );
-        const scrapeResult = await scrapeResp.json();
-        console.log("[FB] Scrape result:", JSON.stringify(scrapeResult));
-      } catch (scrapeErr) {
-        console.warn("[FB] Scrape warning (non-fatal):", scrapeErr);
-      }
-
-      // Step 2: Post as a link post - Facebook will use the scraped OG tags
       const postResp = await fetch(`https://graph.facebook.com/v21.0/${page_id}/feed`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          message,
-          link: ogLinkUrl,
-          access_token: page_access_token,
-        }),
+        body: JSON.stringify(body),
       });
       result = await postResp.json();
     } else if (photo_url) {
-      // Photo post (no link) — shows the branded ad image prominently
+      // Photo-only post (no link)
       const postResp = await fetch(`https://graph.facebook.com/v21.0/${page_id}/photos`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },

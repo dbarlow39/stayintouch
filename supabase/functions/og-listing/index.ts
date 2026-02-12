@@ -2,9 +2,6 @@
  * Serves dynamic Open Graph meta tags for a specific listing.
  * Facebook's scraper (facebookexternalhit) gets HTML with OG tags.
  * Real browsers get a 302 redirect to the actual listing page.
- *
- * Supports an optional `img` query param to override the og:image
- * with a custom branded ad image URL.
  */
 
 Deno.serve(async (req) => {
@@ -19,7 +16,6 @@ Deno.serve(async (req) => {
 
   const url = new URL(req.url);
   const listingId = url.searchParams.get("id");
-  const customImage = url.searchParams.get("img"); // Optional branded ad image URL
 
   if (!listingId) {
     return new Response("Missing id parameter", { status: 400 });
@@ -85,21 +81,13 @@ Deno.serve(async (req) => {
         parts.push("Sellfor1Percent.com");
         ogDescription = parts.join(" | ");
 
-        // Use custom branded ad image if provided, otherwise use listing photo
-        if (customImage) {
-          ogImage = customImage;
-        } else if (listing.photos?.length > 0) {
+        if (listing.photos?.length > 0) {
           ogImage = listing.photos[0];
         }
       }
     }
   } catch (err) {
     console.error("[og-listing] Error fetching listing:", err);
-  }
-
-  // If custom image was provided but we didn't enter the listing block, still use it
-  if (customImage && ogImage !== customImage) {
-    ogImage = customImage;
   }
 
   const esc = (s: string) =>
@@ -113,8 +101,6 @@ Deno.serve(async (req) => {
   <meta property="og:title" content="${esc(ogTitle)}" />
   <meta property="og:description" content="${esc(ogDescription)}" />
   <meta property="og:image" content="${esc(ogImage)}" />
-  <meta property="og:image:width" content="1080" />
-  <meta property="og:image:height" content="1080" />
   <meta property="og:url" content="${esc(listingPageUrl)}" />
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="Sellfor1Percent.com" />
@@ -131,7 +117,7 @@ Deno.serve(async (req) => {
   return new Response(html, {
     headers: {
       "Content-Type": "text/html; charset=utf-8",
-      "Cache-Control": "no-cache, no-store, must-revalidate",
+      "Cache-Control": "public, max-age=3600",
     },
   });
 });
