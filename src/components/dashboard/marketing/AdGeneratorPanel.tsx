@@ -173,7 +173,7 @@ const AdGeneratorPanel = ({ listing, autoGenerate = false }: AdGeneratorPanelPro
     if (!adRef.current) { setGenerating(false); return; }
     try {
       const canvas = await html2canvas(adRef.current, {
-        scale: 2,
+        scale: 3,
         useCORS: true,
         allowTaint: false,
         backgroundColor: '#1a1a2e',
@@ -290,8 +290,8 @@ const AdGeneratorPanel = ({ listing, autoGenerate = false }: AdGeneratorPanelPro
           }}
         >
           {(heroDataUrl || heroPhoto) ? (
-            <div style={{ width: '100%', height: '100%', position: 'absolute', top: 0, left: 0,
-              backgroundImage: `url(${heroDataUrl || heroPhoto})`, backgroundSize: 'cover', backgroundPosition: 'center' }} />
+            <img src={heroDataUrl || heroPhoto} alt="" style={{ width: '100%', height: '100%', position: 'absolute', top: 0, left: 0,
+              objectFit: 'cover', objectPosition: 'center' }} />
           ) : (
             <div style={{ width: '100%', height: '100%', position: 'absolute', top: 0, left: 0,
               background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)' }} />
