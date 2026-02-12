@@ -299,13 +299,13 @@ const AdGeneratorPanel = ({ listing, autoGenerate = false }: AdGeneratorPanelPro
           <div style={{ position: 'absolute', inset: 0,
             background: 'linear-gradient(to bottom, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.1) 40%, rgba(0,0,0,0.65) 70%, rgba(0,0,0,0.85) 100%)' }} />
 
-          {/* Red banner */}
-          <div style={{
-            position: 'absolute', top: 0, left: 0, right: 0,
-            backgroundColor: '#cc0000', color: '#ffffff', textAlign: 'center',
-            padding: '10px 100px', fontSize: 36, fontWeight: 800,
-            letterSpacing: 5, textTransform: 'uppercase', zIndex: 10,
-          }}>
+           {/* Red banner */}
+           <div style={{
+             position: 'absolute', top: 0, left: 0, right: 0,
+             backgroundColor: '#cc0000', color: '#ffffff', textAlign: 'center',
+             padding: '10px 100px 20px 100px', fontSize: 36, fontWeight: 800,
+             letterSpacing: 5, textTransform: 'uppercase', zIndex: 10,
+           }}>
             {bannerText}
             <img src={logo} alt="Logo" style={{ position: 'absolute', right: 20, top: '50%', transform: 'translateY(-50%)', height: 44, borderRadius: 4 }} />
           </div>
@@ -328,11 +328,11 @@ const AdGeneratorPanel = ({ listing, autoGenerate = false }: AdGeneratorPanelPro
                 <span>{(listing.sqft || 0).toLocaleString()} Sq Ft</span>
               </div>
               <div style={{ backgroundColor: '#cc0000', borderRadius: 8,
-                paddingLeft: 18, paddingRight: 18, paddingTop: 6, paddingBottom: 6, textAlign: 'center' }}>
-                <span style={{ color: '#ffffff', fontSize: 20, fontWeight: 800, letterSpacing: 1, whiteSpace: 'nowrap' }}>
-                  Click for more info
-                </span>
-              </div>
+                 paddingLeft: 18, paddingRight: 18, paddingTop: 6, paddingBottom: 12, textAlign: 'center' }}>
+                 <span style={{ color: '#ffffff', fontSize: 20, fontWeight: 800, letterSpacing: 1, whiteSpace: 'nowrap' }}>
+                   Click for more info
+                 </span>
+               </div>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
               backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 8, padding: '10px 18px' }}>
