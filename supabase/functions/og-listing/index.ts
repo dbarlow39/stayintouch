@@ -80,7 +80,6 @@ Deno.serve(async (req) => {
   if (brandedImageUrl) {
     try {
       ogImage = decodeURIComponent(brandedImageUrl);
-      }
     } catch (err) {
       console.error("[og-listing] Error with branded image URL:", err);
     }
