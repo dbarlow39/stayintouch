@@ -20,6 +20,7 @@ import {
   Save,
   BarChart3,
 } from "lucide-react";
+import PhoneCallTextLink from "@/components/PhoneCallTextLink";
 import logo from "@/assets/logo.jpg";
 import ClientFeedbackPage from "./ClientFeedbackPage";
 import ClientCommunicationsView from "./ClientCommunicationsView";
@@ -177,17 +178,17 @@ const ClientDetailModal = ({ client, open, onClose, onClientUpdated }: ClientDet
         return (
           <p className="text-base">
             {parts[0]}
-            <a href={`tel:${phoneNumber}`} className="text-primary hover:underline">
+            <PhoneCallTextLink phone={phoneNumber} inline>
               {phoneNumber}
-            </a>
+            </PhoneCallTextLink>
             {parts[1]}
           </p>
         );
       } else {
         return (
-          <a href={`tel:${phoneNumber}`} className="text-base text-primary hover:underline block">
+          <PhoneCallTextLink phone={phoneNumber} inline className="text-base block">
             {phone}
-          </a>
+          </PhoneCallTextLink>
         );
       }
     }

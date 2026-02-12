@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ArrowLeft, Calendar, Printer } from "lucide-react";
+import PhoneCallTextLink from "@/components/PhoneCallTextLink";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { formatCurrency } from "@/utils/estimatedNetCalculations";
@@ -197,11 +198,10 @@ const UpcomingClosingsView = ({ onBack }: UpcomingClosingsViewProps) => {
 
   const formatPhoneLink = (phone: string | null) => {
     if (!phone) return "—";
-    const digits = phone.replace(/\D/g, "");
     return (
-      <a href={`tel:${digits}`} className="text-primary hover:underline">
+      <PhoneCallTextLink phone={phone} inline>
         {phone}
-      </a>
+      </PhoneCallTextLink>
     );
   };
 

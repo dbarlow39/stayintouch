@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, User, Phone, Mail, Calendar, MessageSquare, Home, Eye } from "lucide-react";
+import PhoneCallTextLink from "@/components/PhoneCallTextLink";
 import { format } from "date-fns";
 import logo from "@/assets/logo.jpg";
 
@@ -99,10 +100,10 @@ const ClientFeedbackPage = ({ clientId, onBack }: ClientFeedbackPageProps) => {
     const digits = phone.replace(/\D/g, '');
     if (digits.length >= 10) {
       return (
-        <a href={`tel:${digits}`} className="text-primary hover:underline flex items-center gap-1">
+        <PhoneCallTextLink phone={phone} inline className="flex items-center gap-1">
           <Phone className="w-3 h-3" />
           {phone}
-        </a>
+        </PhoneCallTextLink>
       );
     }
     return <span>{phone}</span>;
@@ -201,10 +202,10 @@ const ClientFeedbackPage = ({ clientId, onBack }: ClientFeedbackPageProps) => {
               </div>
               {client.cell_phone && (
                 <div>
-                  <a href={`tel:${client.cell_phone.replace(/\D/g, '')}`} className="text-primary hover:underline text-sm flex items-center gap-1">
+                  <PhoneCallTextLink phone={client.cell_phone} inline className="text-sm flex items-center gap-1">
                     <Phone className="w-3 h-3" />
                     {client.cell_phone}
-                  </a>
+                  </PhoneCallTextLink>
                 </div>
               )}
               {client.email && (
