@@ -131,9 +131,13 @@ serve(async (req) => {
       throw new Error(result.error.message || "Failed to post to Facebook");
     }
 
+    // Facebook returns 'id' for feed posts, 'post_id' for photo posts
+    const finalPostId = result.post_id || result.id;
+    console.log("[facebook-post] Result:", JSON.stringify(result), "Final post_id:", finalPostId);
+
     return new Response(JSON.stringify({
       success: true,
-      post_id: result.id || result.post_id,
+      post_id: finalPostId,
       warning,
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
