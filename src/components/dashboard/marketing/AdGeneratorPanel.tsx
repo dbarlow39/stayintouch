@@ -46,6 +46,7 @@ const AdGeneratorPanel = ({ listing, autoGenerate = false }: AdGeneratorPanelPro
   const [generating, setGenerating] = useState(false);
   const [posting, setPosting] = useState(false);
   const [posted, setPosted] = useState(false);
+  const [postId, setPostId] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [heroDataUrl, setHeroDataUrl] = useState<string | null>(null);
   const [fbConnected, setFbConnected] = useState(false);
@@ -206,6 +207,7 @@ const AdGeneratorPanel = ({ listing, autoGenerate = false }: AdGeneratorPanelPro
       if (postData.error) throw new Error(postData.error);
 
       setPosted(true);
+      setPostId(postData.post_id || null);
       
       // Show warning if scrape had issues
       if (postData.warning) {
@@ -291,7 +293,17 @@ const AdGeneratorPanel = ({ listing, autoGenerate = false }: AdGeneratorPanelPro
                 <><Facebook className="w-4 h-4 mr-2" /> Post Ad to Facebook</>
               )}
             </Button>
-          )}
+           )}
+           {postId && (
+             <Button
+               onClick={() => window.open(`https://www.facebook.com/${postId}`, '_blank')}
+               variant="outline"
+               className="w-full mt-2"
+               size="sm"
+             >
+               <ExternalLink className="w-4 h-4 mr-2" /> Boost This Post on Facebook
+             </Button>
+           )}
         </>
       )}
     </div>
