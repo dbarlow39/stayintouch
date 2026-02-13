@@ -17,6 +17,8 @@ const budgetOptions = [
 ];
 
 const durationOptions = [
+  { value: '3', label: '3 days' },
+  { value: '5', label: '5 days' },
   { value: '7', label: '7 days' },
   { value: '14', label: '14 days' },
   { value: '30', label: '30 days' },
@@ -25,15 +27,13 @@ const durationOptions = [
 interface BoostPostFormProps {
   postId: string;
   agentId: string;
-  city?: string;
-  state?: string;
+  zip?: string;
 }
 
-const BoostPostForm = ({ postId, agentId, city, state }: BoostPostFormProps) => {
+const BoostPostForm = ({ postId, agentId, zip }: BoostPostFormProps) => {
   const [dailyBudget, setDailyBudget] = useState('10');
   const [duration, setDuration] = useState('7');
-  const [targetCity, setTargetCity] = useState(city || '');
-  const [targetState, setTargetState] = useState(state || '');
+  const [targetZip, setTargetZip] = useState(zip || '');
   const [boosting, setBoosting] = useState(false);
   const [boosted, setBoosted] = useState(false);
 
@@ -53,8 +53,7 @@ const BoostPostForm = ({ postId, agentId, city, state }: BoostPostFormProps) => 
           post_id: postId,
           daily_budget: Number(dailyBudget),
           duration_days: Number(duration),
-          city: targetCity || undefined,
-          state: targetState || undefined,
+          zip: targetZip || undefined,
         }),
       });
       const data = await resp.json();
@@ -75,7 +74,7 @@ const BoostPostForm = ({ postId, agentId, city, state }: BoostPostFormProps) => 
           Boost active! ${dailyBudget}/day for {duration} days (${totalBudget} total)
         </p>
         <p className="text-xs text-muted-foreground mt-1">
-          Targeting: {targetCity ? `${targetCity}, ${targetState}` : targetState || 'United States'} • Housing category applied
+          Targeting: {targetZip || 'N/A'} (15mi radius) • Housing category applied
         </p>
       </div>
     );
@@ -128,23 +127,15 @@ const BoostPostForm = ({ postId, agentId, city, state }: BoostPostFormProps) => 
 
       <div>
         <label className="text-xs font-medium text-muted-foreground mb-1 block">
-          <MapPin className="w-3 h-3 inline mr-1" />Target Location (25mi radius)
+          <MapPin className="w-3 h-3 inline mr-1" />Target Location (15mi radius)
         </label>
-        <div className="grid grid-cols-2 gap-2">
-          <Input
-            value={targetCity}
-            onChange={e => setTargetCity(e.target.value)}
-            placeholder="City"
-            className="text-sm"
-          />
-          <Input
-            value={targetState}
-            onChange={e => setTargetState(e.target.value)}
-            placeholder="State (e.g. OH)"
-            className="text-sm"
-            maxLength={2}
-          />
-        </div>
+        <Input
+          value={targetZip}
+          onChange={e => setTargetZip(e.target.value)}
+          placeholder="Zip code"
+          className="text-sm"
+          maxLength={5}
+        />
       </div>
 
       <div className="flex items-center justify-between pt-1">

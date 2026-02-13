@@ -300,8 +300,7 @@ const AdGeneratorPanel = ({ listing, autoGenerate = false }: AdGeneratorPanelPro
              <BoostPostForm
                postId={postId}
                agentId={user!.id}
-               city={listing.city}
-               state={listing.state}
+               zip={listing.zip}
              />
            )}
         </>

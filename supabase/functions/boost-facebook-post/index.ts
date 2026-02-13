@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    const { agent_id, post_id, daily_budget, duration_days, city, state } = await req.json();
+    const { agent_id, post_id, daily_budget, duration_days, zip } = await req.json();
 
     if (!agent_id || !post_id || !daily_budget || !duration_days) {
       throw new Error("agent_id, post_id, daily_budget, and duration_days are required");
@@ -73,19 +73,12 @@ serve(async (req) => {
       geo_locations: {},
     };
 
-    if (city && state) {
-      // Use city-based targeting with radius
-      targeting.geo_locations.cities = [{
-        key: `${city}, ${state}`,
-        name: city,
-        region: state,
-        radius: 25,
+    if (zip) {
+      // Use zip code with 15 mile radius
+      targeting.geo_locations.postal_codes = [{
+        key: zip,
+        radius: 15,
         distance_unit: "mile",
-      }];
-    } else if (state) {
-      targeting.geo_locations.regions = [{
-        name: state,
-        country: "US",
       }];
     } else {
       // Default to US-wide
