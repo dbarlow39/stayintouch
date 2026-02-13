@@ -80,3 +80,6 @@ verify_jwt = false
 
 [functions.og-listing]
 verify_jwt = false
+
+[functions.boost-facebook-post]
+verify_jwt = false

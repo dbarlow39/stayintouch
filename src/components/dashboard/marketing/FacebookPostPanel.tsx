@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Facebook, Check, Loader2, Link2, ExternalLink } from 'lucide-react';
+import { Facebook, Check, Loader2, Link2 } from 'lucide-react';
+import BoostPostForm from './BoostPostForm';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/lib/auth';
@@ -242,18 +243,16 @@ const FacebookPostPanel = ({ listing }: FacebookPostPanelProps) => {
             ) : posting ? (
               <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Posting...</>
             ) : (
-              <><ExternalLink className="w-4 h-4 mr-2" /> Post to Facebook Page</>
+              <><Facebook className="w-4 h-4 mr-2" /> Post to Facebook Page</>
             )}
           </Button>
           {postId && (
-            <Button
-              onClick={() => window.open(`https://www.facebook.com/${postId}`, '_blank')}
-              variant="outline"
-              className="w-full mt-2"
-              size="sm"
-            >
-              <ExternalLink className="w-4 h-4 mr-2" /> Boost This Post on Facebook
-            </Button>
+            <BoostPostForm
+              postId={postId}
+              agentId={user!.id}
+              city={listing.city}
+              state={listing.state}
+            />
           )}
         </>
       )}
