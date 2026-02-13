@@ -266,15 +266,15 @@ const AppraisalLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavig
                  >
                    Homeowner
                  </Button>
-                 <Button
-                   variant={letterVariant === "professional" ? "default" : "ghost"}
-                   size="sm"
-                   className={letterVariant === "professional" ? "rounded-none" : "rounded-none"}
-                   onClick={() => setLetterVariant("professional")}
-                   type="button"
-                 >
-                   Professional
-                 </Button>
+                  <Button
+                    variant={letterVariant === "professional" ? "default" : "ghost"}
+                    size="sm"
+                    className={letterVariant === "professional" ? "rounded-none" : "rounded-none"}
+                    onClick={() => setLetterVariant("professional")}
+                    type="button"
+                  >
+                    Lender & Agent
+                  </Button>
                </div>
                <Button onClick={handleCopyToClipboard} size="lg" className="bg-rose-500 hover:bg-rose-600 text-white">
                  <Copy className="mr-2 h-4 w-4" />
