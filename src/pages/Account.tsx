@@ -405,17 +405,23 @@ const Account = () => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="bio">Bio</Label>
+                <Label htmlFor="bio">Signature Line</Label>
                 <Textarea
                   id="bio"
                   value={formData.bio}
                   onChange={(e) => handleChange("bio", e.target.value)}
-                  placeholder="Tell your clients a little about yourself..."
-                  className="min-h-[120px]"
+                  placeholder="Enter your email signature (text or HTML)..."
+                  className="min-h-[120px] font-mono text-sm"
                 />
                 <p className="text-xs text-muted-foreground">
-                  Optional bio for personalized communications
+                  Your signature line for email correspondence. Supports plain text or HTML.
                 </p>
+                {formData.bio && formData.bio.includes("<") && (
+                  <div className="mt-2 p-3 border rounded-md bg-muted/30">
+                    <p className="text-xs font-medium text-muted-foreground mb-1">Preview:</p>
+                    <div className="text-sm" dangerouslySetInnerHTML={{ __html: formData.bio }} />
+                  </div>
+                )}
               </div>
 
               <div className="flex justify-end pt-4">
