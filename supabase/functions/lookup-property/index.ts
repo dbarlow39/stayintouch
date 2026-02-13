@@ -44,15 +44,18 @@ serve(async (req) => {
 
     console.log("Estated API response:", JSON.stringify(result, null, 2));
 
-    // Extract tax information from the response
-    const taxData = {
+    // Extract tax and address information from the response
+    const propertyResult = {
       annual_amount: result.data?.taxes?.[0]?.amount || 0,
       tax_year: result.data?.taxes?.[0]?.year || new Date().getFullYear(),
       assessed_value: result.data?.assessments?.[0]?.assessed_value || 0,
       market_value: result.data?.assessments?.[0]?.market_value || 0,
+      city: result.data?.address?.city || "",
+      state: result.data?.address?.state || "",
+      zip: result.data?.address?.zip_code || "",
     };
 
-    return new Response(JSON.stringify(taxData), {
+    return new Response(JSON.stringify(propertyResult), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error: unknown) {

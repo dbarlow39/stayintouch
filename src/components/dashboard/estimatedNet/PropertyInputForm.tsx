@@ -171,10 +171,10 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
 
   // Auto-lookup property taxes when address fields change (for manual entries without linked client)
   useEffect(() => {
-    if (linkedClientId || editingId || formData.annualTaxes > 0) return; // Skip if client linked, editing, or taxes already filled
+    if (linkedClientId || editingId || formData.annualTaxes > 0) return;
     
-    const { streetAddress, city, state, zip } = formData;
-    if (!streetAddress?.trim() || !city?.trim() || !state?.trim() || !zip?.trim()) return; // Wait for complete address
+    const { streetAddress, state } = formData;
+    if (!streetAddress?.trim() || !state?.trim()) return; // Only need street + state
 
     if (lookupTimeoutRef.current) {
       clearTimeout(lookupTimeoutRef.current);
@@ -186,27 +186,35 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
         const { data, error } = await supabase.functions.invoke('lookup-property', {
           body: {
             address: streetAddress,
-            city,
+            city: formData.city || undefined,
             state,
-            zip,
+            zip: formData.zip || undefined,
           }
         });
 
-        if (!error && data?.annual_amount) {
-          const normalized = Number(data.annual_amount);
-          if (normalized > 0) {
-            setFormData(prev => ({
-              ...prev,
-              annualTaxes: normalized,
-            }));
-          }
+        if (!error && data) {
+          setFormData(prev => {
+            const updates: Partial<PropertyData> = {};
+            const normalizedTax = Number(data.annual_amount);
+            if (normalizedTax > 0 && prev.annualTaxes <= 0) {
+              updates.annualTaxes = normalizedTax;
+            }
+            if (data.city && !prev.city?.trim()) {
+              updates.city = data.city;
+            }
+            if (data.zip && !prev.zip?.trim()) {
+              updates.zip = data.zip;
+            }
+            if (Object.keys(updates).length === 0) return prev;
+            return { ...prev, ...updates };
+          });
         }
       } catch (err) {
         console.error('Property lookup error:', err);
       } finally {
         setLookingUp(false);
       }
-    }, 1000); // 1 second debounce
+    }, 1000);
 
     return () => {
       if (lookupTimeoutRef.current) {
