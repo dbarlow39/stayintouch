@@ -38,7 +38,7 @@ serve(async (req) => {
       throw new Error("Facebook not properly configured. Please reconnect.");
     }
 
-    const AD_ACCOUNT_ID = "563726213662060";
+    const AD_ACCOUNT_ID = "317231352688082";
     const apiBase = "https://graph.facebook.com/v21.0";
 
     // Step 1: Create Campaign with HOUSING special ad category
