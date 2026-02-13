@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -148,8 +148,39 @@ const ClientsTab = ({ onSelectClientForEstimate }: ClientsTabProps) => {
     special_instructions: "",
     agent: "",
     zillow_link: "",
+    annual_taxes: "",
   });
+  const lookupTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  // Auto-lookup property taxes when address fields change (for new clients)
+  useEffect(() => {
+    if (editingClient) return;
+    const { street_number, street_name, city, state, zip, annual_taxes } = formData;
+    if (annual_taxes && annual_taxes !== "0") return;
+    const address = `${street_number} ${street_name}`.trim();
+    if (!address || !city?.trim() || !state?.trim() || !zip?.trim()) return;
+
+    if (lookupTimeoutRef.current) clearTimeout(lookupTimeoutRef.current);
+
+    lookupTimeoutRef.current = setTimeout(async () => {
+      try {
+        const { data, error } = await supabase.functions.invoke('lookup-property', {
+          body: { address, city, state, zip }
+        });
+        if (!error && data?.annual_amount) {
+          const normalized = Number(data.annual_amount);
+          if (normalized > 0) {
+            setFormData(prev => ({ ...prev, annual_taxes: normalized.toString() }));
+          }
+        }
+      } catch (err) {
+        console.error('Property lookup error:', err);
+      }
+    }, 1000);
+
+    return () => { if (lookupTimeoutRef.current) clearTimeout(lookupTimeoutRef.current); };
+  }, [formData.street_number, formData.street_name, formData.city, formData.state, formData.zip, editingClient, formData.annual_taxes]);
 
   const { data: clients = [], isLoading } = useQuery({
     queryKey: ["clients", statusFilter, user?.id],
@@ -193,6 +224,12 @@ const ClientsTab = ({ onSelectClientForEstimate }: ClientsTabProps) => {
       } else {
         submitData.price = null;
       }
+      // Convert annual_taxes to number
+      if (submitData.annual_taxes && submitData.annual_taxes !== '') {
+        submitData.annual_taxes = parseFloat(submitData.annual_taxes);
+      } else {
+        submitData.annual_taxes = null;
+      }
       
       const { error } = await supabase.from("clients").insert(submitData);
       if (error) throw error;
@@ -229,6 +266,12 @@ const ClientsTab = ({ onSelectClientForEstimate }: ClientsTabProps) => {
         submitData.price = parseFloat(submitData.price);
       } else {
         submitData.price = null;
+      }
+      // Convert annual_taxes to number
+      if (submitData.annual_taxes && submitData.annual_taxes !== '') {
+        submitData.annual_taxes = parseFloat(submitData.annual_taxes);
+      } else {
+        submitData.annual_taxes = null;
       }
       
       const { error } = await supabase.from("clients").update(submitData).eq("id", id);
@@ -299,6 +342,7 @@ const ClientsTab = ({ onSelectClientForEstimate }: ClientsTabProps) => {
       special_instructions: "",
       agent: "",
       zillow_link: "",
+      annual_taxes: "",
     });
     setEditingClient(null);
   };
@@ -339,6 +383,7 @@ const ClientsTab = ({ onSelectClientForEstimate }: ClientsTabProps) => {
       special_instructions: client.special_instructions || "",
       agent: client.agent || "",
       zillow_link: client.zillow_link || "",
+      annual_taxes: (client as any).annual_taxes?.toString() || "",
     });
     setOpen(true);
   };
