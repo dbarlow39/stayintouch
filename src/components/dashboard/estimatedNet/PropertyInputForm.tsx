@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { PropertyData } from "@/types/estimatedNet";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, List, Download, Mail, Calendar, FileText, ArrowRight, DollarSign, ClipboardList, Phone, MessageSquare, Search } from "lucide-react";
+import { ArrowLeft, List, Download, Mail, Calendar, FileText, ArrowRight, DollarSign, ClipboardList, Phone, MessageSquare } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import DocumentUploadSection, { ContractExtractedData } from "./DocumentUploadSection";
 import { getEmailClientPreference, openEmailClient } from "@/utils/emailClientUtils";
@@ -109,6 +109,7 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
   const hydratedKeyRef = useRef<string | null>(null);
   const [preApprovalFocused, setPreApprovalFocused] = useState(false);
   const [preApprovalText, setPreApprovalText] = useState<string>("");
+  const lookupTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Helper function to convert text to title case
   const toTitleCase = (text: string): string => {
@@ -167,6 +168,52 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
       onClearInitialClient?.();
     }
   }, [initialClient, editingId, onClearInitialClient]);
+
+  // Auto-lookup property taxes when address fields change (for manual entries without linked client)
+  useEffect(() => {
+    if (linkedClientId || editingId || formData.annualTaxes > 0) return; // Skip if client linked, editing, or taxes already filled
+    
+    const { streetAddress, city, state, zip } = formData;
+    if (!streetAddress?.trim() || !city?.trim() || !state?.trim() || !zip?.trim()) return; // Wait for complete address
+
+    if (lookupTimeoutRef.current) {
+      clearTimeout(lookupTimeoutRef.current);
+    }
+
+    lookupTimeoutRef.current = setTimeout(async () => {
+      setLookingUp(true);
+      try {
+        const { data, error } = await supabase.functions.invoke('lookup-property', {
+          body: {
+            address: streetAddress,
+            city,
+            state,
+            zip,
+          }
+        });
+
+        if (!error && data?.annual_amount) {
+          const normalized = Number(data.annual_amount);
+          if (normalized > 0) {
+            setFormData(prev => ({
+              ...prev,
+              annualTaxes: normalized,
+            }));
+          }
+        }
+      } catch (err) {
+        console.error('Property lookup error:', err);
+      } finally {
+        setLookingUp(false);
+      }
+    }, 1000); // 1 second debounce
+
+    return () => {
+      if (lookupTimeoutRef.current) {
+        clearTimeout(lookupTimeoutRef.current);
+      }
+    };
+  }, [formData.streetAddress, formData.city, formData.state, formData.zip, linkedClientId, editingId, formData.annualTaxes]);
 
   const hydrateMissingFromClient = async (
     clientId: string,
@@ -1350,68 +1397,6 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
                 />
               </div>
             </div>
-            {/* Lookup Property Button - for manual entries without a linked client */}
-            {!linkedClientId && !editingId && formData.streetAddress.trim().length >= 3 && (
-              <div className="md:col-span-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  disabled={lookingUp}
-                  onClick={async () => {
-                    setLookingUp(true);
-                    try {
-                      const { data, error } = await supabase.functions.invoke('lookup-property', {
-                        body: {
-                          address: formData.streetAddress,
-                          city: formData.city,
-                          state: formData.state,
-                          zip: formData.zip,
-                        }
-                      });
-
-                      if (!error && data) {
-                        const annualAmount = data.annual_amount;
-                        const normalized = annualAmount != null ? Number(annualAmount) : 0;
-                        if (normalized > 0) {
-                          setFormData(prev => ({
-                            ...prev,
-                            annualTaxes: normalized,
-                          }));
-                          toast({
-                            title: "Property data found",
-                            description: `Annual taxes: ${new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(normalized)}`,
-                          });
-                        } else {
-                          toast({
-                            title: "No tax data found",
-                            description: "We couldn't find annual tax data for this address.",
-                          });
-                        }
-                      } else {
-                        toast({
-                          title: "Lookup failed",
-                          description: "Could not retrieve property data. Please enter taxes manually.",
-                          variant: "destructive",
-                        });
-                      }
-                    } catch (err) {
-                      console.error('Property lookup error:', err);
-                      toast({
-                        title: "Lookup error",
-                        description: "An error occurred during property lookup.",
-                        variant: "destructive",
-                      });
-                    } finally {
-                      setLookingUp(false);
-                    }
-                  }}
-                >
-                  <Search className="mr-2 h-4 w-4" />
-                  {lookingUp ? "Looking up..." : "Lookup Property Taxes"}
-                </Button>
-              </div>
-            )}
             <div className="md:col-span-2">
               <Label htmlFor="name">Seller(s) Name</Label>
               <Input
