@@ -1086,13 +1086,15 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
         }
       });
 
-      if (!error && data?.matches?.length > 0) {
-        const property = data.matches[0];
-        finalFormData = {
-          ...newFormData,
-          annualTaxes: property.taxes?.annual || newFormData.annualTaxes,
-        };
-        setFormData(finalFormData);
+      if (!error && data?.annual_amount) {
+        const normalized = Number(data.annual_amount);
+        if (normalized > 0) {
+          finalFormData = {
+            ...newFormData,
+            annualTaxes: normalized,
+          };
+          setFormData(finalFormData);
+        }
       }
     } catch (error: any) {
       console.error('Error looking up property:', error);
