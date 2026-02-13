@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Facebook, Check, Loader2, Link2 } from 'lucide-react';
-import BoostPostForm from './BoostPostForm';
+import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Facebook, Check, Loader2, Link2, DollarSign, Calendar, MapPin } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/lib/auth';
@@ -10,6 +12,22 @@ import { MarketingListing, formatListingPrice } from '@/data/marketingListings';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const ANON_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
+const budgetOptions = [
+  { value: '5', label: '$5/day' },
+  { value: '10', label: '$10/day' },
+  { value: '25', label: '$25/day' },
+  { value: '50', label: '$50/day' },
+  { value: '100', label: '$100/day' },
+];
+
+const durationOptions = [
+  { value: '3', label: '3 days' },
+  { value: '5', label: '5 days' },
+  { value: '7', label: '7 days' },
+  { value: '14', label: '14 days' },
+  { value: '30', label: '30 days' },
+];
 
 interface FacebookPostPanelProps {
   listing: MarketingListing;
@@ -24,6 +42,12 @@ const FacebookPostPanel = ({ listing }: FacebookPostPanelProps) => {
   const [posted, setPosted] = useState(false);
   const [postId, setPostId] = useState<string | null>(null);
   const [message, setMessage] = useState('');
+  const [boostEnabled, setBoostEnabled] = useState(false);
+  const [boostConfig, setBoostConfig] = useState({
+    dailyBudget: '10',
+    duration: '7',
+    targetZip: listing.zip
+  });
 
   const fullAddress = `${listing.address}, ${listing.city}, ${listing.state} ${listing.zip}`;
 
@@ -111,28 +135,6 @@ const FacebookPostPanel = ({ listing }: FacebookPostPanelProps) => {
     }
   };
 
-  const handleOAuthCallback = async (code: string) => {
-    setLoading(true);
-    try {
-      const resp = await fetch(`${SUPABASE_URL}/functions/v1/facebook-oauth-callback`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${ANON_KEY}`,
-        },
-        body: JSON.stringify({ code, agent_id: user!.id }),
-      });
-      const data = await resp.json();
-      if (data.error) throw new Error(data.error);
-      setConnected(true);
-      setPageName(data.page_name);
-      toast.success(`Connected to ${data.page_name}!`);
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to connect Facebook');
-    }
-    setLoading(false);
-  };
-
   const generateDefaultMessage = () => {
     const price = formatListingPrice(listing.price);
     return `🏠 ${listing.status === 'sold' ? 'JUST SOLD!' : 'NEW LISTING!'}\n\n📍 ${fullAddress}\n💰 ${price}\n🛏️ ${listing.beds} Beds | 🛁 ${listing.baths} Baths | 📐 ${listing.sqft.toLocaleString()} sqft\n\n${listing.description?.slice(0, 200) || ''}\n\n📞 Contact ${listing.agent?.name || 'us'} for details!\n\n#RealEstate #${listing.city.replace(/\s/g, '')} #HomeForSale #Ohio`;
@@ -155,7 +157,6 @@ const FacebookPostPanel = ({ listing }: FacebookPostPanelProps) => {
         agent_id: user!.id,
         message: message.trim(),
       };
-      // If listing has photos, use the first one
       if (listing.photos?.length > 0) {
         body.photo_url = listing.photos[0];
       }
@@ -175,7 +176,35 @@ const FacebookPostPanel = ({ listing }: FacebookPostPanelProps) => {
       console.log('[FB] Setting postId to:', returnedPostId);
       setPosted(true);
       setPostId(returnedPostId);
-      toast.success('Posted to Facebook! 🎉');
+
+      // Handle boost if enabled
+      if (boostEnabled && returnedPostId) {
+        try {
+          const boostResp = await fetch(`${SUPABASE_URL}/functions/v1/boost-facebook-post`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${ANON_KEY}`,
+            },
+            body: JSON.stringify({
+              agent_id: user!.id,
+              post_id: returnedPostId,
+              daily_budget: Number(boostConfig.dailyBudget),
+              duration_days: Number(boostConfig.duration),
+              zip: boostConfig.targetZip || undefined,
+            }),
+          });
+          const boostData = await boostResp.json();
+          if (boostData.error) throw new Error(boostData.error);
+          toast.success(`Posted and boosted! $${Number(boostConfig.dailyBudget) * Number(boostConfig.duration)} over ${boostConfig.duration} days 🚀`);
+        } catch (err: any) {
+          toast.warning('Post created but boost failed: ' + (err.message || 'Unknown error'));
+        }
+      } else {
+        toast.success('Posted to Facebook! 🎉');
+      }
+
+      setBoostEnabled(false);
     } catch (err: any) {
       toast.error(err.message || 'Failed to post to Facebook');
     }
@@ -232,6 +261,75 @@ const FacebookPostPanel = ({ listing }: FacebookPostPanelProps) => {
             placeholder="Write your Facebook post..."
           />
 
+          {/* Boost toggle */}
+          <div className="border border-border rounded-lg p-3 mb-3">
+            <div className="flex items-center gap-2 mb-3">
+              <Checkbox
+                id="boost-toggle"
+                checked={boostEnabled}
+                onCheckedChange={(checked) => setBoostEnabled(checked as boolean)}
+              />
+              <label htmlFor="boost-toggle" className="text-sm font-medium text-card-foreground cursor-pointer">
+                Boost this post
+              </label>
+            </div>
+
+            {boostEnabled && (
+              <div className="space-y-3 pt-3 border-t border-border">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground mb-1 block">
+                      <DollarSign className="w-3 h-3 inline mr-1" />Daily Budget
+                    </label>
+                    <Select value={boostConfig.dailyBudget} onValueChange={(val) => setBoostConfig({ ...boostConfig, dailyBudget: val })}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {budgetOptions.map(opt => (
+                          <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground mb-1 block">
+                      <Calendar className="w-3 h-3 inline mr-1" />Duration
+                    </label>
+                    <Select value={boostConfig.duration} onValueChange={(val) => setBoostConfig({ ...boostConfig, duration: val })}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {durationOptions.map(opt => (
+                          <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground mb-1 block">
+                    <MapPin className="w-3 h-3 inline mr-1" />Target Location (15mi radius)
+                  </label>
+                  <Input
+                    value={boostConfig.targetZip}
+                    onChange={(e) => setBoostConfig({ ...boostConfig, targetZip: e.target.value })}
+                    placeholder="Zip code"
+                    className="text-sm"
+                    maxLength={5}
+                  />
+                </div>
+
+                <p className="text-xs text-muted-foreground">
+                  Total: ${Number(boostConfig.dailyBudget) * Number(boostConfig.duration)} over {boostConfig.duration} days
+                </p>
+              </div>
+            )}
+          </div>
+
           <Button
             onClick={postToFacebook}
             disabled={posting || posted || !message.trim()}
@@ -246,13 +344,6 @@ const FacebookPostPanel = ({ listing }: FacebookPostPanelProps) => {
               <><Facebook className="w-4 h-4 mr-2" /> Post to Facebook Page</>
             )}
           </Button>
-           {postId && (
-             <BoostPostForm
-               postId={postId}
-               agentId={user!.id}
-               zip={listing.zip}
-             />
-           )}
         </>
       )}
     </div>
