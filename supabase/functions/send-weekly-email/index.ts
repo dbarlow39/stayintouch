@@ -63,10 +63,10 @@ serve(async (req) => {
       throw new Error('Client email is required');
     }
 
-    // Fetch agent's profile to get their name for the "from" field
+    // Fetch agent's profile to get their name and signature for the "from" field
     const { data: profile, error: profileError } = await supabaseClient
       .from('profiles')
-      .select('first_name, last_name, preferred_email')
+      .select('first_name, last_name, preferred_email, bio')
       .eq('id', userId)
       .maybeSingle();
 
@@ -87,6 +87,17 @@ serve(async (req) => {
       .map((paragraph: string) => `<p style="margin-bottom: 16px; line-height: 1.6;">${paragraph.replace(/\n/g, '<br>')}</p>`)
       .join('');
 
+    // Build signature block from agent's bio/signature line if available
+    let signatureHtml = '';
+    if (profile?.bio) {
+      const isHtml = /<[a-z][\s\S]*>/i.test(profile.bio);
+      signatureHtml = `
+        <div style="margin-top: 32px; padding-top: 16px; border-top: 1px solid #e5e5e5;">
+          ${isHtml ? profile.bio : profile.bio.replace(/\n/g, '<br>')}
+        </div>
+      `;
+    }
+
     // Use agent's name in the from field with verified subdomain
     const fromEmail = `${agentName} via Stay in Touch <updates@resend.sellfor1percent.com>`;
     
@@ -104,6 +115,7 @@ serve(async (req) => {
         </head>
         <body style="font-family: Georgia, 'Times New Roman', serif; font-size: 16px; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
           ${htmlBody}
+          ${signatureHtml}
         </body>
         </html>
       `,

@@ -57,12 +57,19 @@ serve(async (req) => {
             continue;
           }
 
-          // Get agent profile
+          // Get agent profile (includes signature line in bio field)
           const { data: agent } = await supabase
             .from("profiles")
             .select("*")
             .eq("id", msg.agent_id)
             .single();
+
+          // Build signature from agent's bio/signature line
+          let agentSignature = '';
+          if (agent?.bio) {
+            const isHtml = /<[a-z][\s\S]*>/i.test(agent.bio);
+            agentSignature = isHtml ? agent.bio : agent.bio.replace(/\n/g, '<br>');
+          }
 
           // Personalize the message
           let messageContent = msg.message_content || "";
