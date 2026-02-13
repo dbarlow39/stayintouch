@@ -286,9 +286,9 @@ const TitleCommitmentLetterView = ({ propertyData, propertyId, onBack, onEdit, o
               ) : (
                 <>
                   <p className="mb-4">Hi {processorFirstNames},</p>
-                  <p className="mb-4">
-                    Just checking in on the title commitment for {propertyData.streetAddress || "the property"}. Per the contract we are to have this produced for the buyer and the buyers lender by {propertyData.loanCommitment ? new Date(propertyData.loanCommitment).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : "[Title Commitment Due Date]"}.
-                  </p>
+                   <p className="mb-4">
+                     Just checking in on the title commitment for {propertyData.streetAddress || "the property"}. Per the contract we are to have this produced for the buyer and the buyers lender by {propertyData.closingDate ? new Date(new Date(propertyData.closingDate).getTime() - 15 * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : "[Title Commitment Due Date]"}.
+                   </p>
                   <p className="mb-4">Let me know.</p>
                   <p className="mb-4">Thanks</p>
                   <p className="mb-4">{agentFirstName}</p>
