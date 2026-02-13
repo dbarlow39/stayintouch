@@ -200,10 +200,13 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
               updates.annualTaxes = normalizedTax;
             }
             if (data.city && !prev.city?.trim()) {
-              updates.city = data.city;
+              updates.city = toTitleCase(data.city);
             }
             if (data.zip && !prev.zip?.trim()) {
               updates.zip = data.zip;
+            }
+            if (data.owner_name && !prev.name?.trim()) {
+              updates.name = toTitleCase(data.owner_name);
             }
             if (Object.keys(updates).length === 0) return prev;
             return { ...prev, ...updates };

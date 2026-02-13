@@ -43,8 +43,14 @@ serve(async (req) => {
     }
 
     console.log("Estated API response:", JSON.stringify(result, null, 2));
+    console.log("Owner data:", JSON.stringify(result.data?.owner, null, 2));
 
-    // Extract tax and address information from the response
+    // Extract tax, address, and owner information from the response
+    const owner = result.data?.owner || {};
+    const ownerName = owner.name || '';
+    const secondOwnerName = owner.second_name || '';
+    const combinedOwnerName = [ownerName, secondOwnerName].filter(Boolean).join(' & ');
+
     const propertyResult = {
       annual_amount: result.data?.taxes?.[0]?.amount || 0,
       tax_year: result.data?.taxes?.[0]?.year || new Date().getFullYear(),
@@ -53,6 +59,7 @@ serve(async (req) => {
       city: result.data?.address?.city || "",
       state: result.data?.address?.state || "",
       zip: result.data?.address?.zip_code || "",
+      owner_name: combinedOwnerName,
     };
 
     return new Response(JSON.stringify(propertyResult), {
