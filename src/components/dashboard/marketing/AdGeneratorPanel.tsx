@@ -39,6 +39,13 @@ const durationOptions = [
   { value: '30', label: '30 days' },
 ];
 
+const radiusOptions = [
+  { value: '15', label: '15 Miles' },
+  { value: '20', label: '20 Miles' },
+  { value: '25', label: '25 Miles' },
+  { value: '30', label: '30 Miles' },
+];
+
 function getBannerText(listing: MarketingListing, override: string): string {
   if (override !== 'auto') {
     return bannerOptions.find(o => o.value === override)?.label || override.toUpperCase();
@@ -76,6 +83,7 @@ const AdGeneratorPanel = ({ listing, autoGenerate = false }: AdGeneratorPanelPro
   const [boostConfig, setBoostConfig] = useState({ 
     dailyBudget: '10', 
     duration: '7', 
+    radius: '15',
     targetZip: listing.zip 
   });
   
@@ -243,6 +251,7 @@ const AdGeneratorPanel = ({ listing, autoGenerate = false }: AdGeneratorPanelPro
               post_id: returnedPostId,
               daily_budget: Number(boostConfig.dailyBudget),
               duration_days: Number(boostConfig.duration),
+              radius_miles: Number(boostConfig.radius),
               zip: boostConfig.targetZip || undefined,
             }),
           });
@@ -367,17 +376,35 @@ const AdGeneratorPanel = ({ listing, autoGenerate = false }: AdGeneratorPanelPro
                     </div>
                   </div>
 
-                  <div>
-                    <label className="text-xs font-medium text-muted-foreground mb-1 block">
-                      <MapPin className="w-3 h-3 inline mr-1" />Target Location (15mi radius)
-                    </label>
-                    <Input
-                      value={boostConfig.targetZip}
-                      onChange={(e) => setBoostConfig({ ...boostConfig, targetZip: e.target.value })}
-                      placeholder="Zip code"
-                      className="text-sm"
-                      maxLength={5}
-                    />
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground mb-1 block">
+                        <MapPin className="w-3 h-3 inline mr-1" />Targeting Radius
+                      </label>
+                      <Select value={boostConfig.radius} onValueChange={(val) => setBoostConfig({ ...boostConfig, radius: val })}>
+                        <SelectTrigger className="w-full">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {radiusOptions.map(opt => (
+                            <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground mb-1 block">
+                        <MapPin className="w-3 h-3 inline mr-1" />Zip Code
+                      </label>
+                      <Input
+                        value={boostConfig.targetZip}
+                        onChange={(e) => setBoostConfig({ ...boostConfig, targetZip: e.target.value })}
+                        placeholder="Zip code"
+                        className="text-sm"
+                        maxLength={5}
+                      />
+                    </div>
                   </div>
 
                   <p className="text-xs text-muted-foreground">
