@@ -24,6 +24,8 @@ const TitleCommitmentLetterView = ({ propertyData, propertyId, onBack, onEdit, o
   const [agentFirstName, setAgentFirstName] = useState("");
   const [agentFullName, setAgentFullName] = useState("");
   const [agentPhone, setAgentPhone] = useState("");
+  const [agentBio, setAgentBio] = useState("");
+  const [letterVariant, setLetterVariant] = useState<"homeowner" | "title">("homeowner");
 
   useEffect(() => {
     const fetchAgentProfile = async () => {
@@ -31,7 +33,7 @@ const TitleCommitmentLetterView = ({ propertyData, propertyId, onBack, onEdit, o
       if (user) {
         const { data: profile } = await supabase
           .from('profiles')
-          .select('preferred_email, email, first_name, last_name, cell_phone')
+          .select('preferred_email, email, first_name, last_name, cell_phone, bio')
           .eq('id', user.id)
           .single();
         if (profile) {
@@ -39,6 +41,7 @@ const TitleCommitmentLetterView = ({ propertyData, propertyId, onBack, onEdit, o
           setAgentFirstName(profile.first_name || "");
           setAgentFullName(`${profile.first_name || ""} ${profile.last_name || ""}`.trim());
           setAgentPhone(profile.cell_phone || "");
+          setAgentBio(profile.bio || "");
         }
       }
     };
@@ -140,8 +143,12 @@ const TitleCommitmentLetterView = ({ propertyData, propertyId, onBack, onEdit, o
         description: "Opening your email client...",
       });
 
-      const subject = `Title Commitment Received - ${propertyData.streetAddress}`;
-      const recipients = propertyData.sellerEmail || "";
+      const subject = letterVariant === "homeowner"
+        ? `Title Commitment Received - ${propertyData.streetAddress}`
+        : `Title Commitment Request - ${propertyData.streetAddress}`;
+      const recipients = letterVariant === "homeowner"
+        ? (propertyData.sellerEmail || "")
+        : (propertyData.titleEmail || "");
       const link = getEmailLink(recipients, emailClient, subject);
       window.open(link, '_blank');
     } catch (error) {
@@ -153,6 +160,10 @@ const TitleCommitmentLetterView = ({ propertyData, propertyId, onBack, onEdit, o
       });
     }
   };
+
+  const processorFirstNames = propertyData.titleProcessor
+    ? propertyData.titleProcessor.split(/\s*(?:&|and)\s*/i).map(n => n.trim().split(' ')[0]).join(' & ')
+    : "there";
 
   const sellerFirstNames = propertyData.name
     ? propertyData.name.split(/\s*(?:&|and)\s*/i).map(n => n.trim().split(' ')[0]).join(' & ')
@@ -213,11 +224,37 @@ const TitleCommitmentLetterView = ({ propertyData, propertyId, onBack, onEdit, o
             <div className="flex items-center gap-3">
               <img src={logo} alt="Sell for 1 Percent" className="h-16 w-auto print:h-12" />
               <div>
-                <h1 className="text-3xl font-bold text-foreground">Title Commitment Received</h1>
-                <p className="text-muted-foreground">Notice to {propertyData.name || "Client"}</p>
+                <h1 className="text-3xl font-bold text-foreground">
+                  {letterVariant === "homeowner" ? "Title Commitment Received" : "Title Commitment Request"}
+                </h1>
+                <p className="text-muted-foreground">
+                  {letterVariant === "homeowner"
+                    ? `Notice to ${propertyData.name || "Client"}`
+                    : `To ${propertyData.titleCompanyName || "Title Company"}`}
+                </p>
               </div>
             </div>
             <div className="flex gap-2 print:hidden no-pdf">
+              <div className="flex rounded-md border overflow-hidden mr-2">
+                <Button
+                  variant={letterVariant === "homeowner" ? "default" : "ghost"}
+                  size="sm"
+                  className={letterVariant === "homeowner" ? "rounded-none" : "rounded-none"}
+                  onClick={() => setLetterVariant("homeowner")}
+                  type="button"
+                >
+                  Homeowner
+                </Button>
+                <Button
+                  variant={letterVariant === "title" ? "default" : "ghost"}
+                  size="sm"
+                  className={letterVariant === "title" ? "rounded-none" : "rounded-none"}
+                  onClick={() => setLetterVariant("title")}
+                  type="button"
+                >
+                  Title Company
+                </Button>
+              </div>
               <Button onClick={handleCopyToClipboard} size="lg" className="bg-rose-500 hover:bg-rose-600 text-white">
                 <Copy className="mr-2 h-4 w-4" />
                 Copy & Email
@@ -227,26 +264,49 @@ const TitleCommitmentLetterView = ({ propertyData, propertyId, onBack, onEdit, o
 
           <Card className="p-8 mb-6 print:shadow-none">
             <div className="prose prose-lg max-w-none text-foreground">
-              <p className="mb-4">Hi {sellerFirstNames},</p>
-
-              <p className="mb-4">
-                The title company has completed the first phase of the title work required to sell your home known as the Title Commitment. The primary reason for this search is to make sure there are no crazy liens on your property, if there are the title company will be reaching out to you to start the process of cleaning them up.
-              </p>
-
-              <p className="mb-4">
-                I did take a quick look and everything appears to be in good shape and so no worries at this point. In the mean time don't take out any new loans or put the house up as collateral in a poker game. . . LOL, but really we have had those situations arise.
-              </p>
-
-              <p className="mb-4">
-                Long story short is everything is progressing just the way it should. Let me know if you have any questions.
-              </p>
-
-              <p className="mb-4">Thanks</p>
-              <p className="mb-4">{agentFirstName}</p>
-              <p className="mb-4">The best compliment I can receive is a referral from you!</p>
-              <p className="mb-0">{agentFullName}</p>
-              <p className="mb-0">cell: {agentPhone}</p>
-              <p className="mb-4">email: {agentEmail}</p>
+              {letterVariant === "homeowner" ? (
+                <>
+                  <p className="mb-4">Hi {sellerFirstNames},</p>
+                  <p className="mb-4">
+                    The title company has completed the first phase of the title work required to sell your home known as the Title Commitment. The primary reason for this search is to make sure there are no crazy liens on your property, if there are the title company will be reaching out to you to start the process of cleaning them up.
+                  </p>
+                  <p className="mb-4">
+                    I did take a quick look and everything appears to be in good shape and so no worries at this point. In the mean time don't take out any new loans or put the house up as collateral in a poker game. . . LOL, but really we have had those situations arise.
+                  </p>
+                  <p className="mb-4">
+                    Long story short is everything is progressing just the way it should. Let me know if you have any questions.
+                  </p>
+                  <p className="mb-4">Thanks</p>
+                  <p className="mb-4">{agentFirstName}</p>
+                  <p className="mb-4">The best compliment I can receive is a referral from you!</p>
+                  <p className="mb-0">{agentFullName}</p>
+                  <p className="mb-0">cell: {agentPhone}</p>
+                  <p className="mb-4">email: {agentEmail}</p>
+                </>
+              ) : (
+                <>
+                  <p className="mb-4">Hi {processorFirstNames},</p>
+                  <p className="mb-4">
+                    Just checking in on the title commitment for {propertyData.streetAddress || "the property"}. Per the contract we are to have this produced for the buyer and the buyers lender by {propertyData.loanCommitment ? new Date(propertyData.loanCommitment).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : "[Title Commitment Due Date]"}.
+                  </p>
+                  <p className="mb-4">Let me know.</p>
+                  <p className="mb-4">Thanks</p>
+                  <p className="mb-4">{agentFirstName}</p>
+                  {agentBio ? (
+                    /<[a-z][\s\S]*>/i.test(agentBio) ? (
+                      <div className="mb-4" dangerouslySetInnerHTML={{ __html: agentBio }} />
+                    ) : (
+                      <p className="mb-4 whitespace-pre-line">{agentBio}</p>
+                    )
+                  ) : (
+                    <>
+                      <p className="mb-0">{agentFullName}</p>
+                      <p className="mb-0">cell: {agentPhone}</p>
+                      <p className="mb-4">email: {agentEmail}</p>
+                    </>
+                  )}
+                </>
+              )}
             </div>
           </Card>
         </div>
