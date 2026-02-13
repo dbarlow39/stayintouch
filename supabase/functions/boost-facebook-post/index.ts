@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    const { agent_id, post_id, daily_budget, duration_days, zip } = await req.json();
+    const { agent_id, post_id, daily_budget, duration_days, radius_miles, zip } = await req.json();
 
     if (!agent_id || !post_id || !daily_budget || !duration_days) {
       throw new Error("agent_id, post_id, daily_budget, and duration_days are required");
@@ -33,9 +33,9 @@ serve(async (req) => {
       throw new Error("Facebook not connected. Please connect your Facebook Page first.");
     }
 
-    const { page_access_token, page_id } = tokenData;
-    if (!page_access_token || !page_id) {
-      throw new Error("Facebook Page not configured. Please reconnect.");
+    const { access_token, page_access_token, page_id } = tokenData;
+    if (!access_token || !page_id) {
+      throw new Error("Facebook not properly configured. Please reconnect.");
     }
 
     const AD_ACCOUNT_ID = "563726213662060";
@@ -51,7 +51,7 @@ serve(async (req) => {
         objective: "OUTCOME_AWARENESS",
         status: "PAUSED",
         special_ad_categories: ["HOUSING"],
-        access_token: page_access_token,
+        access_token: access_token,
       }),
     });
     const campaignData = await campaignResp.json();
@@ -73,11 +73,11 @@ serve(async (req) => {
       geo_locations: {},
     };
 
+    const radiusMiles = radius_miles || 15;
     if (zip) {
-      // Use zip code with 15 mile radius
       targeting.geo_locations.postal_codes = [{
         key: zip,
-        radius: 15,
+        radius: radiusMiles,
         distance_unit: "mile",
       }];
     } else {
@@ -98,7 +98,7 @@ serve(async (req) => {
         end_time: endDate.toISOString(),
         targeting,
         status: "PAUSED",
-        access_token: page_access_token,
+        access_token: access_token,
       }),
     });
     const adSetData = await adSetResp.json();
@@ -109,7 +109,7 @@ serve(async (req) => {
       await fetch(`${apiBase}/${campaignId}`, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ access_token: page_access_token }),
+        body: JSON.stringify({ access_token: access_token }),
       });
       throw new Error(adSetData.error.message || "Failed to create ad set");
     }
@@ -128,7 +128,7 @@ serve(async (req) => {
           object_story_id: `${page_id}_${post_id.split("_").pop()}`,
         },
         status: "PAUSED",
-        access_token: page_access_token,
+        access_token: access_token,
       }),
     });
     const adData = await adResp.json();
@@ -139,12 +139,12 @@ serve(async (req) => {
       await fetch(`${apiBase}/${adSetId}`, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ access_token: page_access_token }),
+        body: JSON.stringify({ access_token: access_token }),
       });
       await fetch(`${apiBase}/${campaignId}`, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ access_token: page_access_token }),
+        body: JSON.stringify({ access_token: access_token }),
       });
       throw new Error(adData.error.message || "Failed to create ad");
     }
@@ -154,17 +154,17 @@ serve(async (req) => {
     await fetch(`${apiBase}/${campaignId}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: "ACTIVE", access_token: page_access_token }),
+      body: JSON.stringify({ status: "ACTIVE", access_token: access_token }),
     });
     await fetch(`${apiBase}/${adSetId}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: "ACTIVE", access_token: page_access_token }),
+      body: JSON.stringify({ status: "ACTIVE", access_token: access_token }),
     });
     await fetch(`${apiBase}/${adData.id}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: "ACTIVE", access_token: page_access_token }),
+      body: JSON.stringify({ status: "ACTIVE", access_token: access_token }),
     });
 
     return new Response(JSON.stringify({
