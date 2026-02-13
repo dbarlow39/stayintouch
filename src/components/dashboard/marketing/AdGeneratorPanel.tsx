@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Image, Loader2, Check, Link2, Facebook, ExternalLink } from 'lucide-react';
+import { Image, Loader2, Check, Link2, Facebook } from 'lucide-react';
+import BoostPostForm from './BoostPostForm';
 import { toast } from 'sonner';
 import { MarketingListing, formatListingPrice } from '@/data/marketingListings';
 import { supabase } from '@/integrations/supabase/client';
@@ -296,14 +297,12 @@ const AdGeneratorPanel = ({ listing, autoGenerate = false }: AdGeneratorPanelPro
             </Button>
            )}
            {postId && (
-             <Button
-               onClick={() => window.open(`https://www.facebook.com/${postId}`, '_blank')}
-               variant="outline"
-               className="w-full mt-2"
-               size="sm"
-             >
-               <ExternalLink className="w-4 h-4 mr-2" /> Boost This Post on Facebook
-             </Button>
+             <BoostPostForm
+               postId={postId}
+               agentId={user!.id}
+               city={listing.city}
+               state={listing.state}
+             />
            )}
         </>
       )}
