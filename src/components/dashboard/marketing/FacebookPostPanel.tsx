@@ -246,14 +246,13 @@ const FacebookPostPanel = ({ listing }: FacebookPostPanelProps) => {
               <><Facebook className="w-4 h-4 mr-2" /> Post to Facebook Page</>
             )}
           </Button>
-          {postId && (
-            <BoostPostForm
-              postId={postId}
-              agentId={user!.id}
-              city={listing.city}
-              state={listing.state}
-            />
-          )}
+           {postId && (
+             <BoostPostForm
+               postId={postId}
+               agentId={user!.id}
+               zip={listing.zip}
+             />
+           )}
         </>
       )}
     </div>
