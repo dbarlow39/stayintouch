@@ -26,6 +26,8 @@ const bannerOptions = [
 const budgetOptions = [
   { value: '5', label: '$5/day' },
   { value: '10', label: '$10/day' },
+  { value: '15', label: '$15/day' },
+  { value: '20', label: '$20/day' },
   { value: '25', label: '$25/day' },
   { value: '50', label: '$50/day' },
   { value: '100', label: '$100/day' },
