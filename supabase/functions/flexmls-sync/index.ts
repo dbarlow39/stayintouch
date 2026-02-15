@@ -27,10 +27,26 @@ Deno.serve(async (req) => {
       'X-SparkApi-User-Agent': 'LovableListingSites/1.0',
     };
 
-    function toArr(v: any): string[] {
+    /** Extract keys from Spark lookup objects like {"Forced Air": true, "Gas": true} → ["Forced Air", "Gas"] */
+    function lookupToArr(v: any): string[] {
+      if (!v) return [];
       if (Array.isArray(v)) return v.filter(Boolean);
-      if (typeof v === 'string' && v) return [v];
+      if (typeof v === 'object' && v !== null) {
+        return Object.keys(v).filter(k => v[k] && k !== '********');
+      }
+      if (typeof v === 'string' && v && v !== '********') return [v];
       return [];
+    }
+
+    /** Extract a single string from a Spark lookup object like {"Full": true} → "Full" */
+    function lookupToString(v: any): string {
+      if (!v) return '';
+      if (typeof v === 'string') return v === '********' ? '' : v;
+      if (typeof v === 'object' && v !== null) {
+        const keys = Object.keys(v).filter(k => v[k] && k !== '********');
+        return keys.join(', ');
+      }
+      return String(v);
     }
 
     function transformListing(item: any, photos: string[] = [], fieldMaps: Record<string, Record<string, string>> = {}) {
@@ -39,6 +55,16 @@ Deno.serve(async (req) => {
       const resolvedPropType = fieldMaps.PropertyType?.[rawPropType] || rawPropType || 'Residential';
       const sqft = sf.BuildingAreaTotal || sf.LivingArea || 0;
       const price = sf.ListPrice || sf.CurrentPrice || 0;
+
+      // Lot size: prefer acres, fallback to area+units
+      let lotSize = 'N/A';
+      if (sf.LotSizeAcres && sf.LotSizeAcres > 0) {
+        lotSize = `${sf.LotSizeAcres} Acres`;
+      } else if (sf.LotSizeArea && sf.LotSizeArea > 0) {
+        const units = sf.LotSizeUnits || 'sqft';
+        lotSize = `${sf.LotSizeArea} ${units}`;
+      }
+
       return {
         id: item.Id || '',
         mlsNumber: sf.ListingId || sf.MLSNumber || item.Id || '',
@@ -54,7 +80,7 @@ Deno.serve(async (req) => {
         bathsFull: sf.BathsFull || 0,
         bathsHalf: sf.BathsHalf || 0,
         sqft,
-        lotSize: sf.LotSizeArea ? `${sf.LotSizeArea} ${sf.LotSizeUnits || 'sqft'}` : (sf.LotSizeAcres ? `${sf.LotSizeAcres} acres` : 'N/A'),
+        lotSize,
         yearBuilt: sf.YearBuilt || 0,
         propertyType: resolvedPropType,
         propertySubType: sf.PropertySubType || '',
@@ -67,8 +93,8 @@ Deno.serve(async (req) => {
         })(),
         description: sf.PublicRemarks || '',
         features: [
-          ...(Array.isArray(sf.ExteriorFeatures) ? sf.ExteriorFeatures : []),
-          ...(Array.isArray(sf.InteriorFeatures) ? sf.InteriorFeatures : []),
+          ...(Array.isArray(sf.ExteriorFeatures) ? sf.ExteriorFeatures : lookupToArr(sf.ExteriorFeatures)),
+          ...(Array.isArray(sf.InteriorFeatures) ? sf.InteriorFeatures : lookupToArr(sf.InteriorFeatures)),
         ].filter(Boolean).slice(0, 12),
         photos,
         agent: {
@@ -80,36 +106,45 @@ Deno.serve(async (req) => {
         coordinates: { lat: sf.Latitude || 0, lng: sf.Longitude || 0 },
         published: false,
         daysOnMarket: sf.DaysOnMarket || 0,
-        heating: toArr(sf.Heating),
-        cooling: toArr(sf.Cooling),
-        parking: toArr(sf.ParkingFeatures),
+        heating: lookupToArr(sf.Heating),
+        cooling: lookupToArr(sf.Cooling),
+        parking: lookupToArr(sf.ParkingFeatures),
         garageSpaces: sf.GarageSpaces || 0,
-        flooring: toArr(sf.Flooring),
-        appliances: toArr(sf.Appliances),
-        basement: sf.Basement || '',
-        roof: sf.Roof || '',
-        constructionMaterials: toArr(sf.ConstructionMaterials),
-      stories: (() => {
-        // Levels comes as an object like {"Two": true}, extract the key
-        if (sf.Levels && typeof sf.Levels === 'object') {
-          const keys = Object.keys(sf.Levels).filter(k => sf.Levels[k]);
-          if (keys.length > 0) return keys.join(', ');
-        }
-        const raw = [sf.Stories, sf.StoriesTotal].find(v => v && v !== '********' && v !== 0);
-        return raw || 0;
-      })(),
+        flooring: lookupToArr(sf.Flooring),
+        appliances: lookupToArr(sf.Appliances),
+        basement: lookupToString(sf.Basement),
+        roof: lookupToString(sf.Roof),
+        constructionMaterials: lookupToArr(sf.ConstructionMaterials),
+        stories: (() => {
+          if (sf.Levels && typeof sf.Levels === 'object') {
+            const keys = Object.keys(sf.Levels).filter(k => sf.Levels[k]);
+            if (keys.length > 0) return keys.join(', ');
+          }
+          const raw = [sf.Stories, sf.StoriesTotal].find(v => v && v !== '********' && v !== 0);
+          return raw || 0;
+        })(),
         taxAnnualAmount: sf.TaxAnnualAmount || 0,
         taxYear: sf.TaxYear || 0,
         hoaFee: sf.AssociationFee || 0,
         hoaFrequency: sf.AssociationFeeFrequency || '',
-        waterSource: toArr(sf.WaterSource),
-        sewer: toArr(sf.Sewer),
+        waterSource: lookupToArr(sf.WaterSource),
+        sewer: lookupToArr(sf.Sewer),
         schoolDistrict: sf.SchoolDistrict || '',
-        elementarySchool: sf.ElementarySchool || '',
-        middleSchool: sf.MiddleSchool || '',
-        highSchool: sf.HighSchool || '',
+        elementarySchool: lookupToString(sf.ElementarySchool),
+        middleSchool: lookupToString(sf.MiddleSchool),
+        highSchool: lookupToString(sf.HighSchool),
         listDate: sf.ListingContractDate || sf.OnMarketDate || '',
         pricePerSqft: sqft > 0 ? Math.round(price / sqft) : 0,
+        // New Zillow-matching fields
+        patioAndPorch: lookupToArr(sf.PatioAndPorchFeatures),
+        fencing: lookupToArr(sf.Fencing),
+        foundation: lookupToArr(sf.FoundationDetails),
+        parcelNumber: sf.ParcelNumber || '',
+        newConstruction: sf.NewConstructionYN != null ? (sf.NewConstructionYN ? 'Yes' : 'No') : '',
+        otherStructures: lookupToArr(sf.OtherStructures),
+        commonWalls: lookupToString(sf.CommonWalls),
+        specialConditions: lookupToArr(sf.SpecialListingConditions),
+        totalStructureArea: sf.BuildingAreaTotal || 0,
       };
     }
 
@@ -149,6 +184,8 @@ Deno.serve(async (req) => {
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    const allDetailFields = 'ListingId,ListPrice,BedsTotal,BathroomsTotalInteger,BathroomsTotalDecimal,BathsFull,BathsHalf,BuildingAreaTotal,LivingArea,City,StateOrProvince,PostalCode,UnparsedFirstLineAddress,StreetNumber,StreetDirPrefix,StreetName,StreetSuffix,PropertyType,PropertySubType,MlsStatus,StandardStatus,ListOfficeMlsId,ListAgentName,ListAgentFirstName,ListAgentLastName,ListAgentDirectPhone,ListAgentCellPhone,ListAgentOfficePhone,ListAgentEmail,YearBuilt,LotSizeArea,LotSizeUnits,LotSizeAcres,DaysOnMarket,PublicRemarks,Latitude,Longitude,CurrentPrice,MLSNumber,CountyOrParish,SubdivisionName,Heating,Cooling,ParkingFeatures,GarageSpaces,Flooring,Appliances,Basement,Roof,ConstructionMaterials,Stories,StoriesTotal,Levels,TaxAnnualAmount,TaxYear,AssociationFee,AssociationFeeFrequency,WaterSource,Sewer,SchoolDistrict,ElementarySchool,MiddleSchool,HighSchool,ListingContractDate,OnMarketDate,ExteriorFeatures,InteriorFeatures,PatioAndPorchFeatures,Fencing,FoundationDetails,ParcelNumber,NewConstructionYN,OtherStructures,CommonWalls,SpecialListingConditions';
 
     // ─── MY LISTINGS ───
     if (action === 'my_listings') {
@@ -204,7 +241,6 @@ Deno.serve(async (req) => {
         'G': 'Mobile/Manufactured', 'H': 'Condominium', 'I': 'Business Opportunity',
       };
 
-      const detailFields = 'ListingId,ListPrice,BedsTotal,BathroomsTotalInteger,BathroomsTotalDecimal,BathsFull,BathsHalf,BuildingAreaTotal,LivingArea,City,StateOrProvince,PostalCode,UnparsedFirstLineAddress,StreetNumber,StreetDirPrefix,StreetName,StreetSuffix,PropertyType,PropertySubType,MlsStatus,StandardStatus,ListOfficeMlsId,ListAgentName,ListAgentFirstName,ListAgentLastName,ListAgentDirectPhone,ListAgentCellPhone,ListAgentOfficePhone,ListAgentEmail,YearBuilt,LotSizeArea,LotSizeUnits,LotSizeAcres,DaysOnMarket,PublicRemarks,Latitude,Longitude,CurrentPrice,MLSNumber,CountyOrParish,SubdivisionName,Heating,Cooling,ParkingFeatures,GarageSpaces,Flooring,Appliances,Basement,Roof,ConstructionMaterials,Stories,StoriesTotal,Levels,TaxAnnualAmount,TaxYear,AssociationFee,AssociationFeeFrequency,WaterSource,Sewer,SchoolDistrict,ElementarySchool,MiddleSchool,HighSchool,ListingContractDate,OnMarketDate,ExteriorFeatures,InteriorFeatures';
       const BATCH = 10;
       const transformed: any[] = [];
 
@@ -212,7 +248,7 @@ Deno.serve(async (req) => {
         const batch = matchedIds.slice(i, i + BATCH);
         const results = await Promise.allSettled(
           batch.map(id =>
-            fetch(`${baseUrl}/listings/${id}?_select=${detailFields}&_expand=Photos`, { method: 'GET', headers: sparkHeaders })
+            fetch(`${baseUrl}/listings/${id}?_select=${allDetailFields}&_expand=Photos`, { method: 'GET', headers: sparkHeaders })
               .then(r => r.ok ? r.json() : null)
           )
         );
@@ -244,8 +280,7 @@ Deno.serve(async (req) => {
 
     // ─── SINGLE LISTING ───
     if (action === 'single_listing') {
-      const singleDetailFields = 'ListingId,ListPrice,BedsTotal,BathroomsTotalInteger,BathroomsTotalDecimal,BathsFull,BathsHalf,BuildingAreaTotal,LivingArea,City,StateOrProvince,PostalCode,UnparsedFirstLineAddress,StreetNumber,StreetDirPrefix,StreetName,StreetSuffix,PropertyType,PropertySubType,MlsStatus,StandardStatus,ListOfficeMlsId,ListAgentName,ListAgentFirstName,ListAgentLastName,ListAgentDirectPhone,ListAgentCellPhone,ListAgentOfficePhone,ListAgentEmail,YearBuilt,LotSizeArea,LotSizeUnits,LotSizeAcres,DaysOnMarket,PublicRemarks,Latitude,Longitude,CurrentPrice,MLSNumber,CountyOrParish,SubdivisionName,Heating,Cooling,ParkingFeatures,GarageSpaces,Flooring,Appliances,Basement,Roof,ConstructionMaterials,Stories,StoriesTotal,Levels,TaxAnnualAmount,TaxYear,AssociationFee,AssociationFeeFrequency,WaterSource,Sewer,SchoolDistrict,ElementarySchool,MiddleSchool,HighSchool,ListingContractDate,OnMarketDate,ExteriorFeatures,InteriorFeatures';
-      const singleUrl = `${baseUrl}/listings/${params.listingId}?_select=${singleDetailFields}&_expand=Photos`;
+      const singleUrl = `${baseUrl}/listings/${params.listingId}?_select=${allDetailFields}&_expand=Photos`;
       console.log('Fetching single:', singleUrl);
       const singleRes = await fetch(singleUrl, { method: 'GET', headers: sparkHeaders });
       const singleData = await singleRes.json();

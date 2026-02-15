@@ -149,6 +149,15 @@ function safeListing(raw: any): MarketingListing {
     highSchool: raw.highSchool || '',
     listDate: raw.listDate || '',
     pricePerSqft: raw.pricePerSqft || 0,
+    patioAndPorch: Array.isArray(raw.patioAndPorch) ? raw.patioAndPorch : [],
+    fencing: Array.isArray(raw.fencing) ? raw.fencing : [],
+    foundation: Array.isArray(raw.foundation) ? raw.foundation : [],
+    parcelNumber: raw.parcelNumber || '',
+    newConstruction: raw.newConstruction || '',
+    otherStructures: Array.isArray(raw.otherStructures) ? raw.otherStructures : [],
+    commonWalls: raw.commonWalls || '',
+    specialConditions: Array.isArray(raw.specialConditions) ? raw.specialConditions : [],
+    totalStructureArea: raw.totalStructureArea || 0,
   };
 }
 
@@ -566,12 +575,13 @@ const ListingDetail = () => {
                       </div>
                     )}
 
-                    {(cleanArr(listing.flooring).length > 0 || !isBlank(listing.basement)) && (
+                    {(cleanArr(listing.flooring).length > 0 || !isBlank(listing.basement) || !isBlank(listing.commonWalls)) && (
                       <div className="mt-4">
                         <h4 className="font-bold text-foreground mb-2">Features</h4>
                         <ul className="list-disc list-inside text-sm text-foreground space-y-1">
                           {cleanArr(listing.flooring).length > 0 && <li>Flooring: {cleanArr(listing.flooring).join(', ')}</li>}
                           {!isBlank(listing.basement) && <li>Basement: {listing.basement}</li>}
+                          {!isBlank(listing.commonWalls) && <li>Common walls with other units/homes: {listing.commonWalls}</li>}
                         </ul>
                       </div>
                     )}
@@ -580,6 +590,7 @@ const ListingDetail = () => {
                       <div className="mt-4">
                         <h4 className="font-bold text-foreground mb-2">Interior area</h4>
                         <ul className="list-disc list-inside text-sm text-foreground space-y-1">
+                          {!isBlank(listing.totalStructureArea) && <li>Total structure area: {(listing.totalStructureArea || 0).toLocaleString()}</li>}
                           <li>Total interior livable area: {(listing.sqft || 0).toLocaleString()} sqft</li>
                           {!isBlank(listing.stories) && <li>Stories: {listing.stories}</li>}
                         </ul>
@@ -609,6 +620,18 @@ const ListingDetail = () => {
                         <ul className="list-disc list-inside text-sm text-foreground space-y-1">
                           {!isBlank(listing.garageSpaces) && <li>Total spaces: {listing.garageSpaces}</li>}
                           {cleanArr(listing.parking).length > 0 && <li>Parking features: {cleanArr(listing.parking).join(', ')}</li>}
+                          {!isBlank(listing.garageSpaces) && <li>Garage spaces: {listing.garageSpaces}</li>}
+                        </ul>
+                      </div>
+                    )}
+
+                    {(cleanArr(listing.patioAndPorch).length > 0 || cleanArr(listing.fencing).length > 0) && (
+                      <div className="mt-4">
+                        <h4 className="font-bold text-foreground mb-2">Features</h4>
+                        <ul className="list-disc list-inside text-sm text-foreground space-y-1">
+                          {!isBlank(listing.stories) && <li>Levels: {listing.stories}</li>}
+                          {cleanArr(listing.patioAndPorch).length > 0 && <li>Patio & porch: {cleanArr(listing.patioAndPorch).join(', ')}</li>}
+                          {cleanArr(listing.fencing).length > 0 && <li>Fencing: {cleanArr(listing.fencing).join(', ')}</li>}
                         </ul>
                       </div>
                     )}
@@ -618,6 +641,9 @@ const ListingDetail = () => {
                     <div>
                       <h4 className="font-bold text-foreground mb-2">Details</h4>
                       <ul className="list-disc list-inside text-sm text-foreground space-y-1">
+                        {cleanArr(listing.otherStructures).length > 0 && <li>Additional structures: {cleanArr(listing.otherStructures).join(', ')}</li>}
+                        {!isBlank(listing.parcelNumber) && <li>Parcel number: {listing.parcelNumber}</li>}
+                        {cleanArr(listing.specialConditions).length > 0 && <li>Special conditions: {cleanArr(listing.specialConditions).join(', ')}</li>}
                         {!isBlank(listing.mlsNumber) && <li>MLS#: {listing.mlsNumber}</li>}
                         {!isBlank(listing.pricePerSqft) && <li>Price/sqft: ${listing.pricePerSqft}</li>}
                       </ul>
@@ -625,7 +651,7 @@ const ListingDetail = () => {
 
                     {listing.features.filter(f => !isBlank(f)).length > 0 && (
                       <div className="mt-4">
-                        <h4 className="font-bold text-foreground mb-2">Features</h4>
+                        <h4 className="font-bold text-foreground mb-2">Other features</h4>
                         <ul className="list-disc list-inside text-sm text-foreground space-y-1">
                           {listing.features.filter(f => !isBlank(f)).map(f => <li key={f}>{f}</li>)}
                         </ul>
@@ -649,21 +675,23 @@ const ListingDetail = () => {
                   </div>
 
                   <div>
-                    {cleanArr(listing.constructionMaterials).length > 0 && (
+                    {(!isBlank(listing.newConstruction) || !isBlank(listing.yearBuilt) || !isBlank(listing.roof)) && (
                       <div>
-                        <h4 className="font-bold text-foreground mb-2">Materials</h4>
+                        <h4 className="font-bold text-foreground mb-2">Condition</h4>
                         <ul className="list-disc list-inside text-sm text-foreground space-y-1">
-                          {cleanArr(listing.constructionMaterials).map(m => <li key={m}>{m}</li>)}
+                          {!isBlank(listing.newConstruction) && <li>New construction: {listing.newConstruction}</li>}
+                          {!isBlank(listing.yearBuilt) && <li>Year built: {listing.yearBuilt}</li>}
+                          {!isBlank(listing.roof) && <li>Roof: {listing.roof}</li>}
                         </ul>
                       </div>
                     )}
 
-                    {(!isBlank(listing.yearBuilt) || !isBlank(listing.roof)) && (
+                    {(cleanArr(listing.constructionMaterials).length > 0 || cleanArr(listing.foundation).length > 0) && (
                       <div className="mt-4">
-                        <h4 className="font-bold text-foreground mb-2">Condition</h4>
+                        <h4 className="font-bold text-foreground mb-2">Materials</h4>
                         <ul className="list-disc list-inside text-sm text-foreground space-y-1">
-                          {!isBlank(listing.yearBuilt) && <li>Year built: {listing.yearBuilt}</li>}
-                          {!isBlank(listing.roof) && <li>Roof: {listing.roof}</li>}
+                          {cleanArr(listing.foundation).length > 0 && <li>Foundation: {cleanArr(listing.foundation).join(', ')}</li>}
+                          {cleanArr(listing.constructionMaterials).map(m => <li key={m}>{m}</li>)}
                         </ul>
                       </div>
                     )}
