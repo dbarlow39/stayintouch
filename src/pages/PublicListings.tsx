@@ -2,8 +2,6 @@ import { useState, useEffect, useCallback } from 'react';
 import { mockMarketingListings, formatListingPrice, MarketingListing } from '@/data/marketingListings';
 import { flexmlsApi } from '@/lib/api/flexmls';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
 import { Search, MapPin, Bed, Bath, Maximize } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import logo from '@/assets/logo.jpg';
@@ -17,7 +15,6 @@ const statusStyles: Record<string, string> = {
 
 const PublicListings = () => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
   const [listings, setListings] = useState<MarketingListing[]>(() => {
     try {
       const cached = sessionStorage.getItem('public_mls_listings');
@@ -54,8 +51,7 @@ const PublicListings = () => {
     .filter(l => {
       const matchesSearch = l.address.toLowerCase().includes(searchTerm.toLowerCase()) ||
         l.city.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesStatus = statusFilter === 'all' || l.status === statusFilter;
-      return matchesSearch && matchesStatus;
+      return matchesSearch;
     })
     .sort((a, b) => {
       const statusDiff = (statusOrder[a.status] ?? 99) - (statusOrder[b.status] ?? 99);
@@ -86,9 +82,9 @@ const PublicListings = () => {
           </p>
         </div>
 
-        {/* Filters */}
-        <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center mb-8 max-w-2xl mx-auto">
-          <div className="relative flex-1 w-full">
+        {/* Search */}
+        <div className="mb-8 max-w-lg mx-auto">
+          <div className="relative w-full">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
               placeholder="Search by address or city..."
@@ -97,17 +93,6 @@ const PublicListings = () => {
               className="pl-9"
             />
           </div>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[140px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="active">Active</SelectItem>
-              <SelectItem value="contingent">Contingent</SelectItem>
-              <SelectItem value="pending">Pending</SelectItem>
-            </SelectContent>
-          </Select>
         </div>
 
         {/* Results count */}
