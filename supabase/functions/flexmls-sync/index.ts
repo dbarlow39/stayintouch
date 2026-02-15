@@ -410,7 +410,7 @@ Deno.serve(async (req) => {
               body: JSON.stringify({
                 from: 'MLS Alerts <updates@resend.sellfor1percent.com>',
                 to: ['dave@sellfor1percent.com'],
-                subject: `MLS Changes: ${changes.newListings.length} new, ${changes.priceChanges.length} price, ${changes.statusChanges.length} status, ${changes.removedListings.length} removed`,
+                subject: `Sellfor1Percent.com MLS Changes: ${changes.newListings.length} new, ${changes.priceChanges.length} price, ${changes.statusChanges.length} status, ${changes.removedListings.length} removed qqqqq`,
                 html,
               }),
             });
