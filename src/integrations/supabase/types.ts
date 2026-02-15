@@ -1054,6 +1054,24 @@ export type Database = {
         }
         Relationships: []
       }
+      listings_cache: {
+        Row: {
+          id: string
+          listings: Json
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          listings?: Json
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          listings?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
       master_email_templates: {
         Row: {
           id: string

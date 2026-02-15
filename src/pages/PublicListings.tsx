@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { mockMarketingListings, formatListingPrice, MarketingListing } from '@/data/marketingListings';
-import { flexmlsApi } from '@/lib/api/flexmls';
+import { supabase } from '@/integrations/supabase/client';
 import { Input } from '@/components/ui/input';
 import { Search, MapPin, Bed, Bath, Maximize } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -15,34 +15,29 @@ const statusStyles: Record<string, string> = {
 
 const PublicListings = () => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [listings, setListings] = useState<MarketingListing[]>(() => {
-    try {
-      const cached = sessionStorage.getItem('public_mls_listings');
-      if (cached) return JSON.parse(cached);
-    } catch {}
-    return mockMarketingListings;
-  });
-  const [isLoading, setIsLoading] = useState(false);
-
-  const fetchListings = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const result = await flexmlsApi.fetchListings({ limit: 200, status: ['active', 'pending', 'contingent'] });
-      if (result.success && result.data && result.data.length > 0) {
-        setListings(result.data);
-        sessionStorage.setItem('public_mls_listings', JSON.stringify(result.data));
-      }
-    } catch {
-      // Keep cached data on error
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+  const [listings, setListings] = useState<MarketingListing[]>(mockMarketingListings);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const hasCached = sessionStorage.getItem('public_mls_listings');
-    if (!hasCached) fetchListings();
-  }, [fetchListings]);
+    const loadFromCache = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('listings_cache')
+          .select('listings')
+          .eq('id', 'current')
+          .single();
+
+        if (!error && data?.listings && Array.isArray(data.listings) && data.listings.length > 0) {
+          setListings(data.listings as unknown as MarketingListing[]);
+        }
+      } catch {
+        // Keep mock data on error
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadFromCache();
+  }, []);
 
   const statusOrder: Record<string, number> = { active: 0, contingent: 1, pending: 2, sold: 3 };
 
