@@ -115,24 +115,26 @@ const MarketingTab = () => {
             </p>
           </div>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={syncFromMLS}
-          disabled={isSyncing}
-        >
-          {isSyncing ? (
-            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-          ) : (
-            <RefreshCw className="w-4 h-4 mr-2" />
+        <div className="flex flex-col items-end gap-1">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={syncFromMLS}
+            disabled={isSyncing}
+          >
+            {isSyncing ? (
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            ) : (
+              <RefreshCw className="w-4 h-4 mr-2" />
+            )}
+            {isSyncing ? 'Syncing...' : 'Sync MLS'}
+          </Button>
+          {lastSynced && (
+            <p className="text-[10px] text-muted-foreground">
+              Last synced: {new Date(lastSynced).toLocaleString()}
+            </p>
           )}
-          {isSyncing ? 'Syncing...' : 'Sync MLS'}
-        </Button>
-        {lastSynced && (
-          <p className="text-[10px] text-muted-foreground text-right mt-1">
-            Last synced: {new Date(lastSynced).toLocaleString()}
-          </p>
-        )}
+        </div>
       </div>
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
         {[
