@@ -68,7 +68,7 @@ Deno.serve(async (req) => {
       let baths = unmask(sf.BathroomsTotalInteger) || unmask(sf.BathroomsTotalDecimal) || unmask(sf.BathsFull) || 0;
       let bathsFull = unmask(sf.BathsFull) || 0;
       let bathsHalf = unmask(sf.BathsHalf) || 0;
-      const numberOfUnits = sf.NumberOfUnitsTotal || 0;
+      const numberOfUnits = unmask(sf.NumberOfUnitsTotal) || 0;
 
       if (isMultiFamily && beds === 0 && sf.PublicRemarks) {
         const remarks = sf.PublicRemarks.toLowerCase();
@@ -179,8 +179,8 @@ Deno.serve(async (req) => {
         commonWalls: lookupToString(sf.CommonWalls),
         specialConditions: lookupToArr(sf.SpecialListingConditions),
         totalStructureArea: unmask(sf.BuildingAreaTotal) || 0,
-        grossIncome: sf.GrossIncome || 0,
-        netOperatingIncome: sf.NetOperatingIncome || 0,
+        grossIncome: unmask(sf.GrossIncome) || 0,
+        netOperatingIncome: unmask(sf.NetOperatingIncome) || 0,
       };
     }
 
