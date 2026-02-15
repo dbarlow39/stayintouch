@@ -490,6 +490,40 @@ const ListingDetail = () => {
             <section>
               <h2 className="text-2xl font-bold text-foreground mb-6">Facts & features</h2>
 
+              <section>
+                <h2 className="text-2xl font-bold text-foreground mb-4">Location & Neighborhood</h2>
+                {mapEmbedUrl ? (
+                  <div className="rounded-lg overflow-hidden border border-border h-80">
+                    <iframe
+                      src={mapEmbedUrl}
+                      className="w-full h-full"
+                      title={`Map of ${listing.address}`}
+                      loading="lazy"
+                    />
+                  </div>
+                ) : (
+                  <div className="rounded-lg border border-border h-80 flex items-center justify-center bg-muted">
+                    <p className="text-muted-foreground">Map not available</p>
+                  </div>
+                )}
+              </section>
+
+              {[listing.schoolDistrict, listing.elementarySchool, listing.middleSchool, listing.highSchool].some(v => !isBlank(v)) && (
+                <div className="border-t border-b border-border">
+                  <h3 className="text-xl font-bold text-foreground bg-muted/50 px-4 py-2.5 border-b border-border">Schools</h3>
+                  <div className="px-4 py-5">
+                    <ul className="list-disc list-inside text-sm text-foreground space-y-1">
+                      {!isBlank(listing.schoolDistrict) && <li>School district: {listing.schoolDistrict}</li>}
+                      {!isBlank(listing.elementarySchool) && <li>Elementary school: {listing.elementarySchool}</li>}
+                      {!isBlank(listing.middleSchool) && <li>Middle school: {listing.middleSchool}</li>}
+                      {!isBlank(listing.highSchool) && <li>High school: {listing.highSchool}</li>}
+                    </ul>
+                  </div>
+                </div>
+              )}
+
+              <Separator />
+
               {/* Interior */}
               <div className="border-t border-border">
                 <h3 className="text-xl font-bold text-foreground bg-muted/50 px-4 py-2.5 border-b border-border">Interior</h3>
@@ -708,39 +742,7 @@ const ListingDetail = () => {
               )}
             </section>
 
-            {[listing.schoolDistrict, listing.elementarySchool, listing.middleSchool, listing.highSchool].some(v => !isBlank(v)) && (
-              <div className="border-t border-b border-border">
-                <h3 className="text-xl font-bold text-foreground bg-muted/50 px-4 py-2.5 border-b border-border">Schools</h3>
-                <div className="px-4 py-5">
-                  <ul className="list-disc list-inside text-sm text-foreground space-y-1">
-                    {!isBlank(listing.schoolDistrict) && <li>School district: {listing.schoolDistrict}</li>}
-                    {!isBlank(listing.elementarySchool) && <li>Elementary school: {listing.elementarySchool}</li>}
-                    {!isBlank(listing.middleSchool) && <li>Middle school: {listing.middleSchool}</li>}
-                    {!isBlank(listing.highSchool) && <li>High school: {listing.highSchool}</li>}
-                  </ul>
-                </div>
-              </div>
-            )}
 
-            <Separator />
-
-            <section>
-              <h2 className="text-2xl font-bold text-foreground mb-4">Location & Neighborhood</h2>
-              {mapEmbedUrl ? (
-                <div className="rounded-lg overflow-hidden border border-border h-80">
-                  <iframe
-                    src={mapEmbedUrl}
-                    className="w-full h-full"
-                    title={`Map of ${listing.address}`}
-                    loading="lazy"
-                  />
-                </div>
-              ) : (
-                <div className="rounded-lg border border-border h-80 flex items-center justify-center bg-muted">
-                  <p className="text-muted-foreground">Map not available</p>
-                </div>
-              )}
-            </section>
           </div>
 
           {/* Right Sidebar */}
