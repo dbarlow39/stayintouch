@@ -129,11 +129,11 @@ const MarketingTab = () => {
             )}
             {isSyncing ? 'Syncing...' : 'Sync MLS'}
           </Button>
-          {lastSynced && (
-            <p className="text-[10px] text-muted-foreground">
-              Last synced: {new Date(lastSynced).toLocaleString()}
-            </p>
-          )}
+          <p className="text-[10px] text-muted-foreground">
+            {lastSynced
+              ? `Last synced: ${new Date(lastSynced).toLocaleString()}`
+              : 'Not yet synced this session'}
+          </p>
         </div>
       </div>
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
