@@ -49,12 +49,18 @@ Deno.serve(async (req) => {
       return String(v);
     }
 
+    /** Clean masked values from Spark API */
+    function unmask(v: any): any {
+      if (v === '********' || v === '***') return null;
+      return v;
+    }
+
     function transformListing(item: any, photos: string[] = [], fieldMaps: Record<string, Record<string, string>> = {}) {
       const sf = item.StandardFields || {};
       const rawPropType = sf.PropertyType || '';
       const resolvedPropType = fieldMaps.PropertyType?.[rawPropType] || rawPropType || 'Residential';
-      const sqft = sf.BuildingAreaTotal || sf.LivingArea || 0;
-      const price = sf.ListPrice || sf.CurrentPrice || 0;
+      const sqft = unmask(sf.BuildingAreaTotal) || unmask(sf.LivingArea) || 0;
+      const price = unmask(sf.ListPrice) || unmask(sf.CurrentPrice) || 0;
 
       // Lot size: prefer acres, fallback to area+units
       let lotSize = 'N/A';
@@ -67,21 +73,21 @@ Deno.serve(async (req) => {
 
       return {
         id: item.Id || '',
-        mlsNumber: sf.ListingId || sf.MLSNumber || item.Id || '',
-        address: sf.UnparsedFirstLineAddress || `${sf.StreetNumber || ''} ${sf.StreetDirPrefix || ''} ${sf.StreetName || ''} ${sf.StreetSuffix || ''}`.replace(/\s+/g, ' ').trim(),
-        city: sf.City || '',
-        state: sf.StateOrProvince || 'OH',
-        zip: sf.PostalCode || '',
-        county: sf.CountyOrParish || '',
-        subdivision: sf.SubdivisionName || '',
+        mlsNumber: unmask(sf.ListingId) || unmask(sf.MLSNumber) || item.Id || '',
+        address: sf.UnparsedFirstLineAddress || `${unmask(sf.StreetNumber) || ''} ${unmask(sf.StreetDirPrefix) || ''} ${unmask(sf.StreetName) || ''} ${unmask(sf.StreetSuffix) || ''}`.replace(/\s+/g, ' ').trim(),
+        city: unmask(sf.City) || '',
+        state: unmask(sf.StateOrProvince) || 'OH',
+        zip: unmask(sf.PostalCode) || '',
+        county: unmask(sf.CountyOrParish) || '',
+        subdivision: unmask(sf.SubdivisionName) || '',
         price,
-        beds: sf.BedsTotal || 0,
-        baths: sf.BathroomsTotalInteger || sf.BathroomsTotalDecimal || sf.BathsFull || 0,
-        bathsFull: sf.BathsFull || 0,
-        bathsHalf: sf.BathsHalf || 0,
+        beds: unmask(sf.BedsTotal) || 0,
+        baths: unmask(sf.BathroomsTotalInteger) || unmask(sf.BathroomsTotalDecimal) || unmask(sf.BathsFull) || 0,
+        bathsFull: unmask(sf.BathsFull) || 0,
+        bathsHalf: unmask(sf.BathsHalf) || 0,
         sqft,
         lotSize,
-        yearBuilt: sf.YearBuilt || 0,
+        yearBuilt: unmask(sf.YearBuilt) || 0,
         propertyType: resolvedPropType,
         propertySubType: sf.PropertySubType || '',
         status: (() => {
@@ -91,25 +97,25 @@ Deno.serve(async (req) => {
           if (raw === 'closed') return 'sold';
           return raw;
         })(),
-        description: sf.PublicRemarks || '',
+        description: unmask(sf.PublicRemarks) || '',
         features: [
           ...(Array.isArray(sf.ExteriorFeatures) ? sf.ExteriorFeatures : lookupToArr(sf.ExteriorFeatures)),
           ...(Array.isArray(sf.InteriorFeatures) ? sf.InteriorFeatures : lookupToArr(sf.InteriorFeatures)),
         ].filter(Boolean).slice(0, 12),
         photos,
         agent: {
-          name: sf.ListAgentName || `${sf.ListAgentFirstName || ''} ${sf.ListAgentLastName || ''}`.trim(),
-          phone: sf.ListAgentDirectPhone || sf.ListAgentCellPhone || sf.ListAgentOfficePhone || '',
-          email: sf.ListAgentEmail || '',
+          name: unmask(sf.ListAgentName) || `${unmask(sf.ListAgentFirstName) || ''} ${unmask(sf.ListAgentLastName) || ''}`.trim(),
+          phone: unmask(sf.ListAgentDirectPhone) || unmask(sf.ListAgentCellPhone) || unmask(sf.ListAgentOfficePhone) || '',
+          email: unmask(sf.ListAgentEmail) || '',
           photo: '',
         },
         coordinates: { lat: sf.Latitude || 0, lng: sf.Longitude || 0 },
         published: false,
-        daysOnMarket: sf.DaysOnMarket || 0,
+        daysOnMarket: unmask(sf.DaysOnMarket) || 0,
         heating: lookupToArr(sf.Heating),
         cooling: lookupToArr(sf.Cooling),
         parking: lookupToArr(sf.ParkingFeatures),
-        garageSpaces: sf.GarageSpaces || 0,
+        garageSpaces: unmask(sf.GarageSpaces) || 0,
         flooring: lookupToArr(sf.Flooring),
         appliances: lookupToArr(sf.Appliances),
         basement: lookupToString(sf.Basement),
@@ -123,28 +129,28 @@ Deno.serve(async (req) => {
           const raw = [sf.Stories, sf.StoriesTotal].find(v => v && v !== '********' && v !== 0);
           return raw || 0;
         })(),
-        taxAnnualAmount: sf.TaxAnnualAmount || 0,
-        taxYear: sf.TaxYear || 0,
-        hoaFee: sf.AssociationFee || 0,
-        hoaFrequency: sf.AssociationFeeFrequency || '',
+        taxAnnualAmount: unmask(sf.TaxAnnualAmount) || 0,
+        taxYear: unmask(sf.TaxYear) || 0,
+        hoaFee: unmask(sf.AssociationFee) || 0,
+        hoaFrequency: unmask(sf.AssociationFeeFrequency) || '',
         waterSource: lookupToArr(sf.WaterSource),
         sewer: lookupToArr(sf.Sewer),
-        schoolDistrict: sf.SchoolDistrict || '',
+        schoolDistrict: unmask(sf.SchoolDistrict) || '',
         elementarySchool: lookupToString(sf.ElementarySchool),
         middleSchool: lookupToString(sf.MiddleSchool),
         highSchool: lookupToString(sf.HighSchool),
-        listDate: sf.ListingContractDate || sf.OnMarketDate || '',
+        listDate: unmask(sf.ListingContractDate) || unmask(sf.OnMarketDate) || '',
         pricePerSqft: sqft > 0 ? Math.round(price / sqft) : 0,
         // New Zillow-matching fields
         patioAndPorch: lookupToArr(sf.PatioAndPorchFeatures),
         fencing: lookupToArr(sf.Fencing),
         foundation: lookupToArr(sf.FoundationDetails),
-        parcelNumber: sf.ParcelNumber || '',
+        parcelNumber: unmask(sf.ParcelNumber) || '',
         newConstruction: sf.NewConstructionYN != null ? (sf.NewConstructionYN ? 'Yes' : 'No') : '',
         otherStructures: lookupToArr(sf.OtherStructures),
         commonWalls: lookupToString(sf.CommonWalls),
         specialConditions: lookupToArr(sf.SpecialListingConditions),
-        totalStructureArea: sf.BuildingAreaTotal || 0,
+        totalStructureArea: unmask(sf.BuildingAreaTotal) || 0,
       };
     }
 

@@ -460,11 +460,11 @@ const ListingDetail = () => {
               {fullAddress}
             </p>
             <div className="flex items-center gap-6 text-muted-foreground mt-3">
-              <span className="flex items-center gap-1.5 text-base"><Bed className="w-5 h-5" /> <strong className="text-foreground">{listing.beds}</strong> bd</span>
-              <span className="flex items-center gap-1.5 text-base"><Bath className="w-5 h-5" /> <strong className="text-foreground">{listing.baths}</strong> ba</span>
-              {listing.bathsHalf ? <span className="text-base"><strong className="text-foreground">{listing.bathsHalf}</strong> half ba</span> : null}
-              <span className="flex items-center gap-1.5 text-base"><Maximize className="w-5 h-5" /> <strong className="text-foreground">{(listing.sqft || 0).toLocaleString()}</strong> sqft</span>
-              {listing.pricePerSqft ? <span className="text-sm text-muted-foreground">· ${listing.pricePerSqft}/sqft</span> : null}
+              {!isBlank(listing.beds) && <span className="flex items-center gap-1.5 text-base"><Bed className="w-5 h-5" /> <strong className="text-foreground">{listing.beds}</strong> bd</span>}
+              {!isBlank(listing.baths) && <span className="flex items-center gap-1.5 text-base"><Bath className="w-5 h-5" /> <strong className="text-foreground">{listing.baths}</strong> ba</span>}
+              {!isBlank(listing.bathsHalf) && <span className="text-base"><strong className="text-foreground">{listing.bathsHalf}</strong> half ba</span>}
+              {!isBlank(listing.sqft) && <span className="flex items-center gap-1.5 text-base"><Maximize className="w-5 h-5" /> <strong className="text-foreground">{(listing.sqft).toLocaleString()}</strong> sqft</span>}
+              {!isBlank(listing.pricePerSqft) && <span className="text-sm text-muted-foreground">· ${listing.pricePerSqft}/sqft</span>}
             </div>
           </div>
           <div className="text-right hidden md:block">
