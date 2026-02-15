@@ -189,8 +189,7 @@ const MarketingTab = () => {
           </Select>
           <Select value={sortBy} onValueChange={setSortBy}>
             <SelectTrigger className="w-[180px]">
-              <ArrowUpDown className="w-3.5 h-3.5 mr-1.5" />
-              <SelectValue />
+              <ArrowUpDown className="w-3.5 h-3.5 mr-1.5" /><SelectValue placeholder="Status & Price" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="status-price">Status & Price</SelectItem>
