@@ -241,6 +241,7 @@ Deno.serve(async (req) => {
       console.log('Fetching single:', singleUrl);
       const singleRes = await fetch(singleUrl, { method: 'GET', headers: sparkHeaders });
       const singleData = await singleRes.json();
+      
       if (!singleRes.ok) {
         return new Response(
           JSON.stringify({ success: false, error: singleData?.D?.Message || `API returned ${singleRes.status}` }),
@@ -268,6 +269,32 @@ Deno.serve(async (req) => {
         'G': 'Mobile/Manufactured', 'H': 'Condominium', 'I': 'Business Opportunity',
       };
       const transformed = transformListing(item, photos, { PropertyType: propertyTypeMap });
+
+      // If MLS didn't provide tax amount, try Estated API as fallback
+      if (!transformed.taxAnnualAmount) {
+        const estatedKey = Deno.env.get('ESTATED_API_KEY');
+        if (estatedKey && transformed.address && transformed.state) {
+          try {
+            const addr = encodeURIComponent(transformed.address);
+            const city = encodeURIComponent(transformed.city || '');
+            const state = encodeURIComponent(transformed.state || '');
+            const zip = encodeURIComponent(transformed.zip || '');
+            const estatedUrl = `https://apis.estated.com/v4/property?token=${estatedKey}&combined_address=${addr}, ${city}, ${state} ${zip}`;
+            const estRes = await fetch(estatedUrl);
+            if (estRes.ok) {
+              const estData = await estRes.json();
+              const taxAmount = estData?.data?.taxes?.[0]?.amount;
+              if (taxAmount && taxAmount > 0) {
+                transformed.taxAnnualAmount = taxAmount;
+                console.log(`Estated fallback: found tax $${taxAmount} for ${transformed.address}`);
+              }
+            }
+          } catch (e) {
+            console.log('Estated tax fallback failed:', e);
+          }
+        }
+      }
+
       return new Response(
         JSON.stringify({ success: true, data: transformed }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
