@@ -1688,6 +1688,27 @@ export type Database = {
           },
         ]
       }
+      sync_log: {
+        Row: {
+          id: string
+          record_count: number | null
+          sync_type: string
+          synced_at: string
+        }
+        Insert: {
+          id?: string
+          record_count?: number | null
+          sync_type: string
+          synced_at?: string
+        }
+        Update: {
+          id?: string
+          record_count?: number | null
+          sync_type?: string
+          synced_at?: string
+        }
+        Relationships: []
+      }
       tasks: {
         Row: {
           agent_id: string

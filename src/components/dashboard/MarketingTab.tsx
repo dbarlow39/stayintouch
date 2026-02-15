@@ -7,8 +7,11 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Building2, Search, RefreshCw, Download, Loader2, Wifi, WifiOff } from 'lucide-react';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 const MarketingTab = () => {
+  const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const CACHE_KEY = 'mls_listings_cache';
@@ -34,16 +37,21 @@ const MarketingTab = () => {
     return false;
   });
   const [isSyncing, setIsSyncing] = useState(false);
-  const [lastSynced, setLastSynced] = useState<string | null>(() => {
-    try {
-      const raw = localStorage.getItem(CACHE_KEY);
-      if (raw) {
-        const { timestamp } = JSON.parse(raw);
-        return timestamp || null;
-      }
-    } catch {}
-    return null;
+  const { data: lastSyncedFromDb } = useQuery({
+    queryKey: ['mls-last-sync'],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('sync_log')
+        .select('synced_at, record_count')
+        .eq('sync_type', 'mls_listings')
+        .order('synced_at', { ascending: false })
+        .limit(1)
+        .single();
+      return data?.synced_at || null;
+    },
+    refetchInterval: 60000,
   });
+  const lastSynced = lastSyncedFromDb ?? null;
 
   const syncFromMLS = useCallback(async () => {
     setIsSyncing(true);
@@ -51,9 +59,8 @@ const MarketingTab = () => {
       const result = await flexmlsApi.fetchListings({ limit: 200, status: ['active', 'pending', 'contingent'] });
       if (result.success && result.data && result.data.length > 0) {
         setListings(result.data);
-        const now = new Date().toISOString();
-        setLastSynced(now);
-        localStorage.setItem(CACHE_KEY, JSON.stringify({ data: result.data, timestamp: now }));
+        localStorage.setItem(CACHE_KEY, JSON.stringify({ data: result.data, timestamp: new Date().toISOString() }));
+        queryClient.invalidateQueries({ queryKey: ['mls-last-sync'] });
       } else {
         toast.error(result.error || 'No listings returned. Using cached data.');
         setIsLive(false);

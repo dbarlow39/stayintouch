@@ -272,6 +272,24 @@ Deno.serve(async (req) => {
 
       console.log(`Fetched details for ${transformed.length} listings`);
 
+      // Log sync timestamp to DB
+      try {
+        const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+        const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+        await fetch(`${supabaseUrl}/rest/v1/sync_log`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': serviceKey,
+            'Authorization': `Bearer ${serviceKey}`,
+            'Prefer': 'return=minimal',
+          },
+          body: JSON.stringify({ sync_type: 'mls_listings', record_count: transformed.length }),
+        });
+      } catch (e) {
+        console.log('Failed to log sync:', e);
+      }
+
       return new Response(
         JSON.stringify({ success: true, data: transformed, total: transformed.length }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
