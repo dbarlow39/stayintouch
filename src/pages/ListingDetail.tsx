@@ -640,7 +640,7 @@ const ListingDetail = () => {
               )}
 
               {/* Community & HOA */}
-              {(!isBlank(listing.subdivision) || !isBlank(listing.county) || (listing.hoaFee && listing.hoaFee > 0)) && (
+              {(!isBlank(listing.subdivision) || !isBlank(listing.county) || true) && (
                 <div className="border-t border-border">
                   <h3 className="text-xl font-bold text-foreground bg-muted/50 px-4 py-2.5 border-b border-border">Community & HOA</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6 px-4 py-5">
@@ -654,15 +654,19 @@ const ListingDetail = () => {
                         </div>
                       )}
 
-                      {(listing.hoaFee !== undefined && listing.hoaFee > 0) && (
-                        <div className="mt-4">
-                          <h4 className="font-bold text-foreground mb-2">HOA</h4>
-                          <ul className="list-disc list-inside text-sm text-foreground space-y-1">
-                            <li>Has HOA: Yes</li>
-                            <li>HOA fee: ${listing.hoaFee}{!isBlank(listing.hoaFrequency) ? ` ${listing.hoaFrequency!.toLowerCase()}` : ''}</li>
-                          </ul>
-                        </div>
-                      )}
+                      <div className="mt-4">
+                        <h4 className="font-bold text-foreground mb-2">HOA</h4>
+                        <ul className="list-disc list-inside text-sm text-foreground space-y-1">
+                          {(listing.hoaFee !== undefined && listing.hoaFee > 0) ? (
+                            <>
+                              <li>Has HOA: Yes</li>
+                              <li>HOA fee: ${listing.hoaFee}{!isBlank(listing.hoaFrequency) ? ` ${listing.hoaFrequency!.toLowerCase()}` : ''}</li>
+                            </>
+                          ) : (
+                            <li>No HOA</li>
+                          )}
+                        </ul>
+                      </div>
                     </div>
 
                     <div>
