@@ -43,6 +43,23 @@ function safeString(val: unknown): string {
   return String(val);
 }
 
+/** Returns true if a string value is empty, masked, or N/A */
+function isBlank(val: unknown): boolean {
+  if (val === null || val === undefined) return true;
+  if (typeof val === 'number') return val === 0;
+  const s = String(val).trim();
+  if (!s) return true;
+  if (/^\*+$/.test(s)) return true;
+  if (/^n\/?a$/i.test(s)) return true;
+  return false;
+}
+
+/** Filter an array to remove blank/masked items */
+function cleanArr(arr?: string[]): string[] {
+  if (!arr) return [];
+  return arr.filter(v => !isBlank(v));
+}
+
 const DetailRow = ({ label, value }: { label: string; value: unknown }) => {
   const display = safeString(value);
   if (!display || display === 'N/A' || display === '0') return null;
@@ -469,56 +486,60 @@ const ListingDetail = () => {
                   <div>
                     <h4 className="font-bold text-foreground mb-2">Bedrooms & bathrooms</h4>
                     <ul className="list-disc list-inside text-sm text-foreground space-y-1">
-                      <li>Bedrooms: {listing.beds}</li>
-                      <li>Bathrooms: {listing.baths}</li>
-                      {listing.bathsFull ? <li>Full bathrooms: {listing.bathsFull}</li> : null}
-                      {listing.bathsHalf ? <li>1/2 bathrooms: {listing.bathsHalf}</li> : null}
+                      {!isBlank(listing.beds) && <li>Bedrooms: {listing.beds}</li>}
+                      {!isBlank(listing.baths) && <li>Bathrooms: {listing.baths}</li>}
+                      {!isBlank(listing.bathsFull) && <li>Full bathrooms: {listing.bathsFull}</li>}
+                      {!isBlank(listing.bathsHalf) && <li>1/2 bathrooms: {listing.bathsHalf}</li>}
                     </ul>
 
-                    {listing.heating && listing.heating.length > 0 && (
+                    {cleanArr(listing.heating).length > 0 && (
                       <div className="mt-4">
                         <h4 className="font-bold text-foreground mb-2">Heating</h4>
                         <ul className="list-disc list-inside text-sm text-foreground space-y-1">
-                          {listing.heating.map(h => <li key={h}>{h}</li>)}
+                          {cleanArr(listing.heating).map(h => <li key={h}>{h}</li>)}
                         </ul>
                       </div>
                     )}
 
-                    {listing.cooling && listing.cooling.length > 0 && (
+                    {cleanArr(listing.cooling).length > 0 && (
                       <div className="mt-4">
                         <h4 className="font-bold text-foreground mb-2">Cooling</h4>
                         <ul className="list-disc list-inside text-sm text-foreground space-y-1">
-                          {listing.cooling.map(c => <li key={c}>{c}</li>)}
+                          {cleanArr(listing.cooling).map(c => <li key={c}>{c}</li>)}
                         </ul>
                       </div>
                     )}
                   </div>
 
                   <div>
-                    {listing.appliances && listing.appliances.length > 0 && (
+                    {cleanArr(listing.appliances).length > 0 && (
                       <div>
                         <h4 className="font-bold text-foreground mb-2">Appliances</h4>
                         <ul className="list-disc list-inside text-sm text-foreground space-y-1">
-                          <li>Included: {listing.appliances.join(', ')}</li>
+                          <li>Included: {cleanArr(listing.appliances).join(', ')}</li>
                         </ul>
                       </div>
                     )}
 
-                    <div className="mt-4">
-                      <h4 className="font-bold text-foreground mb-2">Features</h4>
-                      <ul className="list-disc list-inside text-sm text-foreground space-y-1">
-                        {listing.flooring && listing.flooring.length > 0 && <li>Flooring: {listing.flooring.join(', ')}</li>}
-                        {listing.basement && listing.basement !== 'N/A' && <li>Basement: {listing.basement}</li>}
-                      </ul>
-                    </div>
+                    {(cleanArr(listing.flooring).length > 0 || !isBlank(listing.basement)) && (
+                      <div className="mt-4">
+                        <h4 className="font-bold text-foreground mb-2">Features</h4>
+                        <ul className="list-disc list-inside text-sm text-foreground space-y-1">
+                          {cleanArr(listing.flooring).length > 0 && <li>Flooring: {cleanArr(listing.flooring).join(', ')}</li>}
+                          {!isBlank(listing.basement) && <li>Basement: {listing.basement}</li>}
+                        </ul>
+                      </div>
+                    )}
 
-                    <div className="mt-4">
-                      <h4 className="font-bold text-foreground mb-2">Interior area</h4>
-                      <ul className="list-disc list-inside text-sm text-foreground space-y-1">
-                        <li>Total interior livable area: {(listing.sqft || 0).toLocaleString()} sqft</li>
-                        {listing.stories ? <li>Levels: {listing.stories}</li> : null}
-                      </ul>
-                    </div>
+                    {!isBlank(listing.sqft) && (
+                      <div className="mt-4">
+                        <h4 className="font-bold text-foreground mb-2">Interior area</h4>
+                        <ul className="list-disc list-inside text-sm text-foreground space-y-1">
+                          <li>Total interior livable area: {(listing.sqft || 0).toLocaleString()} sqft</li>
+                          {!isBlank(listing.stories) && <li>Levels: {listing.stories}</li>}
+                        </ul>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -528,38 +549,42 @@ const ListingDetail = () => {
                 <h3 className="text-xl font-bold text-foreground bg-muted/50 px-4 py-2.5 border-b border-border">Property</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6 px-4 py-5">
                   <div>
-                    {(listing.parking && listing.parking.length > 0) || listing.garageSpaces ? (
+                    {(cleanArr(listing.parking).length > 0 || !isBlank(listing.garageSpaces)) && (
                       <div>
                         <h4 className="font-bold text-foreground mb-2">Parking</h4>
                         <ul className="list-disc list-inside text-sm text-foreground space-y-1">
-                          {listing.garageSpaces ? <li>Total spaces: {listing.garageSpaces}</li> : null}
-                          {listing.parking && listing.parking.length > 0 && <li>Parking features: {listing.parking.join(', ')}</li>}
-                          {listing.garageSpaces ? <li>Attached garage spaces: {listing.garageSpaces}</li> : null}
+                          {!isBlank(listing.garageSpaces) && <li>Total spaces: {listing.garageSpaces}</li>}
+                          {cleanArr(listing.parking).length > 0 && <li>Parking features: {cleanArr(listing.parking).join(', ')}</li>}
+                          {!isBlank(listing.garageSpaces) && <li>Attached garage spaces: {listing.garageSpaces}</li>}
                         </ul>
                       </div>
-                    ) : null}
+                    )}
 
-                    {listing.features.length > 0 && (
+                    {listing.features.filter(f => !isBlank(f)).length > 0 && (
                       <div className="mt-4">
                         <h4 className="font-bold text-foreground mb-2">Features</h4>
                         <ul className="list-disc list-inside text-sm text-foreground space-y-1">
-                          {listing.features.map(f => <li key={f}>{f}</li>)}
+                          {listing.features.filter(f => !isBlank(f)).map(f => <li key={f}>{f}</li>)}
                         </ul>
                       </div>
                     )}
                   </div>
 
                   <div>
-                    <h4 className="font-bold text-foreground mb-2">Lot</h4>
-                    <ul className="list-disc list-inside text-sm text-foreground space-y-1">
-                      {listing.lotSize && listing.lotSize !== 'N/A' && <li>Size: {listing.lotSize}</li>}
-                    </ul>
+                    {!isBlank(listing.lotSize) && (
+                      <>
+                        <h4 className="font-bold text-foreground mb-2">Lot</h4>
+                        <ul className="list-disc list-inside text-sm text-foreground space-y-1">
+                          <li>Size: {listing.lotSize}</li>
+                        </ul>
+                      </>
+                    )}
 
                     <div className="mt-4">
                       <h4 className="font-bold text-foreground mb-2">Details</h4>
                       <ul className="list-disc list-inside text-sm text-foreground space-y-1">
-                        <li>MLS#: {listing.mlsNumber}</li>
-                        {listing.pricePerSqft ? <li>Price/sqft: ${listing.pricePerSqft}</li> : null}
+                        {!isBlank(listing.mlsNumber) && <li>MLS#: {listing.mlsNumber}</li>}
+                        {!isBlank(listing.pricePerSqft) && <li>Price/sqft: ${listing.pricePerSqft}</li>}
                       </ul>
                     </div>
                   </div>
@@ -573,52 +598,54 @@ const ListingDetail = () => {
                   <div>
                     <h4 className="font-bold text-foreground mb-2">Type & style</h4>
                     <ul className="list-disc list-inside text-sm text-foreground space-y-1">
-                      <li>Home type: {listing.propertyType}</li>
-                      {listing.propertySubType && <li>Property subtype: {listing.propertySubType}</li>}
+                      {!isBlank(listing.propertyType) && <li>Home type: {listing.propertyType}</li>}
+                      {!isBlank(listing.propertySubType) && <li>Property subtype: {listing.propertySubType}</li>}
                     </ul>
                   </div>
 
                   <div>
-                    {listing.constructionMaterials && listing.constructionMaterials.length > 0 && (
+                    {cleanArr(listing.constructionMaterials).length > 0 && (
                       <div>
                         <h4 className="font-bold text-foreground mb-2">Materials</h4>
                         <ul className="list-disc list-inside text-sm text-foreground space-y-1">
-                          {listing.constructionMaterials.map(m => <li key={m}>{m}</li>)}
+                          {cleanArr(listing.constructionMaterials).map(m => <li key={m}>{m}</li>)}
                         </ul>
                       </div>
                     )}
 
-                    <div className="mt-4">
-                      <h4 className="font-bold text-foreground mb-2">Condition</h4>
-                      <ul className="list-disc list-inside text-sm text-foreground space-y-1">
-                        {listing.yearBuilt ? <li>Year built: {listing.yearBuilt}</li> : null}
-                        {listing.roof && <li>Roof: {listing.roof}</li>}
-                      </ul>
-                    </div>
+                    {(!isBlank(listing.yearBuilt) || !isBlank(listing.roof)) && (
+                      <div className="mt-4">
+                        <h4 className="font-bold text-foreground mb-2">Condition</h4>
+                        <ul className="list-disc list-inside text-sm text-foreground space-y-1">
+                          {!isBlank(listing.yearBuilt) && <li>Year built: {listing.yearBuilt}</li>}
+                          {!isBlank(listing.roof) && <li>Roof: {listing.roof}</li>}
+                        </ul>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
 
               {/* Utilities & green energy */}
-              {((listing.sewer && listing.sewer.length > 0) || (listing.waterSource && listing.waterSource.length > 0)) && (
+              {(cleanArr(listing.sewer).length > 0 || cleanArr(listing.waterSource).length > 0) && (
                 <div className="border-t border-border">
                   <h3 className="text-xl font-bold text-foreground bg-muted/50 px-4 py-2.5 border-b border-border">Utilities & green energy</h3>
                   <div className="px-4 py-5">
                     <ul className="list-disc list-inside text-sm text-foreground space-y-1">
-                      {listing.sewer && listing.sewer.length > 0 && <li>Sewer: {listing.sewer.join(', ')}</li>}
-                      {listing.waterSource && listing.waterSource.length > 0 && <li>Water: {listing.waterSource.join(', ')}</li>}
+                      {cleanArr(listing.sewer).length > 0 && <li>Sewer: {cleanArr(listing.sewer).join(', ')}</li>}
+                      {cleanArr(listing.waterSource).length > 0 && <li>Water: {cleanArr(listing.waterSource).join(', ')}</li>}
                     </ul>
                   </div>
                 </div>
               )}
 
               {/* Community & HOA */}
-              {(listing.subdivision || listing.county || listing.hoaFee || listing.schoolDistrict) && (
+              {(!isBlank(listing.subdivision) || !isBlank(listing.county) || (listing.hoaFee && listing.hoaFee > 0)) && (
                 <div className="border-t border-border">
                   <h3 className="text-xl font-bold text-foreground bg-muted/50 px-4 py-2.5 border-b border-border">Community & HOA</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6 px-4 py-5">
                     <div>
-                      {listing.subdivision && (
+                      {!isBlank(listing.subdivision) && (
                         <div>
                           <h4 className="font-bold text-foreground mb-2">Community</h4>
                           <ul className="list-disc list-inside text-sm text-foreground space-y-1">
@@ -632,19 +659,19 @@ const ListingDetail = () => {
                           <h4 className="font-bold text-foreground mb-2">HOA</h4>
                           <ul className="list-disc list-inside text-sm text-foreground space-y-1">
                             <li>Has HOA: Yes</li>
-                            <li>HOA fee: ${listing.hoaFee}{listing.hoaFrequency ? ` ${listing.hoaFrequency.toLowerCase()}` : ''}</li>
+                            <li>HOA fee: ${listing.hoaFee}{!isBlank(listing.hoaFrequency) ? ` ${listing.hoaFrequency!.toLowerCase()}` : ''}</li>
                           </ul>
                         </div>
                       )}
                     </div>
 
                     <div>
-                      {(listing.county || listing.city) && (
+                      {(!isBlank(listing.county) || !isBlank(listing.city)) && (
                         <div>
                           <h4 className="font-bold text-foreground mb-2">Location</h4>
                           <ul className="list-disc list-inside text-sm text-foreground space-y-1">
-                            {listing.city && <li>Region: {listing.city}</li>}
-                            {listing.county && <li>County: {listing.county}</li>}
+                            {!isBlank(listing.city) && <li>Region: {listing.city}</li>}
+                            {!isBlank(listing.county) && <li>County: {listing.county}</li>}
                           </ul>
                         </div>
                       )}
@@ -654,28 +681,30 @@ const ListingDetail = () => {
               )}
 
               {/* Financial */}
-              <div className="border-t border-b border-border">
-                <h3 className="text-xl font-bold text-foreground bg-muted/50 px-4 py-2.5 border-b border-border">Financial</h3>
-                <div className="px-4 py-5">
-                  <ul className="list-disc list-inside text-sm text-foreground space-y-1">
-                    {listing.taxAnnualAmount ? <li>Annual taxes: ${listing.taxAnnualAmount.toLocaleString()}</li> : null}
-                    {listing.taxYear ? <li>Tax year: {listing.taxYear}</li> : null}
-                    {listing.pricePerSqft ? <li>Price per sqft: ${listing.pricePerSqft}</li> : null}
-                  </ul>
+              {(!isBlank(listing.taxAnnualAmount) || !isBlank(listing.taxYear) || !isBlank(listing.pricePerSqft)) && (
+                <div className="border-t border-b border-border">
+                  <h3 className="text-xl font-bold text-foreground bg-muted/50 px-4 py-2.5 border-b border-border">Financial</h3>
+                  <div className="px-4 py-5">
+                    <ul className="list-disc list-inside text-sm text-foreground space-y-1">
+                      {!isBlank(listing.taxAnnualAmount) && <li>Annual taxes: ${listing.taxAnnualAmount!.toLocaleString()}</li>}
+                      {!isBlank(listing.taxYear) && <li>Tax year: {listing.taxYear}</li>}
+                      {!isBlank(listing.pricePerSqft) && <li>Price per sqft: ${listing.pricePerSqft}</li>}
+                    </ul>
+                  </div>
                 </div>
-              </div>
+              )}
             </section>
 
-            {[listing.schoolDistrict, listing.elementarySchool, listing.middleSchool, listing.highSchool].some(v => v && !/^\*+$/.test(v)) && (
+            {[listing.schoolDistrict, listing.elementarySchool, listing.middleSchool, listing.highSchool].some(v => !isBlank(v)) && (
               <>
                 <Separator />
                 <section>
                   <h2 className="text-2xl font-bold text-foreground mb-4">Schools</h2>
                   <ul className="list-disc list-inside text-sm text-foreground space-y-1">
-                    {listing.schoolDistrict && !/^\*+$/.test(listing.schoolDistrict) && <li>School district: {listing.schoolDistrict}</li>}
-                    {listing.elementarySchool && !/^\*+$/.test(listing.elementarySchool) && <li>Elementary school: {listing.elementarySchool}</li>}
-                    {listing.middleSchool && !/^\*+$/.test(listing.middleSchool) && <li>Middle school: {listing.middleSchool}</li>}
-                    {listing.highSchool && !/^\*+$/.test(listing.highSchool) && <li>High school: {listing.highSchool}</li>}
+                    {!isBlank(listing.schoolDistrict) && <li>School district: {listing.schoolDistrict}</li>}
+                    {!isBlank(listing.elementarySchool) && <li>Elementary school: {listing.elementarySchool}</li>}
+                    {!isBlank(listing.middleSchool) && <li>Middle school: {listing.middleSchool}</li>}
+                    {!isBlank(listing.highSchool) && <li>High school: {listing.highSchool}</li>}
                   </ul>
                 </section>
               </>
