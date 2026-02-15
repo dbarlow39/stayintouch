@@ -53,6 +53,15 @@ export interface MarketingListing {
   highSchool?: string;
   listDate?: string;
   pricePerSqft?: number;
+  patioAndPorch?: string[];
+  fencing?: string[];
+  foundation?: string[];
+  parcelNumber?: string;
+  newConstruction?: string;
+  otherStructures?: string[];
+  commonWalls?: string;
+  specialConditions?: string[];
+  totalStructureArea?: number;
 }
 
 export const mockMarketingListings: MarketingListing[] = [
