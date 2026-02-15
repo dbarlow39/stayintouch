@@ -58,9 +58,33 @@ Deno.serve(async (req) => {
     function transformListing(item: any, photos: string[] = [], fieldMaps: Record<string, Record<string, string>> = {}) {
       const sf = item.StandardFields || {};
       const rawPropType = sf.PropertyType || '';
-      const resolvedPropType = fieldMaps.PropertyType?.[rawPropType] || rawPropType || 'Residential';
+      const resolvedPropType = unmask(sf.PropertyTypeLabel) || fieldMaps.PropertyType?.[rawPropType] || rawPropType || 'Residential';
       const sqft = unmask(sf.BuildingAreaTotal) || unmask(sf.LivingArea) || 0;
       const price = unmask(sf.ListPrice) || unmask(sf.CurrentPrice) || 0;
+      const isMultiFamily = (sf.PropertyClass === 'MultiFamily' || sf.PropertySubType === 'Duplex' || rawPropType === 'C');
+
+      // For multi-family with masked beds/baths, try to parse from description
+      let beds = unmask(sf.BedsTotal) || 0;
+      let baths = unmask(sf.BathroomsTotalInteger) || unmask(sf.BathroomsTotalDecimal) || unmask(sf.BathsFull) || 0;
+      let bathsFull = unmask(sf.BathsFull) || 0;
+      let bathsHalf = unmask(sf.BathsHalf) || 0;
+      const numberOfUnits = sf.NumberOfUnitsTotal || 0;
+
+      if (isMultiFamily && beds === 0 && sf.PublicRemarks) {
+        const remarks = sf.PublicRemarks.toLowerCase();
+        // Try patterns like "2 bedrooms" or "2 bed" per unit
+        const bedMatch = remarks.match(/(\d+)\s*bed(?:room)?s?/);
+        const bathMatch = remarks.match(/(\d+)\s*(?:full\s+)?bath(?:room)?s?/);
+        if (bedMatch) {
+          const bedsPerUnit = parseInt(bedMatch[1], 10);
+          beds = numberOfUnits > 1 ? bedsPerUnit * numberOfUnits : bedsPerUnit;
+        }
+        if (bathMatch) {
+          const bathsPerUnit = parseInt(bathMatch[1], 10);
+          baths = numberOfUnits > 1 ? bathsPerUnit * numberOfUnits : bathsPerUnit;
+          bathsFull = baths;
+        }
+      }
 
       // Lot size: prefer acres, fallback to area+units
       let lotSize = 'N/A';
@@ -70,6 +94,9 @@ Deno.serve(async (req) => {
         const units = sf.LotSizeUnits || 'sqft';
         lotSize = `${sf.LotSizeArea} ${units}`;
       }
+
+      // Tax: fallback from TaxAmount if TaxAnnualAmount is masked
+      const taxAnnualAmount = unmask(sf.TaxAnnualAmount) || unmask(sf.TaxAmount) || 0;
 
       return {
         id: item.Id || '',
@@ -81,15 +108,16 @@ Deno.serve(async (req) => {
         county: unmask(sf.CountyOrParish) || '',
         subdivision: unmask(sf.SubdivisionName) || '',
         price,
-        beds: unmask(sf.BedsTotal) || 0,
-        baths: unmask(sf.BathroomsTotalInteger) || unmask(sf.BathroomsTotalDecimal) || unmask(sf.BathsFull) || 0,
-        bathsFull: unmask(sf.BathsFull) || 0,
-        bathsHalf: unmask(sf.BathsHalf) || 0,
+        beds,
+        baths,
+        bathsFull,
+        bathsHalf,
         sqft,
         lotSize,
         yearBuilt: unmask(sf.YearBuilt) || 0,
         propertyType: resolvedPropType,
         propertySubType: sf.PropertySubType || '',
+        numberOfUnits: numberOfUnits,
         status: (() => {
           const raw = (sf.MlsStatus || sf.StandardStatus || 'active').toLowerCase();
           if (raw.startsWith('contingent')) return 'contingent';
@@ -105,7 +133,7 @@ Deno.serve(async (req) => {
         photos,
         agent: {
           name: unmask(sf.ListAgentName) || `${unmask(sf.ListAgentFirstName) || ''} ${unmask(sf.ListAgentLastName) || ''}`.trim(),
-          phone: unmask(sf.ListAgentDirectPhone) || unmask(sf.ListAgentCellPhone) || unmask(sf.ListAgentOfficePhone) || '',
+          phone: unmask(sf.ListAgentDirectPhone) || unmask(sf.ListAgentCellPhone) || unmask(sf.ListAgentPreferredPhone) || unmask(sf.ListAgentOfficePhone) || '',
           email: unmask(sf.ListAgentEmail) || '',
           photo: '',
         },
@@ -129,7 +157,7 @@ Deno.serve(async (req) => {
           const raw = [sf.Stories, sf.StoriesTotal].find(v => v && v !== '********' && v !== 0);
           return raw || 0;
         })(),
-        taxAnnualAmount: unmask(sf.TaxAnnualAmount) || 0,
+        taxAnnualAmount,
         taxYear: unmask(sf.TaxYear) || 0,
         hoaFee: unmask(sf.AssociationFee) || 0,
         hoaFrequency: unmask(sf.AssociationFeeFrequency) || '',
@@ -151,6 +179,8 @@ Deno.serve(async (req) => {
         commonWalls: lookupToString(sf.CommonWalls),
         specialConditions: lookupToArr(sf.SpecialListingConditions),
         totalStructureArea: unmask(sf.BuildingAreaTotal) || 0,
+        grossIncome: sf.GrossIncome || 0,
+        netOperatingIncome: sf.NetOperatingIncome || 0,
       };
     }
 
@@ -191,7 +221,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    const allDetailFields = 'ListingId,ListPrice,BedsTotal,BathroomsTotalInteger,BathroomsTotalDecimal,BathsFull,BathsHalf,BuildingAreaTotal,LivingArea,City,StateOrProvince,PostalCode,UnparsedFirstLineAddress,StreetNumber,StreetDirPrefix,StreetName,StreetSuffix,PropertyType,PropertySubType,MlsStatus,StandardStatus,ListOfficeMlsId,ListAgentName,ListAgentFirstName,ListAgentLastName,ListAgentDirectPhone,ListAgentCellPhone,ListAgentOfficePhone,ListAgentEmail,YearBuilt,LotSizeArea,LotSizeUnits,LotSizeAcres,DaysOnMarket,PublicRemarks,Latitude,Longitude,CurrentPrice,MLSNumber,CountyOrParish,SubdivisionName,Heating,Cooling,ParkingFeatures,GarageSpaces,Flooring,Appliances,Basement,Roof,ConstructionMaterials,Stories,StoriesTotal,Levels,TaxAnnualAmount,TaxYear,AssociationFee,AssociationFeeFrequency,WaterSource,Sewer,SchoolDistrict,ElementarySchool,MiddleSchool,HighSchool,ListingContractDate,OnMarketDate,ExteriorFeatures,InteriorFeatures,PatioAndPorchFeatures,Fencing,FoundationDetails,ParcelNumber,NewConstructionYN,OtherStructures,CommonWalls,SpecialListingConditions';
+    const allDetailFields = 'ListingId,ListPrice,BedsTotal,BathroomsTotalInteger,BathroomsTotalDecimal,BathsFull,BathsHalf,BuildingAreaTotal,LivingArea,City,StateOrProvince,PostalCode,UnparsedFirstLineAddress,StreetNumber,StreetDirPrefix,StreetName,StreetSuffix,PropertyType,PropertyTypeLabel,PropertySubType,PropertyClass,MlsStatus,StandardStatus,ListOfficeMlsId,ListAgentName,ListAgentFirstName,ListAgentLastName,ListAgentDirectPhone,ListAgentCellPhone,ListAgentPreferredPhone,ListAgentOfficePhone,ListAgentEmail,YearBuilt,LotSizeArea,LotSizeUnits,LotSizeAcres,DaysOnMarket,PublicRemarks,Latitude,Longitude,CurrentPrice,MLSNumber,CountyOrParish,SubdivisionName,Heating,Cooling,ParkingFeatures,GarageSpaces,Flooring,Appliances,Basement,Roof,ConstructionMaterials,Stories,StoriesTotal,Levels,TaxAnnualAmount,TaxAmount,TaxYear,AssociationFee,AssociationFeeFrequency,WaterSource,Sewer,SchoolDistrict,ElementarySchool,MiddleSchool,HighSchool,ListingContractDate,OnMarketDate,ExteriorFeatures,InteriorFeatures,PatioAndPorchFeatures,Fencing,FoundationDetails,ParcelNumber,NewConstructionYN,OtherStructures,CommonWalls,SpecialListingConditions,NumberOfUnitsTotal,GrossIncome,NetOperatingIncome';
 
     // ─── MY LISTINGS ───
     if (action === 'my_listings') {
@@ -364,6 +394,19 @@ Deno.serve(async (req) => {
 
       return new Response(
         JSON.stringify({ success: true, data: transformed }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // ─── RAW LISTING (debug) ───
+    if (action === 'raw_listing') {
+      const expand = params.expand || 'Photos';
+      const rawUrl = `${baseUrl}/listings/${params.listingId}?_expand=${expand}`;
+      const rawRes = await fetch(rawUrl, { method: 'GET', headers: sparkHeaders });
+      const rawData = await rawRes.json();
+      const result = rawData?.D?.Results?.[0];
+      return new Response(
+        JSON.stringify({ success: true, data: result }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
