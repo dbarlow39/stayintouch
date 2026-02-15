@@ -308,32 +308,135 @@ Deno.serve(async (req) => {
 
       console.log(`Fetched details for ${transformed.length} listings`);
 
-      // Log sync timestamp and cache listings in DB
+      // Log sync timestamp, detect changes, cache listings, and notify
       try {
         const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
         const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-        const headers = {
+        const resendKey = Deno.env.get('RESEND_API_KEY');
+        const dbHeaders = {
           'Content-Type': 'application/json',
           'apikey': serviceKey,
           'Authorization': `Bearer ${serviceKey}`,
-          'Prefer': 'return=minimal',
         };
+
+        // Fetch previous cache for change detection
+        let previousListings: any[] = [];
+        try {
+          const cacheRes = await fetch(`${supabaseUrl}/rest/v1/listings_cache?id=eq.current&select=listings`, {
+            headers: dbHeaders,
+          });
+          if (cacheRes.ok) {
+            const cacheData = await cacheRes.json();
+            if (cacheData?.[0]?.listings) previousListings = cacheData[0].listings;
+          }
+        } catch {}
+
+        // Detect changes
+        const prevMap = new Map(previousListings.map((l: any) => [l.mlsNumber, l]));
+        const newMap = new Map(transformed.map((l: any) => [l.mlsNumber, l]));
+
+        const changes: { newListings: any[]; removedListings: any[]; priceChanges: any[]; statusChanges: any[] } = {
+          newListings: [],
+          removedListings: [],
+          priceChanges: [],
+          statusChanges: [],
+        };
+
+        for (const [mls, listing] of newMap) {
+          const prev = prevMap.get(mls);
+          if (!prev) {
+            changes.newListings.push(listing);
+          } else {
+            if (prev.price !== listing.price) {
+              changes.priceChanges.push({ listing, oldPrice: prev.price, newPrice: listing.price });
+            }
+            if (prev.status !== listing.status) {
+              changes.statusChanges.push({ listing, oldStatus: prev.status, newStatus: listing.status });
+            }
+          }
+        }
+        for (const [mls, listing] of prevMap) {
+          if (!newMap.has(mls)) {
+            changes.removedListings.push(listing);
+          }
+        }
+
+        const hasChanges = changes.newListings.length > 0 || changes.removedListings.length > 0 ||
+          changes.priceChanges.length > 0 || changes.statusChanges.length > 0;
+
+        // Send email notification if changes detected
+        if (hasChanges && resendKey && previousListings.length > 0) {
+          const fmtPrice = (p: number) => '$' + p.toLocaleString('en-US');
+          let html = `<h2 style="color:#1a1a1a;font-family:sans-serif;">MLS Listing Changes Detected</h2>`;
+          html += `<p style="color:#666;font-family:sans-serif;font-size:14px;">Sync completed at ${new Date().toLocaleString('en-US', { timeZone: 'America/New_York' })} ET</p>`;
+
+          if (changes.newListings.length > 0) {
+            html += `<h3 style="color:#16a34a;font-family:sans-serif;">🆕 New Listings (${changes.newListings.length})</h3><ul style="font-family:sans-serif;font-size:14px;">`;
+            for (const l of changes.newListings) {
+              html += `<li><strong>${l.address}</strong> — ${fmtPrice(l.price)} | ${l.beds}bd/${l.baths}ba | ${l.status} | MLS# ${l.mlsNumber}</li>`;
+            }
+            html += `</ul>`;
+          }
+
+          if (changes.removedListings.length > 0) {
+            html += `<h3 style="color:#dc2626;font-family:sans-serif;">❌ Removed Listings (${changes.removedListings.length})</h3><ul style="font-family:sans-serif;font-size:14px;">`;
+            for (const l of changes.removedListings) {
+              html += `<li><strong>${l.address}</strong> — ${fmtPrice(l.price)} | MLS# ${l.mlsNumber}</li>`;
+            }
+            html += `</ul>`;
+          }
+
+          if (changes.priceChanges.length > 0) {
+            html += `<h3 style="color:#2563eb;font-family:sans-serif;">💲 Price Changes (${changes.priceChanges.length})</h3><ul style="font-family:sans-serif;font-size:14px;">`;
+            for (const c of changes.priceChanges) {
+              const dir = c.newPrice > c.oldPrice ? '⬆️' : '⬇️';
+              html += `<li><strong>${c.listing.address}</strong> — ${fmtPrice(c.oldPrice)} → ${fmtPrice(c.newPrice)} ${dir} | MLS# ${c.listing.mlsNumber}</li>`;
+            }
+            html += `</ul>`;
+          }
+
+          if (changes.statusChanges.length > 0) {
+            html += `<h3 style="color:#9333ea;font-family:sans-serif;">🔄 Status Changes (${changes.statusChanges.length})</h3><ul style="font-family:sans-serif;font-size:14px;">`;
+            for (const c of changes.statusChanges) {
+              html += `<li><strong>${c.listing.address}</strong> — ${c.oldStatus} → ${c.newStatus} | MLS# ${c.listing.mlsNumber}</li>`;
+            }
+            html += `</ul>`;
+          }
+
+          try {
+            await fetch('https://api.resend.com/emails', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${resendKey}` },
+              body: JSON.stringify({
+                from: 'MLS Alerts <updates@resend.sellfor1percent.com>',
+                to: ['dave@sellfor1percent.com'],
+                subject: `MLS Changes: ${changes.newListings.length} new, ${changes.priceChanges.length} price, ${changes.statusChanges.length} status, ${changes.removedListings.length} removed`,
+                html,
+              }),
+            });
+            console.log('Change notification email sent');
+          } catch (emailErr) {
+            console.log('Failed to send change email:', emailErr);
+          }
+        }
+
+        console.log(`Changes detected: ${hasChanges} (new: ${changes.newListings.length}, removed: ${changes.removedListings.length}, price: ${changes.priceChanges.length}, status: ${changes.statusChanges.length})`);
 
         // Log sync
         await fetch(`${supabaseUrl}/rest/v1/sync_log`, {
           method: 'POST',
-          headers,
+          headers: { ...dbHeaders, 'Prefer': 'return=minimal' },
           body: JSON.stringify({ sync_type: 'mls_listings', record_count: transformed.length }),
         });
 
-        // Upsert listings cache for instant public page loading
+        // Update listings cache
         await fetch(`${supabaseUrl}/rest/v1/listings_cache?id=eq.current`, {
           method: 'DELETE',
-          headers,
+          headers: { ...dbHeaders, 'Prefer': 'return=minimal' },
         });
         await fetch(`${supabaseUrl}/rest/v1/listings_cache`, {
           method: 'POST',
-          headers,
+          headers: { ...dbHeaders, 'Prefer': 'return=minimal' },
           body: JSON.stringify({ id: 'current', listings: transformed, updated_at: new Date().toISOString() }),
         });
         console.log('Listings cache updated with', transformed.length, 'listings');
