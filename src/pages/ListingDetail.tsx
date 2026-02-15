@@ -460,117 +460,231 @@ const ListingDetail = () => {
             <Separator />
 
             <section>
-              <h2 className="text-2xl font-bold text-foreground mb-4">Facts & Features</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <DetailSection icon={Home} title="Interior Details">
-                  <DetailRow label="Bedrooms" value={listing.beds} />
-                  <DetailRow label="Full Bathrooms" value={listing.bathsFull} />
-                  <DetailRow label="Half Bathrooms" value={listing.bathsHalf} />
-                  <DetailRow label="Total Sq Ft" value={(listing.sqft || 0).toLocaleString()} />
-                  <DetailRow label="Stories" value={listing.stories} />
-                  <DetailRow label="Basement" value={listing.basement} />
-                  <div className="mt-3">
-                    <p className="text-xs text-muted-foreground mb-1.5 font-medium uppercase tracking-wide">Flooring</p>
-                    <TagList items={listing.flooring} />
-                  </div>
-                  <div className="mt-3">
-                    <p className="text-xs text-muted-foreground mb-1.5 font-medium uppercase tracking-wide">Appliances</p>
-                    <TagList items={listing.appliances} />
-                  </div>
-                </DetailSection>
+              <h2 className="text-2xl font-bold text-foreground mb-6">Facts & features</h2>
 
-                <DetailSection icon={Building} title="Building Details">
-                  <DetailRow label="Property Type" value={listing.propertyType} />
-                  <DetailRow label="Sub Type" value={listing.propertySubType} />
-                  <DetailRow label="Year Built" value={listing.yearBuilt} />
-                  <DetailRow label="Lot Size" value={listing.lotSize} />
-                  <DetailRow label="Roof" value={listing.roof} />
-                  <div className="mt-3">
-                    <p className="text-xs text-muted-foreground mb-1.5 font-medium uppercase tracking-wide">Construction</p>
-                    <TagList items={listing.constructionMaterials} />
-                  </div>
-                </DetailSection>
+              {/* Interior */}
+              <div className="border-t border-border">
+                <h3 className="text-xl font-bold text-foreground bg-muted/50 px-4 py-2.5 border-b border-border">Interior</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6 px-4 py-5">
+                  <div>
+                    <h4 className="font-bold text-foreground mb-2">Bedrooms & bathrooms</h4>
+                    <ul className="list-disc list-inside text-sm text-foreground space-y-1">
+                      <li>Bedrooms: {listing.beds}</li>
+                      <li>Bathrooms: {listing.baths}</li>
+                      {listing.bathsFull ? <li>Full bathrooms: {listing.bathsFull}</li> : null}
+                      {listing.bathsHalf ? <li>1/2 bathrooms: {listing.bathsHalf}</li> : null}
+                    </ul>
 
-                <DetailSection icon={Thermometer} title="Heating & Cooling">
-                  <div className="space-y-3">
-                    <div>
-                      <p className="text-xs text-muted-foreground mb-1.5 font-medium uppercase tracking-wide">Heating</p>
-                      <TagList items={listing.heating} />
+                    {listing.heating && listing.heating.length > 0 && (
+                      <div className="mt-4">
+                        <h4 className="font-bold text-foreground mb-2">Heating</h4>
+                        <ul className="list-disc list-inside text-sm text-foreground space-y-1">
+                          {listing.heating.map(h => <li key={h}>{h}</li>)}
+                        </ul>
+                      </div>
+                    )}
+
+                    {listing.cooling && listing.cooling.length > 0 && (
+                      <div className="mt-4">
+                        <h4 className="font-bold text-foreground mb-2">Cooling</h4>
+                        <ul className="list-disc list-inside text-sm text-foreground space-y-1">
+                          {listing.cooling.map(c => <li key={c}>{c}</li>)}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+
+                  <div>
+                    {listing.appliances && listing.appliances.length > 0 && (
+                      <div>
+                        <h4 className="font-bold text-foreground mb-2">Appliances</h4>
+                        <ul className="list-disc list-inside text-sm text-foreground space-y-1">
+                          <li>Included: {listing.appliances.join(', ')}</li>
+                        </ul>
+                      </div>
+                    )}
+
+                    <div className="mt-4">
+                      <h4 className="font-bold text-foreground mb-2">Features</h4>
+                      <ul className="list-disc list-inside text-sm text-foreground space-y-1">
+                        {listing.flooring && listing.flooring.length > 0 && <li>Flooring: {listing.flooring.join(', ')}</li>}
+                        {listing.basement && listing.basement !== 'N/A' && <li>Basement: {listing.basement}</li>}
+                      </ul>
                     </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground mb-1.5 font-medium uppercase tracking-wide">Cooling</p>
-                      <TagList items={listing.cooling} />
-                    </div>
-                  </div>
-                </DetailSection>
 
-                <DetailSection icon={Car} title="Parking">
-                  <DetailRow label="Garage Spaces" value={listing.garageSpaces} />
-                  <div className="mt-2">
-                    <p className="text-xs text-muted-foreground mb-1.5 font-medium uppercase tracking-wide">Parking Features</p>
-                    <TagList items={listing.parking} />
-                  </div>
-                </DetailSection>
-
-                <DetailSection icon={Droplets} title="Utilities">
-                  <div className="space-y-3">
-                    <div>
-                      <p className="text-xs text-muted-foreground mb-1.5 font-medium uppercase tracking-wide">Water Source</p>
-                      <TagList items={listing.waterSource} />
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground mb-1.5 font-medium uppercase tracking-wide">Sewer</p>
-                      <TagList items={listing.sewer} />
+                    <div className="mt-4">
+                      <h4 className="font-bold text-foreground mb-2">Interior area</h4>
+                      <ul className="list-disc list-inside text-sm text-foreground space-y-1">
+                        <li>Total interior livable area: {(listing.sqft || 0).toLocaleString()} sqft</li>
+                        {listing.stories ? <li>Levels: {listing.stories}</li> : null}
+                      </ul>
                     </div>
                   </div>
-                </DetailSection>
+                </div>
+              </div>
 
-                <DetailSection icon={DollarSign} title="Financial">
-                  <DetailRow label="Annual Taxes" value={listing.taxAnnualAmount ? `$${listing.taxAnnualAmount.toLocaleString()}` : undefined} />
-                  <DetailRow label="Tax Year" value={listing.taxYear} />
-                  <DetailRow label="HOA Fee" value={listing.hoaFee ? `$${listing.hoaFee}${listing.hoaFrequency ? ` / ${listing.hoaFrequency}` : ''}` : undefined} />
-                  <DetailRow label="Price / Sq Ft" value={listing.pricePerSqft ? `$${listing.pricePerSqft}` : undefined} />
-                </DetailSection>
+              {/* Property */}
+              <div className="border-t border-border">
+                <h3 className="text-xl font-bold text-foreground bg-muted/50 px-4 py-2.5 border-b border-border">Property</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6 px-4 py-5">
+                  <div>
+                    {(listing.parking && listing.parking.length > 0) || listing.garageSpaces ? (
+                      <div>
+                        <h4 className="font-bold text-foreground mb-2">Parking</h4>
+                        <ul className="list-disc list-inside text-sm text-foreground space-y-1">
+                          {listing.garageSpaces ? <li>Total spaces: {listing.garageSpaces}</li> : null}
+                          {listing.parking && listing.parking.length > 0 && <li>Parking features: {listing.parking.join(', ')}</li>}
+                          {listing.garageSpaces ? <li>Attached garage spaces: {listing.garageSpaces}</li> : null}
+                        </ul>
+                      </div>
+                    ) : null}
+
+                    {listing.features.length > 0 && (
+                      <div className="mt-4">
+                        <h4 className="font-bold text-foreground mb-2">Features</h4>
+                        <ul className="list-disc list-inside text-sm text-foreground space-y-1">
+                          {listing.features.map(f => <li key={f}>{f}</li>)}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+
+                  <div>
+                    <h4 className="font-bold text-foreground mb-2">Lot</h4>
+                    <ul className="list-disc list-inside text-sm text-foreground space-y-1">
+                      {listing.lotSize && listing.lotSize !== 'N/A' && <li>Size: {listing.lotSize}</li>}
+                    </ul>
+
+                    <div className="mt-4">
+                      <h4 className="font-bold text-foreground mb-2">Details</h4>
+                      <ul className="list-disc list-inside text-sm text-foreground space-y-1">
+                        <li>MLS#: {listing.mlsNumber}</li>
+                        {listing.pricePerSqft ? <li>Price/sqft: ${listing.pricePerSqft}</li> : null}
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Construction */}
+              <div className="border-t border-border">
+                <h3 className="text-xl font-bold text-foreground bg-muted/50 px-4 py-2.5 border-b border-border">Construction</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6 px-4 py-5">
+                  <div>
+                    <h4 className="font-bold text-foreground mb-2">Type & style</h4>
+                    <ul className="list-disc list-inside text-sm text-foreground space-y-1">
+                      <li>Home type: {listing.propertyType}</li>
+                      {listing.propertySubType && <li>Property subtype: {listing.propertySubType}</li>}
+                    </ul>
+                  </div>
+
+                  <div>
+                    {listing.constructionMaterials && listing.constructionMaterials.length > 0 && (
+                      <div>
+                        <h4 className="font-bold text-foreground mb-2">Materials</h4>
+                        <ul className="list-disc list-inside text-sm text-foreground space-y-1">
+                          {listing.constructionMaterials.map(m => <li key={m}>{m}</li>)}
+                        </ul>
+                      </div>
+                    )}
+
+                    <div className="mt-4">
+                      <h4 className="font-bold text-foreground mb-2">Condition</h4>
+                      <ul className="list-disc list-inside text-sm text-foreground space-y-1">
+                        {listing.yearBuilt ? <li>Year built: {listing.yearBuilt}</li> : null}
+                        {listing.roof && <li>Roof: {listing.roof}</li>}
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Utilities & green energy */}
+              {((listing.sewer && listing.sewer.length > 0) || (listing.waterSource && listing.waterSource.length > 0)) && (
+                <div className="border-t border-border">
+                  <h3 className="text-xl font-bold text-foreground bg-muted/50 px-4 py-2.5 border-b border-border">Utilities & green energy</h3>
+                  <div className="px-4 py-5">
+                    <ul className="list-disc list-inside text-sm text-foreground space-y-1">
+                      {listing.sewer && listing.sewer.length > 0 && <li>Sewer: {listing.sewer.join(', ')}</li>}
+                      {listing.waterSource && listing.waterSource.length > 0 && <li>Water: {listing.waterSource.join(', ')}</li>}
+                    </ul>
+                  </div>
+                </div>
+              )}
+
+              {/* Community & HOA */}
+              {(listing.subdivision || listing.county || listing.hoaFee || listing.schoolDistrict) && (
+                <div className="border-t border-border">
+                  <h3 className="text-xl font-bold text-foreground bg-muted/50 px-4 py-2.5 border-b border-border">Community & HOA</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6 px-4 py-5">
+                    <div>
+                      {listing.subdivision && (
+                        <div>
+                          <h4 className="font-bold text-foreground mb-2">Community</h4>
+                          <ul className="list-disc list-inside text-sm text-foreground space-y-1">
+                            <li>Subdivision: {listing.subdivision}</li>
+                          </ul>
+                        </div>
+                      )}
+
+                      {(listing.hoaFee !== undefined && listing.hoaFee > 0) && (
+                        <div className="mt-4">
+                          <h4 className="font-bold text-foreground mb-2">HOA</h4>
+                          <ul className="list-disc list-inside text-sm text-foreground space-y-1">
+                            <li>Has HOA: Yes</li>
+                            <li>HOA fee: ${listing.hoaFee}{listing.hoaFrequency ? ` ${listing.hoaFrequency.toLowerCase()}` : ''}</li>
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+
+                    <div>
+                      {(listing.county || listing.city) && (
+                        <div>
+                          <h4 className="font-bold text-foreground mb-2">Location</h4>
+                          <ul className="list-disc list-inside text-sm text-foreground space-y-1">
+                            {listing.city && <li>Region: {listing.city}</li>}
+                            {listing.county && <li>County: {listing.county}</li>}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Financial */}
+              <div className="border-t border-b border-border">
+                <h3 className="text-xl font-bold text-foreground bg-muted/50 px-4 py-2.5 border-b border-border">Financial</h3>
+                <div className="px-4 py-5">
+                  <ul className="list-disc list-inside text-sm text-foreground space-y-1">
+                    {listing.taxAnnualAmount ? <li>Annual taxes: ${listing.taxAnnualAmount.toLocaleString()}</li> : null}
+                    {listing.taxYear ? <li>Tax year: {listing.taxYear}</li> : null}
+                    {listing.pricePerSqft ? <li>Price per sqft: ${listing.pricePerSqft}</li> : null}
+                  </ul>
+                </div>
               </div>
             </section>
 
-            <Separator />
-
             {(listing.schoolDistrict || listing.elementarySchool || listing.middleSchool || listing.highSchool) && (
               <>
-                <DetailSection icon={GraduationCap} title="Schools">
-                  <DetailRow label="School District" value={listing.schoolDistrict} />
-                  <DetailRow label="Elementary School" value={listing.elementarySchool} />
-                  <DetailRow label="Middle School" value={listing.middleSchool} />
-                  <DetailRow label="High School" value={listing.highSchool} />
-                </DetailSection>
                 <Separator />
+                <section>
+                  <h2 className="text-2xl font-bold text-foreground mb-4">Schools</h2>
+                  <ul className="list-disc list-inside text-sm text-foreground space-y-1">
+                    {listing.schoolDistrict && <li>School district: {listing.schoolDistrict}</li>}
+                    {listing.elementarySchool && <li>Elementary school: {listing.elementarySchool}</li>}
+                    {listing.middleSchool && <li>Middle school: {listing.middleSchool}</li>}
+                    {listing.highSchool && <li>High school: {listing.highSchool}</li>}
+                  </ul>
+                </section>
               </>
-            )}
-
-            {listing.features.length > 0 && (
-              <section>
-                <h2 className="text-2xl font-bold text-foreground mb-4">Features & Amenities</h2>
-                <div className="flex flex-wrap gap-2">
-                  {listing.features.map((feature) => (
-                    <span key={feature} className="px-3 py-1.5 bg-secondary text-secondary-foreground text-sm rounded-full">
-                      {feature}
-                    </span>
-                  ))}
-                </div>
-              </section>
             )}
 
             <Separator />
 
             <section>
               <h2 className="text-2xl font-bold text-foreground mb-4">Location & Neighborhood</h2>
-              {listing.subdivision && (
-                <p className="text-sm text-muted-foreground mb-3">Subdivision: <span className="font-medium text-foreground">{listing.subdivision}</span></p>
-              )}
-              {listing.county && (
-                <p className="text-sm text-muted-foreground mb-3">County: <span className="font-medium text-foreground">{listing.county}</span></p>
-              )}
               {mapEmbedUrl ? (
                 <div className="rounded-lg overflow-hidden border border-border h-80">
                   <iframe
