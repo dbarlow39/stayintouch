@@ -170,6 +170,7 @@ const ListingDetail = () => {
   const [fbConnected, setFbConnected] = useState(false);
   const [fbPageName, setFbPageName] = useState('');
   const [fbLoading, setFbLoading] = useState(false);
+  const [descExpanded, setDescExpanded] = useState(false);
 
   useEffect(() => {
     if (!user || isPublic) return;
@@ -468,7 +469,17 @@ const ListingDetail = () => {
           <div className="lg:col-span-2 space-y-6">
             <section>
               <h2 className="text-2xl font-bold text-foreground mb-3">About This Home</h2>
-              <p className="text-muted-foreground leading-relaxed text-base whitespace-pre-line">{listing.description}</p>
+              <div>
+                <p className={`text-muted-foreground leading-relaxed text-base whitespace-pre-line ${!descExpanded ? 'line-clamp-4' : ''}`}>{listing.description}</p>
+                {listing.description && listing.description.length > 200 && (
+                  <button
+                    onClick={() => setDescExpanded(!descExpanded)}
+                    className="text-primary text-sm font-medium mt-2 hover:underline"
+                  >
+                    {descExpanded ? 'Show less' : 'Show more'}
+                  </button>
+                )}
+              </div>
               {listing.listDate && (
                 <p className="text-xs text-muted-foreground mt-3">Listed on {new Date(listing.listDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
               )}
