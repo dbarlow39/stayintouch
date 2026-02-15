@@ -5,7 +5,7 @@ import MarketingListingCard from '@/components/dashboard/marketing/MarketingList
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Building2, Search, RefreshCw, Download, Loader2, Wifi, WifiOff } from 'lucide-react';
+import { Building2, Search, RefreshCw, Download, Loader2, Wifi, WifiOff, ArrowUpDown } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -14,6 +14,7 @@ const MarketingTab = () => {
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [sortBy, setSortBy] = useState<string>('status-price');
   const CACHE_KEY = 'mls_listings_cache';
 
   const [listings, setListings] = useState<MarketingListing[]>(() => {
@@ -89,7 +90,20 @@ const MarketingTab = () => {
       l.mlsNumber.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'all' || l.status === statusFilter;
     return matchesSearch && matchesStatus;
-  }).sort((a, b) => (statusOrder[a.status] ?? 99) - (statusOrder[b.status] ?? 99));
+  }).sort((a, b) => {
+    switch (sortBy) {
+      case 'price-high':
+        return b.price - a.price;
+      case 'price-low':
+        return a.price - b.price;
+      case 'days-market':
+        return b.daysOnMarket - a.daysOnMarket;
+      case 'status-price':
+      default:
+        const statusDiff = (statusOrder[a.status] ?? 99) - (statusOrder[b.status] ?? 99);
+        return statusDiff !== 0 ? statusDiff : b.price - a.price;
+    }
+  });
 
   
   const activeCount = listings.filter(l => l.status === 'active').length;
@@ -169,6 +183,18 @@ const MarketingTab = () => {
               <SelectItem value="contingent">Contingent</SelectItem>
               <SelectItem value="pending">Pending</SelectItem>
               <SelectItem value="sold">Sold</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={sortBy} onValueChange={setSortBy}>
+            <SelectTrigger className="w-[180px]">
+              <ArrowUpDown className="w-3.5 h-3.5 mr-1.5" />
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="status-price">Status & Price</SelectItem>
+              <SelectItem value="price-high">Price: High to Low</SelectItem>
+              <SelectItem value="price-low">Price: Low to High</SelectItem>
+              <SelectItem value="days-market">Days on Market</SelectItem>
             </SelectContent>
           </Select>
         </div>
