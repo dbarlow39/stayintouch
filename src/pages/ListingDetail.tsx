@@ -666,16 +666,16 @@ const ListingDetail = () => {
               </div>
             </section>
 
-            {(listing.schoolDistrict || listing.elementarySchool || listing.middleSchool || listing.highSchool) && (
+            {[listing.schoolDistrict, listing.elementarySchool, listing.middleSchool, listing.highSchool].some(v => v && !/^\*+$/.test(v)) && (
               <>
                 <Separator />
                 <section>
                   <h2 className="text-2xl font-bold text-foreground mb-4">Schools</h2>
                   <ul className="list-disc list-inside text-sm text-foreground space-y-1">
-                    {listing.schoolDistrict && <li>School district: {listing.schoolDistrict}</li>}
-                    {listing.elementarySchool && <li>Elementary school: {listing.elementarySchool}</li>}
-                    {listing.middleSchool && <li>Middle school: {listing.middleSchool}</li>}
-                    {listing.highSchool && <li>High school: {listing.highSchool}</li>}
+                    {listing.schoolDistrict && !/^\*+$/.test(listing.schoolDistrict) && <li>School district: {listing.schoolDistrict}</li>}
+                    {listing.elementarySchool && !/^\*+$/.test(listing.elementarySchool) && <li>Elementary school: {listing.elementarySchool}</li>}
+                    {listing.middleSchool && !/^\*+$/.test(listing.middleSchool) && <li>Middle school: {listing.middleSchool}</li>}
+                    {listing.highSchool && !/^\*+$/.test(listing.highSchool) && <li>High school: {listing.highSchool}</li>}
                   </ul>
                 </section>
               </>
