@@ -39,7 +39,7 @@ export interface MarketingListing {
   basement?: string;
   roof?: string;
   constructionMaterials?: string[];
-  stories?: number;
+  stories?: number | string;
   taxAnnualAmount?: number;
   taxYear?: number;
   hoaFee?: number;

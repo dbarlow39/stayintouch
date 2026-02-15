@@ -136,7 +136,7 @@ function safeListing(raw: any): MarketingListing {
     basement: safeString(raw.basement),
     roof: safeString(raw.roof),
     constructionMaterials: Array.isArray(raw.constructionMaterials) ? raw.constructionMaterials : [],
-    stories: typeof raw.stories === 'number' ? raw.stories : 0,
+    stories: raw.stories && raw.stories !== '********' ? raw.stories : 0,
     taxAnnualAmount: raw.taxAnnualAmount || 0,
     taxYear: raw.taxYear || 0,
     hoaFee: raw.hoaFee || 0,
