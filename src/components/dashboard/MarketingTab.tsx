@@ -59,6 +59,7 @@ const MarketingTab = () => {
       const result = await flexmlsApi.fetchListings({ limit: 200, status: ['active', 'pending', 'contingent'] });
       if (result.success && result.data && result.data.length > 0) {
         setListings(result.data);
+        setIsLive(true);
         localStorage.setItem(CACHE_KEY, JSON.stringify({ data: result.data, timestamp: new Date().toISOString() }));
         queryClient.invalidateQueries({ queryKey: ['mls-last-sync'] });
       } else {
@@ -74,20 +75,9 @@ const MarketingTab = () => {
     }
   }, []);
 
+  // Always background-sync on mount so new listings appear immediately
   useEffect(() => {
-    const hasCachedData = (() => {
-      try {
-        const raw = localStorage.getItem(CACHE_KEY);
-        if (raw) {
-          const { data } = JSON.parse(raw);
-          return data?.length > 0;
-        }
-      } catch {}
-      return false;
-    })();
-    if (!hasCachedData) {
-      syncFromMLS();
-    }
+    syncFromMLS();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
