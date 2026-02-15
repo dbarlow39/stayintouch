@@ -34,6 +34,16 @@ const MarketingTab = () => {
     return false;
   });
   const [isSyncing, setIsSyncing] = useState(false);
+  const [lastSynced, setLastSynced] = useState<string | null>(() => {
+    try {
+      const raw = localStorage.getItem(CACHE_KEY);
+      if (raw) {
+        const { timestamp } = JSON.parse(raw);
+        return timestamp || null;
+      }
+    } catch {}
+    return null;
+  });
 
   const syncFromMLS = useCallback(async () => {
     setIsSyncing(true);
@@ -41,9 +51,9 @@ const MarketingTab = () => {
       const result = await flexmlsApi.fetchListings({ limit: 200, status: ['active', 'pending', 'contingent'] });
       if (result.success && result.data && result.data.length > 0) {
         setListings(result.data);
-        setIsLive(true);
-        localStorage.setItem(CACHE_KEY, JSON.stringify({ data: result.data }));
-        toast.success(`Synced ${result.data.length} listings from MLS`);
+        const now = new Date().toISOString();
+        setLastSynced(now);
+        localStorage.setItem(CACHE_KEY, JSON.stringify({ data: result.data, timestamp: now }));
       } else {
         toast.error(result.error || 'No listings returned. Using cached data.');
         setIsLive(false);
@@ -118,9 +128,12 @@ const MarketingTab = () => {
           )}
           {isSyncing ? 'Syncing...' : 'Sync MLS'}
         </Button>
+        {lastSynced && (
+          <p className="text-[10px] text-muted-foreground text-right mt-1">
+            Last synced: {new Date(lastSynced).toLocaleString()}
+          </p>
+        )}
       </div>
-
-      {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
         {[
           { label: 'Total Listings', value: listings.length, sub: isLive ? 'From MLS' : 'Demo data' },
