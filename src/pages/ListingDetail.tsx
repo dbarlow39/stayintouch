@@ -699,18 +699,17 @@ const ListingDetail = () => {
             </section>
 
             {[listing.schoolDistrict, listing.elementarySchool, listing.middleSchool, listing.highSchool].some(v => !isBlank(v)) && (
-              <>
-                <Separator />
-                <section>
-                  <h2 className="text-2xl font-bold text-foreground mb-4">Schools</h2>
+              <div className="border-t border-b border-border">
+                <h3 className="text-xl font-bold text-foreground bg-muted/50 px-4 py-2.5 border-b border-border">Schools</h3>
+                <div className="px-4 py-5">
                   <ul className="list-disc list-inside text-sm text-foreground space-y-1">
                     {!isBlank(listing.schoolDistrict) && <li>School district: {listing.schoolDistrict}</li>}
                     {!isBlank(listing.elementarySchool) && <li>Elementary school: {listing.elementarySchool}</li>}
                     {!isBlank(listing.middleSchool) && <li>Middle school: {listing.middleSchool}</li>}
                     {!isBlank(listing.highSchool) && <li>High school: {listing.highSchool}</li>}
                   </ul>
-                </section>
-              </>
+                </div>
+              </div>
             )}
 
             <Separator />
