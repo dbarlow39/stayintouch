@@ -644,6 +644,7 @@ const ListingDetail = () => {
                     <ul className="list-disc list-inside text-sm text-foreground space-y-1">
                       {!isBlank(listing.propertyType) && <li>Home type: {listing.propertyType}</li>}
                       {!isBlank(listing.propertySubType) && <li>Property subtype: {listing.propertySubType}</li>}
+                      {!isBlank(listing.stories) && <li>Levels: {listing.stories}</li>}
                     </ul>
                   </div>
 
