@@ -560,16 +560,34 @@ const ListingDetail = () => {
                 <h3 className="text-xl font-bold text-foreground bg-muted/50 px-4 py-2.5 border-b border-border">Property</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6 px-4 py-5">
                   <div>
-                    {(cleanArr(listing.parking).length > 0 || !isBlank(listing.garageSpaces)) && (
+                    {!isBlank(listing.lotSize) && (
                       <div>
+                        <h4 className="font-bold text-foreground mb-2">Lot</h4>
+                        <ul className="list-disc list-inside text-sm text-foreground space-y-1">
+                          <li>Size: {listing.lotSize}</li>
+                        </ul>
+                      </div>
+                    )}
+
+                    {(cleanArr(listing.parking).length > 0 || !isBlank(listing.garageSpaces)) && (
+                      <div className="mt-4">
                         <h4 className="font-bold text-foreground mb-2">Parking</h4>
                         <ul className="list-disc list-inside text-sm text-foreground space-y-1">
                           {!isBlank(listing.garageSpaces) && <li>Total spaces: {listing.garageSpaces}</li>}
                           {cleanArr(listing.parking).length > 0 && <li>Parking features: {cleanArr(listing.parking).join(', ')}</li>}
-                          {!isBlank(listing.garageSpaces) && <li>Attached garage spaces: {listing.garageSpaces}</li>}
                         </ul>
                       </div>
                     )}
+                  </div>
+
+                  <div>
+                    <div>
+                      <h4 className="font-bold text-foreground mb-2">Details</h4>
+                      <ul className="list-disc list-inside text-sm text-foreground space-y-1">
+                        {!isBlank(listing.mlsNumber) && <li>MLS#: {listing.mlsNumber}</li>}
+                        {!isBlank(listing.pricePerSqft) && <li>Price/sqft: ${listing.pricePerSqft}</li>}
+                      </ul>
+                    </div>
 
                     {listing.features.filter(f => !isBlank(f)).length > 0 && (
                       <div className="mt-4">
@@ -579,25 +597,6 @@ const ListingDetail = () => {
                         </ul>
                       </div>
                     )}
-                  </div>
-
-                  <div>
-                    {!isBlank(listing.lotSize) && (
-                      <>
-                        <h4 className="font-bold text-foreground mb-2">Lot</h4>
-                        <ul className="list-disc list-inside text-sm text-foreground space-y-1">
-                          <li>Size: {listing.lotSize}</li>
-                        </ul>
-                      </>
-                    )}
-
-                    <div className="mt-4">
-                      <h4 className="font-bold text-foreground mb-2">Details</h4>
-                      <ul className="list-disc list-inside text-sm text-foreground space-y-1">
-                        {!isBlank(listing.mlsNumber) && <li>MLS#: {listing.mlsNumber}</li>}
-                        {!isBlank(listing.pricePerSqft) && <li>Price/sqft: ${listing.pricePerSqft}</li>}
-                      </ul>
-                    </div>
                   </div>
                 </div>
               </div>
