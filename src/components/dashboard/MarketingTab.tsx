@@ -96,7 +96,9 @@ const MarketingTab = () => {
         return b.price - a.price;
       case 'price-low':
         return a.price - b.price;
-      case 'days-market':
+      case 'days-market-low':
+        return a.daysOnMarket - b.daysOnMarket;
+      case 'days-market-high':
         return b.daysOnMarket - a.daysOnMarket;
       case 'status-price':
       default:
@@ -194,7 +196,8 @@ const MarketingTab = () => {
               <SelectItem value="status-price">Status & Price</SelectItem>
               <SelectItem value="price-high">Price: High to Low</SelectItem>
               <SelectItem value="price-low">Price: Low to High</SelectItem>
-              <SelectItem value="days-market">Days on Market</SelectItem>
+              <SelectItem value="days-market-low">Days on Market: Low to High</SelectItem>
+              <SelectItem value="days-market-high">Days on Market: High to Low</SelectItem>
             </SelectContent>
           </Select>
         </div>
