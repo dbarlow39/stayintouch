@@ -308,20 +308,35 @@ Deno.serve(async (req) => {
 
       console.log(`Fetched details for ${transformed.length} listings`);
 
-      // Log sync timestamp to DB
+      // Log sync timestamp and cache listings in DB
       try {
         const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
         const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+        const headers = {
+          'Content-Type': 'application/json',
+          'apikey': serviceKey,
+          'Authorization': `Bearer ${serviceKey}`,
+          'Prefer': 'return=minimal',
+        };
+
+        // Log sync
         await fetch(`${supabaseUrl}/rest/v1/sync_log`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'apikey': serviceKey,
-            'Authorization': `Bearer ${serviceKey}`,
-            'Prefer': 'return=minimal',
-          },
+          headers,
           body: JSON.stringify({ sync_type: 'mls_listings', record_count: transformed.length }),
         });
+
+        // Upsert listings cache for instant public page loading
+        await fetch(`${supabaseUrl}/rest/v1/listings_cache?id=eq.current`, {
+          method: 'DELETE',
+          headers,
+        });
+        await fetch(`${supabaseUrl}/rest/v1/listings_cache`, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ id: 'current', listings: transformed, updated_at: new Date().toISOString() }),
+        });
+        console.log('Listings cache updated with', transformed.length, 'listings');
       } catch (e) {
         console.log('Failed to log sync:', e);
       }
