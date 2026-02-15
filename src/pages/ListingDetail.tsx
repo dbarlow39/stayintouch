@@ -681,14 +681,13 @@ const ListingDetail = () => {
               )}
 
               {/* Financial */}
-              {(!isBlank(listing.taxAnnualAmount) || !isBlank(listing.taxYear) || !isBlank(listing.pricePerSqft)) && (
+              {(!isBlank(listing.taxAnnualAmount) || !isBlank(listing.taxYear)) && (
                 <div className="border-t border-b border-border">
                   <h3 className="text-xl font-bold text-foreground bg-muted/50 px-4 py-2.5 border-b border-border">Financial</h3>
                   <div className="px-4 py-5">
                     <ul className="list-disc list-inside text-sm text-foreground space-y-1">
                       {!isBlank(listing.taxAnnualAmount) && <li>Annual taxes: ${listing.taxAnnualAmount!.toLocaleString()}</li>}
                       {!isBlank(listing.taxYear) && <li>Tax year: {listing.taxYear}</li>}
-                      {!isBlank(listing.pricePerSqft) && <li>Price per sqft: ${listing.pricePerSqft}</li>}
                     </ul>
                   </div>
                 </div>
