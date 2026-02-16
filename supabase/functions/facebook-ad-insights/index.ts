@@ -35,31 +35,26 @@ Deno.serve(async (req) => {
 
     const pageToken = tokenData.page_access_token;
 
-    // Fetch post insights from Facebook Marketing API (using non-deprecated metrics)
-    const insightsMetrics = [
-      "post_impressions",
-      "post_impressions_unique",
-    ].join(",");
-
-    const insightsUrl = `https://graph.facebook.com/v21.0/${post_id}/insights?metric=${insightsMetrics}&access_token=${pageToken}`;
-    const insightsResp = await fetch(insightsUrl);
-    const insightsData = await insightsResp.json();
-
-    if (insightsData.error) {
-      console.error("[fb-insights] API error:", insightsData.error);
-      throw new Error(insightsData.error.message || "Failed to fetch insights");
-    }
-
-    // Parse insights into a flat object
+    // Try to fetch post insights (non-fatal — may fail for certain post types)
     const metrics: Record<string, any> = {};
-    if (insightsData.data) {
-      for (const item of insightsData.data) {
-        const value = item.values?.[0]?.value;
-        metrics[item.name] = value;
+    try {
+      const insightsUrl = `https://graph.facebook.com/v21.0/${post_id}/insights?metric=post_impressions,post_impressions_unique&access_token=${pageToken}`;
+      const insightsResp = await fetch(insightsUrl);
+      const insightsData = await insightsResp.json();
+
+      if (insightsData.data) {
+        for (const item of insightsData.data) {
+          const value = item.values?.[0]?.value;
+          metrics[item.name] = value;
+        }
+      } else if (insightsData.error) {
+        console.warn("[fb-insights] Insights API warning:", insightsData.error.message);
       }
+    } catch (insightsErr) {
+      console.warn("[fb-insights] Insights fetch failed:", insightsErr);
     }
 
-    // Also fetch basic post data (likes, comments, shares)
+    // Fetch basic post data (likes, comments, shares)
     const postUrl = `https://graph.facebook.com/v21.0/${post_id}?fields=likes.summary(true),comments.summary(true),shares,created_time,message,full_picture&access_token=${pageToken}`;
     const postResp = await fetch(postUrl);
     const postData = await postResp.json();
@@ -71,7 +66,7 @@ Deno.serve(async (req) => {
     // Try to get promoted post / ad insights if the post was boosted
     let adInsights: any = null;
     try {
-      const adAccountId = "563726213662060"; // Locked ad account
+      const adAccountId = "563726213662060";
       const adInsightsUrl = `https://graph.facebook.com/v21.0/act_${adAccountId}/insights?filtering=[{"field":"ad.effective_status","operator":"IN","value":["ACTIVE","PAUSED","CAMPAIGN_PAUSED","ADSET_PAUSED","COMPLETED"]},{"field":"ad.id","operator":"CONTAIN","value":"${post_id}"}]&fields=impressions,reach,clicks,spend,cpc,cpm,cpp,actions,cost_per_action_type&date_preset=lifetime&access_token=${pageToken}`;
       const adResp = await fetch(adInsightsUrl);
       const adData = await adResp.json();
@@ -83,25 +78,7 @@ Deno.serve(async (req) => {
       console.error("[fb-insights] Ad insights error:", adErr);
     }
 
-    // Also try lifetime period insights
-    try {
-      const promoUrl = `https://graph.facebook.com/v21.0/${post_id}/insights?metric=post_impressions,post_impressions_unique&period=lifetime&access_token=${pageToken}`;
-      const promoResp = await fetch(promoUrl);
-      const promoData = await promoResp.json();
-      
-      if (promoData.data) {
-        for (const item of promoData.data) {
-          const value = item.values?.[0]?.value;
-          if (value !== undefined) {
-            metrics[item.name] = value;
-          }
-        }
-      }
-    } catch (promoErr) {
-      console.error("[fb-insights] Promoted insights error:", promoErr);
-    }
-
-    // Build response — use post-level likes/comments/shares as engagement proxies
+    // Build response
     const totalEngagements = (postData.likes?.summary?.total_count || 0) + 
       (postData.comments?.summary?.total_count || 0) + 
       (postData.shares?.count || 0);
@@ -121,7 +98,6 @@ Deno.serve(async (req) => {
       click_types: null,
       activity: null,
       reactions: postData.likes?.summary?.total_count || 0,
-      // Ad-specific data if boosted
       ad_insights: adInsights ? {
         impressions: parseInt(adInsights.impressions || "0"),
         reach: parseInt(adInsights.reach || "0"),
