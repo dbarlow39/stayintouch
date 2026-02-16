@@ -2,10 +2,11 @@ import { useState, useEffect, useCallback } from 'react';
 import { mockMarketingListings, formatListingPrice, MarketingListing } from '@/data/marketingListings';
 import { flexmlsApi } from '@/lib/api/flexmls';
 import MarketingListingCard from '@/components/dashboard/marketing/MarketingListingCard';
+import FacebookAdResultsDashboard from '@/components/dashboard/marketing/FacebookAdResultsDashboard';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Building2, Search, RefreshCw, Download, Loader2, Wifi, WifiOff, ArrowUpDown } from 'lucide-react';
+import { Building2, Search, RefreshCw, Download, Loader2, Wifi, WifiOff, ArrowUpDown, BarChart3 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -15,6 +16,7 @@ const MarketingTab = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [sortBy, setSortBy] = useState<string>('status-price');
+  const [view, setView] = useState<'listings' | 'ad-results'>('listings');
   const CACHE_KEY = 'mls_listings_cache';
 
   const [listings, setListings] = useState<MarketingListing[]>(() => {
@@ -113,6 +115,28 @@ const MarketingTab = () => {
 
   return (
     <div className="space-y-6">
+      {/* View Toggle */}
+      <div className="flex items-center gap-2 border-b border-border pb-3">
+        <Button
+          variant={view === 'listings' ? 'default' : 'ghost'}
+          size="sm"
+          onClick={() => setView('listings')}
+        >
+          <Building2 className="w-4 h-4 mr-1.5" /> Listings
+        </Button>
+        <Button
+          variant={view === 'ad-results' ? 'default' : 'ghost'}
+          size="sm"
+          onClick={() => setView('ad-results')}
+        >
+          <BarChart3 className="w-4 h-4 mr-1.5" /> Ad Results
+        </Button>
+      </div>
+
+      {view === 'ad-results' ? (
+        <FacebookAdResultsDashboard />
+      ) : (
+      <>
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -260,6 +284,8 @@ const MarketingTab = () => {
         <div className="text-center py-16">
           <p className="text-muted-foreground text-lg">No listings match your search.</p>
         </div>
+      )}
+      </>
       )}
     </div>
   );
