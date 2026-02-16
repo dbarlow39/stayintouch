@@ -44,19 +44,25 @@ Deno.serve(async (req) => {
     let usedToken = "";
     let debugInfo: string[] = [];
 
+    // Try multiple API versions - v21.0 deprecated some metrics, try v19.0 as fallback
+    const apiVersions = ["v21.0", "v19.0"];
+
     // Strategy 1: Direct post access with engagement
-    for (const { token, label } of tokensToTry) {
-      if (!token) continue;
-      const url = `https://graph.facebook.com/v21.0/${post_id}?fields=likes.summary(true),comments.summary(true),shares,created_time,message,full_picture&access_token=${token}`;
-      const resp = await fetch(url);
-      const data = await resp.json();
-      if (!data.error) {
-        postData = data;
-        usedToken = label;
-        debugInfo.push(`Strategy 1 succeeded with ${label}`);
-        break;
-      } else {
-        debugInfo.push(`S1 ${label}: ${data.error.message?.substring(0, 80)}`);
+    for (const ver of apiVersions) {
+      if (postData.created_time) break;
+      for (const { token, label } of tokensToTry) {
+        if (!token) continue;
+        const url = `https://graph.facebook.com/${ver}/${post_id}?fields=likes.summary(true),comments.summary(true),shares,created_time,message,full_picture&access_token=${token}`;
+        const resp = await fetch(url);
+        const data = await resp.json();
+        if (!data.error) {
+          postData = data;
+          usedToken = label;
+          debugInfo.push(`Strategy 1 succeeded with ${label} (${ver})`);
+          break;
+        } else {
+          debugInfo.push(`S1 ${label} ${ver}: ${data.error.message?.substring(0, 80)}`);
+        }
       }
     }
 
@@ -64,7 +70,7 @@ Deno.serve(async (req) => {
     if (!postData.created_time && pageId) {
       for (const { token, label } of tokensToTry) {
         if (!token) continue;
-        const url = `https://graph.facebook.com/v21.0/${pageId}/published_posts?fields=id,created_time,message,full_picture,likes.summary(true),comments.summary(true),shares&limit=100&access_token=${token}`;
+        const url = `https://graph.facebook.com/v19.0/${pageId}/published_posts?fields=id,created_time,message,full_picture,likes.summary(true),comments.summary(true),shares&limit=100&access_token=${token}`;
         const resp = await fetch(url);
         const data = await resp.json();
         if (!data.error && data.data) {
@@ -118,34 +124,60 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Try insights with different metric sets (non-fatal)
+    // Try insights with multiple API versions (non-fatal)
     const metrics: Record<string, any> = {};
     const metricSets = [
       "post_impressions,post_impressions_unique,post_engaged_users",
       "post_impressions,post_impressions_unique",
     ];
     
-    for (const metricSet of metricSets) {
-      let found = false;
-      for (const { token, label } of tokensToTry) {
-        if (!token) continue;
-        try {
-          const url = `https://graph.facebook.com/v21.0/${post_id}/insights?metric=${metricSet}&access_token=${token}`;
-          const resp = await fetch(url);
-          const data = await resp.json();
-          if (data.data && data.data.length > 0) {
-            for (const item of data.data) {
-              metrics[item.name] = item.values?.[0]?.value;
+    for (const ver of apiVersions) {
+      let foundAny = false;
+      for (const metricSet of metricSets) {
+        if (foundAny) break;
+        for (const { token, label } of tokensToTry) {
+          if (!token) continue;
+          try {
+            const url = `https://graph.facebook.com/${ver}/${post_id}/insights?metric=${metricSet}&access_token=${token}`;
+            const resp = await fetch(url);
+            const data = await resp.json();
+            if (data.data && data.data.length > 0) {
+              for (const item of data.data) {
+                metrics[item.name] = item.values?.[0]?.value;
+              }
+              debugInfo.push(`Insights [${metricSet.substring(0, 30)}...] with ${label} (${ver})`);
+              foundAny = true;
+              break;
+            } else if (data.error) {
+              debugInfo.push(`Insights ${label} ${ver}: ${data.error.message?.substring(0, 60)}`);
             }
-            debugInfo.push(`Insights [${metricSet.substring(0, 30)}...] with ${label}`);
-            found = true;
-            break;
-          } else if (data.error) {
-            debugInfo.push(`Insights ${label}: ${data.error.message?.substring(0, 60)}`);
-          }
-        } catch (_e) { /* continue */ }
+          } catch (_e) { /* continue */ }
+        }
       }
-      if (found) break;
+      if (foundAny) break;
+    }
+
+    // Strategy 5: Try fetching ad insights from the Ads API if we have an ad_account
+    let adInsights: any = null;
+    const AD_ACCOUNT_ID = "563726213662060";
+    for (const { token, label } of tokensToTry) {
+      if (!token) continue;
+      try {
+        // Search for ads linked to this post
+        const searchUrl = `https://graph.facebook.com/v21.0/act_${AD_ACCOUNT_ID}/ads?fields=id,name,creative{effective_object_story_id},insights.fields(impressions,reach,clicks,spend,cpc,cpm)&filtering=[{"field":"effective_object_story_id","operator":"CONTAIN","value":"${post_id}"}]&access_token=${token}`;
+        const searchResp = await fetch(searchUrl);
+        const searchData = await searchResp.json();
+        if (!searchData.error && searchData.data?.length > 0) {
+          const ad = searchData.data[0];
+          if (ad.insights?.data?.[0]) {
+            adInsights = ad.insights.data[0];
+            debugInfo.push(`Ad insights found via Ads API with ${label}`);
+          }
+        } else if (searchData.error) {
+          debugInfo.push(`Ads API ${label}: ${searchData.error.message?.substring(0, 60)}`);
+        }
+      } catch (_e) { /* continue */ }
+      break; // Only try once
     }
 
     console.log(`[fb-insights] Debug:`, JSON.stringify(debugInfo));
@@ -164,13 +196,22 @@ Deno.serve(async (req) => {
       comments,
       shares,
       engagements: totalEngagements,
-      impressions: metrics.post_impressions || 0,
-      reach: metrics.post_impressions_unique || 0,
-      clicks: null,
+      impressions: adInsights ? parseInt(adInsights.impressions || "0") : (metrics.post_impressions || 0),
+      reach: adInsights ? parseInt(adInsights.reach || "0") : (metrics.post_impressions_unique || 0),
+      clicks: adInsights ? parseInt(adInsights.clicks || "0") : null,
       click_types: null,
       activity: metrics.post_engaged_users || null,
       reactions: likes,
-      ad_insights: null,
+      ad_insights: adInsights ? {
+        impressions: parseInt(adInsights.impressions || "0"),
+        reach: parseInt(adInsights.reach || "0"),
+        clicks: parseInt(adInsights.clicks || "0"),
+        spend: parseFloat(adInsights.spend || "0"),
+        cpc: parseFloat(adInsights.cpc || "0"),
+        cpm: parseFloat(adInsights.cpm || "0"),
+        actions: [],
+        cost_per_action: [],
+      } : null,
       token_used: usedToken,
       debug: debugInfo,
     };
