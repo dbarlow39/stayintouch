@@ -23,7 +23,7 @@ Deno.serve(async (req) => {
 
     const { data: tokenData, error: tokenError } = await supabase
       .from("facebook_oauth_tokens")
-      .select("page_access_token, page_id")
+      .select("page_access_token, page_id, access_token")
       .eq("agent_id", agent_id)
       .single();
 
@@ -32,43 +32,66 @@ Deno.serve(async (req) => {
     }
 
     const pageToken = tokenData.page_access_token;
+    const userToken = tokenData.access_token;
 
-    // Fetch post data - try with engagement summaries first, fall back to basic fields
+    // Try multiple tokens in order: page token first, then user token
+    const tokensToTry = [
+      { token: pageToken, label: "page" },
+      { token: userToken, label: "user" },
+    ];
+
     let postData: any = {};
-    
-    // Try full fields including engagement
-    const fullUrl = `https://graph.facebook.com/v21.0/${post_id}?fields=likes.summary(true),comments.summary(true),shares,created_time,message,full_picture&access_token=${pageToken}`;
-    const fullResp = await fetch(fullUrl);
-    const fullData = await fullResp.json();
+    let usedToken = "";
 
-    if (!fullData.error) {
-      postData = fullData;
-    } else {
-      console.warn("[fb-insights] Full post fetch failed:", fullData.error.message);
-      // Fall back to basic fields only
-      const basicUrl = `https://graph.facebook.com/v21.0/${post_id}?fields=created_time,message,full_picture&access_token=${pageToken}`;
-      const basicResp = await fetch(basicUrl);
-      const basicData = await basicResp.json();
-      if (!basicData.error) {
-        postData = basicData;
+    // Try to get post data with engagement summaries
+    for (const { token, label } of tokensToTry) {
+      if (!token) continue;
+      const url = `https://graph.facebook.com/v21.0/${post_id}?fields=likes.summary(true),comments.summary(true),shares,created_time,message,full_picture&access_token=${token}`;
+      const resp = await fetch(url);
+      const data = await resp.json();
+      if (!data.error) {
+        postData = data;
+        usedToken = label;
+        console.log(`[fb-insights] Post data fetched with ${label} token`);
+        break;
       } else {
-        console.warn("[fb-insights] Basic post fetch also failed:", basicData.error.message);
+        console.warn(`[fb-insights] ${label} token failed for post data:`, data.error.message);
       }
     }
 
-    // Try insights (non-fatal)
-    const metrics: Record<string, any> = {};
-    try {
-      const insightsUrl = `https://graph.facebook.com/v21.0/${post_id}/insights?metric=post_impressions,post_impressions_unique&access_token=${pageToken}`;
-      const insightsResp = await fetch(insightsUrl);
-      const insightsData = await insightsResp.json();
-      if (insightsData.data) {
-        for (const item of insightsData.data) {
-          metrics[item.name] = item.values?.[0]?.value;
+    // If no engagement data, try basic fields
+    if (!postData.created_time) {
+      for (const { token, label } of tokensToTry) {
+        if (!token) continue;
+        const url = `https://graph.facebook.com/v21.0/${post_id}?fields=created_time,message,full_picture&access_token=${token}`;
+        const resp = await fetch(url);
+        const data = await resp.json();
+        if (!data.error) {
+          postData = data;
+          usedToken = label;
+          break;
         }
       }
-    } catch (_e) {
-      // Silently ignore
+    }
+
+    // Try insights with each token
+    const metrics: Record<string, any> = {};
+    for (const { token, label } of tokensToTry) {
+      if (!token) continue;
+      try {
+        const url = `https://graph.facebook.com/v21.0/${post_id}/insights?metric=post_impressions,post_impressions_unique&access_token=${token}`;
+        const resp = await fetch(url);
+        const data = await resp.json();
+        if (data.data && data.data.length > 0) {
+          for (const item of data.data) {
+            metrics[item.name] = item.values?.[0]?.value;
+          }
+          console.log(`[fb-insights] Insights fetched with ${label} token`);
+          break;
+        }
+      } catch (_e) {
+        // continue
+      }
     }
 
     const likes = postData.likes?.summary?.total_count || 0;
@@ -92,6 +115,7 @@ Deno.serve(async (req) => {
       activity: null,
       reactions: likes,
       ad_insights: null,
+      token_used: usedToken,
     };
 
     return new Response(JSON.stringify(result), {
