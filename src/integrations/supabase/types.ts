@@ -865,6 +865,54 @@ export type Database = {
           },
         ]
       }
+      facebook_ad_posts: {
+        Row: {
+          ad_id: string | null
+          agent_id: string
+          boost_started_at: string
+          campaign_id: string | null
+          created_at: string
+          daily_budget: number | null
+          duration_days: number | null
+          id: string
+          listing_address: string
+          listing_id: string
+          post_id: string
+          status: string | null
+          updated_at: string
+        }
+        Insert: {
+          ad_id?: string | null
+          agent_id: string
+          boost_started_at?: string
+          campaign_id?: string | null
+          created_at?: string
+          daily_budget?: number | null
+          duration_days?: number | null
+          id?: string
+          listing_address: string
+          listing_id: string
+          post_id: string
+          status?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ad_id?: string | null
+          agent_id?: string
+          boost_started_at?: string
+          campaign_id?: string | null
+          created_at?: string
+          daily_budget?: number | null
+          duration_days?: number | null
+          id?: string
+          listing_address?: string
+          listing_id?: string
+          post_id?: string
+          status?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       facebook_oauth_tokens: {
         Row: {
           access_token: string
