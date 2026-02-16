@@ -61,7 +61,7 @@ Deno.serve(async (req) => {
 
       // Strategy 2: Page feed (single call, page token)
       if (pageId) {
-        const feedUrl = `https://graph.facebook.com/v21.0/${pageId}/published_posts?fields=id,created_time,message,full_picture&limit=100&access_token=${pageToken}`;
+        const feedUrl = `https://graph.facebook.com/v21.0/${pageId}/published_posts?fields=id,created_time,message,full_picture,likes.summary(true),comments.summary(true),shares&limit=100&access_token=${pageToken}`;
         const feedData = await fetchJson(feedUrl);
         if (!feedData.error && feedData.data) {
           const matched = feedData.data.find((p: any) => p.id === post_id);
