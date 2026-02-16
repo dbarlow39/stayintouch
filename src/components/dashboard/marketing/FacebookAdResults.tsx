@@ -32,7 +32,8 @@ interface InsightsData {
   clicks: any;
   click_types: Record<string, number> | null;
   activity: Record<string, number> | null;
-  reactions: number;
+  reactions: Record<string, number> | null;
+  engaged_users: number;
   ad_insights: {
     impressions: number;
     reach: number;
@@ -115,8 +116,10 @@ const FacebookAdResults = ({ postId, listingAddress, onClose }: FacebookAdResult
     ? (totalSpend / totalEngagements).toFixed(2)
     : '0.00';
 
-  // Activity breakdown
+  // Activity breakdown - combine click types, reactions, comments, shares, and ad actions
   const activityItems: { label: string; value: number; color: string }[] = [];
+
+  // Add click type breakdown (link clicks, other clicks, photo views, etc.)
   if (data.click_types && typeof data.click_types === 'object') {
     const typeLabels: Record<string, string> = {
       link_clicks: 'Link clicks',
@@ -135,10 +138,51 @@ const FacebookAdResults = ({ postId, listingAddress, onClose }: FacebookAdResult
     });
   }
 
-  // Add reactions breakdown
-  if (data.likes > 0) activityItems.push({ label: 'Reactions', value: data.likes, color: 'bg-blue-400' });
-  if (data.comments > 0) activityItems.push({ label: 'Comments', value: data.comments, color: 'bg-emerald-500' });
-  if (data.shares > 0) activityItems.push({ label: 'Shares', value: data.shares, color: 'bg-purple-500' });
+  // Add ad action breakdown (post_engagement, link_click, landing_page_view, page_engagement, like, post, etc.)
+  if (ad?.actions && Array.isArray(ad.actions)) {
+    const actionLabels: Record<string, string> = {
+      post_engagement: 'Post engagements',
+      link_click: 'Link clicks',
+      landing_page_view: 'Landing page views',
+      page_engagement: 'Page engagements',
+      like: 'Facebook likes',
+      post: 'Post saves',
+      post_reaction: 'Post reactions',
+      comment: 'Comments',
+      onsite_conversion_post_save: 'Post saves',
+      video_view: 'Video views',
+    };
+    const actionColors: Record<string, string> = {
+      post_engagement: 'bg-blue-500',
+      link_click: 'bg-blue-400',
+      landing_page_view: 'bg-indigo-500',
+      page_engagement: 'bg-violet-500',
+      like: 'bg-blue-600',
+      post: 'bg-amber-500',
+      post_reaction: 'bg-rose-400',
+      comment: 'bg-emerald-500',
+      onsite_conversion_post_save: 'bg-amber-500',
+    };
+    // Only use ad actions if we don't already have click_types data
+    if (!data.click_types || Object.keys(data.click_types).length === 0) {
+      ad.actions.forEach((action: any) => {
+        if (action.value && parseInt(action.value) > 0) {
+          activityItems.push({
+            label: actionLabels[action.action_type] || action.action_type.replace(/_/g, ' '),
+            value: parseInt(action.value),
+            color: actionColors[action.action_type] || 'bg-blue-400',
+          });
+        }
+      });
+    }
+  }
+
+  // Add organic reactions/comments/shares if no ad actions
+  if (activityItems.length === 0) {
+    if (data.likes > 0) activityItems.push({ label: 'Reactions', value: data.likes, color: 'bg-blue-400' });
+    if (data.comments > 0) activityItems.push({ label: 'Comments', value: data.comments, color: 'bg-emerald-500' });
+    if (data.shares > 0) activityItems.push({ label: 'Shares', value: data.shares, color: 'bg-purple-500' });
+  }
 
   // Sort by value descending
   activityItems.sort((a, b) => b.value - a.value);
