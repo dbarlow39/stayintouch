@@ -32,153 +32,79 @@ Deno.serve(async (req) => {
     }
 
     const pageToken = tokenData.page_access_token;
-    const userToken = tokenData.access_token;
     const pageId = tokenData.page_id;
+    const debugInfo: string[] = [];
 
-    const tokensToTry = [
-      { token: pageToken, label: "page" },
-      { token: userToken, label: "user" },
-    ];
+    // Helper to fetch JSON with timeout
+    const fetchJson = async (url: string) => {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 5000);
+      try {
+        const resp = await fetch(url, { signal: controller.signal });
+        return await resp.json();
+      } finally {
+        clearTimeout(timeout);
+      }
+    };
 
+    // Strategy 1: Try direct post access with engagement (page token only, v21.0 only)
     let postData: any = {};
-    let usedToken = "";
-    let debugInfo: string[] = [];
+    let usedToken = "page";
 
-    // Try multiple API versions - v21.0 deprecated some metrics, try v19.0 as fallback
-    const apiVersions = ["v21.0", "v19.0"];
+    const directUrl = `https://graph.facebook.com/v21.0/${post_id}?fields=likes.summary(true),comments.summary(true),shares,created_time,message,full_picture&access_token=${pageToken}`;
+    const directData = await fetchJson(directUrl);
+    if (!directData.error) {
+      postData = directData;
+      debugInfo.push("Direct post access succeeded");
+    } else {
+      debugInfo.push(`Direct: ${directData.error.message?.substring(0, 60)}`);
 
-    // Strategy 1: Direct post access with engagement
-    for (const ver of apiVersions) {
-      if (postData.created_time) break;
-      for (const { token, label } of tokensToTry) {
-        if (!token) continue;
-        const url = `https://graph.facebook.com/${ver}/${post_id}?fields=likes.summary(true),comments.summary(true),shares,created_time,message,full_picture&access_token=${token}`;
-        const resp = await fetch(url);
-        const data = await resp.json();
-        if (!data.error) {
-          postData = data;
-          usedToken = label;
-          debugInfo.push(`Strategy 1 succeeded with ${label} (${ver})`);
-          break;
-        } else {
-          debugInfo.push(`S1 ${label} ${ver}: ${data.error.message?.substring(0, 80)}`);
-        }
-      }
-    }
-
-    // Strategy 2: Page feed with engagement fields
-    if (!postData.created_time && pageId) {
-      for (const { token, label } of tokensToTry) {
-        if (!token) continue;
-        const url = `https://graph.facebook.com/v19.0/${pageId}/published_posts?fields=id,created_time,message,full_picture,likes.summary(true),comments.summary(true),shares&limit=100&access_token=${token}`;
-        const resp = await fetch(url);
-        const data = await resp.json();
-        if (!data.error && data.data) {
-          const matched = data.data.find((p: any) => p.id === post_id);
+      // Strategy 2: Page feed (single call, page token)
+      if (pageId) {
+        const feedUrl = `https://graph.facebook.com/v21.0/${pageId}/published_posts?fields=id,created_time,message,full_picture&limit=100&access_token=${pageToken}`;
+        const feedData = await fetchJson(feedUrl);
+        if (!feedData.error && feedData.data) {
+          const matched = feedData.data.find((p: any) => p.id === post_id);
           if (matched) {
             postData = matched;
-            usedToken = label;
-            debugInfo.push(`Strategy 2 (feed+engagement) found post with ${label}`);
-            break;
+            debugInfo.push(`Feed search found post (${feedData.data.length} scanned)`);
           } else {
-            debugInfo.push(`S2 ${label}: feed ok (${data.data.length} posts) but post not in batch`);
+            debugInfo.push(`Feed: ${feedData.data.length} posts, no match`);
           }
         } else {
-          debugInfo.push(`S2 ${label}: ${data.error?.message?.substring(0, 80) || 'no data'}`);
+          debugInfo.push(`Feed: ${feedData.error?.message?.substring(0, 60) || 'no data'}`);
         }
       }
     }
 
-    // Strategy 3: Page feed basic (no engagement fields)
-    if (!postData.created_time && pageId) {
-      for (const { token, label } of tokensToTry) {
-        if (!token) continue;
-        const url = `https://graph.facebook.com/v21.0/${pageId}/published_posts?fields=id,created_time,message,full_picture&limit=100&access_token=${token}`;
-        const resp = await fetch(url);
-        const data = await resp.json();
-        if (!data.error && data.data) {
-          const matched = data.data.find((p: any) => p.id === post_id);
-          if (matched) {
-            postData = matched;
-            usedToken = label;
-            debugInfo.push(`Strategy 3 (feed basic) found post with ${label}`);
-            break;
-          }
-        }
-      }
-    }
-
-    // Strategy 4: Minimal direct access
-    if (!postData.created_time) {
-      for (const { token, label } of tokensToTry) {
-        if (!token) continue;
-        const url = `https://graph.facebook.com/v21.0/${post_id}?fields=created_time,message&access_token=${token}`;
-        const resp = await fetch(url);
-        const data = await resp.json();
-        if (!data.error) {
-          postData = data;
-          usedToken = label;
-          debugInfo.push(`Strategy 4 (minimal) succeeded with ${label}`);
-          break;
-        }
-      }
-    }
-
-    // Try insights with multiple API versions (non-fatal)
+    // Try insights (single call, non-fatal)
     const metrics: Record<string, any> = {};
-    const metricSets = [
-      "post_impressions,post_impressions_unique,post_engaged_users",
-      "post_impressions,post_impressions_unique",
-    ];
-    
-    for (const ver of apiVersions) {
-      let foundAny = false;
-      for (const metricSet of metricSets) {
-        if (foundAny) break;
-        for (const { token, label } of tokensToTry) {
-          if (!token) continue;
-          try {
-            const url = `https://graph.facebook.com/${ver}/${post_id}/insights?metric=${metricSet}&access_token=${token}`;
-            const resp = await fetch(url);
-            const data = await resp.json();
-            if (data.data && data.data.length > 0) {
-              for (const item of data.data) {
-                metrics[item.name] = item.values?.[0]?.value;
-              }
-              debugInfo.push(`Insights [${metricSet.substring(0, 30)}...] with ${label} (${ver})`);
-              foundAny = true;
-              break;
-            } else if (data.error) {
-              debugInfo.push(`Insights ${label} ${ver}: ${data.error.message?.substring(0, 60)}`);
-            }
-          } catch (_e) { /* continue */ }
+    try {
+      const insightsUrl = `https://graph.facebook.com/v21.0/${post_id}/insights?metric=post_impressions,post_impressions_unique,post_engaged_users&access_token=${pageToken}`;
+      const insightsData = await fetchJson(insightsUrl);
+      if (insightsData.data?.length > 0) {
+        for (const item of insightsData.data) {
+          metrics[item.name] = item.values?.[0]?.value;
         }
+        debugInfo.push("Insights succeeded");
+      } else if (insightsData.error) {
+        debugInfo.push(`Insights: ${insightsData.error.message?.substring(0, 60)}`);
       }
-      if (foundAny) break;
-    }
+    } catch (_e) { /* non-fatal */ }
 
-    // Strategy 5: Try fetching ad insights from the Ads API if we have an ad_account
+    // Try Ads API (single call, non-fatal)
     let adInsights: any = null;
     const AD_ACCOUNT_ID = "563726213662060";
-    for (const { token, label } of tokensToTry) {
-      if (!token) continue;
-      try {
-        // Search for ads linked to this post
-        const searchUrl = `https://graph.facebook.com/v21.0/act_${AD_ACCOUNT_ID}/ads?fields=id,name,creative{effective_object_story_id},insights.fields(impressions,reach,clicks,spend,cpc,cpm)&filtering=[{"field":"effective_object_story_id","operator":"CONTAIN","value":"${post_id}"}]&access_token=${token}`;
-        const searchResp = await fetch(searchUrl);
-        const searchData = await searchResp.json();
-        if (!searchData.error && searchData.data?.length > 0) {
-          const ad = searchData.data[0];
-          if (ad.insights?.data?.[0]) {
-            adInsights = ad.insights.data[0];
-            debugInfo.push(`Ad insights found via Ads API with ${label}`);
-          }
-        } else if (searchData.error) {
-          debugInfo.push(`Ads API ${label}: ${searchData.error.message?.substring(0, 60)}`);
-        }
-      } catch (_e) { /* continue */ }
-      break; // Only try once
-    }
+    try {
+      const adsUrl = `https://graph.facebook.com/v21.0/act_${AD_ACCOUNT_ID}/ads?fields=id,insights.fields(impressions,reach,clicks,spend,cpc,cpm)&filtering=[{"field":"effective_object_story_id","operator":"CONTAIN","value":"${post_id}"}]&access_token=${pageToken}`;
+      const adsData = await fetchJson(adsUrl);
+      if (!adsData.error && adsData.data?.length > 0 && adsData.data[0].insights?.data?.[0]) {
+        adInsights = adsData.data[0].insights.data[0];
+        debugInfo.push("Ad insights found");
+      } else if (adsData.error) {
+        debugInfo.push(`Ads: ${adsData.error.message?.substring(0, 60)}`);
+      }
+    } catch (_e) { /* non-fatal */ }
 
     console.log(`[fb-insights] Debug:`, JSON.stringify(debugInfo));
 
