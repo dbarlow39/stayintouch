@@ -17,7 +17,7 @@ serve(async (req) => {
       throw new Error("agent_id is required");
     }
 
-    const FACEBOOK_APP_ID = Deno.env.get("FACEBOOK_APP_ID");
+    const FACEBOOK_APP_ID = Deno.env.get("FACEBOOK_APP_ID")?.trim();
 
     if (!FACEBOOK_APP_ID) {
       throw new Error("FACEBOOK_APP_ID not configured");
