@@ -33,8 +33,8 @@ Deno.serve(async (req) => {
 
     const pageToken = tokenData.page_access_token;
     const userToken = tokenData.access_token;
+    const pageId = tokenData.page_id;
 
-    // Try multiple tokens in order: page token first, then user token
     const tokensToTry = [
       { token: pageToken, label: "page" },
       { token: userToken, label: "user" },
@@ -42,8 +42,9 @@ Deno.serve(async (req) => {
 
     let postData: any = {};
     let usedToken = "";
+    let debugInfo: string[] = [];
 
-    // Try to get post data with engagement summaries
+    // Strategy 1: Direct post access with engagement
     for (const { token, label } of tokensToTry) {
       if (!token) continue;
       const url = `https://graph.facebook.com/v21.0/${post_id}?fields=likes.summary(true),comments.summary(true),shares,created_time,message,full_picture&access_token=${token}`;
@@ -52,47 +53,102 @@ Deno.serve(async (req) => {
       if (!data.error) {
         postData = data;
         usedToken = label;
-        console.log(`[fb-insights] Post data fetched with ${label} token`);
+        debugInfo.push(`Strategy 1 succeeded with ${label}`);
         break;
       } else {
-        console.warn(`[fb-insights] ${label} token failed for post data:`, data.error.message);
+        debugInfo.push(`S1 ${label}: ${data.error.message?.substring(0, 80)}`);
       }
     }
 
-    // If no engagement data, try basic fields
+    // Strategy 2: Page feed with engagement fields
+    if (!postData.created_time && pageId) {
+      for (const { token, label } of tokensToTry) {
+        if (!token) continue;
+        const url = `https://graph.facebook.com/v21.0/${pageId}/published_posts?fields=id,created_time,message,full_picture,likes.summary(true),comments.summary(true),shares&limit=100&access_token=${token}`;
+        const resp = await fetch(url);
+        const data = await resp.json();
+        if (!data.error && data.data) {
+          const matched = data.data.find((p: any) => p.id === post_id);
+          if (matched) {
+            postData = matched;
+            usedToken = label;
+            debugInfo.push(`Strategy 2 (feed+engagement) found post with ${label}`);
+            break;
+          } else {
+            debugInfo.push(`S2 ${label}: feed ok (${data.data.length} posts) but post not in batch`);
+          }
+        } else {
+          debugInfo.push(`S2 ${label}: ${data.error?.message?.substring(0, 80) || 'no data'}`);
+        }
+      }
+    }
+
+    // Strategy 3: Page feed basic (no engagement fields)
+    if (!postData.created_time && pageId) {
+      for (const { token, label } of tokensToTry) {
+        if (!token) continue;
+        const url = `https://graph.facebook.com/v21.0/${pageId}/published_posts?fields=id,created_time,message,full_picture&limit=100&access_token=${token}`;
+        const resp = await fetch(url);
+        const data = await resp.json();
+        if (!data.error && data.data) {
+          const matched = data.data.find((p: any) => p.id === post_id);
+          if (matched) {
+            postData = matched;
+            usedToken = label;
+            debugInfo.push(`Strategy 3 (feed basic) found post with ${label}`);
+            break;
+          }
+        }
+      }
+    }
+
+    // Strategy 4: Minimal direct access
     if (!postData.created_time) {
       for (const { token, label } of tokensToTry) {
         if (!token) continue;
-        const url = `https://graph.facebook.com/v21.0/${post_id}?fields=created_time,message,full_picture&access_token=${token}`;
+        const url = `https://graph.facebook.com/v21.0/${post_id}?fields=created_time,message&access_token=${token}`;
         const resp = await fetch(url);
         const data = await resp.json();
         if (!data.error) {
           postData = data;
           usedToken = label;
+          debugInfo.push(`Strategy 4 (minimal) succeeded with ${label}`);
           break;
         }
       }
     }
 
-    // Try insights with each token
+    // Try insights with different metric sets (non-fatal)
     const metrics: Record<string, any> = {};
-    for (const { token, label } of tokensToTry) {
-      if (!token) continue;
-      try {
-        const url = `https://graph.facebook.com/v21.0/${post_id}/insights?metric=post_impressions,post_impressions_unique&access_token=${token}`;
-        const resp = await fetch(url);
-        const data = await resp.json();
-        if (data.data && data.data.length > 0) {
-          for (const item of data.data) {
-            metrics[item.name] = item.values?.[0]?.value;
+    const metricSets = [
+      "post_impressions,post_impressions_unique,post_engaged_users",
+      "post_impressions,post_impressions_unique",
+    ];
+    
+    for (const metricSet of metricSets) {
+      let found = false;
+      for (const { token, label } of tokensToTry) {
+        if (!token) continue;
+        try {
+          const url = `https://graph.facebook.com/v21.0/${post_id}/insights?metric=${metricSet}&access_token=${token}`;
+          const resp = await fetch(url);
+          const data = await resp.json();
+          if (data.data && data.data.length > 0) {
+            for (const item of data.data) {
+              metrics[item.name] = item.values?.[0]?.value;
+            }
+            debugInfo.push(`Insights [${metricSet.substring(0, 30)}...] with ${label}`);
+            found = true;
+            break;
+          } else if (data.error) {
+            debugInfo.push(`Insights ${label}: ${data.error.message?.substring(0, 60)}`);
           }
-          console.log(`[fb-insights] Insights fetched with ${label} token`);
-          break;
-        }
-      } catch (_e) {
-        // continue
+        } catch (_e) { /* continue */ }
       }
+      if (found) break;
     }
+
+    console.log(`[fb-insights] Debug:`, JSON.stringify(debugInfo));
 
     const likes = postData.likes?.summary?.total_count || 0;
     const comments = postData.comments?.summary?.total_count || 0;
@@ -112,10 +168,11 @@ Deno.serve(async (req) => {
       reach: metrics.post_impressions_unique || 0,
       clicks: null,
       click_types: null,
-      activity: null,
+      activity: metrics.post_engaged_users || null,
       reactions: likes,
       ad_insights: null,
       token_used: usedToken,
+      debug: debugInfo,
     };
 
     return new Response(JSON.stringify(result), {
