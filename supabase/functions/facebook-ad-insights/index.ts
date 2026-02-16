@@ -23,7 +23,7 @@ Deno.serve(async (req) => {
 
     const { data: tokenData, error: tokenError } = await supabase
       .from("facebook_oauth_tokens")
-      .select("page_access_token, page_id, access_token")
+      .select("page_access_token, page_id, access_token, ad_account_id")
       .eq("agent_id", agent_id)
       .single();
 
@@ -101,7 +101,7 @@ Deno.serve(async (req) => {
 
     // Strategy 3: Try Ads API with both user token and page token
     let adInsights: any = null;
-    const AD_ACCOUNT_ID = "563726213662060";
+    const AD_ACCOUNT_ID = tokenData.ad_account_id || "563726213662060";
 
     // Try with user token first (needs ads_read permission)
     for (const [tokenLabel, token] of [["user", userToken], ["page", pageToken]]) {

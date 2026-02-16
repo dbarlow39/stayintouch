@@ -1,0 +1,1 @@
+ALTER TABLE public.facebook_oauth_tokens ADD COLUMN ad_account_id text;
