@@ -38,18 +38,46 @@ const FacebookAdResultsListingPanel = ({ listingId, listingAddress }: FacebookAd
     if (!user) return;
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      // First try exact listing_id match (posts created via the app)
+      const { data: exactData, error: exactError } = await supabase
         .from('facebook_ad_posts' as any)
         .select('*')
         .eq('agent_id', user.id)
         .eq('listing_id', listingId)
         .order('created_at', { ascending: false });
 
-      if (!error && data) {
-        setPosts(data as any as AdPost[]);
-        if ((data as any[]).length > 0) {
-          setSelectedPostId((data as any[])[0].post_id);
+      let allPosts: AdPost[] = [];
+      if (!exactError && exactData) {
+        allPosts = exactData as any as AdPost[];
+      }
+
+      // Also try matching by address (for imported posts where listing_id is the FB post ID)
+      if (listingAddress) {
+        // Extract just the street portion for matching (e.g. "1539 Clubview Boulevard S")
+        const streetPart = listingAddress.split(',')[0]?.trim();
+        if (streetPart) {
+          const { data: addrData, error: addrError } = await supabase
+            .from('facebook_ad_posts' as any)
+            .select('*')
+            .eq('agent_id', user.id)
+            .ilike('listing_address', `%${streetPart}%`)
+            .order('created_at', { ascending: false });
+
+          if (!addrError && addrData) {
+            // Merge, avoiding duplicates by post_id
+            const existingIds = new Set(allPosts.map(p => p.post_id));
+            for (const post of addrData as any as AdPost[]) {
+              if (!existingIds.has(post.post_id)) {
+                allPosts.push(post);
+              }
+            }
+          }
         }
+      }
+
+      setPosts(allPosts);
+      if (allPosts.length > 0) {
+        setSelectedPostId(allPosts[0].post_id);
       }
     } catch (err) {
       console.error('[AdResults] Error fetching posts:', err);
