@@ -47,40 +47,30 @@ Deno.serve(async (req) => {
       }
     };
 
-    // Strategy 1: Try direct post access with engagement (page token only, v21.0 only)
+    // Strategy 1: Get basic post data from published_posts (no engagement fields - they require Page Public Content Access)
     let postData: any = {};
     let usedToken = "page";
 
-    const directUrl = `https://graph.facebook.com/v21.0/${post_id}?fields=likes.summary(true),comments.summary(true),shares,created_time,message,full_picture&access_token=${pageToken}`;
-    const directData = await fetchJson(directUrl);
-    if (!directData.error) {
-      postData = directData;
-      debugInfo.push("Direct post access succeeded");
-    } else {
-      debugInfo.push(`Direct: ${directData.error.message?.substring(0, 60)}`);
-
-      // Strategy 2: Page feed (single call, page token)
-      if (pageId) {
-        const feedUrl = `https://graph.facebook.com/v21.0/${pageId}/published_posts?fields=id,created_time,message,full_picture,likes.summary(true),comments.summary(true),shares&limit=100&access_token=${pageToken}`;
-        const feedData = await fetchJson(feedUrl);
-        if (!feedData.error && feedData.data) {
-          const matched = feedData.data.find((p: any) => p.id === post_id);
-          if (matched) {
-            postData = matched;
-            debugInfo.push(`Feed search found post (${feedData.data.length} scanned)`);
-          } else {
-            debugInfo.push(`Feed: ${feedData.data.length} posts, no match`);
-          }
+    if (pageId) {
+      const feedUrl = `https://graph.facebook.com/v21.0/${pageId}/published_posts?fields=id,created_time,message,full_picture,shares&limit=100&access_token=${pageToken}`;
+      const feedData = await fetchJson(feedUrl);
+      if (!feedData.error && feedData.data) {
+        const matched = feedData.data.find((p: any) => p.id === post_id);
+        if (matched) {
+          postData = matched;
+          debugInfo.push(`Feed found post (${feedData.data.length} scanned)`);
         } else {
-          debugInfo.push(`Feed: ${feedData.error?.message?.substring(0, 60) || 'no data'}`);
+          debugInfo.push(`Feed: ${feedData.data.length} posts, no match`);
         }
+      } else {
+        debugInfo.push(`Feed: ${feedData.error?.message?.substring(0, 60) || 'no data'}`);
       }
     }
 
-    // Try insights (single call, non-fatal)
+    // Strategy 2: Get engagement via post insights (these metrics actually work)
     const metrics: Record<string, any> = {};
     try {
-      const insightsUrl = `https://graph.facebook.com/v21.0/${post_id}/insights?metric=post_impressions,post_impressions_unique,post_engaged_users&access_token=${pageToken}`;
+      const insightsUrl = `https://graph.facebook.com/v21.0/${post_id}/insights?metric=post_reactions_by_type_total,post_activity_by_action_type&access_token=${pageToken}`;
       const insightsData = await fetchJson(insightsUrl);
       if (insightsData.data?.length > 0) {
         for (const item of insightsData.data) {
@@ -108,26 +98,32 @@ Deno.serve(async (req) => {
 
     console.log(`[fb-insights] Debug:`, JSON.stringify(debugInfo));
 
-    const likes = postData.likes?.summary?.total_count || 0;
-    const comments = postData.comments?.summary?.total_count || 0;
-    const shares = postData.shares?.count || 0;
-    const totalEngagements = likes + comments + shares;
+    // Extract reactions from insights (post_reactions_by_type_total returns {like: N, love: N, ...})
+    const reactionsObj = metrics.post_reactions_by_type_total || {};
+    const totalReactions = Object.values(reactionsObj).reduce((sum: number, v: any) => sum + (typeof v === 'number' ? v : 0), 0);
+    const likes = (reactionsObj.like || 0) + (reactionsObj.love || 0) + (reactionsObj.wow || 0) + (reactionsObj.haha || 0) + (reactionsObj.sorry || 0) + (reactionsObj.anger || 0);
+
+    // Extract activity from insights (post_activity_by_action_type returns {share: N, comment: N, like: N, ...})
+    const activityObj = metrics.post_activity_by_action_type || {};
+    const comments = activityObj.comment || 0;
+    const shares = postData.shares?.count || activityObj.share || 0;
+    const totalEngagements = totalReactions + comments + shares;
 
     const result = {
       post_id,
       created_time: postData.created_time || null,
       message: postData.message || null,
       full_picture: postData.full_picture || null,
-      likes,
+      likes: totalReactions,
       comments,
       shares,
       engagements: totalEngagements,
-      impressions: adInsights ? parseInt(adInsights.impressions || "0") : (metrics.post_impressions || 0),
-      reach: adInsights ? parseInt(adInsights.reach || "0") : (metrics.post_impressions_unique || 0),
+      impressions: adInsights ? parseInt(adInsights.impressions || "0") : 0,
+      reach: adInsights ? parseInt(adInsights.reach || "0") : 0,
       clicks: adInsights ? parseInt(adInsights.clicks || "0") : null,
       click_types: null,
-      activity: metrics.post_engaged_users || null,
-      reactions: likes,
+      activity: activityObj,
+      reactions: reactionsObj,
       ad_insights: adInsights ? {
         impressions: parseInt(adInsights.impressions || "0"),
         reach: parseInt(adInsights.reach || "0"),
