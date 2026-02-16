@@ -92,6 +92,20 @@ serve(async (req) => {
       const page = pagesData.data?.[0] || null;
       console.log("[FB Callback] Using page:", page?.name || "NO PAGE FOUND", page?.id || "N/A");
 
+      // Fetch ad account ID
+      let adAccountId = null;
+      try {
+        const adAccountsResp = await fetch(`https://graph.facebook.com/v21.0/me/adaccounts?fields=id,name,account_status&access_token=${longLivedToken}`);
+        const adAccountsData = await adAccountsResp.json();
+        if (adAccountsData.data && adAccountsData.data.length > 0) {
+          const activeAccount = adAccountsData.data.find((a: any) => a.account_status === 1) || adAccountsData.data[0];
+          adAccountId = activeAccount.id.replace('act_', '');
+          console.log("[FB Callback] Found ad account:", adAccountId, activeAccount.name);
+        }
+      } catch (e) {
+        console.log("[FB Callback] Could not fetch ad accounts:", e);
+      }
+
       // Store in database - save token even without a page
       const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!);
 
@@ -99,6 +113,7 @@ serve(async (req) => {
         agent_id,
         access_token: longLivedToken,
         updated_at: new Date().toISOString(),
+        ad_account_id: adAccountId,
       };
       if (page) {
         upsertData.page_id = page.id;
@@ -165,12 +180,24 @@ serve(async (req) => {
     const page = pagesData.data[0];
     const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!);
 
+    // Fetch ad account ID for legacy handler
+    let adAccountId = null;
+    try {
+      const adAccountsResp = await fetch(`https://graph.facebook.com/v21.0/me/adaccounts?fields=id,name,account_status&access_token=${longLivedToken}`);
+      const adAccountsData = await adAccountsResp.json();
+      if (adAccountsData.data && adAccountsData.data.length > 0) {
+        const activeAccount = adAccountsData.data.find((a: any) => a.account_status === 1) || adAccountsData.data[0];
+        adAccountId = activeAccount.id.replace('act_', '');
+      }
+    } catch (_e) { /* non-fatal */ }
+
     await supabase.from("facebook_oauth_tokens").upsert({
       agent_id,
       access_token: longLivedToken,
       page_id: page.id,
       page_name: page.name,
       page_access_token: page.access_token,
+      ad_account_id: adAccountId,
       updated_at: new Date().toISOString(),
     }, { onConflict: "agent_id" });
 

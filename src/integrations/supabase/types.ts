@@ -916,6 +916,7 @@ export type Database = {
       facebook_oauth_tokens: {
         Row: {
           access_token: string
+          ad_account_id: string | null
           agent_id: string
           created_at: string
           id: string
@@ -926,6 +927,7 @@ export type Database = {
         }
         Insert: {
           access_token: string
+          ad_account_id?: string | null
           agent_id: string
           created_at?: string
           id?: string
@@ -936,6 +938,7 @@ export type Database = {
         }
         Update: {
           access_token?: string
+          ad_account_id?: string | null
           agent_id?: string
           created_at?: string
           id?: string
