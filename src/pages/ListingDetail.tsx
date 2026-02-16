@@ -8,7 +8,7 @@ import {
   ArrowLeft, Bed, Bath, Maximize, Calendar, MapPin, Home, Share2, Heart,
   Thermometer, Wind, Car, Layers, DollarSign, GraduationCap, Droplets, Building,
   Ruler, Clock, FileText, Facebook, Instagram, Twitter, Megaphone, Sparkles, Youtube, Linkedin, ImageIcon,
-  Link2, Check, Loader2, Mail, MessageSquare, Copy
+  Link2, Check, Loader2, Mail, MessageSquare, Copy, BarChart3
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -22,6 +22,7 @@ import { Separator } from '@/components/ui/separator';
 import ListingToolPanel from '@/components/dashboard/marketing/ListingToolPanel';
 import FacebookPostPanel from '@/components/dashboard/marketing/FacebookPostPanel';
 import AdGeneratorPanel from '@/components/dashboard/marketing/AdGeneratorPanel';
+import FacebookAdResultsPanel from '@/components/dashboard/marketing/FacebookAdResultsListingPanel';
 import { supabase } from '@/integrations/supabase/client';
 import PhoneCallTextLink from '@/components/PhoneCallTextLink';
 import { useAuth } from '@/lib/auth';
@@ -290,6 +291,7 @@ const ListingDetail = () => {
   const sidebarItems = [
     { id: 'generate-ad', label: 'Generate Ad', icon: ImageIcon, group: 'facebook' },
     { id: 'fb-post', label: 'Post to Page', icon: Facebook, group: 'facebook' },
+    { id: 'ad-results', label: 'Ad Results', icon: BarChart3, group: 'facebook' },
     { id: 'facebook', label: 'Facebook Copy', icon: Facebook, group: 'social' },
     { id: 'instagram', label: 'Instagram', icon: Instagram, group: 'social' },
     { id: 'youtube', label: 'YouTube', icon: Youtube, group: 'social' },
@@ -426,6 +428,8 @@ const ListingDetail = () => {
             <AdGeneratorPanel listing={listing} autoGenerate />
           ) : activeTool === 'fb-post' ? (
             <FacebookPostPanel listing={listing} />
+          ) : activeTool === 'ad-results' ? (
+            <FacebookAdResultsPanel listingId={listing.id} listingAddress={fullAddress} />
           ) : (
             <ListingToolPanel platform={activeTool} listing={listing} autoGenerate={activeTool === 'ai-suggestions'} />
           )}

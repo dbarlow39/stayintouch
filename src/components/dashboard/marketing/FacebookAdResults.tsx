@@ -1,0 +1,283 @@
+import { useState, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
+import {
+  BarChart3, Eye, MousePointerClick, DollarSign, Users, Heart,
+  MessageSquare, Share2, Loader2, TrendingUp, ExternalLink, RefreshCw
+} from 'lucide-react';
+import { toast } from 'sonner';
+import { useAuth } from '@/lib/auth';
+
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const ANON_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
+interface FacebookAdResultsProps {
+  postId: string;
+  listingAddress?: string;
+  onClose?: () => void;
+}
+
+interface InsightsData {
+  post_id: string;
+  created_time: string | null;
+  message: string | null;
+  full_picture: string | null;
+  likes: number;
+  comments: number;
+  shares: number;
+  engagements: number;
+  impressions: number;
+  reach: number;
+  clicks: any;
+  click_types: Record<string, number> | null;
+  activity: Record<string, number> | null;
+  reactions: number;
+  ad_insights: {
+    impressions: number;
+    reach: number;
+    clicks: number;
+    spend: number;
+    cpc: number;
+    cpm: number;
+    actions: any[];
+    cost_per_action: any[];
+  } | null;
+}
+
+const FacebookAdResults = ({ postId, listingAddress, onClose }: FacebookAdResultsProps) => {
+  const { user } = useAuth();
+  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState<InsightsData | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchInsights = async () => {
+    if (!user) return;
+    setLoading(true);
+    setError(null);
+
+    try {
+      const resp = await fetch(`${SUPABASE_URL}/functions/v1/facebook-ad-insights`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${ANON_KEY}`,
+        },
+        body: JSON.stringify({ agent_id: user.id, post_id: postId }),
+      });
+      const result = await resp.json();
+      if (result.error) throw new Error(result.error);
+      setData(result);
+    } catch (err: any) {
+      setError(err.message || 'Failed to fetch insights');
+      toast.error('Failed to load ad results');
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    fetchInsights();
+  }, [postId, user]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+        <span className="ml-2 text-sm text-muted-foreground">Loading ad results...</span>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-center py-8">
+        <p className="text-sm text-destructive mb-3">{error}</p>
+        <Button variant="outline" size="sm" onClick={fetchInsights}>
+          <RefreshCw className="w-3.5 h-3.5 mr-1.5" /> Retry
+        </Button>
+      </div>
+    );
+  }
+
+  if (!data) return null;
+
+  // Use ad insights if available (boosted), otherwise use organic metrics
+  const ad = data.ad_insights;
+  const totalReach = ad?.reach || data.reach || 0;
+  const totalImpressions = ad?.impressions || data.impressions || 0;
+  const totalClicks = ad?.clicks || (typeof data.clicks === 'number' ? data.clicks : 0);
+  const totalSpend = ad?.spend || 0;
+  const totalEngagements = data.engagements || 0;
+  const costPerEngagement = totalEngagements > 0 && totalSpend > 0
+    ? (totalSpend / totalEngagements).toFixed(2)
+    : '0.00';
+
+  // Activity breakdown
+  const activityItems: { label: string; value: number; color: string }[] = [];
+  if (data.click_types && typeof data.click_types === 'object') {
+    const typeLabels: Record<string, string> = {
+      link_clicks: 'Link clicks',
+      other_clicks: 'Other clicks',
+      photo_view: 'Photo views',
+      video_play: 'Video plays',
+    };
+    Object.entries(data.click_types).forEach(([key, val]) => {
+      if (typeof val === 'number' && val > 0) {
+        activityItems.push({
+          label: typeLabels[key] || key.replace(/_/g, ' '),
+          value: val,
+          color: 'bg-blue-500',
+        });
+      }
+    });
+  }
+
+  // Add reactions breakdown
+  if (data.likes > 0) activityItems.push({ label: 'Reactions', value: data.likes, color: 'bg-blue-400' });
+  if (data.comments > 0) activityItems.push({ label: 'Comments', value: data.comments, color: 'bg-emerald-500' });
+  if (data.shares > 0) activityItems.push({ label: 'Shares', value: data.shares, color: 'bg-purple-500' });
+
+  // Sort by value descending
+  activityItems.sort((a, b) => b.value - a.value);
+  const maxActivity = activityItems.length > 0 ? activityItems[0].value : 1;
+
+  const postDate = data.created_time
+    ? new Date(data.created_time).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+    : null;
+
+  return (
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="text-lg font-bold text-card-foreground flex items-center gap-2">
+            <BarChart3 className="w-5 h-5 text-blue-600" />
+            Ad Results
+          </h3>
+          {listingAddress && (
+            <p className="text-xs text-muted-foreground mt-0.5">{listingAddress}</p>
+          )}
+          {postDate && (
+            <p className="text-xs text-muted-foreground">Posted {postDate}</p>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" size="sm" onClick={fetchInsights} className="h-7">
+            <RefreshCw className="w-3.5 h-3.5" />
+          </Button>
+          {onClose && (
+            <Button variant="ghost" size="sm" onClick={onClose} className="h-7 text-xs">
+              Close
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {/* Spend summary */}
+      {totalSpend > 0 && (
+        <p className="text-xs text-muted-foreground">
+          ${totalSpend.toFixed(2)} spent{ad ? ' (boosted)' : ''}
+        </p>
+      )}
+
+      {/* Performance Cards */}
+      <div className="grid grid-cols-2 gap-3">
+        <MetricCard
+          icon={<Users className="w-4 h-4 text-blue-500" />}
+          label="Post engagements"
+          value={totalEngagements.toLocaleString()}
+        />
+        <MetricCard
+          icon={<DollarSign className="w-4 h-4 text-emerald-500" />}
+          label="Cost per engagement"
+          value={`$${costPerEngagement}`}
+        />
+        <MetricCard
+          icon={<Eye className="w-4 h-4 text-indigo-500" />}
+          label="Views"
+          value={totalImpressions.toLocaleString()}
+        />
+        <MetricCard
+          icon={<TrendingUp className="w-4 h-4 text-amber-500" />}
+          label="Reach"
+          value={totalReach.toLocaleString()}
+        />
+      </div>
+
+      {/* Activity Breakdown */}
+      {activityItems.length > 0 && (
+        <div>
+          <h4 className="text-sm font-semibold text-card-foreground mb-2">Activity</h4>
+          <div className="space-y-2">
+            {activityItems.map((item, i) => (
+              <div key={i} className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground w-24 truncate">{item.label}</span>
+                <div className="flex-1 h-5 bg-muted rounded-sm overflow-hidden">
+                  <div
+                    className={`h-full ${item.color} rounded-sm transition-all`}
+                    style={{ width: `${Math.max((item.value / maxActivity) * 100, 4)}%` }}
+                  />
+                </div>
+                <span className="text-xs font-medium text-card-foreground w-10 text-right">
+                  {item.value.toLocaleString()}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <Separator />
+
+      {/* Social Engagement */}
+      <div>
+        <h4 className="text-sm font-semibold text-card-foreground mb-2">Engagement</h4>
+        <div className="grid grid-cols-3 gap-2">
+          <div className="flex items-center gap-1.5 text-xs">
+            <Heart className="w-3.5 h-3.5 text-red-500" />
+            <span className="text-card-foreground font-medium">{data.likes}</span>
+            <span className="text-muted-foreground">Likes</span>
+          </div>
+          <div className="flex items-center gap-1.5 text-xs">
+            <MessageSquare className="w-3.5 h-3.5 text-blue-500" />
+            <span className="text-card-foreground font-medium">{data.comments}</span>
+            <span className="text-muted-foreground">Comments</span>
+          </div>
+          <div className="flex items-center gap-1.5 text-xs">
+            <Share2 className="w-3.5 h-3.5 text-emerald-500" />
+            <span className="text-card-foreground font-medium">{data.shares}</span>
+            <span className="text-muted-foreground">Shares</span>
+          </div>
+        </div>
+      </div>
+
+      {/* View on Facebook */}
+      <Button
+        variant="outline"
+        size="sm"
+        className="w-full text-xs"
+        onClick={() => {
+          // post_id format is usually pageId_postId
+          const fbPostId = postId.includes('_') ? postId.split('_')[1] : postId;
+          window.open(`https://www.facebook.com/${postId}`, '_blank');
+        }}
+      >
+        <ExternalLink className="w-3.5 h-3.5 mr-1.5" /> View on Facebook
+      </Button>
+    </div>
+  );
+};
+
+function MetricCard({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
+  return (
+    <div className="border border-border rounded-lg p-3 bg-card">
+      <div className="flex items-center gap-1.5 mb-1">
+        {icon}
+        <span className="text-xs text-muted-foreground">{label}</span>
+      </div>
+      <span className="text-lg font-bold text-card-foreground">{value}</span>
+    </div>
+  );
+}
+
+export default FacebookAdResults;

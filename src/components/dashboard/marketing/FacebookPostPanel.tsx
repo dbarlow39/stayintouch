@@ -4,11 +4,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Facebook, Check, Loader2, Link2, DollarSign, Calendar, MapPin } from 'lucide-react';
+import { Facebook, Check, Loader2, Link2, DollarSign, Calendar, MapPin, BarChart3 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/lib/auth';
 import { MarketingListing, formatListingPrice } from '@/data/marketingListings';
+import FacebookAdResults from './FacebookAdResults';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const ANON_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
@@ -58,6 +59,7 @@ const FacebookPostPanel = ({ listing }: FacebookPostPanelProps) => {
     radius: '15',
     targetZip: listing.zip
   });
+  const [showResults, setShowResults] = useState(false);
 
   const fullAddress = `${listing.address}, ${listing.city}, ${listing.state} ${listing.zip}`;
 
@@ -186,6 +188,24 @@ const FacebookPostPanel = ({ listing }: FacebookPostPanelProps) => {
       console.log('[FB] Setting postId to:', returnedPostId);
       setPosted(true);
       setPostId(returnedPostId);
+
+      // Save to facebook_ad_posts table for tracking
+      if (returnedPostId) {
+        try {
+          const fullAddress = `${listing.address}, ${listing.city}, ${listing.state} ${listing.zip}`;
+          await supabase.from('facebook_ad_posts' as any).insert({
+            agent_id: user!.id,
+            listing_id: listing.id,
+            listing_address: fullAddress,
+            post_id: returnedPostId,
+            daily_budget: boostEnabled ? Number(boostConfig.dailyBudget) : 0,
+            duration_days: boostEnabled ? Number(boostConfig.duration) : 0,
+            status: boostEnabled ? 'boosted' : 'organic',
+          });
+        } catch (dbErr) {
+          console.error('[FB] Failed to save ad post record:', dbErr);
+        }
+      }
 
       // Handle boost if enabled
       if (boostEnabled && returnedPostId) {
@@ -373,6 +393,29 @@ const FacebookPostPanel = ({ listing }: FacebookPostPanelProps) => {
               <><Facebook className="w-4 h-4 mr-2" /> Post to Facebook Page</>
             )}
           </Button>
+
+          {/* View Results button after posting */}
+          {posted && postId && !showResults && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full mt-2"
+              onClick={() => setShowResults(true)}
+            >
+              <BarChart3 className="w-4 h-4 mr-2" /> View Ad Results
+            </Button>
+          )}
+
+          {/* Results panel */}
+          {showResults && postId && (
+            <div className="mt-3 border border-border rounded-lg p-4">
+              <FacebookAdResults
+                postId={postId}
+                listingAddress={fullAddress}
+                onClose={() => setShowResults(false)}
+              />
+            </div>
+          )}
         </>
       )}
     </div>
