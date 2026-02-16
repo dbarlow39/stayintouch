@@ -11,8 +11,8 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  const FACEBOOK_APP_ID = Deno.env.get("FACEBOOK_APP_ID");
-  const FACEBOOK_APP_SECRET = Deno.env.get("FACEBOOK_APP_SECRET");
+  const FACEBOOK_APP_ID = Deno.env.get("FACEBOOK_APP_ID")?.trim();
+  const FACEBOOK_APP_SECRET = Deno.env.get("FACEBOOK_APP_SECRET")?.trim();
   const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
   const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   const DEFAULT_APP_URL = "https://stayintouch.lovable.app";
