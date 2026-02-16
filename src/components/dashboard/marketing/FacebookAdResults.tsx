@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
@@ -50,9 +50,11 @@ const FacebookAdResults = ({ postId, listingAddress, onClose }: FacebookAdResult
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<InsightsData | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const fetchingRef = useRef(false);
 
-  const fetchInsights = async () => {
-    if (!user) return;
+  const fetchInsights = useCallback(async () => {
+    if (!user || fetchingRef.current) return;
+    fetchingRef.current = true;
     setLoading(true);
     setError(null);
 
@@ -73,11 +75,12 @@ const FacebookAdResults = ({ postId, listingAddress, onClose }: FacebookAdResult
       toast.error('Failed to load ad results');
     }
     setLoading(false);
-  };
+    fetchingRef.current = false;
+  }, [postId, user]);
 
   useEffect(() => {
     fetchInsights();
-  }, [postId, user]);
+  }, [fetchInsights]);
 
   if (loading) {
     return (
