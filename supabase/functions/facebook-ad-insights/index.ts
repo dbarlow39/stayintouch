@@ -35,14 +35,10 @@ Deno.serve(async (req) => {
 
     const pageToken = tokenData.page_access_token;
 
-    // Fetch post insights from Facebook Marketing API
+    // Fetch post insights from Facebook Marketing API (using non-deprecated metrics)
     const insightsMetrics = [
-      "post_engaged_users",
       "post_impressions",
       "post_impressions_unique",
-      "post_clicks",
-      "post_reactions_like_total",
-      "post_activity_by_action_type",
     ].join(",");
 
     const insightsUrl = `https://graph.facebook.com/v21.0/${post_id}/insights?metric=${insightsMetrics}&access_token=${pageToken}`;
@@ -87,10 +83,9 @@ Deno.serve(async (req) => {
       console.error("[fb-insights] Ad insights error:", adErr);
     }
 
-    // Also try promoted_object insights via the post's promoted post ID
-    let promotedInsights: any = null;
+    // Also try lifetime period insights
     try {
-      const promoUrl = `https://graph.facebook.com/v21.0/${post_id}/insights?metric=post_impressions,post_impressions_unique,post_engaged_users,post_clicks_by_type&period=lifetime&access_token=${pageToken}`;
+      const promoUrl = `https://graph.facebook.com/v21.0/${post_id}/insights?metric=post_impressions,post_impressions_unique&period=lifetime&access_token=${pageToken}`;
       const promoResp = await fetch(promoUrl);
       const promoData = await promoResp.json();
       
@@ -106,7 +101,11 @@ Deno.serve(async (req) => {
       console.error("[fb-insights] Promoted insights error:", promoErr);
     }
 
-    // Build response
+    // Build response — use post-level likes/comments/shares as engagement proxies
+    const totalEngagements = (postData.likes?.summary?.total_count || 0) + 
+      (postData.comments?.summary?.total_count || 0) + 
+      (postData.shares?.count || 0);
+
     const result = {
       post_id,
       created_time: postData.created_time || null,
@@ -115,13 +114,13 @@ Deno.serve(async (req) => {
       likes: postData.likes?.summary?.total_count || 0,
       comments: postData.comments?.summary?.total_count || 0,
       shares: postData.shares?.count || 0,
-      engagements: metrics.post_engaged_users || 0,
+      engagements: totalEngagements,
       impressions: metrics.post_impressions || 0,
       reach: metrics.post_impressions_unique || 0,
-      clicks: metrics.post_clicks || null,
-      click_types: metrics.post_clicks_by_type || null,
-      activity: metrics.post_activity_by_action_type || null,
-      reactions: metrics.post_reactions_like_total || 0,
+      clicks: null,
+      click_types: null,
+      activity: null,
+      reactions: postData.likes?.summary?.total_count || 0,
       // Ad-specific data if boosted
       ad_insights: adInsights ? {
         impressions: parseInt(adInsights.impressions || "0"),
