@@ -8,8 +8,15 @@ import {
   ArrowLeft, Bed, Bath, Maximize, Calendar, MapPin, Home, Share2, Heart,
   Thermometer, Wind, Car, Layers, DollarSign, GraduationCap, Droplets, Building,
   Ruler, Clock, FileText, Facebook, Instagram, Twitter, Megaphone, Sparkles, Youtube, Linkedin, ImageIcon,
-  Link2, Check, Loader2
+  Link2, Check, Loader2, Mail, MessageSquare, Copy
 } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import ListingToolPanel from '@/components/dashboard/marketing/ListingToolPanel';
@@ -174,6 +181,7 @@ const ListingDetail = () => {
   const [loading, setLoading] = useState(true);
   const [activeTool, setActiveTool] = useState<string | null>(null);
   const isPublic = isPublicSite();
+  const isMobile = useIsMobile();
 
   // Facebook connection state for sidebar
   const [fbConnected, setFbConnected] = useState(false);
@@ -435,9 +443,38 @@ const ListingDetail = () => {
             <Button variant="ghost" size="sm" className="text-primary-foreground/80 hover:text-primary-foreground hover:bg-primary-foreground/10">
               <Heart className="w-4 h-4 mr-1" /> Save
             </Button>
-            <Button variant="ghost" size="sm" className="text-primary-foreground/80 hover:text-primary-foreground hover:bg-primary-foreground/10">
-              <Share2 className="w-4 h-4 mr-1" /> Share
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" className="text-primary-foreground/80 hover:text-primary-foreground hover:bg-primary-foreground/10">
+                  <Share2 className="w-4 h-4 mr-1" /> Share
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => {
+                  const url = window.location.href;
+                  const subject = encodeURIComponent(`Check out this listing: ${listing.address}`);
+                  const body = encodeURIComponent(`${listing.address}\n${formatListingPrice(listing.price)}\n\n${url}`);
+                  window.open(`mailto:?subject=${subject}&body=${body}`, '_blank');
+                }}>
+                  <Mail className="h-4 w-4 mr-2" /> Share via Email
+                </DropdownMenuItem>
+                {isMobile && (
+                  <DropdownMenuItem onClick={() => {
+                    const url = window.location.href;
+                    const body = encodeURIComponent(`Check out this listing: ${listing.address} - ${formatListingPrice(listing.price)} ${url}`);
+                    window.open(`sms:?body=${body}`, '_self');
+                  }}>
+                    <MessageSquare className="h-4 w-4 mr-2" /> Share via Text
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuItem onClick={() => {
+                  navigator.clipboard.writeText(window.location.href);
+                  toast.success('Link copied to clipboard');
+                }}>
+                  <Copy className="h-4 w-4 mr-2" /> Copy Link
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </div>
