@@ -463,7 +463,7 @@ const ListingDetail = () => {
                   let link: string;
                   switch (client) {
                     case 'gmail':
-                      link = `https://mail.google.com/mail/?view=cm&fs=1&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+                      link = `https://mail.google.com/mail/?view=cm&fs=1&tf=1&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
                       break;
                     case 'outlook':
                       link = `https://outlook.live.com/mail/0/deeplink/compose?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
@@ -474,7 +474,13 @@ const ListingDetail = () => {
                     default:
                       link = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
                   }
-                  window.open(link, '_blank');
+                  const a = document.createElement('a');
+                  a.href = link;
+                  a.target = '_blank';
+                  a.rel = 'noopener noreferrer';
+                  document.body.appendChild(a);
+                  a.click();
+                  document.body.removeChild(a);
                 }}>
                   <Mail className="h-4 w-4 mr-2" /> Share via Email
                 </DropdownMenuItem>
