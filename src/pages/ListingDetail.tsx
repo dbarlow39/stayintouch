@@ -463,7 +463,7 @@ const ListingDetail = () => {
                   let link: string;
                   switch (client) {
                     case 'gmail':
-                      link = `https://mail.google.com/mail/?view=cm&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+                      link = `https://mail.google.com/mail/?view=cm&fs=1&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
                       break;
                     case 'outlook':
                       link = `https://outlook.live.com/mail/0/deeplink/compose?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
