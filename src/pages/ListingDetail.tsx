@@ -27,6 +27,7 @@ import { supabase } from '@/integrations/supabase/client';
 import PhoneCallTextLink from '@/components/PhoneCallTextLink';
 import { useAuth } from '@/lib/auth';
 import { toast } from 'sonner';
+import { getEmailClientPreference } from '@/utils/emailClientUtils';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const ANON_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
@@ -456,9 +457,24 @@ const ListingDetail = () => {
               <DropdownMenuContent align="end">
                 <DropdownMenuItem onClick={() => {
                   const url = window.location.href;
-                  const subject = encodeURIComponent(`Check out this listing: ${listing.address}`);
-                  const body = encodeURIComponent(`${listing.address}\n${formatListingPrice(listing.price)}\n\n${url}`);
-                  window.open(`mailto:?subject=${subject}&body=${body}`, '_blank');
+                  const subject = `Check out this listing: ${listing.address}`;
+                  const body = `${listing.address}\n${formatListingPrice(listing.price)}\n\n${url}`;
+                  const client = getEmailClientPreference();
+                  let link: string;
+                  switch (client) {
+                    case 'gmail':
+                      link = `https://mail.google.com/mail/?view=cm&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+                      break;
+                    case 'outlook':
+                      link = `https://outlook.live.com/mail/0/deeplink/compose?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+                      break;
+                    case 'yahoo':
+                      link = `https://compose.mail.yahoo.com/?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+                      break;
+                    default:
+                      link = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+                  }
+                  window.open(link, '_blank');
                 }}>
                   <Mail className="h-4 w-4 mr-2" /> Share via Email
                 </DropdownMenuItem>
