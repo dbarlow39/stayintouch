@@ -66,38 +66,41 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Strategy 2: Get ALL available post insights metrics
+    // Strategy 2: Get post insights metrics in separate groups to avoid batch failures
     const metrics: Record<string, any> = {};
-    const allMetrics = [
-      'post_impressions',
-      'post_impressions_unique',
-      'post_engaged_users',
-      'post_clicks_by_type',
-      'post_reactions_by_type_total',
-      'post_activity_by_action_type',
-    ].join(',');
 
-    try {
-      const insightsUrl = `https://graph.facebook.com/v21.0/${post_id}/insights?metric=${allMetrics}&access_token=${pageToken}`;
-      const insightsData = await fetchJson(insightsUrl);
-      if (insightsData.data?.length > 0) {
-        for (const item of insightsData.data) {
+    const metricGroups = [
+      ['post_impressions', 'post_impressions_unique', 'post_engaged_users'],
+      ['post_clicks_by_type'],
+      ['post_reactions_by_type_total', 'post_activity_by_action_type'],
+    ];
+
+    const groupResults = await Promise.allSettled(metricGroups.map(async (group) => {
+      const url = `https://graph.facebook.com/v21.0/${post_id}/insights?metric=${group.join(',')}&access_token=${pageToken}`;
+      const data = await fetchJson(url);
+      if (data.data?.length > 0) {
+        for (const item of data.data) {
           metrics[item.name] = item.values?.[0]?.value;
         }
-        debugInfo.push(`Insights: ${insightsData.data.length} metrics returned`);
-      } else if (insightsData.error) {
-        debugInfo.push(`Insights: ${insightsData.error.message?.substring(0, 80)}`);
-        // Fallback: try just the metrics we know work
-        const fallbackUrl = `https://graph.facebook.com/v21.0/${post_id}/insights?metric=post_reactions_by_type_total,post_activity_by_action_type&access_token=${pageToken}`;
-        const fallbackData = await fetchJson(fallbackUrl);
-        if (fallbackData.data?.length > 0) {
-          for (const item of fallbackData.data) {
-            metrics[item.name] = item.values?.[0]?.value;
-          }
-          debugInfo.push(`Fallback insights: ${fallbackData.data.length} metrics`);
-        }
+        return { ok: true, count: data.data.length, group: group.join(',') };
+      } else if (data.error) {
+        return { ok: false, error: data.error.message?.substring(0, 80), group: group.join(',') };
       }
-    } catch (_e) { debugInfo.push('Insights exception'); }
+      return { ok: true, count: 0, group: group.join(',') };
+    }));
+
+    for (const r of groupResults) {
+      if (r.status === 'fulfilled') {
+        const v = r.value;
+        if (v.ok) {
+          debugInfo.push(`Insights(${v.group}): ${v.count} metrics`);
+        } else {
+          debugInfo.push(`Insights(${v.group}): ${v.error}`);
+        }
+      } else {
+        debugInfo.push(`Insights exception: ${String(r.reason).substring(0, 60)}`);
+      }
+    }
 
     // Strategy 3: Try Ads API with both user token and page token
     let adInsights: any = null;
