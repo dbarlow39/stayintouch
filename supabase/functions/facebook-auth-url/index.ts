@@ -25,7 +25,7 @@ serve(async (req) => {
 
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
     const redirectUri = `${SUPABASE_URL}/functions/v1/facebook-oauth-callback`;
-    const scope = "pages_manage_posts,pages_read_engagement,pages_show_list,business_management,read_insights";
+    const scope = "pages_manage_posts,pages_read_engagement,pages_show_list,business_management,read_insights,ads_read";
 
     // Encode agent_id and app_origin together in state so the callback knows where to redirect
     const statePayload = JSON.stringify({ agent_id, app_origin: app_origin || "https://stayintouch.lovable.app" });
