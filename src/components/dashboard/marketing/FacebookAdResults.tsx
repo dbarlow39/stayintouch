@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import {
   BarChart3, Eye, MousePointerClick, DollarSign, Users, Heart,
-  MessageSquare, Share2, Loader2, TrendingUp, ExternalLink, RefreshCw
+  MessageSquare, Share2, Loader2, TrendingUp, ExternalLink, RefreshCw, Maximize2
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/lib/auth';
@@ -48,6 +49,7 @@ interface InsightsData {
 
 const FacebookAdResults = ({ postId, listingAddress, onClose }: FacebookAdResultsProps) => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<InsightsData | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -298,19 +300,31 @@ const FacebookAdResults = ({ postId, listingAddress, onClose }: FacebookAdResult
         </div>
       </div>
 
-      {/* View on Facebook */}
-      <Button
-        variant="outline"
-        size="sm"
-        className="w-full text-xs"
-        onClick={() => {
-          // post_id format is usually pageId_postId
-          const fbPostId = postId.includes('_') ? postId.split('_')[1] : postId;
-          window.open(`https://www.facebook.com/${postId}`, '_blank');
-        }}
-      >
-        <ExternalLink className="w-3.5 h-3.5 mr-1.5" /> View on Facebook
-      </Button>
+      {/* Action Buttons */}
+      <div className="space-y-2">
+        <Button
+          variant="default"
+          size="sm"
+          className="w-full text-xs"
+          onClick={() => {
+            const params = new URLSearchParams();
+            if (listingAddress) params.set('address', listingAddress);
+            navigate(`/ad-results/${postId}?${params.toString()}`);
+          }}
+        >
+          <Maximize2 className="w-3.5 h-3.5 mr-1.5" /> View Full Report
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          className="w-full text-xs"
+          onClick={() => {
+            window.open(`https://www.facebook.com/${postId}`, '_blank');
+          }}
+        >
+          <ExternalLink className="w-3.5 h-3.5 mr-1.5" /> View on Facebook
+        </Button>
+      </div>
     </div>
   );
 };

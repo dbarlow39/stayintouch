@@ -12,6 +12,7 @@ import Install from "./pages/Install";
 import ListingDetail from "./pages/ListingDetail";
 import PublicListings from "./pages/PublicListings";
 import NotFound from "./pages/NotFound";
+import AdResults from "./pages/AdResults";
 
 const queryClient = new QueryClient();
 
@@ -39,6 +40,7 @@ const App = () => (
             <Route path="/install" element={<Install />} />
             <Route path="/listings" element={<PublicListings />} />
             <Route path="/listing/:id" element={<ListingDetail />} />
+            <Route path="/ad-results/:postId" element={<AdResults />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
