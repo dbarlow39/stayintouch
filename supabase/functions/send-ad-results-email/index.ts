@@ -24,6 +24,7 @@ interface AdResultsEmailPayload {
   ad_preview_text: string | null;
   facebook_post_url: string;
   logo_url: string;
+  preview_only?: boolean;
 }
 
 serve(async (req) => {
@@ -32,10 +33,6 @@ serve(async (req) => {
   }
 
   try {
-    const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY');
-    if (!RESEND_API_KEY) {
-      throw new Error('RESEND_API_KEY is not configured');
-    }
 
     const payload: AdResultsEmailPayload = await req.json();
     const {
@@ -43,6 +40,7 @@ serve(async (req) => {
       post_engagements, cost_per_engagement, views, reach,
       likes, comments, shares, amount_spent, activity_items,
       ad_preview_image, ad_preview_text, facebook_post_url, logo_url,
+      preview_only,
     } = payload;
 
     // Build activity rows HTML
@@ -212,6 +210,18 @@ serve(async (req) => {
   </table>
 </body>
 </html>`;
+
+    // If preview only, return the HTML without sending
+    if (preview_only) {
+      return new Response(JSON.stringify({ html }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY');
+    if (!RESEND_API_KEY) {
+      throw new Error('RESEND_API_KEY is not configured');
+    }
 
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
