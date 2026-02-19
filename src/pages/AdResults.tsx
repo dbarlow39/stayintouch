@@ -2,15 +2,18 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
+import { Input } from '@/components/ui/input';
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+} from '@/components/ui/dialog';
 import {
   BarChart3, Eye, MousePointerClick, DollarSign, Users, Heart,
   MessageSquare, Share2, Loader2, TrendingUp, ExternalLink, RefreshCw,
-  ArrowLeft, Mail, Clock, Target, CircleDollarSign, Activity, Copy, Check
+  ArrowLeft, Mail, Clock, Target, CircleDollarSign, Activity, Copy, Check, Send
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/lib/auth';
 import { supabase } from '@/integrations/supabase/client';
-import { getEmailClientPreference, getEmailLink } from '@/utils/emailClientUtils';
 import logo from '@/assets/logo.jpg';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
@@ -65,10 +68,27 @@ const AdResultsPage = () => {
   const [adPost, setAdPost] = useState<AdPost | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [emailDialogOpen, setEmailDialogOpen] = useState(false);
+  const [recipientEmail, setRecipientEmail] = useState('');
+  const [sending, setSending] = useState(false);
+  const [profileData, setProfileData] = useState<{ full_name: string; preferred_email: string; email: string } | null>(null);
   const fetchingRef = useRef(false);
 
   const listingAddress = searchParams.get('address') || '';
   const listingId = searchParams.get('listingId') || '';
+
+  // Fetch agent profile for email sending
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from('profiles')
+      .select('full_name, preferred_email, email')
+      .eq('id', user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data) setProfileData(data as any);
+      });
+  }, [user]);
 
   // Fetch ad post metadata from DB
   useEffect(() => {
@@ -113,71 +133,82 @@ const AdResultsPage = () => {
     fetchInsights();
   }, [fetchInsights]);
 
-  const generateEmailBody = () => {
-    if (!data) return '';
+  const handleSendEmail = async () => {
+    if (!data || !recipientEmail.trim() || sending) return;
+    setSending(true);
+
     const ad = data.ad_insights;
     const totalEngagements = data.engagements || 0;
     const totalImpressions = ad?.impressions || data.impressions || 0;
     const totalReach = ad?.reach || data.reach || 0;
     const totalSpend = ad?.spend || 0;
-    const costPerEngagement = totalEngagements > 0 && totalSpend > 0
+    const cpe = totalEngagements > 0 && totalSpend > 0
       ? (totalSpend / totalEngagements).toFixed(2) : '0.00';
 
     const postDate = data.created_time
       ? new Date(data.created_time).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
       : 'N/A';
 
-    let body = `Facebook Ad Results - ${listingAddress}\n`;
-    body += `Sellfor1Percent.com - Full Service Real Estate for just a 1% Commission\n\n`;
-    body += `━━━ Performance Summary ━━━\n`;
-    body += `Post Date: ${postDate}\n`;
-    body += `Post Engagements: ${totalEngagements.toLocaleString()}\n`;
-    body += `Views: ${totalImpressions.toLocaleString()}\n`;
-    body += `Reach: ${totalReach.toLocaleString()}\n`;
-    if (totalSpend > 0) {
-      body += `Amount Spent: $${totalSpend.toFixed(2)}\n`;
-      body += `Cost per Engagement: $${costPerEngagement}\n`;
-    }
-    body += `\n━━━ Engagement ━━━\n`;
-    body += `Likes: ${data.likes}\n`;
-    body += `Comments: ${data.comments}\n`;
-    body += `Shares: ${data.shares}\n`;
-
+    // Build activity items
+    const emailActivityItems: { label: string; value: number }[] = [];
     if (ad?.actions?.length) {
-      body += `\n━━━ Activity Breakdown ━━━\n`;
       const actionLabels: Record<string, string> = {
-        post_engagement: 'Post Engagements',
-        link_click: 'Link Clicks',
-        landing_page_view: 'Landing Page Views',
-        page_engagement: 'Page Engagements',
-        post_reaction: 'Post Reactions',
-        comment: 'Comments',
+        post_engagement: 'Post engagements', link_click: 'Link clicks',
+        landing_page_view: 'Landing page views', page_engagement: 'Page engagements',
+        post_reaction: 'Post reactions', comment: 'Comments',
       };
       for (const action of ad.actions) {
-        const label = actionLabels[action.action_type] || action.action_type.replace(/_/g, ' ');
-        body += `${label}: ${action.value}\n`;
+        const val = parseInt(action.value);
+        if (val > 0) {
+          emailActivityItems.push({
+            label: actionLabels[action.action_type] || action.action_type.replace(/_/g, ' '),
+            value: val,
+          });
+        }
       }
     }
+    emailActivityItems.sort((a, b) => b.value - a.value);
 
-    body += `\n━━━━━━━━━━━━━━━━━━━━━━━━\n`;
-    body += `View on Facebook: https://www.facebook.com/${postId}\n\n`;
-    body += `Sellfor1Percent.com\nFull Service Real Estate for just a 1% Commission\n`;
+    // Use the published app URL for logo
+    const logoUrl = `${window.location.origin}/logo.jpg`;
 
-    return body;
-  };
-
-  const handleCopyAndEmail = () => {
-    const body = generateEmailBody();
-    navigator.clipboard.writeText(body).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 3000);
-      toast.success('Ad results copied to clipboard! Opening email...');
-
-      // Open email client
-      const subject = `Facebook Ad Results - ${listingAddress}`;
-      const link = getEmailLink('', getEmailClientPreference(), subject);
-      window.open(link, '_blank');
-    });
+    try {
+      const resp = await fetch(`${SUPABASE_URL}/functions/v1/send-ad-results-email`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${ANON_KEY}`,
+        },
+        body: JSON.stringify({
+          to_email: recipientEmail.trim(),
+          from_name: profileData?.full_name || 'Agent',
+          reply_to: profileData?.preferred_email || profileData?.email || '',
+          listing_address: listingAddress,
+          post_date: postDate,
+          post_engagements: totalEngagements,
+          cost_per_engagement: cpe,
+          views: totalImpressions,
+          reach: totalReach,
+          likes: data.likes,
+          comments: data.comments,
+          shares: data.shares,
+          amount_spent: totalSpend,
+          activity_items: emailActivityItems,
+          ad_preview_image: data.full_picture || null,
+          ad_preview_text: data.message || null,
+          facebook_post_url: `https://www.facebook.com/${postId}`,
+          logo_url: logoUrl,
+        }),
+      });
+      const result = await resp.json();
+      if (result.error) throw new Error(result.error);
+      toast.success(`Ad results emailed to ${recipientEmail.trim()}`);
+      setEmailDialogOpen(false);
+      setRecipientEmail('');
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to send email');
+    }
+    setSending(false);
   };
 
   if (loading) {
@@ -282,9 +313,8 @@ const AdResultsPage = () => {
             <Button variant="outline" size="sm" onClick={fetchInsights} className="h-8">
               <RefreshCw className="w-3.5 h-3.5 mr-1.5" /> Refresh
             </Button>
-            <Button size="sm" onClick={handleCopyAndEmail} className="h-8">
-              {copied ? <Check className="w-3.5 h-3.5 mr-1.5" /> : <Mail className="w-3.5 h-3.5 mr-1.5" />}
-              {copied ? 'Copied!' : 'Copy & Email'}
+            <Button size="sm" onClick={() => setEmailDialogOpen(true)} className="h-8">
+              <Mail className="w-3.5 h-3.5 mr-1.5" /> Email Report
             </Button>
           </div>
         </div>
@@ -478,6 +508,44 @@ const AdResultsPage = () => {
           </div>
         </div>
       </main>
+
+      {/* Email Dialog */}
+      <Dialog open={emailDialogOpen} onOpenChange={setEmailDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Mail className="w-4 h-4" /> Email Ad Results
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <p className="text-sm text-muted-foreground">
+              Send a branded HTML report of the ad results for <strong>{listingAddress}</strong> to the homeowner.
+            </p>
+            <div>
+              <label className="text-sm font-medium text-card-foreground mb-1 block">Recipient Email</label>
+              <Input
+                type="email"
+                placeholder="homeowner@example.com"
+                value={recipientEmail}
+                onChange={(e) => setRecipientEmail(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleSendEmail()}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEmailDialogOpen(false)} disabled={sending}>
+              Cancel
+            </Button>
+            <Button onClick={handleSendEmail} disabled={!recipientEmail.trim() || sending}>
+              {sending ? (
+                <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> Sending...</>
+              ) : (
+                <><Send className="w-3.5 h-3.5 mr-1.5" /> Send Report</>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
