@@ -72,6 +72,9 @@ const AdResultsPage = () => {
   const [recipientEmail, setRecipientEmail] = useState('');
   const [sending, setSending] = useState(false);
   const [profileData, setProfileData] = useState<{ full_name: string; preferred_email: string; email: string } | null>(null);
+  const [emailPreviewHtml, setEmailPreviewHtml] = useState<string | null>(null);
+  const [showPreview, setShowPreview] = useState(false);
+  const [buildingPreview, setBuildingPreview] = useState(false);
   const fetchingRef = useRef(false);
 
   const listingAddress = searchParams.get('address') || '';
@@ -90,7 +93,7 @@ const AdResultsPage = () => {
       });
   }, [user]);
 
-  // Fetch ad post metadata from DB
+  // Fetch ad post metadata and seller email from DB
   useEffect(() => {
     if (!user || !postId) return;
     supabase
@@ -102,7 +105,21 @@ const AdResultsPage = () => {
       .then(({ data }) => {
         if (data) setAdPost(data as any);
       });
-  }, [user, postId]);
+
+    // Try to find seller email from clients table using listing address
+    if (listingAddress) {
+      supabase
+        .from('clients')
+        .select('email, first_name, last_name')
+        .eq('agent_id', user.id)
+        .or(`location.ilike.%${listingAddress.split(',')[0].trim()}%`)
+        .limit(1)
+        .maybeSingle()
+        .then(({ data }) => {
+          if (data?.email) setRecipientEmail(data.email);
+        });
+    }
+  }, [user, postId, listingAddress]);
 
   const fetchInsights = useCallback(async () => {
     if (!user || !postId || fetchingRef.current) return;
@@ -133,10 +150,8 @@ const AdResultsPage = () => {
     fetchInsights();
   }, [fetchInsights]);
 
-  const handleSendEmail = async () => {
-    if (!data || !recipientEmail.trim() || sending) return;
-    setSending(true);
-
+  const buildEmailPayload = useCallback(() => {
+    if (!data) return null;
     const ad = data.ad_insights;
     const totalEngagements = data.engagements || 0;
     const totalImpressions = ad?.impressions || data.impressions || 0;
@@ -144,12 +159,10 @@ const AdResultsPage = () => {
     const totalSpend = ad?.spend || 0;
     const cpe = totalEngagements > 0 && totalSpend > 0
       ? (totalSpend / totalEngagements).toFixed(2) : '0.00';
-
     const postDate = data.created_time
       ? new Date(data.created_time).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
       : 'N/A';
 
-    // Build activity items
     const emailActivityItems: { label: string; value: number }[] = [];
     if (ad?.actions?.length) {
       const actionLabels: Record<string, string> = {
@@ -169,42 +182,72 @@ const AdResultsPage = () => {
     }
     emailActivityItems.sort((a, b) => b.value - a.value);
 
-    // Use the published app URL for logo
-    const logoUrl = `${window.location.origin}/logo.jpg`;
+    return {
+      to_email: recipientEmail.trim(),
+      from_name: profileData?.full_name || 'Agent',
+      reply_to: profileData?.preferred_email || profileData?.email || '',
+      listing_address: listingAddress,
+      post_date: postDate,
+      post_engagements: totalEngagements,
+      cost_per_engagement: cpe,
+      views: totalImpressions,
+      reach: totalReach,
+      likes: data.likes,
+      comments: data.comments,
+      shares: data.shares,
+      amount_spent: totalSpend,
+      activity_items: emailActivityItems,
+      ad_preview_image: data.full_picture || null,
+      ad_preview_text: data.message || null,
+      facebook_post_url: `https://www.facebook.com/${postId}`,
+      logo_url: `${window.location.origin}/logo.jpg`,
+    };
+  }, [data, recipientEmail, profileData, listingAddress, postId]);
 
+  const handlePreviewEmail = async () => {
+    if (!data || !recipientEmail.trim()) return;
+    setBuildingPreview(true);
     try {
+      const payload = buildEmailPayload();
+      if (!payload) throw new Error('No data');
       const resp = await fetch(`${SUPABASE_URL}/functions/v1/send-ad-results-email`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${ANON_KEY}`,
         },
-        body: JSON.stringify({
-          to_email: recipientEmail.trim(),
-          from_name: profileData?.full_name || 'Agent',
-          reply_to: profileData?.preferred_email || profileData?.email || '',
-          listing_address: listingAddress,
-          post_date: postDate,
-          post_engagements: totalEngagements,
-          cost_per_engagement: cpe,
-          views: totalImpressions,
-          reach: totalReach,
-          likes: data.likes,
-          comments: data.comments,
-          shares: data.shares,
-          amount_spent: totalSpend,
-          activity_items: emailActivityItems,
-          ad_preview_image: data.full_picture || null,
-          ad_preview_text: data.message || null,
-          facebook_post_url: `https://www.facebook.com/${postId}`,
-          logo_url: logoUrl,
-        }),
+        body: JSON.stringify({ ...payload, preview_only: true }),
+      });
+      const result = await resp.json();
+      if (result.error) throw new Error(result.error);
+      setEmailPreviewHtml(result.html);
+      setShowPreview(true);
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to build preview');
+    }
+    setBuildingPreview(false);
+  };
+
+  const handleSendEmail = async () => {
+    if (!data || !recipientEmail.trim() || sending) return;
+    setSending(true);
+    try {
+      const payload = buildEmailPayload();
+      if (!payload) throw new Error('No data');
+      const resp = await fetch(`${SUPABASE_URL}/functions/v1/send-ad-results-email`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${ANON_KEY}`,
+        },
+        body: JSON.stringify(payload),
       });
       const result = await resp.json();
       if (result.error) throw new Error(result.error);
       toast.success(`Ad results emailed to ${recipientEmail.trim()}`);
       setEmailDialogOpen(false);
-      setRecipientEmail('');
+      setShowPreview(false);
+      setEmailPreviewHtml(null);
     } catch (err: any) {
       toast.error(err.message || 'Failed to send email');
     }
@@ -510,40 +553,70 @@ const AdResultsPage = () => {
       </main>
 
       {/* Email Dialog */}
-      <Dialog open={emailDialogOpen} onOpenChange={setEmailDialogOpen}>
-        <DialogContent className="sm:max-w-md">
+      <Dialog open={emailDialogOpen} onOpenChange={(open) => {
+        setEmailDialogOpen(open);
+        if (!open) { setShowPreview(false); setEmailPreviewHtml(null); }
+      }}>
+        <DialogContent className={showPreview ? "sm:max-w-2xl max-h-[90vh] flex flex-col" : "sm:max-w-md"}>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Mail className="w-4 h-4" /> Email Ad Results
+              <Mail className="w-4 h-4" /> {showPreview ? 'Preview Email' : 'Email Ad Results'}
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-3 py-2">
-            <p className="text-sm text-muted-foreground">
-              Send a branded HTML report of the ad results for <strong>{listingAddress}</strong> to the homeowner.
-            </p>
-            <div>
-              <label className="text-sm font-medium text-card-foreground mb-1 block">Recipient Email</label>
-              <Input
-                type="email"
-                placeholder="homeowner@example.com"
-                value={recipientEmail}
-                onChange={(e) => setRecipientEmail(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleSendEmail()}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEmailDialogOpen(false)} disabled={sending}>
-              Cancel
-            </Button>
-            <Button onClick={handleSendEmail} disabled={!recipientEmail.trim() || sending}>
-              {sending ? (
-                <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> Sending...</>
-              ) : (
-                <><Send className="w-3.5 h-3.5 mr-1.5" /> Send Report</>
-              )}
-            </Button>
-          </DialogFooter>
+
+          {!showPreview ? (
+            <>
+              <div className="space-y-3 py-2">
+                <p className="text-sm text-muted-foreground">
+                  Send a branded HTML report for <strong>{listingAddress}</strong> to the homeowner.
+                </p>
+                <div>
+                  <label className="text-sm font-medium text-card-foreground mb-1 block">Recipient Email</label>
+                  <Input
+                    type="email"
+                    placeholder="homeowner@example.com"
+                    value={recipientEmail}
+                    onChange={(e) => setRecipientEmail(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handlePreviewEmail()}
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setEmailDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button onClick={handlePreviewEmail} disabled={!recipientEmail.trim() || buildingPreview}>
+                  {buildingPreview ? (
+                    <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> Loading...</>
+                  ) : (
+                    <><Eye className="w-3.5 h-3.5 mr-1.5" /> Preview Email</>
+                  )}
+                </Button>
+              </DialogFooter>
+            </>
+          ) : (
+            <>
+              <div className="flex-1 overflow-auto border border-border rounded-lg bg-muted/30">
+                <iframe
+                  srcDoc={emailPreviewHtml || ''}
+                  className="w-full h-[500px] border-0"
+                  title="Email Preview"
+                />
+              </div>
+              <DialogFooter className="flex-shrink-0">
+                <Button variant="outline" onClick={() => { setShowPreview(false); setEmailPreviewHtml(null); }}>
+                  <ArrowLeft className="w-3.5 h-3.5 mr-1.5" /> Back
+                </Button>
+                <Button onClick={handleSendEmail} disabled={sending}>
+                  {sending ? (
+                    <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> Sending...</>
+                  ) : (
+                    <><Send className="w-3.5 h-3.5 mr-1.5" /> Send to {recipientEmail}</>
+                  )}
+                </Button>
+              </DialogFooter>
+            </>
+          )}
         </DialogContent>
       </Dialog>
     </div>
