@@ -3,6 +3,7 @@ import { mockMarketingListings, formatListingPrice, MarketingListing } from '@/d
 import { flexmlsApi } from '@/lib/api/flexmls';
 import MarketingListingCard from '@/components/dashboard/marketing/MarketingListingCard';
 import FacebookAdResultsDashboard from '@/components/dashboard/marketing/FacebookAdResultsDashboard';
+import AutoPostToggle from '@/components/dashboard/marketing/AutoPostToggle';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -115,22 +116,25 @@ const MarketingTab = () => {
 
   return (
     <div className="space-y-6">
-      {/* View Toggle */}
-      <div className="flex items-center gap-2 border-b border-border pb-3">
-        <Button
-          variant={view === 'listings' ? 'default' : 'ghost'}
-          size="sm"
-          onClick={() => setView('listings')}
-        >
-          <Building2 className="w-4 h-4 mr-1.5" /> Listings
-        </Button>
-        <Button
-          variant={view === 'ad-results' ? 'default' : 'ghost'}
-          size="sm"
-          onClick={() => setView('ad-results')}
-        >
-          <BarChart3 className="w-4 h-4 mr-1.5" /> Ad Results
-        </Button>
+      {/* View Toggle + Auto-Post */}
+      <div className="flex items-center justify-between gap-2 border-b border-border pb-3">
+        <div className="flex items-center gap-2">
+          <Button
+            variant={view === 'listings' ? 'default' : 'ghost'}
+            size="sm"
+            onClick={() => setView('listings')}
+          >
+            <Building2 className="w-4 h-4 mr-1.5" /> Listings
+          </Button>
+          <Button
+            variant={view === 'ad-results' ? 'default' : 'ghost'}
+            size="sm"
+            onClick={() => setView('ad-results')}
+          >
+            <BarChart3 className="w-4 h-4 mr-1.5" /> Ad Results
+          </Button>
+        </div>
+        <AutoPostToggle />
       </div>
 
       {view === 'ad-results' ? (

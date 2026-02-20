@@ -96,18 +96,21 @@ export type Database = {
       }
       app_settings: {
         Row: {
+          auto_post_facebook: boolean
           created_at: string
           id: string
           invite_code: string
           updated_at: string
         }
         Insert: {
+          auto_post_facebook?: boolean
           created_at?: string
           id?: string
           invite_code?: string
           updated_at?: string
         }
         Update: {
+          auto_post_facebook?: boolean
           created_at?: string
           id?: string
           invite_code?: string

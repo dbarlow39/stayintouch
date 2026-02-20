@@ -422,6 +422,127 @@ Deno.serve(async (req) => {
 
         console.log(`Changes detected: ${hasChanges} (new: ${changes.newListings.length}, removed: ${changes.removedListings.length}, price: ${changes.priceChanges.length}, status: ${changes.statusChanges.length})`);
 
+        // ─── AUTO-POST TO FACEBOOK ───
+        // Check if auto-posting is enabled and there are relevant changes
+        if (hasChanges && previousListings.length > 0) {
+          try {
+            // Check global setting
+            const settingsRes = await fetch(`${supabaseUrl}/rest/v1/app_settings?id=eq.default&select=auto_post_facebook`, {
+              headers: dbHeaders,
+            });
+            const settingsData = await settingsRes.json();
+            const autoPostEnabled = settingsData?.[0]?.auto_post_facebook === true;
+
+            if (autoPostEnabled) {
+              console.log('[auto-post] Auto-post Facebook is enabled, checking for connected agents...');
+
+              // Get all agents with connected Facebook pages
+              const tokensRes = await fetch(`${supabaseUrl}/rest/v1/facebook_oauth_tokens?select=agent_id,page_id,page_access_token`, {
+                headers: dbHeaders,
+              });
+              const allTokens = await tokensRes.json();
+              const connectedAgents = (allTokens || []).filter((t: any) => t.page_id && t.page_access_token);
+
+              if (connectedAgents.length > 0) {
+                console.log(`[auto-post] Found ${connectedAgents.length} connected agent(s)`);
+
+                // Collect listings that need auto-posting
+                const autoPostItems: { listing: any; type: 'new' | 'price_change' | 'back_on_market'; oldPrice?: number; newPrice?: number }[] = [];
+
+                for (const listing of changes.newListings) {
+                  autoPostItems.push({ listing, type: 'new' });
+                }
+                for (const pc of changes.priceChanges) {
+                  autoPostItems.push({ listing: pc.listing, type: 'price_change', oldPrice: pc.oldPrice, newPrice: pc.newPrice });
+                }
+                for (const sc of changes.statusChanges) {
+                  // "Back on market" = previously non-active, now active
+                  if (sc.newStatus === 'active' && sc.oldStatus !== 'active') {
+                    autoPostItems.push({ listing: sc.listing, type: 'back_on_market' });
+                  }
+                }
+
+                if (autoPostItems.length > 0) {
+                  console.log(`[auto-post] ${autoPostItems.length} listings to auto-post`);
+
+                  const fmtPrice = (p: number) => '$' + p.toLocaleString('en-US');
+
+                  for (const item of autoPostItems) {
+                    const l = item.listing;
+                    const fullAddress = `${l.address}, ${l.city}, ${l.state} ${l.zip}`;
+
+                    // Generate message based on type
+                    let message = '';
+                    if (item.type === 'new') {
+                      message = `🏠 NEW LISTING!\n\n📍 ${fullAddress}\n💰 ${fmtPrice(l.price)}\n🛏️ ${l.beds} Beds | 🛁 ${l.baths} Baths | 📐 ${(l.sqft || 0).toLocaleString()} sqft\n\n${(l.description || '').slice(0, 200)}\n\n📞 Contact ${l.agent?.name || 'us'} for details!\n\n#RealEstate #${(l.city || '').replace(/\s/g, '')} #NewListing #HomeForSale #Ohio`;
+                    } else if (item.type === 'price_change') {
+                      const dir = (item.newPrice || 0) < (item.oldPrice || 0) ? 'REDUCED' : 'UPDATED';
+                      message = `💲 PRICE ${dir}!\n\n📍 ${fullAddress}\n💰 ${fmtPrice(item.oldPrice || 0)} → ${fmtPrice(item.newPrice || 0)}\n🛏️ ${l.beds} Beds | 🛁 ${l.baths} Baths | 📐 ${(l.sqft || 0).toLocaleString()} sqft\n\n${(l.description || '').slice(0, 200)}\n\n📞 Contact ${l.agent?.name || 'us'} for details!\n\n#RealEstate #${(l.city || '').replace(/\s/g, '')} #PriceReduced #HomeForSale #Ohio`;
+                    } else if (item.type === 'back_on_market') {
+                      message = `🔄 BACK ON MARKET!\n\n📍 ${fullAddress}\n💰 ${fmtPrice(l.price)}\n🛏️ ${l.beds} Beds | 🛁 ${l.baths} Baths | 📐 ${(l.sqft || 0).toLocaleString()} sqft\n\n${(l.description || '').slice(0, 200)}\n\n📞 Contact ${l.agent?.name || 'us'} for details!\n\n#RealEstate #${(l.city || '').replace(/\s/g, '')} #BackOnMarket #HomeForSale #Ohio`;
+                    }
+
+                    // Post to each connected agent's page
+                    for (const agent of connectedAgents) {
+                      try {
+                        const postBody: any = {
+                          message,
+                          access_token: agent.page_access_token,
+                        };
+
+                        // Use photo post if listing has photos
+                        let postUrl: string;
+                        if (l.photos && l.photos.length > 0) {
+                          postBody.url = l.photos[0];
+                          postUrl = `https://graph.facebook.com/v21.0/${agent.page_id}/photos`;
+                        } else {
+                          postUrl = `https://graph.facebook.com/v21.0/${agent.page_id}/feed`;
+                        }
+
+                        const postResp = await fetch(postUrl, {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify(postBody),
+                        });
+                        const postResult = await postResp.json();
+
+                        if (postResult.error) {
+                          console.error(`[auto-post] Failed for agent ${agent.agent_id}:`, postResult.error.message);
+                          continue;
+                        }
+
+                        const finalPostId = postResult.post_id || postResult.id;
+                        console.log(`[auto-post] Posted ${item.type} for ${l.address} (agent ${agent.agent_id}): ${finalPostId}`);
+
+                        // Log to facebook_ad_posts
+                        await fetch(`${supabaseUrl}/rest/v1/facebook_ad_posts`, {
+                          method: 'POST',
+                          headers: { ...dbHeaders, 'Prefer': 'return=minimal' },
+                          body: JSON.stringify({
+                            agent_id: agent.agent_id,
+                            listing_id: l.id || l.mlsNumber,
+                            listing_address: fullAddress,
+                            post_id: finalPostId,
+                            daily_budget: 0,
+                            duration_days: 0,
+                            status: 'organic',
+                          }),
+                        });
+                      } catch (agentErr) {
+                        console.error(`[auto-post] Error posting for agent ${agent.agent_id}:`, agentErr);
+                      }
+                    }
+                  }
+                }
+              } else {
+                console.log('[auto-post] No agents with connected Facebook pages');
+              }
+            }
+          } catch (autoPostErr) {
+            console.error('[auto-post] Auto-post error:', autoPostErr);
+          }
+        }
+
         // Log sync
         await fetch(`${supabaseUrl}/rest/v1/sync_log`, {
           method: 'POST',
