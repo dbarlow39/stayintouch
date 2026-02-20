@@ -446,6 +446,23 @@ Deno.serve(async (req) => {
               if (connectedAgents.length > 0) {
                 console.log(`[auto-post] Found ${connectedAgents.length} connected agent(s)`);
 
+                // Fetch profiles and roles for connected agents to determine name matching and admin status
+                const agentIds = connectedAgents.map((a: any) => a.agent_id);
+                
+                // Fetch profiles (full_name) for matching
+                const profilesRes = await fetch(`${supabaseUrl}/rest/v1/profiles?id=in.(${agentIds.join(',')})&select=id,full_name`, {
+                  headers: dbHeaders,
+                });
+                const profilesData = await profilesRes.json();
+                const profileMap = new Map((profilesData || []).map((p: any) => [p.id, p.full_name || '']));
+
+                // Fetch admin roles
+                const rolesRes = await fetch(`${supabaseUrl}/rest/v1/user_roles?user_id=in.(${agentIds.join(',')})&role=eq.admin&select=user_id`, {
+                  headers: dbHeaders,
+                });
+                const rolesData = await rolesRes.json();
+                const adminSet = new Set((rolesData || []).map((r: any) => r.user_id));
+
                 // Collect listings that need auto-posting
                 const autoPostItems: { listing: any; type: 'new' | 'price_change' | 'back_on_market'; oldPrice?: number; newPrice?: number }[] = [];
 
@@ -456,7 +473,6 @@ Deno.serve(async (req) => {
                   autoPostItems.push({ listing: pc.listing, type: 'price_change', oldPrice: pc.oldPrice, newPrice: pc.newPrice });
                 }
                 for (const sc of changes.statusChanges) {
-                  // "Back on market" = previously non-active, now active
                   if (sc.newStatus === 'active' && sc.oldStatus !== 'active') {
                     autoPostItems.push({ listing: sc.listing, type: 'back_on_market' });
                   }
@@ -470,6 +486,7 @@ Deno.serve(async (req) => {
                   for (const item of autoPostItems) {
                     const l = item.listing;
                     const fullAddress = `${l.address}, ${l.city}, ${l.state} ${l.zip}`;
+                    const listingAgentName = (l.agent?.name || '').toLowerCase().trim();
 
                     // Generate message based on type
                     let message = '';
@@ -482,15 +499,25 @@ Deno.serve(async (req) => {
                       message = `🔄 BACK ON MARKET!\n\n📍 ${fullAddress}\n💰 ${fmtPrice(l.price)}\n🛏️ ${l.beds} Beds | 🛁 ${l.baths} Baths | 📐 ${(l.sqft || 0).toLocaleString()} sqft\n\n${(l.description || '').slice(0, 200)}\n\n📞 Contact ${l.agent?.name || 'us'} for details!\n\n#RealEstate #${(l.city || '').replace(/\s/g, '')} #BackOnMarket #HomeForSale #Ohio`;
                     }
 
-                    // Post to each connected agent's page
+                    // Post to relevant agents' pages:
+                    // - Admins get ALL listings posted to their page
+                    // - Non-admin agents only get their OWN listings
                     for (const agent of connectedAgents) {
+                      const isAdmin = adminSet.has(agent.agent_id);
+                      if (!isAdmin) {
+                        // Check if the listing agent name matches this agent's profile name
+                        const agentProfileName = (profileMap.get(agent.agent_id) || '').toLowerCase().trim();
+                        if (!agentProfileName || !listingAgentName.includes(agentProfileName) && !agentProfileName.includes(listingAgentName)) {
+                          continue; // Skip — not their listing
+                        }
+                      }
+
                       try {
                         const postBody: any = {
                           message,
                           access_token: agent.page_access_token,
                         };
 
-                        // Use photo post if listing has photos
                         let postUrl: string;
                         if (l.photos && l.photos.length > 0) {
                           postBody.url = l.photos[0];
@@ -512,7 +539,7 @@ Deno.serve(async (req) => {
                         }
 
                         const finalPostId = postResult.post_id || postResult.id;
-                        console.log(`[auto-post] Posted ${item.type} for ${l.address} (agent ${agent.agent_id}): ${finalPostId}`);
+                        console.log(`[auto-post] Posted ${item.type} for ${l.address} to ${isAdmin ? 'admin' : 'agent'} ${agent.agent_id}: ${finalPostId}`);
 
                         // Log to facebook_ad_posts
                         await fetch(`${supabaseUrl}/rest/v1/facebook_ad_posts`, {
