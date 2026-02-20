@@ -1,0 +1,1 @@
+ALTER TABLE public.profiles ADD COLUMN mls_agent_id text DEFAULT NULL;

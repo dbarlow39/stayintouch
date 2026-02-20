@@ -133,6 +133,7 @@ Deno.serve(async (req) => {
         photos,
         agent: {
           name: unmask(sf.ListAgentName) || `${unmask(sf.ListAgentFirstName) || ''} ${unmask(sf.ListAgentLastName) || ''}`.trim(),
+          mlsId: unmask(sf.ListAgentMlsId) || '',
           phone: unmask(sf.ListAgentDirectPhone) || unmask(sf.ListAgentCellPhone) || unmask(sf.ListAgentPreferredPhone) || unmask(sf.ListAgentOfficePhone) || '',
           email: unmask(sf.ListAgentEmail) || '',
           photo: '',
@@ -221,7 +222,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    const allDetailFields = 'ListingId,ListPrice,BedsTotal,BathroomsTotalInteger,BathroomsTotalDecimal,BathsFull,BathsHalf,BuildingAreaTotal,LivingArea,City,StateOrProvince,PostalCode,UnparsedFirstLineAddress,StreetNumber,StreetDirPrefix,StreetName,StreetSuffix,PropertyType,PropertyTypeLabel,PropertySubType,PropertyClass,MlsStatus,StandardStatus,ListOfficeMlsId,ListAgentName,ListAgentFirstName,ListAgentLastName,ListAgentDirectPhone,ListAgentCellPhone,ListAgentPreferredPhone,ListAgentOfficePhone,ListAgentEmail,YearBuilt,LotSizeArea,LotSizeUnits,LotSizeAcres,DaysOnMarket,PublicRemarks,Latitude,Longitude,CurrentPrice,MLSNumber,CountyOrParish,SubdivisionName,Heating,Cooling,ParkingFeatures,GarageSpaces,Flooring,Appliances,Basement,Roof,ConstructionMaterials,Stories,StoriesTotal,Levels,TaxAnnualAmount,TaxAmount,TaxYear,AssociationFee,AssociationFeeFrequency,WaterSource,Sewer,SchoolDistrict,ElementarySchool,MiddleSchool,HighSchool,ListingContractDate,OnMarketDate,ExteriorFeatures,InteriorFeatures,PatioAndPorchFeatures,Fencing,FoundationDetails,ParcelNumber,NewConstructionYN,OtherStructures,CommonWalls,SpecialListingConditions,NumberOfUnitsTotal,GrossIncome,NetOperatingIncome';
+    const allDetailFields = 'ListingId,ListPrice,BedsTotal,BathroomsTotalInteger,BathroomsTotalDecimal,BathsFull,BathsHalf,BuildingAreaTotal,LivingArea,City,StateOrProvince,PostalCode,UnparsedFirstLineAddress,StreetNumber,StreetDirPrefix,StreetName,StreetSuffix,PropertyType,PropertyTypeLabel,PropertySubType,PropertyClass,MlsStatus,StandardStatus,ListOfficeMlsId,ListAgentMlsId,ListAgentName,ListAgentFirstName,ListAgentLastName,ListAgentDirectPhone,ListAgentCellPhone,ListAgentPreferredPhone,ListAgentOfficePhone,ListAgentEmail,YearBuilt,LotSizeArea,LotSizeUnits,LotSizeAcres,DaysOnMarket,PublicRemarks,Latitude,Longitude,CurrentPrice,MLSNumber,CountyOrParish,SubdivisionName,Heating,Cooling,ParkingFeatures,GarageSpaces,Flooring,Appliances,Basement,Roof,ConstructionMaterials,Stories,StoriesTotal,Levels,TaxAnnualAmount,TaxAmount,TaxYear,AssociationFee,AssociationFeeFrequency,WaterSource,Sewer,SchoolDistrict,ElementarySchool,MiddleSchool,HighSchool,ListingContractDate,OnMarketDate,ExteriorFeatures,InteriorFeatures,PatioAndPorchFeatures,Fencing,FoundationDetails,ParcelNumber,NewConstructionYN,OtherStructures,CommonWalls,SpecialListingConditions,NumberOfUnitsTotal,GrossIncome,NetOperatingIncome';
 
     // ─── MY LISTINGS ───
     if (action === 'my_listings') {
@@ -450,11 +451,11 @@ Deno.serve(async (req) => {
                 const agentIds = connectedAgents.map((a: any) => a.agent_id);
                 
                 // Fetch profiles (full_name) for matching
-                const profilesRes = await fetch(`${supabaseUrl}/rest/v1/profiles?id=in.(${agentIds.join(',')})&select=id,full_name`, {
+                const profilesRes = await fetch(`${supabaseUrl}/rest/v1/profiles?id=in.(${agentIds.join(',')})&select=id,full_name,mls_agent_id`, {
                   headers: dbHeaders,
                 });
                 const profilesData = await profilesRes.json();
-                const profileMap = new Map((profilesData || []).map((p: any) => [p.id, p.full_name || '']));
+                const mlsIdMap = new Map((profilesData || []).map((p: any) => [p.id, p.mls_agent_id || '']));
 
                 // Fetch admin roles
                 const rolesRes = await fetch(`${supabaseUrl}/rest/v1/user_roles?user_id=in.(${agentIds.join(',')})&role=eq.admin&select=user_id`, {
@@ -486,7 +487,7 @@ Deno.serve(async (req) => {
                   for (const item of autoPostItems) {
                     const l = item.listing;
                     const fullAddress = `${l.address}, ${l.city}, ${l.state} ${l.zip}`;
-                    const listingAgentName = (l.agent?.name || '').toLowerCase().trim();
+                    const listingAgentMlsId = (l.agent?.mlsId || '').trim();
 
                     // Generate message based on type
                     let message = '';
@@ -501,13 +502,12 @@ Deno.serve(async (req) => {
 
                     // Post to relevant agents' pages:
                     // - Admins get ALL listings posted to their page
-                    // - Non-admin agents only get their OWN listings
+                    // - Non-admin agents only get listings matching their MLS Agent ID
                     for (const agent of connectedAgents) {
                       const isAdmin = adminSet.has(agent.agent_id);
                       if (!isAdmin) {
-                        // Check if the listing agent name matches this agent's profile name
-                        const agentProfileName = (profileMap.get(agent.agent_id) || '').toLowerCase().trim();
-                        if (!agentProfileName || !listingAgentName.includes(agentProfileName) && !agentProfileName.includes(listingAgentName)) {
+                        const agentMlsId = (mlsIdMap.get(agent.agent_id) || '').trim();
+                        if (!agentMlsId || !listingAgentMlsId || agentMlsId !== listingAgentMlsId) {
                           continue; // Skip — not their listing
                         }
                       }
