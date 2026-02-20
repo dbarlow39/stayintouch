@@ -408,7 +408,7 @@ const Account = () => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="mls_agent_id">MLS Agent ID</Label>
+                <Label htmlFor="mls_agent_id">MLS Agent ID <span className="text-xs font-normal text-muted-foreground">(Not your state license #, but your MLS ID ie: '658016716')</span></Label>
                 <Input
                   id="mls_agent_id"
                   type="text"
@@ -416,9 +416,6 @@ const Account = () => {
                   onChange={(e) => handleChange("mls_agent_id", e.target.value)}
                   placeholder="e.g. 12345"
                 />
-                <p className="text-xs text-muted-foreground">
-                  (Not your state license #, but your MLS ID ie: '658016716')
-                </p>
               </div>
 
               <div className="space-y-2">
