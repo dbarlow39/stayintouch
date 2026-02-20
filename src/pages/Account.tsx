@@ -417,7 +417,7 @@ const Account = () => {
                   placeholder="e.g. 12345"
                 />
                 <p className="text-xs text-muted-foreground">
-                  (Not your state license #, but your MLS ID ie: '658016716') — Used to match your listings for auto-posting to Facebook.
+                  (Not your state license #, but your MLS ID ie: '658016716')
                 </p>
               </div>
 
