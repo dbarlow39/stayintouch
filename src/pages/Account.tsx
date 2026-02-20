@@ -25,6 +25,7 @@ interface AgentProfile {
   website: string | null;
   bio: string | null;
   profile_completed: boolean | null;
+  mls_agent_id: string | null;
 }
 
 const Account = () => {
@@ -40,6 +41,7 @@ const Account = () => {
     preferred_email: "",
     website: "",
     bio: "",
+    mls_agent_id: "",
   });
 
   useEffect(() => {
@@ -220,6 +222,7 @@ const Account = () => {
         preferred_email: profile.preferred_email || profile.email || "",
         website: profile.website || "",
         bio: profile.bio || "",
+        mls_agent_id: profile.mls_agent_id || "",
       });
     } else if (user) {
       // Pre-fill with user email if no profile exists
@@ -402,6 +405,20 @@ const Account = () => {
                   onChange={(e) => handleChange("website", e.target.value)}
                   placeholder="www.Sellfor1Percent.com"
                 />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="mls_agent_id">MLS Agent ID</Label>
+                <Input
+                  id="mls_agent_id"
+                  type="text"
+                  value={formData.mls_agent_id}
+                  onChange={(e) => handleChange("mls_agent_id", e.target.value)}
+                  placeholder="e.g. 12345"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Your Flexmls/Spark agent ID. Used to match your listings for auto-posting to Facebook.
+                </p>
               </div>
 
               <div className="space-y-2">

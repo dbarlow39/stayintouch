@@ -1254,6 +1254,7 @@ export type Database = {
           full_name: string | null
           id: string
           last_name: string | null
+          mls_agent_id: string | null
           preferred_email: string | null
           profile_completed: boolean | null
           updated_at: string | null
@@ -1269,6 +1270,7 @@ export type Database = {
           full_name?: string | null
           id: string
           last_name?: string | null
+          mls_agent_id?: string | null
           preferred_email?: string | null
           profile_completed?: boolean | null
           updated_at?: string | null
@@ -1284,6 +1286,7 @@ export type Database = {
           full_name?: string | null
           id?: string
           last_name?: string | null
+          mls_agent_id?: string | null
           preferred_email?: string | null
           profile_completed?: boolean | null
           updated_at?: string | null
