@@ -43,8 +43,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       try {
         const { data: { session: currentSession } } = await supabase.auth.getSession();
         if (!isMounted) return;
-        setSession(currentSession);
-        setUser(currentSession?.user ?? null);
+        
+        if (!currentSession) {
+          // Session might be null due to token refresh in progress
+          // Wait briefly and try once more before giving up
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          const { data: { session: retrySession } } = await supabase.auth.getSession();
+          if (!isMounted) return;
+          setSession(retrySession);
+          setUser(retrySession?.user ?? null);
+        } else {
+          setSession(currentSession);
+          setUser(currentSession?.user ?? null);
+        }
       } finally {
         if (isMounted) {
           initialLoadDone = true;
