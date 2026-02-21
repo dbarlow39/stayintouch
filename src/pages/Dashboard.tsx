@@ -57,7 +57,9 @@ const Dashboard = () => {
   };
 
   useEffect(() => {
+    console.log("[Dashboard] auth check - loading:", loading, "user:", user?.email || "null");
     if (!loading && !user) {
+      console.log("[Dashboard] NO USER - redirecting to /auth");
       navigate("/auth");
     }
   }, [user, loading, navigate]);
