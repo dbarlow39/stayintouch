@@ -266,14 +266,11 @@ const ClosedReferralLetterView = ({ propertyData, propertyId, onBack, onEdit, on
 
               <p className="mb-4">Thanks</p>
               {agentBio ? (
-                <div
-                  className="mb-4"
-                  dangerouslySetInnerHTML={
-                    /<[a-z][\s\S]*>/i.test(agentBio)
-                      ? { __html: agentBio }
-                      : { __html: agentBio.replace(/\n/g, '<br />') }
-                  }
-                />
+                /<[a-z][\s\S]*>/i.test(agentBio) ? (
+                  <div className="mb-4 [&_img]:max-w-full [&_img]:h-auto" dangerouslySetInnerHTML={{ __html: agentBio }} />
+                ) : (
+                  <p className="mb-4 whitespace-pre-line">{agentBio}</p>
+                )
               ) : (
                 <>
                   <p className="mb-0">{agentFullName}</p>
