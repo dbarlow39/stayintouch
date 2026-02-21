@@ -24,25 +24,32 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     let isMounted = true;
+    let initialLoadDone = false;
 
-    // Listener for ONGOING auth changes (does NOT control loading)
+    // Set up listener FIRST (required by Supabase docs)
+    // but only allow it to update state AFTER initial load is done
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+      (event, currentSession) => {
         if (!isMounted) return;
-        setSession(session);
-        setUser(session?.user ?? null);
+        // Skip INITIAL_SESSION events - we handle that via getSession
+        if (!initialLoadDone) return;
+        setSession(currentSession);
+        setUser(currentSession?.user ?? null);
       }
     );
 
     // INITIAL load (controls loading)
     const initializeAuth = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { session: currentSession } } = await supabase.auth.getSession();
         if (!isMounted) return;
-        setSession(session);
-        setUser(session?.user ?? null);
+        setSession(currentSession);
+        setUser(currentSession?.user ?? null);
       } finally {
-        if (isMounted) setLoading(false);
+        if (isMounted) {
+          initialLoadDone = true;
+          setLoading(false);
+        }
       }
     };
 
