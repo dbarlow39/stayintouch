@@ -76,6 +76,7 @@ const calculateNotices = (property: PropertyRow): { type: string; label: string;
     { type: "loan-approved", label: "Loan Approved", dueDate: loanApprovedDueDate },
     { type: "clear-to-close", label: "Clear to Close", dueDate: clearToCloseDueDate },
     { type: "hud-settlement-statement", label: "HUD Settlement Statement", dueDate: hudSettlementDueDate },
+    { type: "closed", label: "Closed", dueDate: closingDate },
   ];
 };
 

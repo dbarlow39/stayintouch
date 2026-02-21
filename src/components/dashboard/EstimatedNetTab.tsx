@@ -26,6 +26,7 @@ import DepositLetterView from "./estimatedNet/DepositLetterView";
 import AppraisalLetterView from "./estimatedNet/AppraisalLetterView";
 import LoanApplicationLetterView from "./estimatedNet/LoanApplicationLetterView";
 import TitleCommitmentLetterView from "./estimatedNet/TitleCommitmentLetterView";
+import ClosedReferralLetterView from "./estimatedNet/ClosedReferralLetterView";
 import ClientSelectionView from "./estimatedNet/ClientSelectionView";
 import UpcomingClosingsView from "./estimatedNet/UpcomingClosingsView";
 import ContractNoticesSection from "./ContractNoticesSection";
@@ -40,7 +41,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-type ViewState = 'list' | 'select-client' | 'form' | 'results' | 'offer-letter' | 'offer-summary' | 'important-dates' | 'title-letter' | 'agent-letter' | 'request-to-remedy' | 'settlement-statement' | 'notices' | 'upcoming-closings' | 'clear-to-close-letter' | 'home-inspection-letter' | 'deposit-letter' | 'appraisal-letter' | 'loan-application-letter' | 'title-commitment-letter';
+type ViewState = 'list' | 'select-client' | 'form' | 'results' | 'offer-letter' | 'offer-summary' | 'important-dates' | 'title-letter' | 'agent-letter' | 'request-to-remedy' | 'settlement-statement' | 'notices' | 'upcoming-closings' | 'clear-to-close-letter' | 'home-inspection-letter' | 'deposit-letter' | 'appraisal-letter' | 'loan-application-letter' | 'title-commitment-letter' | 'closed-referral-letter';
 
 interface SelectedClientForEstimate {
   id: string;
@@ -767,6 +768,18 @@ const EstimatedNetTab = ({ selectedClient, onClearSelectedClient, navigateToProp
   if (viewState === 'title-commitment-letter' && currentPropertyData && currentPropertyId) {
     return (
       <TitleCommitmentLetterView
+        propertyData={currentPropertyData}
+        propertyId={currentPropertyId}
+        onBack={handleBackToNotices}
+        onEdit={handleEditEstimate}
+        onNavigate={(view) => setViewState(view as ViewState)}
+      />
+    );
+  }
+
+  if (viewState === 'closed-referral-letter' && currentPropertyData && currentPropertyId) {
+    return (
+      <ClosedReferralLetterView
         propertyData={currentPropertyData}
         propertyId={currentPropertyId}
         onBack={handleBackToNotices}

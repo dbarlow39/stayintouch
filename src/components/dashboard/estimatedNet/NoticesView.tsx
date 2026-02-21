@@ -39,7 +39,8 @@ type NoticeType =
   | "appraisal-ordered"
   | "loan-approved"
   | "clear-to-close"
-  | "hud-settlement-statement";
+  | "hud-settlement-statement"
+  | "closed";
 
 interface NoticeStatus {
   notice_type: string;
@@ -198,6 +199,7 @@ const NoticesView = ({
       { value: "loan-approved", label: "Loan Approved", dueDate: formatDueDate(loanApprovedDueDate), dueDateObj: loanApprovedDueDate },
       { value: "clear-to-close", label: "Clear to Close", dueDate: formatDueDate(clearToCloseDueDate), dueDateObj: clearToCloseDueDate },
       { value: "hud-settlement-statement", label: "HUD Settlement Statement", dueDate: formatDueDate(hudSettlementDueDate), dueDateObj: hudSettlementDueDate },
+      { value: "closed", label: "Closed", dueDate: formatDueDate(closingDate), dueDateObj: closingDate },
     ];
   };
 
@@ -297,6 +299,10 @@ const NoticesView = ({
     }
     if (noticeType === "request-to-remedy") {
       onNavigate("request-to-remedy");
+      return;
+    }
+    if (noticeType === "closed") {
+      onNavigate("closed-referral-letter");
       return;
     }
     console.log("Sending notice:", noticeType);
