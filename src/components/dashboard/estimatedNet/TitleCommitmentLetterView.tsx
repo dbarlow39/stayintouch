@@ -294,7 +294,7 @@ const TitleCommitmentLetterView = ({ propertyData, propertyId, onBack, onEdit, o
                   <p className="mb-4">{agentFirstName}</p>
                   {agentBio ? (
                     /<[a-z][\s\S]*>/i.test(agentBio) ? (
-                      <div className="mb-4" dangerouslySetInnerHTML={{ __html: agentBio }} />
+                      <div className="mb-4 [&_img]:max-w-full [&_img]:h-auto" dangerouslySetInnerHTML={{ __html: agentBio.replace(/<P>/gi, '<br><br>') }} />
                     ) : (
                       <p className="mb-4 whitespace-pre-line">{agentBio}</p>
                     )
