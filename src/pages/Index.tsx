@@ -10,7 +10,6 @@ const Index = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    console.log("[Index] auth check - loading:", loading, "user:", user?.email || "null", "path:", window.location.pathname);
     if (!loading && user) {
       navigate("/dashboard");
     }
