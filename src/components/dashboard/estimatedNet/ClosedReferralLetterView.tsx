@@ -24,6 +24,7 @@ const ClosedReferralLetterView = ({ propertyData, propertyId, onBack, onEdit, on
   const [agentFirstName, setAgentFirstName] = useState("");
   const [agentFullName, setAgentFullName] = useState("");
   const [agentPhone, setAgentPhone] = useState("");
+  const [agentBio, setAgentBio] = useState("");
 
   useEffect(() => {
     const fetchAgentProfile = async () => {
@@ -31,7 +32,7 @@ const ClosedReferralLetterView = ({ propertyData, propertyId, onBack, onEdit, on
       if (user) {
         const { data: profile } = await supabase
           .from('profiles')
-          .select('preferred_email, email, first_name, last_name, cell_phone')
+          .select('preferred_email, email, first_name, last_name, cell_phone, bio')
           .eq('id', user.id)
           .single();
         if (profile) {
@@ -39,6 +40,7 @@ const ClosedReferralLetterView = ({ propertyData, propertyId, onBack, onEdit, on
           setAgentFirstName(profile.first_name || "");
           setAgentFullName(`${profile.first_name || ""} ${profile.last_name || ""}`.trim());
           setAgentPhone(profile.cell_phone || "");
+          setAgentBio(profile.bio || "");
         }
       }
     };
@@ -263,9 +265,22 @@ const ClosedReferralLetterView = ({ propertyData, propertyId, onBack, onEdit, on
               </p>
 
               <p className="mb-4">Thanks</p>
-              <p className="mb-0">{agentFullName}</p>
-              <p className="mb-0">cell: {agentPhone}</p>
-              <p className="mb-4">email: {agentEmail}</p>
+              {agentBio ? (
+                <div
+                  className="mb-4"
+                  dangerouslySetInnerHTML={
+                    /<[a-z][\s\S]*>/i.test(agentBio)
+                      ? { __html: agentBio }
+                      : { __html: agentBio.replace(/\n/g, '<br />') }
+                  }
+                />
+              ) : (
+                <>
+                  <p className="mb-0">{agentFullName}</p>
+                  <p className="mb-0">cell: {agentPhone}</p>
+                  <p className="mb-4">email: {agentEmail}</p>
+                </>
+              )}
             </div>
           </Card>
         </div>
