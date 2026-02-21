@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
@@ -56,18 +56,30 @@ const Dashboard = () => {
     setNavigateToPropertyId(null);
   };
 
+  // Use a ref to track if we've already confirmed no session after a delay
+  const redirectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   useEffect(() => {
-    if (!loading && !user) {
-      // Check if there are auth tokens in localStorage - if so, session is still restoring
-      const storageKey = Object.keys(localStorage).find(key => key.startsWith('sb-') && key.endsWith('-auth-token'));
-      const hasStoredSession = storageKey && localStorage.getItem(storageKey);
-      if (hasStoredSession) {
-        console.log("[Dashboard] Auth tokens found in storage, waiting for session restore...");
-        return; // Don't redirect - session is still being restored
-      }
-      console.log("[Dashboard] NO USER and no stored tokens - redirecting to /auth");
-      navigate("/auth");
+    // Clear any pending redirect timer when auth state changes
+    if (redirectTimerRef.current) {
+      clearTimeout(redirectTimerRef.current);
+      redirectTimerRef.current = null;
     }
+
+    if (!loading && !user) {
+      // Delay redirect to give auth token refresh time to complete
+      // This is critical for custom domains where token refresh may be slower
+      redirectTimerRef.current = setTimeout(() => {
+        // Re-check: if user is still null after delay, redirect
+        navigate("/auth");
+      }, 2000);
+    }
+
+    return () => {
+      if (redirectTimerRef.current) {
+        clearTimeout(redirectTimerRef.current);
+      }
+    };
   }, [user, loading, navigate]);
 
   const { data: clientsCount = 0 } = useQuery({
