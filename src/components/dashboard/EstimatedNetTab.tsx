@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, FileText, Trash2, Edit, Calendar, CheckCircle } from "lucide-react";
+import { Plus, FileText, Trash2, Edit, Calendar, CheckCircle, Undo2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
@@ -529,6 +529,44 @@ const EstimatedNetTab = ({ selectedClient, onClearSelectedClient, navigateToProp
     }
   };
 
+  const handleReopenDeal = async (id: string) => {
+    try {
+      const estimate = estimates.find(e => e.id === id);
+
+      // Restore client status to "A" (Active) if linked
+      if (estimate?.client_id) {
+        const { error: clientError } = await supabase
+          .from("clients")
+          .update({ status: "A" })
+          .eq("id", estimate.client_id);
+        if (clientError) throw clientError;
+      }
+
+      // Move deal back to active
+      const { error } = await supabase
+        .from("estimated_net_properties")
+        .update({ deal_status: "active" })
+        .eq("id", id);
+      if (error) throw error;
+
+      toast({
+        title: "Deal reopened",
+        description: "The deal has been moved back to the Active tab.",
+      });
+
+      queryClient.invalidateQueries({ queryKey: ["estimated-net-properties"] });
+      queryClient.invalidateQueries({ queryKey: ["clients"] });
+      queryClient.invalidateQueries({ queryKey: ["active-clients-count"] });
+      queryClient.invalidateQueries({ queryKey: ["clients-count"] });
+    } catch (error: any) {
+      toast({
+        title: "Error reopening deal",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
   // Render based on current view state
   if (viewState === 'upcoming-closings') {
     return (
@@ -816,6 +854,19 @@ const EstimatedNetTab = ({ selectedClient, onClearSelectedClient, navigateToProp
                         }}
                       >
                         <CheckCircle className="h-4 w-4 text-green-600" />
+                      </Button>
+                    )}
+                    {isClosed && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        title="Reopen Deal"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleReopenDeal(estimate.id);
+                        }}
+                      >
+                        <Undo2 className="h-4 w-4" />
                       </Button>
                     )}
                     <Button
