@@ -57,9 +57,15 @@ const Dashboard = () => {
   };
 
   useEffect(() => {
-    console.log("[Dashboard] auth check - loading:", loading, "user:", user?.email || "null");
     if (!loading && !user) {
-      console.log("[Dashboard] NO USER - redirecting to /auth");
+      // Check if there are auth tokens in localStorage - if so, session is still restoring
+      const storageKey = Object.keys(localStorage).find(key => key.startsWith('sb-') && key.endsWith('-auth-token'));
+      const hasStoredSession = storageKey && localStorage.getItem(storageKey);
+      if (hasStoredSession) {
+        console.log("[Dashboard] Auth tokens found in storage, waiting for session restore...");
+        return; // Don't redirect - session is still being restored
+      }
+      console.log("[Dashboard] NO USER and no stored tokens - redirecting to /auth");
       navigate("/auth");
     }
   }, [user, loading, navigate]);
