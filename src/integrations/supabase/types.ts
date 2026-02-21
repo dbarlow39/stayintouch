@@ -694,6 +694,7 @@ export type Database = {
           created_at: string
           days_first_half_taxes: number | null
           days_second_half_taxes: number | null
+          deal_status: string
           deposit: number
           deposit_collection: string | null
           final_walk_through: string | null
@@ -755,6 +756,7 @@ export type Database = {
           created_at?: string
           days_first_half_taxes?: number | null
           days_second_half_taxes?: number | null
+          deal_status?: string
           deposit?: number
           deposit_collection?: string | null
           final_walk_through?: string | null
@@ -816,6 +818,7 @@ export type Database = {
           created_at?: string
           days_first_half_taxes?: number | null
           days_second_half_taxes?: number | null
+          deal_status?: string
           deposit?: number
           deposit_collection?: string | null
           final_walk_through?: string | null

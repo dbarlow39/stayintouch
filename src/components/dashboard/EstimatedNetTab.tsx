@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, FileText, Trash2, Edit, Calendar, CheckCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
@@ -73,6 +74,7 @@ const EstimatedNetTab = ({ selectedClient, onClearSelectedClient, navigateToProp
   const [currentPropertyData, setCurrentPropertyData] = useState<PropertyData | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [markSoldId, setMarkSoldId] = useState<string | null>(null);
+  const [dealTab, setDealTab] = useState<'active' | 'closed'>('active');
   const [initialClient, setInitialClient] = useState<SelectedClientForEstimate | null>(null);
   const [pendingPropertyNav, setPendingPropertyNav] = useState<{ id: string; view: ViewState } | null>(null);
 
@@ -500,16 +502,16 @@ const EstimatedNetTab = ({ selectedClient, onClearSelectedClient, navigateToProp
         if (clientError) throw clientError;
       }
 
-      // Delete the working deal estimate
+      // Move the deal to "closed" status instead of deleting
       const { error } = await supabase
         .from("estimated_net_properties")
-        .delete()
+        .update({ deal_status: "closed" })
         .eq("id", markSoldId);
       if (error) throw error;
 
       toast({
         title: "Property marked as sold",
-        description: "The client has been marked as sold and the working deal removed.",
+        description: "The deal has been moved to the Closed tab.",
       });
 
       queryClient.invalidateQueries({ queryKey: ["estimated-net-properties"] });
@@ -736,6 +738,106 @@ const EstimatedNetTab = ({ selectedClient, onClearSelectedClient, navigateToProp
     );
   }
 
+  const activeEstimates = estimates.filter(e => (e.deal_status || 'active') === 'active');
+  const closedEstimates = estimates.filter(e => e.deal_status === 'closed');
+
+  const renderEstimateTable = (items: typeof estimates, isClosed = false) => {
+    if (items.length === 0) {
+      return (
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <FileText className="h-12 w-12 text-muted-foreground mb-4" />
+            <h3 className="text-lg font-medium mb-2">
+              {isClosed ? "No closed deals" : "No estimates yet"}
+            </h3>
+            <p className="text-muted-foreground text-center mb-4">
+              {isClosed
+                ? "Deals you mark as sold will appear here."
+                : "Create your first estimated net sheet to calculate seller proceeds."}
+            </p>
+            {!isClosed && (
+              <Button onClick={handleNewEstimate}>
+                <Plus className="mr-2 h-4 w-4" />
+                Create Estimate
+              </Button>
+            )}
+          </CardContent>
+        </Card>
+      );
+    }
+
+    return (
+      <Card>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Property</TableHead>
+              <TableHead>Address</TableHead>
+              <TableHead className="text-right">Offer Price</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {items.map((estimate) => (
+              <TableRow 
+                key={estimate.id} 
+                className="cursor-pointer hover:bg-muted/50"
+                onClick={() => handleEditEstimate(estimate.id)}
+              >
+                <TableCell className="font-medium">
+                  {estimate.name}
+                </TableCell>
+                <TableCell>
+                  {estimate.street_address}, {estimate.city}
+                </TableCell>
+                <TableCell className="text-right">
+                  {formatCurrency(estimate.offer_price)}
+                </TableCell>
+                <TableCell className="text-right">
+                  <div className="flex justify-end gap-2">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleEditEstimate(estimate.id);
+                      }}
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    {!isClosed && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        title="Mark as Sold"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setMarkSoldId(estimate.id);
+                        }}
+                      >
+                        <CheckCircle className="h-4 w-4 text-green-600" />
+                      </Button>
+                    )}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setDeleteId(estimate.id);
+                      }}
+                    >
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </Card>
+    );
+  };
+
   // List view
   return (
     <div className="space-y-6">
@@ -764,87 +866,23 @@ const EstimatedNetTab = ({ selectedClient, onClearSelectedClient, navigateToProp
         <div className="flex items-center justify-center py-12">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
         </div>
-      ) : estimates.length === 0 ? (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <FileText className="h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-medium mb-2">No estimates yet</h3>
-            <p className="text-muted-foreground text-center mb-4">
-              Create your first estimated net sheet to calculate seller proceeds.
-            </p>
-            <Button onClick={handleNewEstimate}>
-              <Plus className="mr-2 h-4 w-4" />
-              Create Estimate
-            </Button>
-          </CardContent>
-        </Card>
       ) : (
-        <Card>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Property</TableHead>
-                <TableHead>Address</TableHead>
-                <TableHead className="text-right">Offer Price</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {estimates.map((estimate) => (
-                <TableRow 
-                  key={estimate.id} 
-                  className="cursor-pointer hover:bg-muted/50"
-                  onClick={() => handleEditEstimate(estimate.id)}
-                >
-                  <TableCell className="font-medium">
-                    {estimate.name}
-                  </TableCell>
-                  <TableCell>
-                    {estimate.street_address}, {estimate.city}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    {formatCurrency(estimate.offer_price)}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleEditEstimate(estimate.id);
-                        }}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        title="Mark as Sold"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setMarkSoldId(estimate.id);
-                        }}
-                      >
-                        <CheckCircle className="h-4 w-4 text-green-600" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setDeleteId(estimate.id);
-                        }}
-                      >
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </Card>
+        <Tabs value={dealTab} onValueChange={(v) => setDealTab(v as 'active' | 'closed')}>
+          <TabsList>
+            <TabsTrigger value="active">
+              Active ({activeEstimates.length})
+            </TabsTrigger>
+            <TabsTrigger value="closed">
+              Closed ({closedEstimates.length})
+            </TabsTrigger>
+          </TabsList>
+          <TabsContent value="active" className="mt-4">
+            {renderEstimateTable(activeEstimates)}
+          </TabsContent>
+          <TabsContent value="closed" className="mt-4">
+            {renderEstimateTable(closedEstimates, true)}
+          </TabsContent>
+        </Tabs>
       )}
 
       <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
@@ -869,7 +907,7 @@ const EstimatedNetTab = ({ selectedClient, onClearSelectedClient, navigateToProp
           <AlertDialogHeader>
             <AlertDialogTitle>Mark as Sold?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will mark the linked client as "Sold" (removing them from the active clients list) and remove this working deal. This action cannot be undone.
+              This will mark the linked client as "Sold" (removing them from the active clients list) and move this deal to the Closed tab.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

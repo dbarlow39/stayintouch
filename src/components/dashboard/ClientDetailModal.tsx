@@ -637,10 +637,10 @@ const ClientDetailModal = ({ client, open, onClose, onClientUpdated }: ClientDet
                 .eq("id", client.id);
               if (error) throw error;
 
-              // Also delete any linked working deal
+              // Move any linked working deal to "closed" status
               await supabase
                 .from("estimated_net_properties")
-                .delete()
+                .update({ deal_status: "closed" })
                 .eq("client_id", client.id);
 
               toast.success("Client marked as sold");

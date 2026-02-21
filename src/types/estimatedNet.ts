@@ -152,4 +152,5 @@ export interface EstimatedNetProperty {
   notes: string | null;
   created_at: string;
   updated_at: string;
+  deal_status: string;
 }
