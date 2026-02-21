@@ -253,7 +253,7 @@ const ClosedReferralLetterView = ({ propertyData, propertyId, onBack, onEdit, on
               <p className="mb-4">
                 If you feel like our service was 5 Star I'd be incredibly grateful if you'd take just a minute to share your thoughts in a quick Google review. It helps other homeowners discover us and make informed choices. Here's the direct link to make it easy:{" "}
                 <a href="https://g.page/r/CZRBJf_Jk1KkEB0/review" target="_blank" rel="noopener noreferrer" className="text-primary underline">
-                  Leave a Google Review
+                  Leave a 5 Star Google Review
                 </a>
                 {" "}Of course, if the service wasn't quite what you expected in any way, please reach out to me directly so I can understand how to do better next time, your input is always welcome and appreciated.
               </p>
