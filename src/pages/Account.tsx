@@ -433,7 +433,7 @@ const Account = () => {
                 {formData.bio && formData.bio.includes("<") && (
                   <div className="mt-2 p-3 border rounded-md bg-muted/30">
                     <p className="text-xs font-medium text-muted-foreground mb-1">Preview:</p>
-                    <div className="text-sm" dangerouslySetInnerHTML={{ __html: formData.bio }} />
+                    <div className="text-sm [&_img]:max-w-full [&_img]:h-auto" dangerouslySetInnerHTML={{ __html: formData.bio.replace(/<P>/gi, '<br><br>') }} />
                   </div>
                 )}
               </div>
