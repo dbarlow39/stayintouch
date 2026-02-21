@@ -8,6 +8,16 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle as AlertTitle,
+} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import {
@@ -19,6 +29,7 @@ import {
   X,
   Save,
   BarChart3,
+  CheckCircle,
 } from "lucide-react";
 import PhoneCallTextLink from "@/components/PhoneCallTextLink";
 import logo from "@/assets/logo.jpg";
@@ -81,6 +92,7 @@ const ClientDetailModal = ({ client, open, onClose, onClientUpdated }: ClientDet
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [editingContent, setEditingContent] = useState("");
   const [currentClient, setCurrentClient] = useState<Client | null>(null);
+  const [showMarkSoldDialog, setShowMarkSoldDialog] = useState(false);
 
   // Keep currentClient in sync with prop, but allow local updates
   if (client && (!currentClient || currentClient.id !== client.id)) {
@@ -204,6 +216,7 @@ const ClientDetailModal = ({ client, open, onClose, onClientUpdated }: ClientDet
   ];
 
   return (
+    <>
     <Dialog open={open} onOpenChange={() => onClose()}>
       <DialogContent className="max-w-4xl max-h-[90vh] p-0 overflow-hidden">
         <div className="flex h-[80vh]">
@@ -290,6 +303,15 @@ const ClientDetailModal = ({ client, open, onClose, onClientUpdated }: ClientDet
               >
                 <BarChart3 className="h-4 w-4" />
                 Stats
+              </button>
+
+              {/* Mark as Sold */}
+              <button
+                onClick={() => setShowMarkSoldDialog(true)}
+                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <CheckCircle className="h-4 w-4" />
+                Mark as Sold
               </button>
 
               {/* Close */}
@@ -595,6 +617,49 @@ const ClientDetailModal = ({ client, open, onClose, onClientUpdated }: ClientDet
         </div>
       </DialogContent>
     </Dialog>
+
+    <AlertDialog open={showMarkSoldDialog} onOpenChange={setShowMarkSoldDialog}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertTitle>Mark as Sold?</AlertTitle>
+          <AlertDialogDescription>
+            This will change the client's status to "Sold" and remove them from the active clients list. This action cannot be undone.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction onClick={async () => {
+            if (!client) return;
+            try {
+              const { error } = await supabase
+                .from("clients")
+                .update({ status: "S" })
+                .eq("id", client.id);
+              if (error) throw error;
+
+              // Also delete any linked working deal
+              await supabase
+                .from("estimated_net_properties")
+                .delete()
+                .eq("client_id", client.id);
+
+              toast.success("Client marked as sold");
+              queryClient.invalidateQueries({ queryKey: ["clients"] });
+              queryClient.invalidateQueries({ queryKey: ["active-clients-count"] });
+              queryClient.invalidateQueries({ queryKey: ["clients-count"] });
+              queryClient.invalidateQueries({ queryKey: ["estimated-net-properties"] });
+              onClientUpdated?.();
+              onClose();
+            } catch (error: any) {
+              toast.error("Failed to mark as sold: " + error.message);
+            }
+          }}>
+            Mark as Sold
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 };
 

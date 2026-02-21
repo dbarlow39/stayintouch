@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, FileText, Trash2, Edit, Calendar } from "lucide-react";
+import { Plus, FileText, Trash2, Edit, Calendar, CheckCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
@@ -72,6 +72,7 @@ const EstimatedNetTab = ({ selectedClient, onClearSelectedClient, navigateToProp
   const [currentPropertyId, setCurrentPropertyId] = useState<string | null>(null);
   const [currentPropertyData, setCurrentPropertyData] = useState<PropertyData | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [markSoldId, setMarkSoldId] = useState<string | null>(null);
   const [initialClient, setInitialClient] = useState<SelectedClientForEstimate | null>(null);
   const [pendingPropertyNav, setPendingPropertyNav] = useState<{ id: string; view: ViewState } | null>(null);
 
@@ -483,6 +484,49 @@ const EstimatedNetTab = ({ selectedClient, onClearSelectedClient, navigateToProp
     }
   };
 
+  const handleMarkAsSold = async () => {
+    if (!markSoldId) return;
+
+    try {
+      // Find the estimate to get the client_id
+      const estimate = estimates.find(e => e.id === markSoldId);
+      
+      // Update client status to "S" (Sold) if linked
+      if (estimate?.client_id) {
+        const { error: clientError } = await supabase
+          .from("clients")
+          .update({ status: "S" })
+          .eq("id", estimate.client_id);
+        if (clientError) throw clientError;
+      }
+
+      // Delete the working deal estimate
+      const { error } = await supabase
+        .from("estimated_net_properties")
+        .delete()
+        .eq("id", markSoldId);
+      if (error) throw error;
+
+      toast({
+        title: "Property marked as sold",
+        description: "The client has been marked as sold and the working deal removed.",
+      });
+
+      queryClient.invalidateQueries({ queryKey: ["estimated-net-properties"] });
+      queryClient.invalidateQueries({ queryKey: ["clients"] });
+      queryClient.invalidateQueries({ queryKey: ["active-clients-count"] });
+      queryClient.invalidateQueries({ queryKey: ["clients-count"] });
+    } catch (error: any) {
+      toast({
+        title: "Error marking as sold",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setMarkSoldId(null);
+    }
+  };
+
   // Render based on current view state
   if (viewState === 'upcoming-closings') {
     return (
@@ -776,6 +820,17 @@ const EstimatedNetTab = ({ selectedClient, onClearSelectedClient, navigateToProp
                       <Button
                         variant="ghost"
                         size="icon"
+                        title="Mark as Sold"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setMarkSoldId(estimate.id);
+                        }}
+                      >
+                        <CheckCircle className="h-4 w-4 text-green-600" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
                         onClick={(e) => {
                           e.stopPropagation();
                           setDeleteId(estimate.id);
@@ -804,6 +859,23 @@ const EstimatedNetTab = ({ selectedClient, onClearSelectedClient, navigateToProp
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground">
               Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!markSoldId} onOpenChange={() => setMarkSoldId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Mark as Sold?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will mark the linked client as "Sold" (removing them from the active clients list) and remove this working deal. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleMarkAsSold}>
+              Mark as Sold
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
