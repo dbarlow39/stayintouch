@@ -40,15 +40,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     // INITIAL load (controls loading)
     const initializeAuth = async () => {
+      let foundSession = false;
       try {
         const { data: { session: currentSession } } = await supabase.auth.getSession();
+        console.log("[Auth] getSession result:", currentSession ? `user=${currentSession.user?.email}` : "NO SESSION");
         if (!isMounted) return;
+        foundSession = !!currentSession;
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
       } finally {
         if (isMounted) {
           initialLoadDone = true;
           setLoading(false);
+          console.log("[Auth] loading set to false, user:", foundSession ? "exists" : "null");
         }
       }
     };
