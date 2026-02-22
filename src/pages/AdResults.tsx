@@ -87,6 +87,7 @@ const AdResultsPage = () => {
 
   const listingAddress = searchParams.get('address') || '';
   const listingId = searchParams.get('listingId') || '';
+  const returnTo = searchParams.get('returnTo') || '';
 
   // Fetch agent profile for email sending
   useEffect(() => {
@@ -376,14 +377,11 @@ const AdResultsPage = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Button variant="ghost" size="sm" onClick={() => {
-              const currentPath = window.location.href;
-              window.history.back();
-              // If we're still on the same page after 200ms, go to dashboard
-              setTimeout(() => {
-                if (window.location.href === currentPath) {
-                  navigate('/dashboard');
-                }
-              }, 200);
+              if (returnTo) {
+                navigate(`${returnTo}?tool=ad-results`);
+              } else {
+                navigate('/dashboard');
+              }
             }} className="h-8">
               <ArrowLeft className="w-4 h-4 mr-1" /> Back
             </Button>

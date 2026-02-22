@@ -1,4 +1,4 @@
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { mockMarketingListings, formatListingPrice, MarketingListing } from '@/data/marketingListings';
 import { flexmlsApi } from '@/lib/api/flexmls';
@@ -177,11 +177,12 @@ const isPublicSite = () => {
 
 const ListingDetail = () => {
   const { id } = useParams();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { user } = useAuth();
   const [listing, setListing] = useState<MarketingListing | null>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTool, setActiveTool] = useState<string | null>(null);
+  const [activeTool, setActiveTool] = useState<string | null>(searchParams.get('tool') || null);
   const isPublic = isPublicSite();
   const isMobile = useIsMobile();
 
