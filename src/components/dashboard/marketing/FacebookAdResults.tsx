@@ -370,7 +370,7 @@ function AudienceBreakdown({ audience, totalReach }: { audience: AudienceRow[]; 
     <div>
       <h4 className="text-sm font-semibold text-card-foreground mb-1">Audience</h4>
       <p className="text-xs text-muted-foreground mb-3">
-        This ad reached <span className="font-semibold text-card-foreground">{totalReach.toLocaleString()}</span> accounts in your audience.
+        This ad reached <span className="font-semibold text-card-foreground">{totalReach.toLocaleString()}</span> people in your audience.
       </p>
       <div className="flex gap-4 text-xs mb-3">
         <span className="flex items-center gap-1.5">
