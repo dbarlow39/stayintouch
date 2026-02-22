@@ -298,7 +298,7 @@ const FacebookAdResults = ({ postId, listingAddress, onClose }: FacebookAdResult
         <Button
           variant="default"
           size="sm"
-          className="w-full text-xs"
+          className="w-full text-xs bg-emerald-600 hover:bg-emerald-700 text-white"
           onClick={() => {
             const params = new URLSearchParams();
             if (listingAddress) params.set('address', listingAddress);
