@@ -105,7 +105,7 @@ Deno.serve(async (req) => {
     let foundAdToken: string | null = null;
     const AD_ACCOUNT_ID = tokenData.ad_account_id || "563726213662060";
     const adInsightsFields = "impressions,reach,clicks,spend,cpc,cpm,actions,cost_per_action_type";
-    const unifiedAttrParam = "&use_unified_attribution_setting=true";
+    const unifiedAttrParam = "&use_account_attribution_setting=true";
 
     // Approach A: Search ads by effective_object_story_id with EQUAL operator
     for (const [tokenLabel, token] of [["user", userToken], ["page", pageToken]]) {
