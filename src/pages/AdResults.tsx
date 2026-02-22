@@ -386,16 +386,24 @@ const AdResultsPage = () => {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={fetchInsights} className="h-8">
-              <RefreshCw className="w-3.5 h-3.5 mr-1.5" /> Refresh
-            </Button>
-            <Button size="sm" onClick={handlePreviewEmail} disabled={buildingPreview} className="h-8">
-              {buildingPreview ? (
-                <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> Loading...</>
-              ) : (
-                <><Eye className="w-3.5 h-3.5 mr-1.5" /> Preview Email</>
-              )}
-            </Button>
+            {showPreview ? (
+              <Button variant="outline" size="sm" onClick={() => { setShowPreview(false); setEmailPreviewHtml(null); }} className="h-8">
+                <ArrowLeft className="w-3.5 h-3.5 mr-1.5" /> Back to Results
+              </Button>
+            ) : (
+              <>
+                <Button variant="outline" size="sm" onClick={fetchInsights} className="h-8">
+                  <RefreshCw className="w-3.5 h-3.5 mr-1.5" /> Refresh
+                </Button>
+                <Button size="sm" onClick={handlePreviewEmail} disabled={buildingPreview} className="h-8">
+                  {buildingPreview ? (
+                    <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> Loading...</>
+                  ) : (
+                    <><Eye className="w-3.5 h-3.5 mr-1.5" /> Preview Email</>
+                  )}
+                </Button>
+              </>
+            )}
           </div>
         </div>
       </header>
