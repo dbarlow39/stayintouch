@@ -261,14 +261,8 @@ const AdResultsPage = () => {
       });
       const result = await resp.json();
       if (result.error) throw new Error(result.error);
-      // Open preview in a new browser window
-      const previewWindow = window.open('', '_blank', 'width=700,height=900,scrollbars=yes');
-      if (previewWindow) {
-        previewWindow.document.write(result.html);
-        previewWindow.document.close();
-      } else {
-        toast.error('Pop-up blocked. Please allow pop-ups and try again.');
-      }
+      setEmailPreviewHtml(result.html);
+      setShowPreview(true);
     } catch (err: any) {
       toast.error(err.message || 'Failed to build preview');
     }
@@ -597,40 +591,63 @@ const AdResultsPage = () => {
       </main>
 
       {/* Email Dialog */}
-      <Dialog open={emailDialogOpen} onOpenChange={setEmailDialogOpen}>
-        <DialogContent className="sm:max-w-md">
+      <Dialog open={emailDialogOpen} onOpenChange={(open) => {
+        setEmailDialogOpen(open);
+        if (!open) { setShowPreview(false); setEmailPreviewHtml(null); }
+      }}>
+        <DialogContent className={showPreview ? "sm:max-w-2xl max-h-[90vh] flex flex-col" : "sm:max-w-md"}>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Mail className="w-4 h-4" /> Email Ad Results
+              <Mail className="w-4 h-4" /> {showPreview ? 'Preview Email' : 'Email Ad Results'}
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-3 py-2">
-            <p className="text-sm text-muted-foreground">
-              Send a branded HTML report for <strong>{listingAddress}</strong> to the homeowner.
-            </p>
-            <div>
-              <label className="text-sm font-medium text-card-foreground mb-1 block">Recipient Email</label>
-              <Input
-                type="email"
-                placeholder="homeowner@example.com"
-                value={recipientEmail}
-                onChange={(e) => setRecipientEmail(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handlePreviewEmail()}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEmailDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button variant="outline" onClick={handlePreviewEmail} disabled={!recipientEmail.trim() || buildingPreview}>
-              {buildingPreview ? (
-                <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> Loading...</>
-              ) : (
-                <><Eye className="w-3.5 h-3.5 mr-1.5" /> Preview Email</>
-              )}
-            </Button>
-          </DialogFooter>
+
+          {!showPreview ? (
+            <>
+              <div className="space-y-3 py-2">
+                <p className="text-sm text-muted-foreground">
+                  Send a branded HTML report for <strong>{listingAddress}</strong> to the homeowner.
+                </p>
+                <div>
+                  <label className="text-sm font-medium text-card-foreground mb-1 block">Recipient Email</label>
+                  <Input
+                    type="email"
+                    placeholder="homeowner@example.com"
+                    value={recipientEmail}
+                    onChange={(e) => setRecipientEmail(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handlePreviewEmail()}
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setEmailDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button variant="outline" onClick={handlePreviewEmail} disabled={!recipientEmail.trim() || buildingPreview}>
+                  {buildingPreview ? (
+                    <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> Loading...</>
+                  ) : (
+                    <><Eye className="w-3.5 h-3.5 mr-1.5" /> Preview Email</>
+                  )}
+                </Button>
+              </DialogFooter>
+            </>
+          ) : (
+            <>
+              <div className="flex-1 overflow-auto border border-border rounded-lg bg-muted/30">
+                <iframe
+                  srcDoc={emailPreviewHtml || ''}
+                  className="w-full h-[500px] border-0"
+                  title="Email Preview"
+                />
+              </div>
+              <DialogFooter className="flex-shrink-0">
+                <Button variant="outline" onClick={() => { setShowPreview(false); setEmailPreviewHtml(null); }}>
+                  <ArrowLeft className="w-3.5 h-3.5 mr-1.5" /> Back
+                </Button>
+              </DialogFooter>
+            </>
+          )}
         </DialogContent>
       </Dialog>
     </div>
