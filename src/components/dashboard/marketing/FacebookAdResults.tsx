@@ -108,82 +108,84 @@ const FacebookAdResults = ({ postId, listingAddress, onClose }: FacebookAdResult
   if (!data) return null;
 
   // Use ad insights if available (boosted), otherwise use organic metrics
+  // The edge function now returns ad-reported engagements when ad_insights exist,
+  // so data.engagements already reflects the correct source
   const ad = data.ad_insights;
-  const totalReach = ad?.reach || data.reach || 0;
-  const totalImpressions = ad?.impressions || data.impressions || 0;
-  const totalClicks = ad?.clicks || (typeof data.clicks === 'number' ? data.clicks : 0);
+  const totalReach = data.reach || 0;
+  const totalImpressions = data.impressions || 0;
+  const totalClicks = data.clicks || 0;
   const totalSpend = ad?.spend || 0;
   const totalEngagements = data.engagements || 0;
   const costPerEngagement = totalEngagements > 0 && totalSpend > 0
     ? (totalSpend / totalEngagements).toFixed(2)
     : '0.00';
 
-  // Activity breakdown - combine click types, reactions, comments, shares, and ad actions
+  // Activity breakdown - prefer ad actions when available (matches Facebook Ads Manager)
   const activityItems: { label: string; value: number; color: string }[] = [];
 
-  // Add click type breakdown (link clicks, other clicks, photo views, etc.)
-  if (data.click_types && typeof data.click_types === 'object') {
-    const typeLabels: Record<string, string> = {
-      link_clicks: 'Link clicks',
-      other_clicks: 'Other clicks',
-      photo_view: 'Photo views',
-      video_play: 'Video plays',
-    };
-    Object.entries(data.click_types).forEach(([key, val]) => {
-      if (typeof val === 'number' && val > 0) {
-        activityItems.push({
-          label: typeLabels[key] || key.replace(/_/g, ' '),
-          value: val,
-          color: 'bg-blue-500',
-        });
-      }
-    });
-  }
-
-  // Add ad action breakdown (post_engagement, link_click, landing_page_view, page_engagement, like, post, etc.)
-  if (ad?.actions && Array.isArray(ad.actions)) {
+  if (ad?.actions && Array.isArray(ad.actions) && ad.actions.length > 0) {
+    // Use ad-reported actions as the authoritative source for boosted posts
     const actionLabels: Record<string, string> = {
       post_engagement: 'Post engagements',
       link_click: 'Link clicks',
       landing_page_view: 'Landing page views',
       page_engagement: 'Page engagements',
-      like: 'Facebook likes',
-      post: 'Post saves',
+      like: 'Like',
+      post: 'Post',
       post_reaction: 'Post reactions',
       comment: 'Comments',
-      onsite_conversion_post_save: 'Post saves',
+      onsite_conversion: 'Onsite conversion',
+      'onsite_conversion.post_save': 'Onsite Conversion.Post Save',
+      'offsite_conversion.fb_pixel_custom': 'Offsite Conversion',
       video_view: 'Video views',
     };
     const actionColors: Record<string, string> = {
-      post_engagement: 'bg-blue-500',
-      link_click: 'bg-blue-400',
-      landing_page_view: 'bg-indigo-500',
-      page_engagement: 'bg-violet-500',
-      like: 'bg-blue-600',
-      post: 'bg-amber-500',
-      post_reaction: 'bg-rose-400',
-      comment: 'bg-emerald-500',
-      onsite_conversion_post_save: 'bg-amber-500',
+      post_engagement: 'bg-rose-500',
+      link_click: 'bg-rose-500',
+      landing_page_view: 'bg-rose-500',
+      page_engagement: 'bg-rose-500',
+      like: 'bg-rose-500',
+      post: 'bg-rose-500',
+      post_reaction: 'bg-rose-500',
+      comment: 'bg-rose-500',
+      onsite_conversion: 'bg-rose-500',
+      'onsite_conversion.post_save': 'bg-rose-500',
     };
-    // Only use ad actions if we don't already have click_types data
-    if (!data.click_types || Object.keys(data.click_types).length === 0) {
-      ad.actions.forEach((action: any) => {
-        if (action.value && parseInt(action.value) > 0) {
+    ad.actions.forEach((action: any) => {
+      if (action.value && parseInt(action.value) > 0) {
+        activityItems.push({
+          label: actionLabels[action.action_type] || action.action_type.replace(/_/g, ' ').replace(/\./g, '.'),
+          value: parseInt(action.value),
+          color: actionColors[action.action_type] || 'bg-rose-400',
+        });
+      }
+    });
+  } else {
+    // Fall back to organic post insights
+    if (data.click_types && typeof data.click_types === 'object') {
+      const typeLabels: Record<string, string> = {
+        link_clicks: 'Link clicks',
+        other_clicks: 'Other clicks',
+        photo_view: 'Photo views',
+        video_play: 'Video plays',
+      };
+      Object.entries(data.click_types).forEach(([key, val]) => {
+        if (typeof val === 'number' && val > 0) {
           activityItems.push({
-            label: actionLabels[action.action_type] || action.action_type.replace(/_/g, ' '),
-            value: parseInt(action.value),
-            color: actionColors[action.action_type] || 'bg-blue-400',
+            label: typeLabels[key] || key.replace(/_/g, ' '),
+            value: val,
+            color: 'bg-rose-500',
           });
         }
       });
     }
-  }
 
-  // Add organic reactions/comments/shares if no ad actions
-  if (activityItems.length === 0) {
-    if (data.likes > 0) activityItems.push({ label: 'Reactions', value: data.likes, color: 'bg-blue-400' });
-    if (data.comments > 0) activityItems.push({ label: 'Comments', value: data.comments, color: 'bg-emerald-500' });
-    if (data.shares > 0) activityItems.push({ label: 'Shares', value: data.shares, color: 'bg-purple-500' });
+    // Add organic reactions/comments/shares
+    if (activityItems.length === 0) {
+      if (data.likes > 0) activityItems.push({ label: 'Reactions', value: data.likes, color: 'bg-rose-400' });
+      if (data.comments > 0) activityItems.push({ label: 'Comments', value: data.comments, color: 'bg-rose-500' });
+      if (data.shares > 0) activityItems.push({ label: 'Shares', value: data.shares, color: 'bg-rose-500' });
+    }
   }
 
   // Sort by value descending
