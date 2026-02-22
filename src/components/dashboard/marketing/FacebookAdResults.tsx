@@ -19,6 +19,13 @@ interface FacebookAdResultsProps {
   onClose?: () => void;
 }
 
+interface AudienceRow {
+  age: string;
+  gender: string;
+  reach: string;
+  impressions: string;
+}
+
 interface InsightsData {
   post_id: string;
   created_time: string | null;
@@ -45,6 +52,7 @@ interface InsightsData {
     actions: any[];
     cost_per_action: any[];
   } | null;
+  audience: AudienceRow[] | null;
 }
 
 const FacebookAdResults = ({ postId, listingAddress, onClose }: FacebookAdResultsProps) => {
@@ -285,6 +293,14 @@ const FacebookAdResults = ({ postId, listingAddress, onClose }: FacebookAdResult
         </div>
       </div>
 
+      {/* Audience Breakdown */}
+      {data.audience && data.audience.length > 0 && (
+        <>
+          <Separator />
+          <AudienceBreakdown audience={data.audience} totalReach={totalReach} />
+        </>
+      )}
+
       {/* Action Buttons */}
       <div className="space-y-2">
         <Button
@@ -322,6 +338,65 @@ function MetricCard({ icon, label, value }: { icon: React.ReactNode; label: stri
         <span className="text-xs text-muted-foreground">{label}</span>
       </div>
       <span className="text-lg font-bold text-card-foreground">{value}</span>
+    </div>
+  );
+}
+
+function AudienceBreakdown({ audience, totalReach }: { audience: AudienceRow[]; totalReach: number }) {
+  // Aggregate by age group
+  const ageGroups = ['13-17', '18-24', '25-34', '35-44', '45-54', '55-64', '65+'];
+  const genderColors: Record<string, string> = { female: 'bg-blue-500', male: 'bg-teal-400' };
+
+  // Calculate totals per gender
+  let totalWomen = 0;
+  let totalMen = 0;
+  const buckets: Record<string, { female: number; male: number }> = {};
+  for (const ag of ageGroups) buckets[ag] = { female: 0, male: 0 };
+
+  for (const row of audience) {
+    const reach = parseInt(row.reach) || 0;
+    const bucket = buckets[row.age];
+    if (!bucket) continue;
+    if (row.gender === 'female') { bucket.female += reach; totalWomen += reach; }
+    else if (row.gender === 'male') { bucket.male += reach; totalMen += reach; }
+  }
+
+  const grandTotal = totalWomen + totalMen || 1;
+  const womenPct = ((totalWomen / grandTotal) * 100).toFixed(1);
+  const menPct = ((totalMen / grandTotal) * 100).toFixed(1);
+  const maxVal = Math.max(...ageGroups.map(ag => Math.max(buckets[ag].female, buckets[ag].male)), 1);
+
+  return (
+    <div>
+      <h4 className="text-sm font-semibold text-card-foreground mb-1">Audience</h4>
+      <p className="text-xs text-muted-foreground mb-3">
+        This ad reached <span className="font-semibold text-card-foreground">{totalReach.toLocaleString()}</span> accounts in your audience.
+      </p>
+      <div className="flex gap-4 text-xs mb-3">
+        <span className="flex items-center gap-1.5">
+          <span className="w-2.5 h-2.5 rounded-sm bg-blue-500 inline-block" />
+          {womenPct}% Women
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="w-2.5 h-2.5 rounded-sm bg-teal-400 inline-block" />
+          {menPct}% Men
+        </span>
+      </div>
+      <div className="flex items-end gap-1.5 h-32">
+        {ageGroups.map(ag => {
+          const fH = (buckets[ag].female / maxVal) * 100;
+          const mH = (buckets[ag].male / maxVal) * 100;
+          return (
+            <div key={ag} className="flex-1 flex flex-col items-center gap-0.5">
+              <div className="flex items-end gap-0.5 w-full h-24">
+                <div className="flex-1 bg-blue-500 rounded-t-sm transition-all" style={{ height: `${Math.max(fH, 2)}%` }} />
+                <div className="flex-1 bg-teal-400 rounded-t-sm transition-all" style={{ height: `${Math.max(mH, 2)}%` }} />
+              </div>
+              <span className="text-[10px] text-muted-foreground">{ag}</span>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
