@@ -682,7 +682,7 @@ function AudienceChart({ audience, totalReach }: { audience: AudienceRow[]; tota
   return (
     <div>
       <p className="text-sm text-muted-foreground mb-3">
-        This ad reached <span className="font-semibold text-card-foreground">{totalReach.toLocaleString()}</span> accounts in your audience.
+        This ad reached <span className="font-semibold text-card-foreground">{totalReach.toLocaleString()}</span> people in your audience.
       </p>
       <div className="flex gap-4 text-sm mb-4">
         <span className="flex items-center gap-1.5">
