@@ -191,9 +191,9 @@ Deno.serve(async (req) => {
     // Extract click types
     const clicksByType = metrics.post_clicks_by_type || {};
 
-    // Calculate total engagements
+    // Calculate total engagements from organic metrics
     const totalClicks = Object.values(clicksByType).reduce((sum: number, v: any) => sum + (typeof v === 'number' ? v : 0), 0);
-    const totalEngagements = totalReactions + comments + shares + (totalClicks > 0 ? totalClicks : 0);
+    const organicEngagements = totalReactions + comments + shares + (totalClicks > 0 ? totalClicks : 0);
 
     // Determine impressions and reach from best available source
     const promoImpressions = metrics._promo_impressions || 0;
@@ -203,10 +203,19 @@ Deno.serve(async (req) => {
     // Parse ad actions
     let adActions: any[] = [];
     let adCostPerAction: any[] = [];
+    let adEngagements = 0;
     if (adInsights) {
       adActions = adInsights.actions || [];
       adCostPerAction = adInsights.cost_per_action_type || [];
+      // Extract the canonical post_engagement count from ad actions
+      const engagementAction = adActions.find((a: any) => a.action_type === 'post_engagement');
+      if (engagementAction) {
+        adEngagements = parseInt(engagementAction.value || "0");
+      }
     }
+
+    // When ad insights exist, prefer ad-reported metrics for consistency with Facebook Ads Manager
+    const finalEngagements = adInsights ? (adEngagements || organicEngagements) : (organicEngagements || promoEngaged);
 
     const result = {
       post_id,
@@ -216,7 +225,7 @@ Deno.serve(async (req) => {
       likes: totalReactions,
       comments,
       shares,
-      engagements: totalEngagements || promoEngaged,
+      engagements: finalEngagements,
       impressions: adInsights ? parseInt(adInsights.impressions || "0") : promoImpressions,
       reach: adInsights ? parseInt(adInsights.reach || "0") : promoReach,
       clicks: adInsights ? parseInt(adInsights.clicks || "0") : totalClicks,
