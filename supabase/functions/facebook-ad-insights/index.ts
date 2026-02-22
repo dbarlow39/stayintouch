@@ -105,7 +105,7 @@ Deno.serve(async (req) => {
     let foundAdToken: string | null = null;
     const AD_ACCOUNT_ID = tokenData.ad_account_id || "563726213662060";
     const adInsightsFields = "impressions,reach,clicks,spend,cpc,cpm,actions,cost_per_action_type,unique_actions,unique_clicks,inline_post_engagement,inline_link_clicks";
-    const attrParam = "&date_preset=maximum&action_attribution_windows=['7d_click','1d_view']&use_unified_attribution_setting=true";
+    const attrParam = `&date_preset=maximum&action_attribution_windows=${encodeURIComponent('["7d_click","1d_view"]')}`;
 
     // Also fetch with 7d_click only for comparison (diagnostic)
     let altAdInsights: any = null;
@@ -119,7 +119,7 @@ Deno.serve(async (req) => {
           operator: "EQUAL",
           value: post_id
         }]);
-        const adsUrl = `https://graph.facebook.com/${API_VERSION}/act_${AD_ACCOUNT_ID}/ads?fields=id,creative{effective_object_story_id},insights.fields(${adInsightsFields})${attrParam}&filtering=${encodeURIComponent(filterJson)}&access_token=${token}`;
+        const adsUrl = `https://graph.facebook.com/${API_VERSION}/act_${AD_ACCOUNT_ID}/ads?fields=id,creative{effective_object_story_id},insights.fields(${adInsightsFields}).date_preset(maximum).action_attribution_windows(["7d_click","1d_view"])&filtering=${encodeURIComponent(filterJson)}&access_token=${token}`;
         const adsData = await fetchJson(adsUrl);
         if (!adsData.error && adsData.data?.length > 0 && adsData.data[0].insights?.data?.[0]) {
           adInsights = adsData.data[0].insights.data[0];
@@ -147,7 +147,7 @@ Deno.serve(async (req) => {
             );
             debugInfo.push(`Ad scan(${tokenLabel}): ${allMatching.length} matching ads out of ${recentAds.data.length} [${allMatching.map((a:any)=>a.id).join(',')}]`);
             if (allMatching.length > 0) {
-              const adInsightsUrl = `https://graph.facebook.com/${API_VERSION}/${allMatching[0].id}/insights?fields=${adInsightsFields}&date_preset=maximum&access_token=${token}`;
+              const adInsightsUrl = `https://graph.facebook.com/${API_VERSION}/${allMatching[0].id}/insights?fields=${adInsightsFields}${attrParam}&access_token=${token}`;
               const insightsResp = await fetchJson(adInsightsUrl);
               if (!insightsResp.error && insightsResp.data?.[0]) {
                 adInsights = insightsResp.data[0];
