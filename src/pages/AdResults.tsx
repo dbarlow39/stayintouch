@@ -117,25 +117,33 @@ const AdResultsPage = () => {
     // Try to find seller email - check estimated_net_properties first, then clients
     if (listingAddress) {
       const streetPart = listingAddress.split(',')[0].trim();
+      // Extract street number and first word of street name for flexible matching
+      // e.g. "113 Blackstone Court" -> number "113", keyword "Blackstone"
+      const addrWords = streetPart.split(/\s+/);
+      const streetNumber = addrWords[0] || '';
+      const streetKeyword = addrWords[1] || '';
+      const flexiblePattern = streetNumber && streetKeyword
+        ? `%${streetNumber}%${streetKeyword}%`
+        : `%${streetPart}%`;
       
       // Check estimated_net_properties for seller_email first
       supabase
         .from('estimated_net_properties')
         .select('seller_email')
         .eq('agent_id', user.id)
-        .ilike('street_address', `%${streetPart}%`)
+        .ilike('street_address', flexiblePattern)
         .limit(1)
         .maybeSingle()
         .then(({ data: propData }) => {
           if (propData?.seller_email) {
             setRecipientEmail(propData.seller_email);
           } else {
-            // Fallback to clients table
+            // Fallback to clients table - match on street_number + street_name or location
             supabase
               .from('clients')
               .select('email, first_name, last_name')
               .eq('agent_id', user.id)
-              .or(`location.ilike.%${streetPart}%`)
+              .or(`street_name.ilike.%${streetKeyword}%,location.ilike.%${streetPart}%`)
               .limit(1)
               .maybeSingle()
               .then(({ data: clientData }) => {
