@@ -105,7 +105,7 @@ Deno.serve(async (req) => {
     let foundAdToken: string | null = null;
     const AD_ACCOUNT_ID = tokenData.ad_account_id || "563726213662060";
     const adInsightsFields = "impressions,reach,clicks,spend,cpc,cpm,actions,cost_per_action_type,unique_actions,unique_clicks,inline_post_engagement,inline_link_clicks";
-    const attrParam = "&date_preset=maximum";
+    const attrParam = "&date_preset=maximum&action_attribution_windows=['7d_click','1d_view']&use_unified_attribution_setting=true";
 
     // Also fetch with 7d_click only for comparison (diagnostic)
     let altAdInsights: any = null;
@@ -231,15 +231,15 @@ Deno.serve(async (req) => {
       adActions = adInsights.actions || [];
       adUniqueActions = adInsights.unique_actions || [];
       adCostPerAction = adInsights.cost_per_action_type || [];
-      // Use unique post_engagement if available (matches Ads Manager), fall back to total
-      const uniqueEngagement = adUniqueActions.find((a: any) => a.action_type === 'post_engagement');
+      // Use total post_engagement (matches Facebook Boost Post results), fall back to unique
       const totalEngagement = adActions.find((a: any) => a.action_type === 'post_engagement');
-      if (uniqueEngagement) {
-        adEngagements = parseInt(uniqueEngagement.value || "0");
-        debugInfo.push(`Using unique post_engagement: ${adEngagements}`);
-      } else if (totalEngagement) {
+      const uniqueEngagement = adUniqueActions.find((a: any) => a.action_type === 'post_engagement');
+      if (totalEngagement) {
         adEngagements = parseInt(totalEngagement.value || "0");
         debugInfo.push(`Using total post_engagement: ${adEngagements}`);
+      } else if (uniqueEngagement) {
+        adEngagements = parseInt(uniqueEngagement.value || "0");
+        debugInfo.push(`Using unique post_engagement (fallback): ${adEngagements}`);
       }
     }
 
