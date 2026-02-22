@@ -375,7 +375,16 @@ const AdResultsPage = () => {
       <header className="bg-card border-b border-border sticky top-0 z-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Button variant="ghost" size="sm" onClick={() => window.history.back()} className="h-8">
+            <Button variant="ghost" size="sm" onClick={() => {
+              const currentPath = window.location.href;
+              window.history.back();
+              // If we're still on the same page after 200ms, go to dashboard
+              setTimeout(() => {
+                if (window.location.href === currentPath) {
+                  navigate('/dashboard');
+                }
+              }, 200);
+            }} className="h-8">
               <ArrowLeft className="w-4 h-4 mr-1" /> Back
             </Button>
             <Separator orientation="vertical" className="h-5" />
