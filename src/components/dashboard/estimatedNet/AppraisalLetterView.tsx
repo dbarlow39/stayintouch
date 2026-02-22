@@ -25,6 +25,7 @@ const AppraisalLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavig
   const [agentFirstName, setAgentFirstName] = useState("");
   const [agentFullName, setAgentFullName] = useState("");
   const [agentPhone, setAgentPhone] = useState("");
+  const [agentBio, setAgentBio] = useState("");
   const [letterVariant, setLetterVariant] = useState<"homeowner" | "professional">("homeowner");
 
   useEffect(() => {
@@ -33,7 +34,7 @@ const AppraisalLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavig
       if (user) {
         const { data: profile } = await supabase
           .from('profiles')
-          .select('preferred_email, email, first_name, last_name, cell_phone')
+          .select('preferred_email, email, first_name, last_name, cell_phone, bio')
           .eq('id', user.id)
           .single();
         if (profile) {
@@ -41,6 +42,7 @@ const AppraisalLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavig
           setAgentFirstName(profile.first_name || "");
           setAgentFullName(`${profile.first_name || ""} ${profile.last_name || ""}`.trim());
           setAgentPhone(profile.cell_phone || "");
+          setAgentBio(profile.bio || "");
         }
       }
     };
@@ -305,10 +307,19 @@ const AppraisalLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavig
 
                    <p className="mb-4">Thanks</p>
                    <p className="mb-4">{agentFirstName}</p>
-                   <p className="mb-0">The best compliment I can receive is a referral from you!</p>
-                   <p className="mb-0">{agentFullName}</p>
-                   <p className="mb-0">cell: {agentPhone}</p>
-                   <p className="mb-4">email: {agentEmail}</p>
+                   {agentBio ? (
+                     /<[a-z][\s\S]*>/i.test(agentBio) ? (
+                       <div className="mb-4 [&_img]:max-w-full [&_img]:h-auto" dangerouslySetInnerHTML={{ __html: agentBio.replace(/<P>/gi, '<br><br>') }} />
+                     ) : (
+                       <p className="mb-4 whitespace-pre-line">{agentBio}</p>
+                     )
+                   ) : (
+                     <>
+                       <p className="mb-0">{agentFullName}</p>
+                       <p className="mb-0">cell: {agentPhone}</p>
+                       <p className="mb-4">email: {agentEmail}</p>
+                     </>
+                   )}
                  </>
                ) : (
                  <>
@@ -322,10 +333,19 @@ const AppraisalLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavig
 
                    <p className="mb-4">Thanks</p>
                    <p className="mb-4">{agentFirstName}</p>
-                   <p className="mb-0">The best compliment I can receive is a referral from you!</p>
-                   <p className="mb-0">{agentFullName}</p>
-                   <p className="mb-0">cell: {agentPhone}</p>
-                   <p className="mb-4">email: {agentEmail}</p>
+                   {agentBio ? (
+                     /<[a-z][\s\S]*>/i.test(agentBio) ? (
+                       <div className="mb-4 [&_img]:max-w-full [&_img]:h-auto" dangerouslySetInnerHTML={{ __html: agentBio.replace(/<P>/gi, '<br><br>') }} />
+                     ) : (
+                       <p className="mb-4 whitespace-pre-line">{agentBio}</p>
+                     )
+                   ) : (
+                     <>
+                       <p className="mb-0">{agentFullName}</p>
+                       <p className="mb-0">cell: {agentPhone}</p>
+                       <p className="mb-4">email: {agentEmail}</p>
+                     </>
+                   )}
                  </>
                )}
              </div>

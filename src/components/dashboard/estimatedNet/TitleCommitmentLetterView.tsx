@@ -278,10 +278,19 @@ const TitleCommitmentLetterView = ({ propertyData, propertyId, onBack, onEdit, o
                   </p>
                   <p className="mb-4">Thanks</p>
                   <p className="mb-4">{agentFirstName}</p>
-                  <p className="mb-4">The best compliment I can receive is a referral from you!</p>
-                  <p className="mb-0">{agentFullName}</p>
-                  <p className="mb-0">cell: {agentPhone}</p>
-                  <p className="mb-4">email: {agentEmail}</p>
+                  {agentBio ? (
+                    /<[a-z][\s\S]*>/i.test(agentBio) ? (
+                      <div className="mb-4 [&_img]:max-w-full [&_img]:h-auto" dangerouslySetInnerHTML={{ __html: agentBio.replace(/<P>/gi, '<br><br>') }} />
+                    ) : (
+                      <p className="mb-4 whitespace-pre-line">{agentBio}</p>
+                    )
+                  ) : (
+                    <>
+                      <p className="mb-0">{agentFullName}</p>
+                      <p className="mb-0">cell: {agentPhone}</p>
+                      <p className="mb-4">email: {agentEmail}</p>
+                    </>
+                  )}
                 </>
               ) : (
                 <>

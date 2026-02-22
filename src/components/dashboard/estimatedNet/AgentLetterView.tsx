@@ -24,6 +24,7 @@ const AgentLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate 
   const [agentFirstName, setAgentFirstName] = useState<string>("");
   const [agentPhone, setAgentPhone] = useState<string>("");
   const [agentEmail, setAgentEmail] = useState<string>("");
+  const [agentBio, setAgentBio] = useState<string>("");
 
   useEffect(() => {
     const fetchAgentProfile = async () => {
@@ -31,13 +32,14 @@ const AgentLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate 
       if (user) {
         const { data: profile } = await supabase
           .from('profiles')
-          .select('first_name, cell_phone, preferred_email, email')
+          .select('first_name, cell_phone, preferred_email, email, bio')
           .eq('id', user.id)
           .single();
         if (profile) {
           setAgentFirstName(profile.first_name || "");
           setAgentPhone(profile.cell_phone || "");
           setAgentEmail(profile.preferred_email || profile.email || "");
+          setAgentBio(profile.bio || "");
         }
       }
     };
@@ -436,8 +438,18 @@ const AgentLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate 
                 </p>
                 <p className="mt-6">Thanks</p>
                 <p className="mt-4">{agentFirstName}</p>
-                <p>{agentPhone}</p>
-                <p>{agentEmail}</p>
+                {agentBio ? (
+                  /<[a-z][\s\S]*>/i.test(agentBio) ? (
+                    <div className="mb-4 [&_img]:max-w-full [&_img]:h-auto" dangerouslySetInnerHTML={{ __html: agentBio.replace(/<P>/gi, '<br><br>') }} />
+                  ) : (
+                    <p className="mb-4 whitespace-pre-line">{agentBio}</p>
+                  )
+                ) : (
+                  <>
+                    <p>{agentPhone}</p>
+                    <p>{agentEmail}</p>
+                  </>
+                )}
               </div>
             </div>
           </Card>
