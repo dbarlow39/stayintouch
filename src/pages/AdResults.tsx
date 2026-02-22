@@ -421,7 +421,11 @@ const AdResultsPage = () => {
               <p className="mb-4">Hi {clientFirstNames},</p>
 
               <p className="mb-4">
-                We know that the more eyeballs that we can get to see your home from buyers looking on their favorite real estate website like Zillow, Realtor.com or Redfin to posting paid ads on social media sites like Facebook and Instagram the better our chances of finding you a buyer.
+                We know our #1 job is to get your home sold for the most money in the shortest period of time, we are not just Real Estate Agents, we are master marketers who know the more eyeballs we can get to see your home the better our chances of finding you're a buyer.
+              </p>
+
+              <p className="mb-4">
+                Now only do we post your home on 1000's of websites across the country including the major sites like Zillow, Realtor.com or Redfin, we also place paid ads on social media sites like Facebook and Instagram the better our chances of finding you a buyer.
               </p>
 
               <p className="mb-4">
