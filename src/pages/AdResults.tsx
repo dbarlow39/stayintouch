@@ -630,13 +630,6 @@ const AdResultsPage = () => {
                 <><Eye className="w-3.5 h-3.5 mr-1.5" /> Preview Email</>
               )}
             </Button>
-            <Button onClick={handleSendEmail} disabled={!recipientEmail.trim() || sending}>
-              {sending ? (
-                <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> Sending...</>
-              ) : (
-                <><Send className="w-3.5 h-3.5 mr-1.5" /> Send</>
-              )}
-            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
