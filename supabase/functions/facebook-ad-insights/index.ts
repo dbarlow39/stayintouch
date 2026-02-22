@@ -134,7 +134,7 @@ Deno.serve(async (req) => {
       } catch (_e) { /* non-fatal */ }
     }
 
-    // Approach B: If no ad found via filter, scan recent ads and check for MULTIPLE matches
+    // Approach B: If no ad found via filter, scan recent ads and AGGREGATE all matches
     if (!adInsights) {
       for (const [tokenLabel, token] of [["user", userToken], ["page", pageToken]]) {
         if (adInsights) break;
@@ -146,14 +146,63 @@ Deno.serve(async (req) => {
               ad.creative?.effective_object_story_id === post_id
             );
             debugInfo.push(`Ad scan(${tokenLabel}): ${allMatching.length} matching ads out of ${recentAds.data.length} [${allMatching.map((a:any)=>a.id).join(',')}]`);
-            if (allMatching.length > 0) {
+            
+            if (allMatching.length === 1) {
               const adInsightsUrl = `https://graph.facebook.com/${API_VERSION}/${allMatching[0].id}/insights?fields=${adInsightsFields}${attrParam}&access_token=${token}`;
               const insightsResp = await fetchJson(adInsightsUrl);
               if (!insightsResp.error && insightsResp.data?.[0]) {
                 adInsights = insightsResp.data[0];
                 foundAdId = allMatching[0].id;
                 foundAdToken = token;
-                debugInfo.push(`Ad insights from ad ${allMatching[0].id}`);
+                debugInfo.push(`Ad insights from single ad ${allMatching[0].id}`);
+              }
+            } else if (allMatching.length > 1) {
+              const allInsights = await Promise.allSettled(
+                allMatching.map(async (ad: any) => {
+                  const url = `https://graph.facebook.com/${API_VERSION}/${ad.id}/insights?fields=${adInsightsFields}${attrParam}&access_token=${token}`;
+                  const resp = await fetchJson(url);
+                  return (!resp.error && resp.data?.[0]) ? resp.data[0] : null;
+                })
+              );
+              
+              let aggregated: any = null;
+              const numericFields = ['impressions', 'reach', 'clicks', 'spend', 'unique_clicks', 'inline_post_engagement', 'inline_link_clicks'];
+              const actionMap: Record<string, number> = {};
+              const uniqueActionMap: Record<string, number> = {};
+              
+              for (const result of allInsights) {
+                if (result.status !== 'fulfilled' || !result.value) continue;
+                const ins = result.value;
+                if (!aggregated) {
+                  aggregated = { ...ins };
+                } else {
+                  for (const field of numericFields) {
+                    aggregated[field] = String(parseFloat(aggregated[field] || "0") + parseFloat(ins[field] || "0"));
+                  }
+                }
+                for (const action of (ins.actions || [])) {
+                  actionMap[action.action_type] = (actionMap[action.action_type] || 0) + parseInt(action.value || "0");
+                }
+                for (const action of (ins.unique_actions || [])) {
+                  uniqueActionMap[action.action_type] = (uniqueActionMap[action.action_type] || 0) + parseInt(action.value || "0");
+                }
+              }
+              
+              if (aggregated) {
+                aggregated.actions = Object.entries(actionMap).map(([action_type, value]) => ({ action_type, value: String(value) }));
+                aggregated.unique_actions = Object.entries(uniqueActionMap).map(([action_type, value]) => ({ action_type, value: String(value) }));
+                const aggSpend = parseFloat(aggregated.spend || "0");
+                aggregated.cost_per_action_type = Object.entries(actionMap).map(([action_type, value]) => ({
+                  action_type,
+                  value: String(value > 0 ? (aggSpend / value).toFixed(2) : "0"),
+                }));
+                aggregated.cpc = String(parseFloat(aggregated.clicks || "0") > 0 ? (aggSpend / parseFloat(aggregated.clicks)) : 0);
+                aggregated.cpm = String(parseFloat(aggregated.impressions || "0") > 0 ? (aggSpend / parseFloat(aggregated.impressions) * 1000) : 0);
+                
+                adInsights = aggregated;
+                foundAdId = allMatching[0].id;
+                foundAdToken = token;
+                debugInfo.push(`Aggregated insights from ${allInsights.filter(r => r.status === 'fulfilled' && r.value).length} of ${allMatching.length} ads`);
               }
             }
           } else if (recentAds.error) {
@@ -243,7 +292,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    const finalEngagements = adInsights ? (adEngagements || organicEngagements) : (organicEngagements || promoEngaged);
+    const finalEngagements = adInsights ? adEngagements : (organicEngagements || promoEngaged);
 
     // Step 4: Fetch audience demographics with use_unified_attribution_setting
     let audienceData: any = null;
