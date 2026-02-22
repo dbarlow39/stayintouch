@@ -124,9 +124,17 @@ const FacebookAdResults = ({ postId, listingAddress, onClose }: FacebookAdResult
   const totalClicks = data.clicks || 0;
   const totalSpend = ad?.spend || 0;
   const totalEngagements = data.engagements || 0;
-  const costPerEngagement = totalEngagements > 0 && totalSpend > 0
-    ? (totalSpend / totalEngagements).toFixed(2)
-    : '0.00';
+  let costPerEngagement = '0.00';
+  if (ad?.cost_per_action && Array.isArray(ad.cost_per_action)) {
+    const cpEngagement = ad.cost_per_action.find((a: any) => a.action_type === 'post_engagement');
+    if (cpEngagement) {
+      costPerEngagement = parseFloat(cpEngagement.value).toFixed(2);
+    } else if (totalEngagements > 0 && totalSpend > 0) {
+      costPerEngagement = (totalSpend / totalEngagements).toFixed(2);
+    }
+  } else if (totalEngagements > 0 && totalSpend > 0) {
+    costPerEngagement = (totalSpend / totalEngagements).toFixed(2);
+  }
 
   // Activity breakdown - prefer ad actions when available (matches Facebook Ads Manager)
   const activityItems: { label: string; value: number; color: string }[] = [];
