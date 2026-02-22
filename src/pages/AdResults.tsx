@@ -421,7 +421,7 @@ const AdResultsPage = () => {
               <p className="mb-4">Hi {clientFirstNames},</p>
 
               <p className="mb-4">
-                We know our #1 job is to get your home sold for the most money in the shortest period of time, we are not just Real Estate Agents, we are master marketers who know the more eyeballs we can get to see your home the better our chances of finding you're a buyer.
+                We know our #1 job is to get your home sold for the most money in the shortest period of time, we are not just Real Estate Agents, we are master marketers who know the more eyeballs we can get to see your home the better our chances of finding you a buyer.
               </p>
 
               <p className="mb-4">
