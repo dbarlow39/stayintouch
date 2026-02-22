@@ -19,6 +19,13 @@ import logo from '@/assets/logo.jpg';
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const ANON_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
+interface AudienceRow {
+  age: string;
+  gender: string;
+  reach: string;
+  impressions: string;
+}
+
 interface InsightsData {
   post_id: string;
   created_time: string | null;
@@ -45,6 +52,7 @@ interface InsightsData {
     actions: any[];
     cost_per_action: any[];
   } | null;
+  audience: AudienceRow[] | null;
 }
 
 interface AdPost {
@@ -292,27 +300,21 @@ const AdResultsPage = () => {
   const costPerEngagement = totalEngagements > 0 && totalSpend > 0
     ? (totalSpend / totalEngagements).toFixed(2) : '0.00';
 
-  // Build activity items from ad actions or click_types
+  // Build activity items - only show 6 Facebook-standard activities
   const activityItems: { label: string; value: number }[] = [];
   if (ad?.actions?.length) {
-    const actionLabels: Record<string, string> = {
+    const allowedActions: Record<string, string> = {
       post_engagement: 'Post engagements',
       link_click: 'Link clicks',
-      landing_page_view: 'Landing page views',
-      page_engagement: 'Page engagements',
       post_reaction: 'Post reactions',
-      comment: 'Comments',
-      onsite_conversion_post_save: 'Post saves',
-      post_interaction_gross: 'Post interactions',
-      'onsite_conversion.post_net_like': 'Net likes',
+      post: 'Post shares',
+      like: 'Facebook likes',
+      'onsite_conversion.post_save': 'Post saves',
     };
     for (const action of ad.actions) {
-      const val = parseInt(action.value);
-      if (val > 0) {
-        activityItems.push({
-          label: actionLabels[action.action_type] || action.action_type.replace(/_/g, ' '),
-          value: val,
-        });
+      const label = allowedActions[action.action_type];
+      if (label && parseInt(action.value) > 0) {
+        activityItems.push({ label, value: parseInt(action.value) });
       }
     }
   } else if (data.click_types) {
@@ -460,7 +462,17 @@ const AdResultsPage = () => {
                   <span className="text-sm text-muted-foreground">Shares</span>
                 </div>
               </div>
-            </section>
+             </section>
+
+            {/* Audience Breakdown */}
+            {data.audience && data.audience.length > 0 && (
+              <section className="bg-card rounded-xl border border-border p-6">
+                <h2 className="text-base font-semibold text-card-foreground flex items-center gap-2 mb-2">
+                  <Users className="w-4 h-4 text-primary" /> Audience
+                </h2>
+                <AudienceChart audience={data.audience} totalReach={totalReach} />
+              </section>
+            )}
           </div>
 
           {/* Right Column: Details + Preview */}
@@ -642,6 +654,60 @@ function DetailRow({ icon, label, value }: { icon: React.ReactNode; label: strin
       <div>
         <p className="text-xs text-muted-foreground">{label}</p>
         <p className="text-sm font-medium text-card-foreground">{value}</p>
+      </div>
+    </div>
+  );
+}
+
+function AudienceChart({ audience, totalReach }: { audience: AudienceRow[]; totalReach: number }) {
+  const ageGroups = ['13-17', '18-24', '25-34', '35-44', '45-54', '55-64', '65+'];
+  let totalWomen = 0;
+  let totalMen = 0;
+  const buckets: Record<string, { female: number; male: number }> = {};
+  for (const ag of ageGroups) buckets[ag] = { female: 0, male: 0 };
+
+  for (const row of audience) {
+    const reach = parseInt(row.reach) || 0;
+    const bucket = buckets[row.age];
+    if (!bucket) continue;
+    if (row.gender === 'female') { bucket.female += reach; totalWomen += reach; }
+    else if (row.gender === 'male') { bucket.male += reach; totalMen += reach; }
+  }
+
+  const grandTotal = totalWomen + totalMen || 1;
+  const womenPct = ((totalWomen / grandTotal) * 100).toFixed(1);
+  const menPct = ((totalMen / grandTotal) * 100).toFixed(1);
+  const maxVal = Math.max(...ageGroups.map(ag => Math.max(buckets[ag].female, buckets[ag].male)), 1);
+
+  return (
+    <div>
+      <p className="text-sm text-muted-foreground mb-3">
+        This ad reached <span className="font-semibold text-card-foreground">{totalReach.toLocaleString()}</span> accounts in your audience.
+      </p>
+      <div className="flex gap-4 text-sm mb-4">
+        <span className="flex items-center gap-1.5">
+          <span className="w-3 h-3 rounded-sm bg-blue-500 inline-block" />
+          {womenPct}% Women
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="w-3 h-3 rounded-sm bg-teal-400 inline-block" />
+          {menPct}% Men
+        </span>
+      </div>
+      <div className="flex items-end gap-2 h-40">
+        {ageGroups.map(ag => {
+          const fH = (buckets[ag].female / maxVal) * 100;
+          const mH = (buckets[ag].male / maxVal) * 100;
+          return (
+            <div key={ag} className="flex-1 flex flex-col items-center gap-1">
+              <div className="flex items-end gap-1 w-full h-32">
+                <div className="flex-1 bg-blue-500 rounded-t-sm transition-all" style={{ height: `${Math.max(fH, 2)}%` }} />
+                <div className="flex-1 bg-teal-400 rounded-t-sm transition-all" style={{ height: `${Math.max(mH, 2)}%` }} />
+              </div>
+              <span className="text-xs text-muted-foreground">{ag}</span>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
