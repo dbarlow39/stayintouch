@@ -302,6 +302,7 @@ const FacebookAdResults = ({ postId, listingAddress, onClose }: FacebookAdResult
           onClick={() => {
             const params = new URLSearchParams();
             if (listingAddress) params.set('address', listingAddress);
+            params.set('returnTo', window.location.pathname);
             navigate(`/ad-results/${postId}?${params.toString()}`);
           }}
         >
