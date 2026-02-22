@@ -279,7 +279,7 @@ const AdResultsPage = () => {
         <div className="text-center space-y-3">
           <p className="text-sm text-destructive">{error || 'No data found'}</p>
           <div className="flex gap-2 justify-center">
-            <Button variant="outline" size="sm" onClick={() => navigate(-1)}>
+            <Button variant="outline" size="sm" onClick={() => window.history.length > 1 ? navigate(-1) : navigate('/dashboard')}>
               <ArrowLeft className="w-3.5 h-3.5 mr-1.5" /> Go Back
             </Button>
             <Button variant="outline" size="sm" onClick={fetchInsights}>
@@ -344,7 +344,7 @@ const AdResultsPage = () => {
       <header className="bg-card border-b border-border sticky top-0 z-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Button variant="ghost" size="sm" onClick={() => navigate(-1)} className="h-8">
+            <Button variant="ghost" size="sm" onClick={() => window.history.length > 1 ? navigate(-1) : navigate('/dashboard')} className="h-8">
               <ArrowLeft className="w-4 h-4 mr-1" /> Back
             </Button>
             <Separator orientation="vertical" className="h-5" />
