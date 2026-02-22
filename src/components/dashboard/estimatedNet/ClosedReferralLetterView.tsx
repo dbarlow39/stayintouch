@@ -217,7 +217,7 @@ const ClosedReferralLetterView = ({ propertyData, propertyId, onBack, onEdit, on
               <img src={logo} alt="Sell for 1 Percent" className="h-16 w-auto print:h-12" />
               <div>
                 <h1 className="text-3xl font-bold text-foreground">Thank You</h1>
-                <p className="text-muted-foreground">Closing referral letter for {propertyData.name || "client"}</p>
+                <p className="text-muted-foreground">We appreciate you working with us!</p>
               </div>
             </div>
             <div className="flex gap-2 print:hidden no-pdf">
