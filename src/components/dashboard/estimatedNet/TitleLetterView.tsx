@@ -23,6 +23,7 @@ const TitleLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate 
   const [agentEmail, setAgentEmail] = useState<string>("");
   const [agentFirstName, setAgentFirstName] = useState<string>("");
   const [agentPhone, setAgentPhone] = useState<string>("");
+  const [agentBio, setAgentBio] = useState<string>("");
 
   useEffect(() => {
     const fetchAgentProfile = async () => {
@@ -30,13 +31,14 @@ const TitleLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate 
       if (user) {
         const { data: profile } = await supabase
           .from('profiles')
-          .select('preferred_email, email, first_name, cell_phone')
+          .select('preferred_email, email, first_name, cell_phone, bio')
           .eq('id', user.id)
           .single();
         if (profile) {
           setAgentEmail(profile.preferred_email || profile.email || "");
           setAgentFirstName(profile.first_name || "");
           setAgentPhone(profile.cell_phone || "");
+          setAgentBio(profile.bio || "");
         }
       }
     };
@@ -364,9 +366,19 @@ const TitleLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate 
               </p>
               <p className="mb-4">Let know if you need anything else.</p>
               <p className="mb-0">Thanks</p>
-              <p className="mb-0">{agentFirstName}</p>
-              <p className="mb-0">{agentPhone}</p>
-              <p className="mb-4">{agentEmail}</p>
+              <p className="mb-4">{agentFirstName}</p>
+              {agentBio ? (
+                /<[a-z][\s\S]*>/i.test(agentBio) ? (
+                  <div className="mb-4 [&_img]:max-w-full [&_img]:h-auto" dangerouslySetInnerHTML={{ __html: agentBio.replace(/<P>/gi, '<br><br>') }} />
+                ) : (
+                  <p className="mb-4 whitespace-pre-line">{agentBio}</p>
+                )
+              ) : (
+                <>
+                  <p className="mb-0">{agentPhone}</p>
+                  <p className="mb-4">{agentEmail}</p>
+                </>
+              )}
             </div>
           </Card>
         </div>
