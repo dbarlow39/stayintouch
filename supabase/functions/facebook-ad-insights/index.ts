@@ -38,6 +38,26 @@ Deno.serve(async (req) => {
     const userToken = tokenData.access_token;
     const debugInfo: string[] = [];
 
+    // Look up boost window from facebook_ad_posts
+    let boostTimeRange: string | null = null;
+    const { data: adPostData } = await supabase
+      .from("facebook_ad_posts")
+      .select("boost_started_at, duration_days")
+      .eq("agent_id", agent_id)
+      .eq("post_id", post_id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .single();
+
+    if (adPostData?.boost_started_at && adPostData?.duration_days) {
+      const startDate = new Date(adPostData.boost_started_at);
+      const endDate = new Date(startDate);
+      endDate.setDate(endDate.getDate() + adPostData.duration_days);
+      const formatDate = (d: Date) => d.toISOString().split('T')[0]; // YYYY-MM-DD
+      boostTimeRange = `&time_range=${encodeURIComponent(JSON.stringify({ since: formatDate(startDate), until: formatDate(endDate) }))}`;
+      debugInfo.push(`Boost window: ${formatDate(startDate)} to ${formatDate(endDate)} (${adPostData.duration_days} days)`);
+    }
+
     const fetchJson = async (url: string) => {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 8000);
@@ -73,6 +93,7 @@ Deno.serve(async (req) => {
     const metricGroups = [
       ['post_clicks_by_type'],
       ['post_reactions_by_type_total', 'post_activity_by_action_type'],
+      ['post_impressions', 'post_impressions_unique'],
     ];
 
     const groupResults = await Promise.allSettled(metricGroups.map(async (group) => {
@@ -99,13 +120,13 @@ Deno.serve(async (req) => {
     }
 
     // Step 3: Get ad insights via Ads API
-    // Try multiple attribution approaches to find what matches Ads Manager
     let adInsights: any = null;
     let foundAdId: string | null = null;
     let foundAdToken: string | null = null;
     const AD_ACCOUNT_ID = tokenData.ad_account_id || "563726213662060";
     const adInsightsFields = "impressions,reach,clicks,spend,cpc,cpm,actions,cost_per_action_type,unique_actions,unique_clicks,inline_post_engagement,inline_link_clicks";
-    const attrParam = `&date_preset=maximum&action_attribution_windows=${encodeURIComponent('["7d_click","1d_view"]')}`;
+    const dateParam = boostTimeRange || "&date_preset=maximum";
+    const attrParam = `${dateParam}&action_attribution_windows=${encodeURIComponent('["7d_click","1d_view"]')}`;
 
     // Also fetch with 7d_click only for comparison (diagnostic)
     let altAdInsights: any = null;
@@ -145,7 +166,7 @@ Deno.serve(async (req) => {
       } catch (_e) { /* non-fatal */ }
     }
 
-    // Approach B: Scan recent ads, find campaign, get CAMPAIGN-level insights (matches Boost Post view)
+    // Approach B: Scan recent ads, find campaign, get CAMPAIGN-level insights
     if (!adInsights) {
       for (const [tokenLabel, token] of [["user", userToken], ["page", pageToken]]) {
         if (adInsights) break;
@@ -164,7 +185,6 @@ Deno.serve(async (req) => {
               foundAdToken = token;
               
               if (campaignId) {
-                // Query CAMPAIGN-level insights — this is what Facebook's Boost Post results view shows
                 const campaignInsightsUrl = `https://graph.facebook.com/${API_VERSION}/${campaignId}/insights?fields=${adInsightsFields}${attrParam}&access_token=${token}`;
                 const campaignResp = await fetchJson(campaignInsightsUrl);
                 if (!campaignResp.error && campaignResp.data?.[0]) {
@@ -172,7 +192,6 @@ Deno.serve(async (req) => {
                   debugInfo.push(`Campaign-level insights from campaign ${campaignId} (via ad ${allMatching[0].id})`);
                 } else {
                   debugInfo.push(`Campaign insights failed: ${campaignResp.error?.message?.substring(0, 60) || 'no data'}, falling back to ad-level`);
-                  // Fallback to ad-level if campaign query fails
                   const adInsightsUrl = `https://graph.facebook.com/${API_VERSION}/${allMatching[0].id}/insights?fields=${adInsightsFields}${attrParam}&access_token=${token}`;
                   const insightsResp = await fetchJson(adInsightsUrl);
                   if (!insightsResp.error && insightsResp.data?.[0]) {
@@ -181,7 +200,6 @@ Deno.serve(async (req) => {
                   }
                 }
               } else {
-                // No campaign_id available, fall back to ad-level
                 const adInsightsUrl = `https://graph.facebook.com/${API_VERSION}/${allMatching[0].id}/insights?fields=${adInsightsFields}${attrParam}&access_token=${token}`;
                 const insightsResp = await fetchJson(adInsightsUrl);
                 if (!insightsResp.error && insightsResp.data?.[0]) {
@@ -200,7 +218,7 @@ Deno.serve(async (req) => {
     // Diagnostic: log key unique metrics
     if (foundAdId && foundAdToken) {
       try {
-        const diagUrl = `https://graph.facebook.com/${API_VERSION}/${foundAdId}/insights?fields=unique_actions,unique_clicks,inline_post_engagement&date_preset=maximum&access_token=${foundAdToken}`;
+        const diagUrl = `https://graph.facebook.com/${API_VERSION}/${foundAdId}/insights?fields=unique_actions,unique_clicks,inline_post_engagement${dateParam}&access_token=${foundAdToken}`;
         const diagData = await fetchJson(diagUrl);
         if (!diagData.error && diagData.data?.[0]) {
           const d = diagData.data[0];
@@ -265,7 +283,6 @@ Deno.serve(async (req) => {
       adActions = adInsights.actions || [];
       adUniqueActions = adInsights.unique_actions || [];
       adCostPerAction = adInsights.cost_per_action_type || [];
-      // Use total post_engagement (matches Facebook Boost Post results), fall back to unique
       const totalEngagement = adActions.find((a: any) => a.action_type === 'post_engagement');
       const uniqueEngagement = adUniqueActions.find((a: any) => a.action_type === 'post_engagement');
       if (totalEngagement) {
@@ -309,16 +326,16 @@ Deno.serve(async (req) => {
       comments,
       shares,
       engagements: finalEngagements,
-      impressions: adInsights ? parseInt(adInsights.impressions || "0") : promoImpressions,
-      reach: adInsights ? parseInt(adInsights.reach || "0") : promoReach,
+      impressions: metrics.post_impressions || (adInsights ? parseInt(adInsights.impressions || "0") : promoImpressions),
+      reach: metrics.post_impressions_unique || (adInsights ? parseInt(adInsights.reach || "0") : promoReach),
       clicks: adInsights ? parseInt(adInsights.clicks || "0") : totalClicks,
       click_types: Object.keys(clicksByType).length > 0 ? clicksByType : null,
       activity: activityObj,
       reactions: reactionsObj,
       engaged_users: promoEngaged,
       ad_insights: adInsights ? {
-        impressions: parseInt(adInsights.impressions || "0"),
-        reach: parseInt(adInsights.reach || "0"),
+        impressions: metrics.post_impressions || parseInt(adInsights.impressions || "0"),
+        reach: metrics.post_impressions_unique || parseInt(adInsights.reach || "0"),
         clicks: parseInt(adInsights.clicks || "0"),
         unique_clicks: parseInt(adInsights.unique_clicks || "0"),
         spend: parseFloat(adInsights.spend || "0"),
