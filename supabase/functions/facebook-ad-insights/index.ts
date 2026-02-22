@@ -98,14 +98,17 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Step 3: Get ad insights via Ads API - use EQUAL operator and try multiple approaches
-    // Include use_unified_attribution_setting=true to match Ads Manager numbers
+    // Step 3: Get ad insights via Ads API
+    // Try multiple attribution approaches to find what matches Ads Manager
     let adInsights: any = null;
     let foundAdId: string | null = null;
     let foundAdToken: string | null = null;
     const AD_ACCOUNT_ID = tokenData.ad_account_id || "563726213662060";
     const adInsightsFields = "impressions,reach,clicks,spend,cpc,cpm,actions,cost_per_action_type";
-    const attrParam = "&use_account_attribution_setting=true&action_attribution_windows=[%221d_click%22,%221d_view%22]";
+    const attrParam = ""; // No attribution override - use API defaults
+
+    // Also fetch with 7d_click only for comparison (diagnostic)
+    let altAdInsights: any = null;
 
     // Approach A: Search ads by effective_object_story_id with EQUAL operator
     for (const [tokenLabel, token] of [["user", userToken], ["page", pageToken]]) {
@@ -160,6 +163,27 @@ Deno.serve(async (req) => {
             debugInfo.push(`Ad scan(${tokenLabel}): ${recentAds.error.message?.substring(0, 60)}`);
           }
         } catch (_e) { /* non-fatal */ }
+      }
+    }
+
+    // Diagnostic: compare attribution settings if we found an ad
+    if (foundAdId && foundAdToken) {
+      const diagParams = [
+        ["acct_attr", "&use_account_attribution_setting=true"],
+        ["7d_click", "&action_attribution_windows=[%227d_click%22]"],
+      ];
+      const diagResults = await Promise.allSettled(diagParams.map(async ([label, param]) => {
+        const url = `https://graph.facebook.com/${API_VERSION}/${foundAdId}/insights?fields=impressions,reach,actions${param}&access_token=${foundAdToken}`;
+        const data = await fetchJson(url);
+        if (!data.error && data.data?.[0]) {
+          const pe = data.data[0].actions?.find((a: any) => a.action_type === 'post_engagement');
+          const lc = data.data[0].actions?.find((a: any) => a.action_type === 'link_click');
+          return `${label}: imp=${data.data[0].impressions} reach=${data.data[0].reach} pe=${pe?.value||'?'} lc=${lc?.value||'?'}`;
+        }
+        return `${label}: ${data.error?.message?.substring(0, 40) || 'no data'}`;
+      }));
+      for (const r of diagResults) {
+        debugInfo.push(r.status === 'fulfilled' ? r.value : `diag err: ${r.reason}`);
       }
     }
 
