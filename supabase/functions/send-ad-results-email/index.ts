@@ -12,7 +12,6 @@ interface AdResultsEmailPayload {
   listing_address: string;
   post_date: string;
   post_engagements: number;
-  cost_per_engagement?: string;
   views: number;
   reach: number;
   likes: number;
@@ -25,6 +24,13 @@ interface AdResultsEmailPayload {
   facebook_post_url: string;
   logo_url: string;
   preview_only?: boolean;
+  // Letter-style fields
+  client_first_names?: string;
+  agent_first_name?: string;
+  agent_full_name?: string;
+  agent_phone?: string;
+  agent_email?: string;
+  agent_bio?: string;
 }
 
 serve(async (req) => {
@@ -33,31 +39,42 @@ serve(async (req) => {
   }
 
   try {
-
     const payload: AdResultsEmailPayload = await req.json();
     const {
       to_email, from_name, reply_to, listing_address, post_date,
-      post_engagements, cost_per_engagement, views, reach,
+      post_engagements, views, reach,
       likes, comments, shares, amount_spent, activity_items,
       ad_preview_image, ad_preview_text, facebook_post_url, logo_url,
       preview_only,
+      client_first_names, agent_first_name, agent_full_name, agent_phone, agent_email, agent_bio,
     } = payload;
 
-    // Build activity rows HTML
-    const maxActivity = activity_items.length > 0 ? Math.max(...activity_items.map(a => a.value)) : 1;
-    const activityHtml = activity_items.map(item => {
-      const pct = Math.max(Math.round((item.value / maxActivity) * 100), 5);
-      return `
+    const greeting = client_first_names || 'there';
+    const signoff = agent_first_name || from_name || 'Your Agent';
+
+    // Build activity items HTML for letter
+    const activityHtml = activity_items
+      .filter(item => item.value > 0)
+      .map(item => `
         <tr>
-          <td style="padding: 6px 0; font-size: 13px; color: #6b7280; width: 140px; text-transform: capitalize;">${item.label}</td>
-          <td style="padding: 6px 0;">
-            <div style="background: #f3f4f6; border-radius: 4px; height: 22px; width: 100%;">
-              <div style="background: #3b82f6; border-radius: 4px; height: 22px; width: ${pct}%;"></div>
-            </div>
-          </td>
-          <td style="padding: 6px 0; font-size: 13px; font-weight: 600; color: #1f2937; text-align: right; width: 50px;">${item.value.toLocaleString()}</td>
-        </tr>`;
-    }).join('');
+          <td style="padding: 6px 12px; font-size: 14px; color: #6b7280; border: 1px solid #e5e7eb;">${item.label}</td>
+          <td style="padding: 6px 12px; font-size: 14px; font-weight: 600; color: #1f2937; text-align: right; border: 1px solid #e5e7eb;">${item.value.toLocaleString()}</td>
+        </tr>`)
+      .join('');
+
+    // Build agent signature
+    let signatureHtml = '';
+    if (agent_bio && /<[a-z][\s\S]*>/i.test(agent_bio)) {
+      signatureHtml = agent_bio.replace(/<P>/gi, '<br><br>');
+    } else if (agent_bio) {
+      signatureHtml = `<p style="margin: 0; line-height: 1.6; color: #374151; white-space: pre-line;">${agent_bio}</p>`;
+    } else {
+      signatureHtml = `
+        <p style="margin: 0; color: #374151;">${agent_full_name || from_name || ''}</p>
+        ${agent_phone ? `<p style="margin: 0; color: #374151;">cell: ${agent_phone}</p>` : ''}
+        ${agent_email ? `<p style="margin: 0; color: #374151;">email: ${agent_email}</p>` : ''}
+      `;
+    }
 
     const html = `
 <!DOCTYPE html>
@@ -70,129 +87,81 @@ serve(async (req) => {
   <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f9fafb; padding: 24px 0;">
     <tr>
       <td align="center">
-        <table width="600" cellpadding="0" cellspacing="0" style="max-width: 600px; width: 100%;">
-          
-          <!-- Header -->
+        <table width="640" cellpadding="0" cellspacing="0" style="max-width: 640px; width: 100%; background: #ffffff; border-radius: 12px; border: 1px solid #e5e7eb;">
+
+          <!-- Header with Logo -->
           <tr>
-            <td style="padding: 20px 24px; background: #ffffff; border-radius: 12px 12px 0 0; border-bottom: 1px solid #e5e7eb;">
+            <td style="padding: 24px 32px; border-bottom: 1px solid #e5e7eb;">
               <table width="100%" cellpadding="0" cellspacing="0">
                 <tr>
-                  <td>
-                    ${logo_url ? `<img src="${logo_url}" alt="Sellfor1Percent.com" style="height: 40px; border-radius: 6px;" />` : ''}
+                  <td style="vertical-align: middle;">
+                    ${logo_url ? `<img src="${logo_url}" alt="Sellfor1Percent.com" style="height: 48px; border-radius: 6px;" />` : ''}
                   </td>
-                  <td style="text-align: right;">
-                    <span style="font-size: 18px; font-weight: 700; color: #1f2937;">Ad Results</span><br/>
-                    <span style="font-size: 11px; color: #9ca3af;">Sellfor1Percent.com</span>
+                  <td style="text-align: right; vertical-align: middle;">
+                    <span style="font-size: 22px; font-weight: 700; color: #1f2937;">Facebook Ad Results</span><br/>
+                    <span style="font-size: 13px; color: #6b7280;">${listing_address}</span>
                   </td>
                 </tr>
               </table>
             </td>
           </tr>
 
-          <!-- Property & Date -->
+          <!-- Letter Body -->
           <tr>
-            <td style="padding: 20px 24px 12px; background: #ffffff;">
-              <p style="margin: 0; font-size: 16px; font-weight: 600; color: #1f2937;">${listing_address}</p>
-              <p style="margin: 4px 0 0; font-size: 12px; color: #9ca3af;">Posted ${post_date}</p>
-            </td>
-          </tr>
+            <td style="padding: 32px;">
+              <p style="margin: 0 0 16px; line-height: 1.6; color: #374151; font-size: 15px;">Hi ${greeting},</p>
 
-          <!-- Performance Metrics -->
-          <tr>
-            <td style="padding: 12px 24px; background: #ffffff;">
-              <p style="margin: 0 0 12px; font-size: 14px; font-weight: 600; color: #1f2937;">Performance</p>
-              <table width="100%" cellpadding="0" cellspacing="0">
+              <p style="margin: 0 0 16px; line-height: 1.6; color: #374151; font-size: 15px;">
+                We know that the more eyeballs that we can get to see your home from buyers looking on their favorite real estate website like Zillow, Realtor.com or Redfin to posting paid ads on social media sites like Facebook and Instagram the better our chances of finding you a buyer.
+              </p>
+
+              <p style="margin: 0 0 24px; line-height: 1.6; color: #374151; font-size: 15px;">
+                We recently posted a paid advertising campaign for your property on Facebook and Instagram and wanted to share the results of that ad with you.
+              </p>
+
+              <!-- Performance Metrics -->
+              <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 24px;">
                 <tr>
-                  <td width="50%" style="padding-right: 6px; padding-bottom: 8px;">
-                    <div style="border: 1px solid #e5e7eb; border-radius: 8px; padding: 14px;">
-                      <p style="margin: 0; font-size: 11px; color: #6b7280;">Post Engagements</p>
-                      <p style="margin: 4px 0 0; font-size: 24px; font-weight: 700; color: #1f2937;">${post_engagements.toLocaleString()}</p>
+                  <td width="33%" style="padding: 4px;">
+                    <div style="text-align: center; padding: 16px; border: 1px solid #e5e7eb; border-radius: 8px; background: #f9fafb;">
+                      <p style="margin: 0; font-size: 28px; font-weight: 700; color: #1f2937;">${post_engagements.toLocaleString()}</p>
+                      <p style="margin: 4px 0 0; font-size: 13px; color: #6b7280;">Engagements</p>
                     </div>
                   </td>
-                  <td width="50%" style="padding-left: 6px; padding-bottom: 8px;">
-                    <div style="border: 1px solid #e5e7eb; border-radius: 8px; padding: 14px;">
-                      <p style="margin: 0; font-size: 11px; color: #6b7280;">Views</p>
-                      <p style="margin: 4px 0 0; font-size: 24px; font-weight: 700; color: #1f2937;">${views.toLocaleString()}</p>
+                  <td width="33%" style="padding: 4px;">
+                    <div style="text-align: center; padding: 16px; border: 1px solid #e5e7eb; border-radius: 8px; background: #f9fafb;">
+                      <p style="margin: 0; font-size: 28px; font-weight: 700; color: #1f2937;">${views.toLocaleString()}</p>
+                      <p style="margin: 4px 0 0; font-size: 13px; color: #6b7280;">Views</p>
                     </div>
                   </td>
-                </tr>
-                <tr>
-                  <td width="50%" style="padding-right: 6px;">
-                    <div style="border: 1px solid #e5e7eb; border-radius: 8px; padding: 14px;">
-                      <p style="margin: 0; font-size: 11px; color: #6b7280;">Reach</p>
-                      <p style="margin: 4px 0 0; font-size: 24px; font-weight: 700; color: #1f2937;">${reach.toLocaleString()}</p>
+                  <td width="33%" style="padding: 4px;">
+                    <div style="text-align: center; padding: 16px; border: 1px solid #e5e7eb; border-radius: 8px; background: #f9fafb;">
+                      <p style="margin: 0; font-size: 28px; font-weight: 700; color: #1f2937;">${reach.toLocaleString()}</p>
+                      <p style="margin: 4px 0 0; font-size: 13px; color: #6b7280;">People Reached</p>
                     </div>
                   </td>
-                  <td width="50%"></td>
                 </tr>
               </table>
-            </td>
-          </tr>
 
-          <!-- Activity Breakdown -->
-          ${activity_items.length > 0 ? `
-          <tr>
-            <td style="padding: 16px 24px; background: #ffffff;">
-              <p style="margin: 0 0 12px; font-size: 14px; font-weight: 600; color: #1f2937;">Activity</p>
-              <table width="100%" cellpadding="0" cellspacing="0">
+              <!-- Activity Breakdown -->
+              ${activityHtml ? `
+              <p style="margin: 0 0 12px; font-size: 16px; font-weight: 600; color: #1f2937;">Activity Breakdown</p>
+              <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 24px; border-collapse: collapse;">
                 ${activityHtml}
               </table>
-            </td>
-          </tr>
-          ` : ''}
+              ` : ''}
 
-          <!-- Engagement -->
-          <tr>
-            <td style="padding: 16px 24px; background: #ffffff;">
-              <p style="margin: 0 0 12px; font-size: 14px; font-weight: 600; color: #1f2937;">Engagement</p>
-              <table width="100%" cellpadding="0" cellspacing="0">
-                <tr>
-                  <td style="text-align: center; padding: 8px;">
-                    <span style="font-size: 20px; font-weight: 700; color: #1f2937;">${likes}</span><br/>
-                    <span style="font-size: 11px; color: #6b7280;">❤️ Likes</span>
-                  </td>
-                  <td style="text-align: center; padding: 8px;">
-                    <span style="font-size: 20px; font-weight: 700; color: #1f2937;">${comments}</span><br/>
-                    <span style="font-size: 11px; color: #6b7280;">💬 Comments</span>
-                  </td>
-                  <td style="text-align: center; padding: 8px;">
-                    <span style="font-size: 20px; font-weight: 700; color: #1f2937;">${shares}</span><br/>
-                    <span style="font-size: 11px; color: #6b7280;">🔗 Shares</span>
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>
+              <p style="margin: 0 0 16px; line-height: 1.6; color: #374151; font-size: 15px;">Let me know if you have any questions.</p>
 
-          <!-- Ad Preview -->
-          ${(ad_preview_image || ad_preview_text) ? `
-          <tr>
-            <td style="padding: 16px 24px; background: #ffffff;">
-              <p style="margin: 0 0 12px; font-size: 14px; font-weight: 600; color: #1f2937;">Ad Preview</p>
-              <div style="border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden;">
-                ${ad_preview_image ? `<img src="${ad_preview_image}" alt="Ad" style="width: 100%; display: block;" />` : ''}
-                ${ad_preview_text ? `<div style="padding: 12px; font-size: 12px; color: #374151; line-height: 1.5; white-space: pre-wrap;">${ad_preview_text.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>` : ''}
-              </div>
-            </td>
-          </tr>
-          ` : ''}
-
-          <!-- View on Facebook -->
-          <tr>
-            <td style="padding: 16px 24px; background: #ffffff;">
-              <table width="100%" cellpadding="0" cellspacing="0">
-                <tr>
-                  <td align="center">
-                    <a href="${facebook_post_url}" target="_blank" style="display: inline-block; padding: 10px 24px; background: #1877f2; color: #ffffff; font-size: 13px; font-weight: 600; text-decoration: none; border-radius: 6px;">View on Facebook</a>
-                  </td>
-                </tr>
-              </table>
+              <p style="margin: 0 0 8px; line-height: 1.6; color: #374151; font-size: 15px;">Thanks</p>
+              <p style="margin: 0 0 16px; line-height: 1.6; color: #374151; font-size: 15px;">${signoff}</p>
+              ${signatureHtml}
             </td>
           </tr>
 
           <!-- Footer -->
           <tr>
-            <td style="padding: 20px 24px; background: #ffffff; border-radius: 0 0 12px 12px; border-top: 1px solid #e5e7eb; text-align: center;">
+            <td style="padding: 20px 32px; border-top: 1px solid #e5e7eb; text-align: center;">
               ${logo_url ? `<img src="${logo_url}" alt="Sellfor1Percent.com" style="height: 32px; border-radius: 6px; margin-bottom: 8px;" />` : ''}
               <p style="margin: 0; font-size: 12px; font-weight: 600; color: #1f2937;">Sellfor1Percent.com</p>
               <p style="margin: 2px 0 0; font-size: 10px; color: #9ca3af;">Full Service Real Estate for just a 1% Commission</p>

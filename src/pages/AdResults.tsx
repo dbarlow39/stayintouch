@@ -79,7 +79,7 @@ const AdResultsPage = () => {
   const [emailDialogOpen, setEmailDialogOpen] = useState(false);
   const [recipientEmail, setRecipientEmail] = useState('');
   const [sending, setSending] = useState(false);
-  const [profileData, setProfileData] = useState<{ full_name: string; preferred_email: string; email: string } | null>(null);
+  const [profileData, setProfileData] = useState<{ full_name: string; preferred_email: string; email: string; first_name: string | null; cell_phone: string | null; bio: string | null } | null>(null);
   const [emailPreviewHtml, setEmailPreviewHtml] = useState<string | null>(null);
   const [showPreview, setShowPreview] = useState(false);
   const [buildingPreview, setBuildingPreview] = useState(false);
@@ -93,7 +93,7 @@ const AdResultsPage = () => {
     if (!user) return;
     supabase
       .from('profiles')
-      .select('full_name, preferred_email, email')
+      .select('full_name, preferred_email, email, first_name, cell_phone, bio')
       .eq('id', user.id)
       .maybeSingle()
       .then(({ data }) => {
@@ -213,6 +213,9 @@ const AdResultsPage = () => {
     }
     emailActivityItems.sort((a, b) => b.value - a.value);
 
+    // Determine client first names from listing address match
+    let clientFirstNames = '';
+    
     return {
       to_email: recipientEmail.trim(),
       from_name: profileData?.full_name || 'Agent',
@@ -220,7 +223,6 @@ const AdResultsPage = () => {
       listing_address: listingAddress,
       post_date: postDate,
       post_engagements: totalEngagements,
-      
       views: totalImpressions,
       reach: totalReach,
       likes: data.likes,
@@ -232,8 +234,16 @@ const AdResultsPage = () => {
       ad_preview_text: data.message || null,
       facebook_post_url: `https://www.facebook.com/${postId}`,
       logo_url: `${window.location.origin}/logo.jpg`,
+      // Letter-style fields
+      client_first_names: clientFirstNames || undefined,
+      agent_first_name: profileData?.first_name || undefined,
+      agent_full_name: profileData?.full_name || undefined,
+      agent_phone: profileData?.cell_phone || undefined,
+      agent_email: profileData?.preferred_email || profileData?.email || undefined,
+      agent_bio: profileData?.bio || undefined,
     };
   }, [data, recipientEmail, profileData, listingAddress, postId]);
+
 
   const handlePreviewEmail = async () => {
     if (!data || !recipientEmail.trim()) return;
