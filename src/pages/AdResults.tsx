@@ -250,7 +250,7 @@ const AdResultsPage = () => {
           if (barContainer) {
             barContainer.style.cssText = 'flex: 1; height: 24px; background: #f3f4f6; border-radius: 3px; overflow: hidden;';
             const bar = barContainer.querySelector('div') as HTMLElement;
-            if (bar) bar.style.cssText = bar.style.cssText.replace(/background[^;]*;?/, '') + '; background: #f43f5e; height: 100%; border-radius: 3px;';
+            if (bar) bar.style.cssText = bar.style.cssText.replace(/background[^;]*;?/, '') + '; background: #c21a4e; height: 100%; border-radius: 3px;';
           }
           const value = row.querySelector('span:last-child') as HTMLElement;
           if (value) value.style.cssText = 'font-size: 14px; font-weight: 600; color: #111827; width: 48px; text-align: right; flex-shrink: 0;';
@@ -274,10 +274,10 @@ const AdResultsPage = () => {
               const bars = barRow.querySelectorAll('div');
               bars.forEach(bar => {
                 const el = bar as HTMLElement;
-                if (el.classList.contains('bg-blue-500')) {
-                  el.style.cssText = el.style.cssText + '; flex: 1; background: #3b82f6; border-radius: 3px 3px 0 0;';
-                } else if (el.classList.contains('bg-teal-400')) {
-                  el.style.cssText = el.style.cssText + '; flex: 1; background: #2dd4bf; border-radius: 3px 3px 0 0;';
+                if (el.classList.contains('bg-primary')) {
+                  el.style.cssText = el.style.cssText + '; flex: 1; background: #c21a4e; border-radius: 3px 3px 0 0;';
+                } else if (el.classList.contains('bg-primary/50')) {
+                  el.style.cssText = el.style.cssText + '; flex: 1; background: #e08da7; border-radius: 3px 3px 0 0;';
                 }
               });
             }
@@ -287,10 +287,10 @@ const AdResultsPage = () => {
         const legendItems = audienceSection.querySelectorAll('.flex.gap-4 span');
         legendItems.forEach(span => {
           const colorBox = (span as HTMLElement).querySelector('span');
-          if (colorBox?.classList.contains('bg-blue-500')) {
-            colorBox.style.cssText = 'width: 12px; height: 12px; border-radius: 3px; background: #3b82f6; display: inline-block;';
-          } else if (colorBox?.classList.contains('bg-teal-400')) {
-            colorBox.style.cssText = 'width: 12px; height: 12px; border-radius: 3px; background: #2dd4bf; display: inline-block;';
+          if (colorBox?.classList.contains('bg-primary')) {
+            colorBox.style.cssText = 'width: 12px; height: 12px; border-radius: 3px; background: #c21a4e; display: inline-block;';
+          } else if (colorBox?.classList.contains('bg-primary/50')) {
+            colorBox.style.cssText = 'width: 12px; height: 12px; border-radius: 3px; background: #e08da7; display: inline-block;';
           }
         });
       }
@@ -408,7 +408,7 @@ const AdResultsPage = () => {
               </div>
             </div>
             <div className="flex gap-2 print:hidden no-pdf">
-              <Button onClick={handleCopyAndEmail} size="lg" className="bg-rose-500 hover:bg-rose-600 text-white">
+              <Button onClick={handleCopyAndEmail} size="lg" className="bg-primary hover:bg-primary/90 text-primary-foreground">
                 <Copy className="mr-2 h-4 w-4" />
                 Copy & Email
               </Button>
@@ -456,7 +456,7 @@ const AdResultsPage = () => {
                           <span className="text-sm text-muted-foreground w-32 shrink-0 truncate">{item.label}</span>
                           <div className="flex-1 h-6 bg-muted rounded-sm overflow-hidden">
                             <div
-                              className="h-full bg-rose-500 rounded-sm"
+                              className="h-full bg-primary rounded-sm"
                               style={{ width: `${Math.max((item.value / maxVal) * 100, 3)}%` }}
                             />
                           </div>
@@ -494,11 +494,11 @@ const AdResultsPage = () => {
                     </p>
                     <div className="flex gap-4 text-sm mb-4">
                       <span className="flex items-center gap-1.5">
-                        <span className="w-3 h-3 rounded-sm bg-blue-500 inline-block" />
+                        <span className="w-3 h-3 rounded-sm bg-primary inline-block" />
                         {womenPct}% Women
                       </span>
                       <span className="flex items-center gap-1.5">
-                        <span className="w-3 h-3 rounded-sm bg-teal-400 inline-block" />
+                        <span className="w-3 h-3 rounded-sm bg-primary/50 inline-block" />
                         {menPct}% Men
                       </span>
                     </div>
@@ -509,8 +509,8 @@ const AdResultsPage = () => {
                         return (
                           <div key={ag} className="flex-1 flex flex-col items-center gap-1">
                             <div className="flex items-end gap-1 w-full h-32">
-                              <div className="flex-1 bg-blue-500 rounded-t-sm" style={{ height: `${Math.max(fH, 2)}%` }} />
-                              <div className="flex-1 bg-teal-400 rounded-t-sm" style={{ height: `${Math.max(mH, 2)}%` }} />
+                              <div className="flex-1 bg-primary rounded-t-sm" style={{ height: `${Math.max(fH, 2)}%` }} />
+                              <div className="flex-1 bg-primary/50 rounded-t-sm" style={{ height: `${Math.max(mH, 2)}%` }} />
                             </div>
                             <span className="text-xs text-muted-foreground">{ag}</span>
                           </div>
