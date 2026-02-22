@@ -105,7 +105,7 @@ Deno.serve(async (req) => {
     let foundAdToken: string | null = null;
     const AD_ACCOUNT_ID = tokenData.ad_account_id || "563726213662060";
     const adInsightsFields = "impressions,reach,clicks,spend,cpc,cpm,actions,cost_per_action_type";
-    const unifiedAttrParam = "&use_account_attribution_setting=true";
+    const attrParam = "&use_account_attribution_setting=true&action_attribution_windows=[%221d_click%22,%221d_view%22]";
 
     // Approach A: Search ads by effective_object_story_id with EQUAL operator
     for (const [tokenLabel, token] of [["user", userToken], ["page", pageToken]]) {
@@ -116,7 +116,7 @@ Deno.serve(async (req) => {
           operator: "EQUAL",
           value: post_id
         }]);
-        const adsUrl = `https://graph.facebook.com/${API_VERSION}/act_${AD_ACCOUNT_ID}/ads?fields=id,creative{effective_object_story_id},insights.fields(${adInsightsFields})${unifiedAttrParam}&filtering=${encodeURIComponent(filterJson)}&access_token=${token}`;
+        const adsUrl = `https://graph.facebook.com/${API_VERSION}/act_${AD_ACCOUNT_ID}/ads?fields=id,creative{effective_object_story_id},insights.fields(${adInsightsFields})${attrParam}&filtering=${encodeURIComponent(filterJson)}&access_token=${token}`;
         const adsData = await fetchJson(adsUrl);
         if (!adsData.error && adsData.data?.length > 0 && adsData.data[0].insights?.data?.[0]) {
           adInsights = adsData.data[0].insights.data[0];
@@ -143,7 +143,7 @@ Deno.serve(async (req) => {
               ad.creative?.effective_object_story_id === post_id
             );
             if (matchingAd) {
-              const adInsightsUrl = `https://graph.facebook.com/${API_VERSION}/${matchingAd.id}/insights?fields=${adInsightsFields}${unifiedAttrParam}&access_token=${token}`;
+              const adInsightsUrl = `https://graph.facebook.com/${API_VERSION}/${matchingAd.id}/insights?fields=${adInsightsFields}${attrParam}&access_token=${token}`;
               const insightsResp = await fetchJson(adInsightsUrl);
               if (!insightsResp.error && insightsResp.data?.[0]) {
                 adInsights = insightsResp.data[0];
@@ -232,7 +232,7 @@ Deno.serve(async (req) => {
       for (const [tokenLabel, token] of tokensToTry) {
         if (audienceData) break;
         try {
-          const demoUrl = `https://graph.facebook.com/${API_VERSION}/${foundAdId}/insights?fields=reach,impressions&breakdowns=age,gender${unifiedAttrParam}&access_token=${token}`;
+          const demoUrl = `https://graph.facebook.com/${API_VERSION}/${foundAdId}/insights?fields=reach,impressions&breakdowns=age,gender${attrParam}&access_token=${token}`;
           const demoData = await fetchJson(demoUrl);
           if (!demoData.error && demoData.data?.length > 0) {
             audienceData = demoData.data;
