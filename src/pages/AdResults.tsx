@@ -165,8 +165,6 @@ const AdResultsPage = () => {
     const totalImpressions = ad?.impressions || data.impressions || 0;
     const totalReach = ad?.reach || data.reach || 0;
     const totalSpend = ad?.spend || 0;
-    const cpe = totalEngagements > 0 && totalSpend > 0
-      ? (totalSpend / totalEngagements).toFixed(2) : '0.00';
     const postDate = data.created_time
       ? new Date(data.created_time).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
       : 'N/A';
@@ -197,7 +195,7 @@ const AdResultsPage = () => {
       listing_address: listingAddress,
       post_date: postDate,
       post_engagements: totalEngagements,
-      cost_per_engagement: cpe,
+      
       views: totalImpressions,
       reach: totalReach,
       likes: data.likes,
@@ -297,17 +295,6 @@ const AdResultsPage = () => {
   const totalClicks = ad?.clicks || (typeof data.clicks === 'number' ? data.clicks : 0);
   const totalSpend = ad?.spend || 0;
   const totalEngagements = data.engagements || 0;
-  let costPerEngagement = '0.00';
-  if (ad?.cost_per_action && Array.isArray(ad.cost_per_action)) {
-    const cpEngagement = ad.cost_per_action.find((a: any) => a.action_type === 'post_engagement');
-    if (cpEngagement) {
-      costPerEngagement = parseFloat(cpEngagement.value).toFixed(2);
-    } else if (totalEngagements > 0 && totalSpend > 0) {
-      costPerEngagement = (totalSpend / totalEngagements).toFixed(2);
-    }
-  } else if (totalEngagements > 0 && totalSpend > 0) {
-    costPerEngagement = (totalSpend / totalEngagements).toFixed(2);
-  }
 
   // Build activity items - only show 6 Facebook-standard activities
   const activityItems: { label: string; value: number }[] = [];
@@ -405,11 +392,6 @@ const AdResultsPage = () => {
                   icon={<Users className="w-4 h-4 text-primary" />}
                   label="Post engagements"
                   value={totalEngagements.toLocaleString()}
-                />
-                <MetricCard
-                  icon={<DollarSign className="w-4 h-4 text-emerald-600" />}
-                  label="Cost per Post Engagement"
-                  value={`$${costPerEngagement}`}
                 />
                 <MetricCard
                   icon={<Eye className="w-4 h-4 text-blue-600" />}
