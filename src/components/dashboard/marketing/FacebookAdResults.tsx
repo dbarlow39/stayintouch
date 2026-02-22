@@ -124,39 +124,22 @@ const FacebookAdResults = ({ postId, listingAddress, onClose }: FacebookAdResult
   const activityItems: { label: string; value: number; color: string }[] = [];
 
   if (ad?.actions && Array.isArray(ad.actions) && ad.actions.length > 0) {
-    // Use ad-reported actions as the authoritative source for boosted posts
-    const actionLabels: Record<string, string> = {
+    // Only show the same activity items Facebook Ads Manager displays
+    const allowedActions: Record<string, string> = {
       post_engagement: 'Post engagements',
       link_click: 'Link clicks',
-      landing_page_view: 'Landing page views',
-      page_engagement: 'Page engagements',
-      like: 'Like',
-      post: 'Post',
       post_reaction: 'Post reactions',
-      comment: 'Comments',
-      onsite_conversion: 'Onsite conversion',
-      'onsite_conversion.post_save': 'Onsite Conversion.Post Save',
-      'offsite_conversion.fb_pixel_custom': 'Offsite Conversion',
-      video_view: 'Video views',
-    };
-    const actionColors: Record<string, string> = {
-      post_engagement: 'bg-rose-500',
-      link_click: 'bg-rose-500',
-      landing_page_view: 'bg-rose-500',
-      page_engagement: 'bg-rose-500',
-      like: 'bg-rose-500',
-      post: 'bg-rose-500',
-      post_reaction: 'bg-rose-500',
-      comment: 'bg-rose-500',
-      onsite_conversion: 'bg-rose-500',
-      'onsite_conversion.post_save': 'bg-rose-500',
+      post: 'Post shares',
+      like: 'Facebook likes',
+      'onsite_conversion.post_save': 'Post saves',
     };
     ad.actions.forEach((action: any) => {
-      if (action.value && parseInt(action.value) > 0) {
+      const label = allowedActions[action.action_type];
+      if (label && action.value && parseInt(action.value) > 0) {
         activityItems.push({
-          label: actionLabels[action.action_type] || action.action_type.replace(/_/g, ' ').replace(/\./g, '.'),
+          label,
           value: parseInt(action.value),
-          color: actionColors[action.action_type] || 'bg-rose-400',
+          color: 'bg-rose-500',
         });
       }
     });
