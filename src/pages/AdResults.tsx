@@ -236,12 +236,24 @@ const AdResultsPage = () => {
         });
       }
 
-      // Style activity table
-      const activityTable = clonedContent.querySelector('[data-activity-table]');
-      if (activityTable) {
-        (activityTable as HTMLElement).style.cssText = 'width: 100%; border-collapse: collapse; margin: 16px 0;';
-        activityTable.querySelectorAll('td').forEach(td => {
-          (td as HTMLElement).style.cssText += '; padding: 6px 12px; border: 1px solid #e5e7eb; font-size: 14px;';
+      // Style activity section for email
+      const activitySection = clonedContent.querySelector('[data-activity-section]');
+      if (activitySection) {
+        (activitySection as HTMLElement).style.cssText = 'margin: 24px 0;';
+        const heading = activitySection.querySelector('h3');
+        if (heading) (heading as HTMLElement).style.cssText = 'font-size: 18px; font-weight: 600; margin-bottom: 12px; color: #111827;';
+        activitySection.querySelectorAll('[data-activity-row]').forEach(row => {
+          (row as HTMLElement).style.cssText = 'display: flex; align-items: center; gap: 12px; margin-bottom: 8px;';
+          const label = row.querySelector('span:first-child') as HTMLElement;
+          if (label) label.style.cssText = 'font-size: 14px; color: #6b7280; width: 130px; flex-shrink: 0;';
+          const barContainer = row.querySelector('div') as HTMLElement;
+          if (barContainer) {
+            barContainer.style.cssText = 'flex: 1; height: 24px; background: #f3f4f6; border-radius: 3px; overflow: hidden;';
+            const bar = barContainer.querySelector('div') as HTMLElement;
+            if (bar) bar.style.cssText = bar.style.cssText.replace(/background[^;]*;?/, '') + '; background: #f43f5e; height: 100%; border-radius: 3px;';
+          }
+          const value = row.querySelector('span:last-child') as HTMLElement;
+          if (value) value.style.cssText = 'font-size: 14px; font-weight: 600; color: #111827; width: 48px; text-align: right; flex-shrink: 0;';
         });
       }
 
@@ -395,22 +407,29 @@ const AdResultsPage = () => {
                 </div>
               </div>
 
-              {/* Activity Breakdown Table */}
-              {activityItems.length > 0 && (
-                <div className="my-6 not-prose">
-                  <h3 className="font-semibold text-lg mb-3 text-foreground">Activity Breakdown</h3>
-                  <table className="w-full border-collapse" data-activity-table>
-                    <tbody>
+              {/* Activity Breakdown */}
+              {activityItems.length > 0 && (() => {
+                const maxVal = activityItems[0]?.value || 1;
+                return (
+                  <div className="my-6 not-prose" data-activity-section>
+                    <h3 className="font-semibold text-lg mb-3 text-foreground">Activity</h3>
+                    <div className="space-y-2.5">
                       {activityItems.map((item, i) => (
-                        <tr key={i}>
-                          <td className="py-1.5 px-3 text-sm text-muted-foreground border border-border">{item.label}</td>
-                          <td className="py-1.5 px-3 text-sm font-semibold text-foreground text-right border border-border">{formatNumber(item.value)}</td>
-                        </tr>
+                        <div key={i} className="flex items-center gap-3" data-activity-row>
+                          <span className="text-sm text-muted-foreground w-32 shrink-0 truncate">{item.label}</span>
+                          <div className="flex-1 h-6 bg-muted rounded-sm overflow-hidden">
+                            <div
+                              className="h-full bg-rose-500 rounded-sm"
+                              style={{ width: `${Math.max((item.value / maxVal) * 100, 3)}%` }}
+                            />
+                          </div>
+                          <span className="text-sm font-semibold text-foreground w-12 text-right shrink-0">{formatNumber(item.value)}</span>
+                        </div>
                       ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
+                    </div>
+                  </div>
+                );
+              })()}
 
               <p className="mb-4">Let me know if you have any questions.</p>
 
