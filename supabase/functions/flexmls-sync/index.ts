@@ -513,18 +513,27 @@ Deno.serve(async (req) => {
                       }
 
                       try {
+                        // Use OG link share (like manual ads) so Facebook renders a rich preview card
+                        // with listing details, branded image, and the FORMOREINFO domain
+                        const ogBaseUrl = 'https://formoreinfo.sellfor1percent.com/og-listing';
+                        const listingId = l.id || l.mlsNumber;
+                        let ogLink = `${ogBaseUrl}?id=${encodeURIComponent(listingId)}`;
+
+                        // If there's a photo, include it as the og:image source
+                        if (l.photos && l.photos.length > 0) {
+                          ogLink += `&image=${encodeURIComponent(l.photos[0])}`;
+                        }
+
+                        // Add cache-busting timestamp
+                        ogLink += `&v=${Math.floor(Date.now() / 1000)}`;
+
                         const postBody: any = {
                           message,
+                          link: ogLink,
                           access_token: agent.page_access_token,
                         };
 
-                        let postUrl: string;
-                        if (l.photos && l.photos.length > 0) {
-                          postBody.url = l.photos[0];
-                          postUrl = `https://graph.facebook.com/v21.0/${agent.page_id}/photos`;
-                        } else {
-                          postUrl = `https://graph.facebook.com/v21.0/${agent.page_id}/feed`;
-                        }
+                        const postUrl = `https://graph.facebook.com/v21.0/${agent.page_id}/feed`;
 
                         const postResp = await fetch(postUrl, {
                           method: 'POST',
