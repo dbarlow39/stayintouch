@@ -38,26 +38,6 @@ Deno.serve(async (req) => {
     const userToken = tokenData.access_token;
     const debugInfo: string[] = [];
 
-    // Look up boost window from facebook_ad_posts
-    let boostTimeRange: string | null = null;
-    const { data: adPostData } = await supabase
-      .from("facebook_ad_posts")
-      .select("boost_started_at, duration_days")
-      .eq("agent_id", agent_id)
-      .eq("post_id", post_id)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .single();
-
-    if (adPostData?.boost_started_at && adPostData?.duration_days) {
-      const startDate = new Date(adPostData.boost_started_at);
-      const endDate = new Date(startDate);
-      endDate.setDate(endDate.getDate() + adPostData.duration_days);
-      const formatDate = (d: Date) => d.toISOString().split('T')[0]; // YYYY-MM-DD
-      boostTimeRange = `&time_range=${encodeURIComponent(JSON.stringify({ since: formatDate(startDate), until: formatDate(endDate) }))}`;
-      debugInfo.push(`Boost window: ${formatDate(startDate)} to ${formatDate(endDate)} (${adPostData.duration_days} days)`);
-    }
-
     const fetchJson = async (url: string) => {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 8000);
@@ -93,7 +73,6 @@ Deno.serve(async (req) => {
     const metricGroups = [
       ['post_clicks_by_type'],
       ['post_reactions_by_type_total', 'post_activity_by_action_type'],
-      ['post_impressions', 'post_impressions_unique'],
     ];
 
     const groupResults = await Promise.allSettled(metricGroups.map(async (group) => {
@@ -125,8 +104,24 @@ Deno.serve(async (req) => {
     let foundAdToken: string | null = null;
     const AD_ACCOUNT_ID = tokenData.ad_account_id || "563726213662060";
     const adInsightsFields = "impressions,reach,clicks,spend,cpc,cpm,actions,cost_per_action_type,unique_actions,unique_clicks,inline_post_engagement,inline_link_clicks";
-    const dateParam = boostTimeRange || "&date_preset=maximum";
-    const attrParam = `${dateParam}&action_attribution_windows=${encodeURIComponent('["7d_click","1d_view"]')}`;
+    const attrWindows = `&action_attribution_windows=${encodeURIComponent('["7d_click","1d_view"]')}`;
+
+    // Helper: fetch campaign date range from Facebook API, returns date param string
+    const getCampaignDateParam = async (campaignId: string, token: string): Promise<string> => {
+      try {
+        const campaignUrl = `https://graph.facebook.com/${API_VERSION}/${campaignId}?fields=start_time,stop_time&access_token=${token}`;
+        const campaignMeta = await fetchJson(campaignUrl);
+        if (!campaignMeta.error && campaignMeta.start_time) {
+          const since = campaignMeta.start_time.split('T')[0];
+          const until = campaignMeta.stop_time
+            ? campaignMeta.stop_time.split('T')[0]
+            : new Date().toISOString().split('T')[0];
+          debugInfo.push(`Campaign dates from FB API: ${since} to ${until}`);
+          return `&time_range=${encodeURIComponent(JSON.stringify({ since, until }))}`;
+        }
+      } catch (_e) { /* use fallback */ }
+      return "&date_preset=maximum";
+    };
 
     // Also fetch with 7d_click only for comparison (diagnostic)
     let altAdInsights: any = null;
@@ -148,7 +143,8 @@ Deno.serve(async (req) => {
           foundAdToken = token;
           const campaignId = ad.campaign_id;
           if (campaignId) {
-            const campaignInsightsUrl = `https://graph.facebook.com/${API_VERSION}/${campaignId}/insights?fields=${adInsightsFields}${attrParam}&access_token=${token}`;
+            const campaignDateParam = await getCampaignDateParam(campaignId, token);
+            const campaignInsightsUrl = `https://graph.facebook.com/${API_VERSION}/${campaignId}/insights?fields=${adInsightsFields}${campaignDateParam}${attrWindows}&access_token=${token}`;
             const campaignResp = await fetchJson(campaignInsightsUrl);
             if (!campaignResp.error && campaignResp.data?.[0]) {
               adInsights = campaignResp.data[0];
@@ -185,14 +181,16 @@ Deno.serve(async (req) => {
               foundAdToken = token;
               
               if (campaignId) {
-                const campaignInsightsUrl = `https://graph.facebook.com/${API_VERSION}/${campaignId}/insights?fields=${adInsightsFields}${attrParam}&access_token=${token}`;
+                const campaignDateParam = await getCampaignDateParam(campaignId, token);
+                const campaignInsightsUrl = `https://graph.facebook.com/${API_VERSION}/${campaignId}/insights?fields=${adInsightsFields}${campaignDateParam}${attrWindows}&access_token=${token}`;
                 const campaignResp = await fetchJson(campaignInsightsUrl);
                 if (!campaignResp.error && campaignResp.data?.[0]) {
                   adInsights = campaignResp.data[0];
                   debugInfo.push(`Campaign-level insights from campaign ${campaignId} (via ad ${allMatching[0].id})`);
                 } else {
                   debugInfo.push(`Campaign insights failed: ${campaignResp.error?.message?.substring(0, 60) || 'no data'}, falling back to ad-level`);
-                  const adInsightsUrl = `https://graph.facebook.com/${API_VERSION}/${allMatching[0].id}/insights?fields=${adInsightsFields}${attrParam}&access_token=${token}`;
+                  const adDateParam = "&date_preset=maximum";
+                  const adInsightsUrl = `https://graph.facebook.com/${API_VERSION}/${allMatching[0].id}/insights?fields=${adInsightsFields}${adDateParam}${attrWindows}&access_token=${token}`;
                   const insightsResp = await fetchJson(adInsightsUrl);
                   if (!insightsResp.error && insightsResp.data?.[0]) {
                     adInsights = insightsResp.data[0];
@@ -200,7 +198,8 @@ Deno.serve(async (req) => {
                   }
                 }
               } else {
-                const adInsightsUrl = `https://graph.facebook.com/${API_VERSION}/${allMatching[0].id}/insights?fields=${adInsightsFields}${attrParam}&access_token=${token}`;
+                const adDateParam = "&date_preset=maximum";
+                const adInsightsUrl = `https://graph.facebook.com/${API_VERSION}/${allMatching[0].id}/insights?fields=${adInsightsFields}${adDateParam}${attrWindows}&access_token=${token}`;
                 const insightsResp = await fetchJson(adInsightsUrl);
                 if (!insightsResp.error && insightsResp.data?.[0]) {
                   adInsights = insightsResp.data[0];
@@ -218,7 +217,7 @@ Deno.serve(async (req) => {
     // Diagnostic: log key unique metrics
     if (foundAdId && foundAdToken) {
       try {
-        const diagUrl = `https://graph.facebook.com/${API_VERSION}/${foundAdId}/insights?fields=unique_actions,unique_clicks,inline_post_engagement${dateParam}&access_token=${foundAdToken}`;
+        const diagUrl = `https://graph.facebook.com/${API_VERSION}/${foundAdId}/insights?fields=unique_actions,unique_clicks,inline_post_engagement&date_preset=maximum&access_token=${foundAdToken}`;
         const diagData = await fetchJson(diagUrl);
         if (!diagData.error && diagData.data?.[0]) {
           const d = diagData.data[0];
@@ -296,7 +295,7 @@ Deno.serve(async (req) => {
 
     const finalEngagements = adInsights ? adEngagements : (organicEngagements || promoEngaged);
 
-    // Step 4: Fetch audience demographics with use_unified_attribution_setting
+    // Step 4: Fetch audience demographics
     let audienceData: any = null;
     if (foundAdId) {
       const tokensToTry = foundAdToken
@@ -305,7 +304,7 @@ Deno.serve(async (req) => {
       for (const [tokenLabel, token] of tokensToTry) {
         if (audienceData) break;
         try {
-          const demoUrl = `https://graph.facebook.com/${API_VERSION}/${foundAdId}/insights?fields=reach,impressions&breakdowns=age,gender${attrParam}&access_token=${token}`;
+          const demoUrl = `https://graph.facebook.com/${API_VERSION}/${foundAdId}/insights?fields=reach,impressions&breakdowns=age,gender&date_preset=maximum${attrWindows}&access_token=${token}`;
           const demoData = await fetchJson(demoUrl);
           if (!demoData.error && demoData.data?.length > 0) {
             audienceData = demoData.data;
@@ -326,16 +325,16 @@ Deno.serve(async (req) => {
       comments,
       shares,
       engagements: finalEngagements,
-      impressions: metrics.post_impressions || (adInsights ? parseInt(adInsights.impressions || "0") : promoImpressions),
-      reach: metrics.post_impressions_unique || (adInsights ? parseInt(adInsights.reach || "0") : promoReach),
+      impressions: adInsights ? parseInt(adInsights.impressions || "0") : promoImpressions,
+      reach: adInsights ? parseInt(adInsights.reach || "0") : promoReach,
       clicks: adInsights ? parseInt(adInsights.clicks || "0") : totalClicks,
       click_types: Object.keys(clicksByType).length > 0 ? clicksByType : null,
       activity: activityObj,
       reactions: reactionsObj,
       engaged_users: promoEngaged,
       ad_insights: adInsights ? {
-        impressions: metrics.post_impressions || parseInt(adInsights.impressions || "0"),
-        reach: metrics.post_impressions_unique || parseInt(adInsights.reach || "0"),
+        impressions: parseInt(adInsights.impressions || "0"),
+        reach: parseInt(adInsights.reach || "0"),
         clicks: parseInt(adInsights.clicks || "0"),
         unique_clicks: parseInt(adInsights.unique_clicks || "0"),
         spend: parseFloat(adInsights.spend || "0"),
