@@ -592,30 +592,29 @@ const AdResultsPage = () => {
             </div>
           </div>
         </div>
+        {/* Inline Email Preview */}
+        {showPreview && emailPreviewHtml && (
+          <div className="mt-6" ref={(el) => { if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }}>
+            <section className="bg-card rounded-xl border border-border p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-base font-semibold text-card-foreground flex items-center gap-2">
+                  <Mail className="w-4 h-4 text-primary" /> Email Preview
+                </h2>
+                <Button variant="outline" size="sm" onClick={() => { setShowPreview(false); setEmailPreviewHtml(null); }}>
+                  Close Preview
+                </Button>
+              </div>
+              <div className="border border-border rounded-lg overflow-hidden bg-muted/30">
+                <iframe
+                  srcDoc={emailPreviewHtml}
+                  className="w-full h-[600px] border-0"
+                  title="Email Preview"
+                />
+              </div>
+            </section>
+          </div>
+        )}
       </main>
-
-      {/* Inline Email Preview */}
-      {showPreview && emailPreviewHtml && (
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 pb-6">
-          <section className="bg-card rounded-xl border border-border p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-base font-semibold text-card-foreground flex items-center gap-2">
-                <Mail className="w-4 h-4 text-primary" /> Email Preview
-              </h2>
-              <Button variant="outline" size="sm" onClick={() => { setShowPreview(false); setEmailPreviewHtml(null); }}>
-                Close Preview
-              </Button>
-            </div>
-            <div className="border border-border rounded-lg overflow-hidden bg-muted/30">
-              <iframe
-                srcDoc={emailPreviewHtml}
-                className="w-full h-[600px] border-0"
-                title="Email Preview"
-              />
-            </div>
-          </section>
-        </div>
-      )}
     </div>
   );
 };
