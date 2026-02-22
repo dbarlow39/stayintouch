@@ -114,17 +114,34 @@ const AdResultsPage = () => {
         if (data) setAdPost(data as any);
       });
 
-    // Try to find seller email from clients table using listing address
+    // Try to find seller email - check estimated_net_properties first, then clients
     if (listingAddress) {
+      const streetPart = listingAddress.split(',')[0].trim();
+      
+      // Check estimated_net_properties for seller_email first
       supabase
-        .from('clients')
-        .select('email, first_name, last_name')
+        .from('estimated_net_properties')
+        .select('seller_email')
         .eq('agent_id', user.id)
-        .or(`location.ilike.%${listingAddress.split(',')[0].trim()}%`)
+        .ilike('street_address', `%${streetPart}%`)
         .limit(1)
         .maybeSingle()
-        .then(({ data }) => {
-          if (data?.email) setRecipientEmail(data.email);
+        .then(({ data: propData }) => {
+          if (propData?.seller_email) {
+            setRecipientEmail(propData.seller_email);
+          } else {
+            // Fallback to clients table
+            supabase
+              .from('clients')
+              .select('email, first_name, last_name')
+              .eq('agent_id', user.id)
+              .or(`location.ilike.%${streetPart}%`)
+              .limit(1)
+              .maybeSingle()
+              .then(({ data: clientData }) => {
+                if (clientData?.email) setRecipientEmail(clientData.email);
+              });
+          }
         });
     }
   }, [user, postId, listingAddress]);
