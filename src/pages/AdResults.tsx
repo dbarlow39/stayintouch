@@ -196,18 +196,18 @@ const AdResultsPage = () => {
 
     const emailActivityItems: { label: string; value: number }[] = [];
     if (ad?.actions?.length) {
-      const actionLabels: Record<string, string> = {
-        post_engagement: 'Post engagements', link_click: 'Link clicks',
-        landing_page_view: 'Landing page views', page_engagement: 'Page engagements',
-        post_reaction: 'Post reactions', comment: 'Comments',
+      const allowedActions: Record<string, string> = {
+        post_engagement: 'Post engagements',
+        link_click: 'Link clicks',
+        post_reaction: 'Post reactions',
+        post: 'Post shares',
+        like: 'Facebook likes',
+        'onsite_conversion.post_save': 'Post saves',
       };
       for (const action of ad.actions) {
-        const val = parseInt(action.value);
-        if (val > 0) {
-          emailActivityItems.push({
-            label: actionLabels[action.action_type] || action.action_type.replace(/_/g, ' '),
-            value: val,
-          });
+        const label = allowedActions[action.action_type];
+        if (label && parseInt(action.value) > 0) {
+          emailActivityItems.push({ label, value: parseInt(action.value) });
         }
       }
     }
