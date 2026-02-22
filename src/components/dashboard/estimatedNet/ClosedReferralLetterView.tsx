@@ -230,7 +230,7 @@ const ClosedReferralLetterView = ({ propertyData, propertyId, onBack, onEdit, on
 
           <Card className="p-8 mb-6 print:shadow-none">
             <div className="prose prose-lg max-w-none text-foreground">
-              <p className="mb-4">Dear {clientFirstNames},</p>
+              <p className="mb-4">Hi {clientFirstNames},</p>
 
               <p className="mb-4">
                 I hope this note finds you doing well after your big move, we are definitely not getting any younger. . .
