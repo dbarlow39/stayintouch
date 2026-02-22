@@ -12,7 +12,7 @@ interface AdResultsEmailPayload {
   listing_address: string;
   post_date: string;
   post_engagements: number;
-  cost_per_engagement: string;
+  cost_per_engagement?: string;
   views: number;
   reach: number;
   likes: number;
@@ -111,24 +111,19 @@ serve(async (req) => {
                   </td>
                   <td width="50%" style="padding-left: 6px; padding-bottom: 8px;">
                     <div style="border: 1px solid #e5e7eb; border-radius: 8px; padding: 14px;">
-                      <p style="margin: 0; font-size: 11px; color: #6b7280;">Cost per Engagement</p>
-                      <p style="margin: 4px 0 0; font-size: 24px; font-weight: 700; color: #1f2937;">$${cost_per_engagement}</p>
+                      <p style="margin: 0; font-size: 11px; color: #6b7280;">Views</p>
+                      <p style="margin: 4px 0 0; font-size: 24px; font-weight: 700; color: #1f2937;">${views.toLocaleString()}</p>
                     </div>
                   </td>
                 </tr>
                 <tr>
                   <td width="50%" style="padding-right: 6px;">
                     <div style="border: 1px solid #e5e7eb; border-radius: 8px; padding: 14px;">
-                      <p style="margin: 0; font-size: 11px; color: #6b7280;">Views</p>
-                      <p style="margin: 4px 0 0; font-size: 24px; font-weight: 700; color: #1f2937;">${views.toLocaleString()}</p>
-                    </div>
-                  </td>
-                  <td width="50%" style="padding-left: 6px;">
-                    <div style="border: 1px solid #e5e7eb; border-radius: 8px; padding: 14px;">
                       <p style="margin: 0; font-size: 11px; color: #6b7280;">Reach</p>
                       <p style="margin: 4px 0 0; font-size: 24px; font-weight: 700; color: #1f2937;">${reach.toLocaleString()}</p>
                     </div>
                   </td>
+                  <td width="50%"></td>
                 </tr>
               </table>
             </td>

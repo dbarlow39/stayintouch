@@ -124,17 +124,6 @@ const FacebookAdResults = ({ postId, listingAddress, onClose }: FacebookAdResult
   const totalClicks = data.clicks || 0;
   const totalSpend = ad?.spend || 0;
   const totalEngagements = data.engagements || 0;
-  let costPerEngagement = '0.00';
-  if (ad?.cost_per_action && Array.isArray(ad.cost_per_action)) {
-    const cpEngagement = ad.cost_per_action.find((a: any) => a.action_type === 'post_engagement');
-    if (cpEngagement) {
-      costPerEngagement = parseFloat(cpEngagement.value).toFixed(2);
-    } else if (totalEngagements > 0 && totalSpend > 0) {
-      costPerEngagement = (totalSpend / totalEngagements).toFixed(2);
-    }
-  } else if (totalEngagements > 0 && totalSpend > 0) {
-    costPerEngagement = (totalSpend / totalEngagements).toFixed(2);
-  }
 
   // Activity breakdown - prefer ad actions when available (matches Facebook Ads Manager)
   const activityItems: { label: string; value: number; color: string }[] = [];
@@ -236,11 +225,6 @@ const FacebookAdResults = ({ postId, listingAddress, onClose }: FacebookAdResult
           icon={<Users className="w-4 h-4 text-blue-500" />}
           label="Post engagements"
           value={totalEngagements.toLocaleString()}
-        />
-        <MetricCard
-          icon={<DollarSign className="w-4 h-4 text-emerald-500" />}
-          label="Cost per engagement"
-          value={`$${costPerEngagement}`}
         />
         <MetricCard
           icon={<Eye className="w-4 h-4 text-indigo-500" />}
