@@ -5,6 +5,8 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+const API_VERSION = "v25.0";
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -50,7 +52,7 @@ Deno.serve(async (req) => {
     // Step 1: Get basic post data from published_posts
     let postData: any = {};
     if (pageId) {
-      const feedUrl = `https://graph.facebook.com/v21.0/${pageId}/published_posts?fields=id,created_time,message,full_picture,shares&limit=100&access_token=${pageToken}`;
+      const feedUrl = `https://graph.facebook.com/${API_VERSION}/${pageId}/published_posts?fields=id,created_time,message,full_picture,shares&limit=100&access_token=${pageToken}`;
       const feedData = await fetchJson(feedUrl);
       if (!feedData.error && feedData.data) {
         const matched = feedData.data.find((p: any) => p.id === post_id);
@@ -74,7 +76,7 @@ Deno.serve(async (req) => {
     ];
 
     const groupResults = await Promise.allSettled(metricGroups.map(async (group) => {
-      const url = `https://graph.facebook.com/v21.0/${post_id}/insights?metric=${group.join(',')}&access_token=${pageToken}`;
+      const url = `https://graph.facebook.com/${API_VERSION}/${post_id}/insights?metric=${group.join(',')}&access_token=${pageToken}`;
       const data = await fetchJson(url);
       if (data.data?.length > 0) {
         for (const item of data.data) {
@@ -97,10 +99,13 @@ Deno.serve(async (req) => {
     }
 
     // Step 3: Get ad insights via Ads API - use EQUAL operator and try multiple approaches
+    // Include use_unified_attribution_setting=true to match Ads Manager numbers
     let adInsights: any = null;
     let foundAdId: string | null = null;
     let foundAdToken: string | null = null;
     const AD_ACCOUNT_ID = tokenData.ad_account_id || "563726213662060";
+    const adInsightsFields = "impressions,reach,clicks,spend,cpc,cpm,actions,cost_per_action_type";
+    const unifiedAttrParam = "&use_unified_attribution_setting=true";
 
     // Approach A: Search ads by effective_object_story_id with EQUAL operator
     for (const [tokenLabel, token] of [["user", userToken], ["page", pageToken]]) {
@@ -111,7 +116,7 @@ Deno.serve(async (req) => {
           operator: "EQUAL",
           value: post_id
         }]);
-        const adsUrl = `https://graph.facebook.com/v21.0/act_${AD_ACCOUNT_ID}/ads?fields=id,creative{effective_object_story_id},insights.fields(impressions,reach,clicks,spend,cpc,cpm,actions,cost_per_action_type)&filtering=${encodeURIComponent(filterJson)}&access_token=${token}`;
+        const adsUrl = `https://graph.facebook.com/${API_VERSION}/act_${AD_ACCOUNT_ID}/ads?fields=id,creative{effective_object_story_id},insights.fields(${adInsightsFields})${unifiedAttrParam}&filtering=${encodeURIComponent(filterJson)}&access_token=${token}`;
         const adsData = await fetchJson(adsUrl);
         if (!adsData.error && adsData.data?.length > 0 && adsData.data[0].insights?.data?.[0]) {
           adInsights = adsData.data[0].insights.data[0];
@@ -126,21 +131,19 @@ Deno.serve(async (req) => {
       } catch (_e) { /* non-fatal */ }
     }
 
-    // Approach B: If no ad found via filter, try querying ad account insights directly with object_story_id
+    // Approach B: If no ad found via filter, scan recent ads
     if (!adInsights) {
       for (const [tokenLabel, token] of [["user", userToken], ["page", pageToken]]) {
         if (adInsights) break;
         try {
-          // Get all recent ads and find the one matching our post
-          const recentAdsUrl = `https://graph.facebook.com/v21.0/act_${AD_ACCOUNT_ID}/ads?fields=id,creative{effective_object_story_id}&limit=100&access_token=${token}`;
+          const recentAdsUrl = `https://graph.facebook.com/${API_VERSION}/act_${AD_ACCOUNT_ID}/ads?fields=id,creative{effective_object_story_id}&limit=100&access_token=${token}`;
           const recentAds = await fetchJson(recentAdsUrl);
           if (!recentAds.error && recentAds.data) {
             const matchingAd = recentAds.data.find((ad: any) => 
               ad.creative?.effective_object_story_id === post_id
             );
             if (matchingAd) {
-              // Found the ad, now get its insights
-              const adInsightsUrl = `https://graph.facebook.com/v21.0/${matchingAd.id}/insights?fields=impressions,reach,clicks,spend,cpc,cpm,actions,cost_per_action_type&access_token=${token}`;
+              const adInsightsUrl = `https://graph.facebook.com/${API_VERSION}/${matchingAd.id}/insights?fields=${adInsightsFields}${unifiedAttrParam}&access_token=${token}`;
               const insightsResp = await fetchJson(adInsightsUrl);
               if (!insightsResp.error && insightsResp.data?.[0]) {
                 adInsights = insightsResp.data[0];
@@ -163,7 +166,7 @@ Deno.serve(async (req) => {
     // Approach C: Try promoted_posts edge on the post itself
     if (!adInsights) {
       try {
-        const promoUrl = `https://graph.facebook.com/v21.0/${post_id}?fields=promotion_status,insights.metric(post_impressions,post_impressions_unique,post_engaged_users).period(lifetime)&access_token=${pageToken}`;
+        const promoUrl = `https://graph.facebook.com/${API_VERSION}/${post_id}?fields=promotion_status,insights.metric(post_impressions,post_impressions_unique,post_engaged_users).period(lifetime)&access_token=${pageToken}`;
         const promoData = await fetchJson(promoUrl);
         if (!promoData.error && promoData.insights?.data) {
           const promoMetrics: Record<string, number> = {};
@@ -171,7 +174,6 @@ Deno.serve(async (req) => {
             promoMetrics[item.name] = item.values?.[0]?.value || 0;
           }
           if (promoMetrics.post_impressions || promoMetrics.post_impressions_unique) {
-            // Use these as fallback impressions/reach
             metrics._promo_impressions = promoMetrics.post_impressions || 0;
             metrics._promo_reach = promoMetrics.post_impressions_unique || 0;
             metrics._promo_engaged = promoMetrics.post_engaged_users || 0;
@@ -213,27 +215,24 @@ Deno.serve(async (req) => {
     if (adInsights) {
       adActions = adInsights.actions || [];
       adCostPerAction = adInsights.cost_per_action_type || [];
-      // Extract the canonical post_engagement count from ad actions
       const engagementAction = adActions.find((a: any) => a.action_type === 'post_engagement');
       if (engagementAction) {
         adEngagements = parseInt(engagementAction.value || "0");
       }
     }
 
-    // When ad insights exist, prefer ad-reported metrics for consistency with Facebook Ads Manager
     const finalEngagements = adInsights ? (adEngagements || organicEngagements) : (organicEngagements || promoEngaged);
 
-    // Step 4: Fetch audience demographics (age/gender breakdown) using the found ad ID
+    // Step 4: Fetch audience demographics with use_unified_attribution_setting
     let audienceData: any = null;
     if (foundAdId) {
-      // Query the specific ad's insights with age/gender breakdowns
       const tokensToTry = foundAdToken
         ? [[foundAdToken === userToken ? "user" : "page", foundAdToken], ...([["user", userToken], ["page", pageToken]] as const).filter(([,t]) => t !== foundAdToken)]
         : [["user", userToken], ["page", pageToken]];
       for (const [tokenLabel, token] of tokensToTry) {
         if (audienceData) break;
         try {
-          const demoUrl = `https://graph.facebook.com/v21.0/${foundAdId}/insights?fields=reach,impressions&breakdowns=age,gender&access_token=${token}`;
+          const demoUrl = `https://graph.facebook.com/${API_VERSION}/${foundAdId}/insights?fields=reach,impressions&breakdowns=age,gender${unifiedAttrParam}&access_token=${token}`;
           const demoData = await fetchJson(demoUrl);
           if (!demoData.error && demoData.data?.length > 0) {
             audienceData = demoData.data;
