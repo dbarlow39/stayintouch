@@ -305,7 +305,7 @@ const FacebookAdResults = ({ postId, listingAddress, onClose }: FacebookAdResult
             navigate(`/ad-results/${postId}?${params.toString()}`);
           }}
         >
-          <Maximize2 className="w-3.5 h-3.5 mr-1.5" /> View Full Report
+          <Maximize2 className="w-3.5 h-3.5 mr-1.5" /> View Full Report and Email Report
         </Button>
         <Button
           variant="outline"
