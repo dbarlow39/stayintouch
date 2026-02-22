@@ -110,7 +110,7 @@ Deno.serve(async (req) => {
     // Also fetch with 7d_click only for comparison (diagnostic)
     let altAdInsights: any = null;
 
-    // Approach A: Search ads by effective_object_story_id with EQUAL operator
+    // Approach A: Search ads by effective_object_story_id, then query campaign-level
     for (const [tokenLabel, token] of [["user", userToken], ["page", pageToken]]) {
       if (adInsights) break;
       try {
@@ -119,13 +119,24 @@ Deno.serve(async (req) => {
           operator: "EQUAL",
           value: post_id
         }]);
-        const adsUrl = `https://graph.facebook.com/${API_VERSION}/act_${AD_ACCOUNT_ID}/ads?fields=id,creative{effective_object_story_id},insights.fields(${adInsightsFields}).date_preset(maximum).action_attribution_windows(["7d_click","1d_view"])&filtering=${encodeURIComponent(filterJson)}&access_token=${token}`;
+        const adsUrl = `https://graph.facebook.com/${API_VERSION}/act_${AD_ACCOUNT_ID}/ads?fields=id,campaign_id,creative{effective_object_story_id}&filtering=${encodeURIComponent(filterJson)}&access_token=${token}`;
         const adsData = await fetchJson(adsUrl);
-        if (!adsData.error && adsData.data?.length > 0 && adsData.data[0].insights?.data?.[0]) {
-          adInsights = adsData.data[0].insights.data[0];
-          foundAdId = adsData.data[0].id;
+        if (!adsData.error && adsData.data?.length > 0) {
+          const ad = adsData.data[0];
+          foundAdId = ad.id;
           foundAdToken = token;
-          debugInfo.push(`Ad insights found via ads filter (${tokenLabel} token)`);
+          const campaignId = ad.campaign_id;
+          if (campaignId) {
+            const campaignInsightsUrl = `https://graph.facebook.com/${API_VERSION}/${campaignId}/insights?fields=${adInsightsFields}${attrParam}&access_token=${token}`;
+            const campaignResp = await fetchJson(campaignInsightsUrl);
+            if (!campaignResp.error && campaignResp.data?.[0]) {
+              adInsights = campaignResp.data[0];
+              debugInfo.push(`Campaign insights via ads filter (${tokenLabel}, campaign ${campaignId})`);
+            }
+          }
+          if (!adInsights) {
+            debugInfo.push(`Ads filter(${tokenLabel}): found ad ${ad.id} but campaign insights failed`);
+          }
         } else if (adsData.error) {
           debugInfo.push(`Ads filter(${tokenLabel}): ${adsData.error.message?.substring(0, 60)}`);
         } else {
@@ -134,12 +145,12 @@ Deno.serve(async (req) => {
       } catch (_e) { /* non-fatal */ }
     }
 
-    // Approach B: If no ad found via filter, scan recent ads and AGGREGATE all matches
+    // Approach B: Scan recent ads, find campaign, get CAMPAIGN-level insights (matches Boost Post view)
     if (!adInsights) {
       for (const [tokenLabel, token] of [["user", userToken], ["page", pageToken]]) {
         if (adInsights) break;
         try {
-          const recentAdsUrl = `https://graph.facebook.com/${API_VERSION}/act_${AD_ACCOUNT_ID}/ads?fields=id,creative{effective_object_story_id}&limit=100&access_token=${token}`;
+          const recentAdsUrl = `https://graph.facebook.com/${API_VERSION}/act_${AD_ACCOUNT_ID}/ads?fields=id,campaign_id,creative{effective_object_story_id}&limit=100&access_token=${token}`;
           const recentAds = await fetchJson(recentAdsUrl);
           if (!recentAds.error && recentAds.data) {
             const allMatching = recentAds.data.filter((ad: any) => 
@@ -147,62 +158,36 @@ Deno.serve(async (req) => {
             );
             debugInfo.push(`Ad scan(${tokenLabel}): ${allMatching.length} matching ads out of ${recentAds.data.length} [${allMatching.map((a:any)=>a.id).join(',')}]`);
             
-            if (allMatching.length === 1) {
-              const adInsightsUrl = `https://graph.facebook.com/${API_VERSION}/${allMatching[0].id}/insights?fields=${adInsightsFields}${attrParam}&access_token=${token}`;
-              const insightsResp = await fetchJson(adInsightsUrl);
-              if (!insightsResp.error && insightsResp.data?.[0]) {
-                adInsights = insightsResp.data[0];
-                foundAdId = allMatching[0].id;
-                foundAdToken = token;
-                debugInfo.push(`Ad insights from single ad ${allMatching[0].id}`);
-              }
-            } else if (allMatching.length > 1) {
-              const allInsights = await Promise.allSettled(
-                allMatching.map(async (ad: any) => {
-                  const url = `https://graph.facebook.com/${API_VERSION}/${ad.id}/insights?fields=${adInsightsFields}${attrParam}&access_token=${token}`;
-                  const resp = await fetchJson(url);
-                  return (!resp.error && resp.data?.[0]) ? resp.data[0] : null;
-                })
-              );
+            if (allMatching.length > 0) {
+              const campaignId = allMatching[0].campaign_id;
+              foundAdId = allMatching[0].id;
+              foundAdToken = token;
               
-              let aggregated: any = null;
-              const numericFields = ['impressions', 'reach', 'clicks', 'spend', 'unique_clicks', 'inline_post_engagement', 'inline_link_clicks'];
-              const actionMap: Record<string, number> = {};
-              const uniqueActionMap: Record<string, number> = {};
-              
-              for (const result of allInsights) {
-                if (result.status !== 'fulfilled' || !result.value) continue;
-                const ins = result.value;
-                if (!aggregated) {
-                  aggregated = { ...ins };
+              if (campaignId) {
+                // Query CAMPAIGN-level insights — this is what Facebook's Boost Post results view shows
+                const campaignInsightsUrl = `https://graph.facebook.com/${API_VERSION}/${campaignId}/insights?fields=${adInsightsFields}${attrParam}&access_token=${token}`;
+                const campaignResp = await fetchJson(campaignInsightsUrl);
+                if (!campaignResp.error && campaignResp.data?.[0]) {
+                  adInsights = campaignResp.data[0];
+                  debugInfo.push(`Campaign-level insights from campaign ${campaignId} (via ad ${allMatching[0].id})`);
                 } else {
-                  for (const field of numericFields) {
-                    aggregated[field] = String(parseFloat(aggregated[field] || "0") + parseFloat(ins[field] || "0"));
+                  debugInfo.push(`Campaign insights failed: ${campaignResp.error?.message?.substring(0, 60) || 'no data'}, falling back to ad-level`);
+                  // Fallback to ad-level if campaign query fails
+                  const adInsightsUrl = `https://graph.facebook.com/${API_VERSION}/${allMatching[0].id}/insights?fields=${adInsightsFields}${attrParam}&access_token=${token}`;
+                  const insightsResp = await fetchJson(adInsightsUrl);
+                  if (!insightsResp.error && insightsResp.data?.[0]) {
+                    adInsights = insightsResp.data[0];
+                    debugInfo.push(`Fallback: ad-level insights from ad ${allMatching[0].id}`);
                   }
                 }
-                for (const action of (ins.actions || [])) {
-                  actionMap[action.action_type] = (actionMap[action.action_type] || 0) + parseInt(action.value || "0");
+              } else {
+                // No campaign_id available, fall back to ad-level
+                const adInsightsUrl = `https://graph.facebook.com/${API_VERSION}/${allMatching[0].id}/insights?fields=${adInsightsFields}${attrParam}&access_token=${token}`;
+                const insightsResp = await fetchJson(adInsightsUrl);
+                if (!insightsResp.error && insightsResp.data?.[0]) {
+                  adInsights = insightsResp.data[0];
+                  debugInfo.push(`Ad-level insights (no campaign_id) from ad ${allMatching[0].id}`);
                 }
-                for (const action of (ins.unique_actions || [])) {
-                  uniqueActionMap[action.action_type] = (uniqueActionMap[action.action_type] || 0) + parseInt(action.value || "0");
-                }
-              }
-              
-              if (aggregated) {
-                aggregated.actions = Object.entries(actionMap).map(([action_type, value]) => ({ action_type, value: String(value) }));
-                aggregated.unique_actions = Object.entries(uniqueActionMap).map(([action_type, value]) => ({ action_type, value: String(value) }));
-                const aggSpend = parseFloat(aggregated.spend || "0");
-                aggregated.cost_per_action_type = Object.entries(actionMap).map(([action_type, value]) => ({
-                  action_type,
-                  value: String(value > 0 ? (aggSpend / value).toFixed(2) : "0"),
-                }));
-                aggregated.cpc = String(parseFloat(aggregated.clicks || "0") > 0 ? (aggSpend / parseFloat(aggregated.clicks)) : 0);
-                aggregated.cpm = String(parseFloat(aggregated.impressions || "0") > 0 ? (aggSpend / parseFloat(aggregated.impressions) * 1000) : 0);
-                
-                adInsights = aggregated;
-                foundAdId = allMatching[0].id;
-                foundAdToken = token;
-                debugInfo.push(`Aggregated insights from ${allInsights.filter(r => r.status === 'fulfilled' && r.value).length} of ${allMatching.length} ads`);
               }
             }
           } else if (recentAds.error) {
