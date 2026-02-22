@@ -166,25 +166,35 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Diagnostic: compare attribution settings if we found an ad
+    // Diagnostic: dump ALL available fields from this ad to find Facebook's exact numbers
     if (foundAdId && foundAdToken) {
-      const diagParams = [
-        ["acct_attr", "&use_account_attribution_setting=true"],
-        ["7d_click", "&action_attribution_windows=[%227d_click%22]"],
-      ];
-      const diagResults = await Promise.allSettled(diagParams.map(async ([label, param]) => {
-        const url = `https://graph.facebook.com/${API_VERSION}/${foundAdId}/insights?fields=impressions,reach,actions${param}&access_token=${foundAdToken}`;
-        const data = await fetchJson(url);
-        if (!data.error && data.data?.[0]) {
-          const pe = data.data[0].actions?.find((a: any) => a.action_type === 'post_engagement');
-          const lc = data.data[0].actions?.find((a: any) => a.action_type === 'link_click');
-          return `${label}: imp=${data.data[0].impressions} reach=${data.data[0].reach} pe=${pe?.value||'?'} lc=${lc?.value||'?'}`;
+      try {
+        const allFieldsUrl = `https://graph.facebook.com/${API_VERSION}/${foundAdId}/insights?fields=impressions,reach,clicks,spend,actions,unique_clicks,inline_link_clicks,inline_post_engagement,unique_inline_link_clicks,unique_actions,outbound_clicks,unique_outbound_clicks,frequency&access_token=${foundAdToken}`;
+        const allData = await fetchJson(allFieldsUrl);
+        if (!allData.error && allData.data?.[0]) {
+          const d = allData.data[0];
+          // Log key metrics that might match 260, 7568, 4479
+          const uniqueActions = d.unique_actions || [];
+          const uaPE = uniqueActions.find((a: any) => a.action_type === 'post_engagement');
+          const uaLC = uniqueActions.find((a: any) => a.action_type === 'link_click');
+          debugInfo.push(`ALL FIELDS: imp=${d.impressions} reach=${d.reach} clicks=${d.clicks}`);
+          debugInfo.push(`unique_impressions=${d.unique_impressions || '?'} unique_clicks=${d.unique_clicks || '?'}`);
+          debugInfo.push(`inline_post_engagement=${d.inline_post_engagement || '?'} inline_link_clicks=${d.inline_link_clicks || '?'}`);
+          debugInfo.push(`unique_actions PE=${uaPE?.value||'?'} LC=${uaLC?.value||'?'}`);
+          debugInfo.push(`frequency=${d.frequency||'?'} social_spend=${d.social_spend||'?'}`);
+          // Dump all unique_actions
+          if (uniqueActions.length > 0) {
+            debugInfo.push(`unique_actions: ${JSON.stringify(uniqueActions.map((a:any) => `${a.action_type}=${a.value}`))}`);
+          }
+          // Check outbound clicks
+          const obClicks = d.outbound_clicks || [];
+          if (obClicks.length > 0) {
+            debugInfo.push(`outbound_clicks: ${JSON.stringify(obClicks.map((a:any) => `${a.action_type}=${a.value}`))}`);
+          }
+        } else {
+          debugInfo.push(`ALL FIELDS err: ${allData.error?.message?.substring(0,80) || 'no data'}`);
         }
-        return `${label}: ${data.error?.message?.substring(0, 40) || 'no data'}`;
-      }));
-      for (const r of diagResults) {
-        debugInfo.push(r.status === 'fulfilled' ? r.value : `diag err: ${r.reason}`);
-      }
+      } catch (_e) { debugInfo.push(`ALL FIELDS exception`); }
     }
 
     // Approach C: Try promoted_posts edge on the post itself
