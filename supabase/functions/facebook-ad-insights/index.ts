@@ -217,6 +217,29 @@ Deno.serve(async (req) => {
     // When ad insights exist, prefer ad-reported metrics for consistency with Facebook Ads Manager
     const finalEngagements = adInsights ? (adEngagements || organicEngagements) : (organicEngagements || promoEngaged);
 
+    // Step 4: Fetch audience demographics (age/gender breakdown) if ad insights exist
+    let audienceData: any = null;
+    if (adInsights) {
+      for (const [tokenLabel, token] of [["user", userToken], ["page", pageToken]]) {
+        if (audienceData) break;
+        try {
+          const filterJson = JSON.stringify([{
+            field: "effective_object_story_id",
+            operator: "EQUAL",
+            value: post_id
+          }]);
+          const demoUrl = `https://graph.facebook.com/v21.0/act_${AD_ACCOUNT_ID}/insights?fields=reach,impressions&breakdowns=age,gender&filtering=${encodeURIComponent(filterJson)}&level=ad&access_token=${token}`;
+          const demoData = await fetchJson(demoUrl);
+          if (!demoData.error && demoData.data?.length > 0) {
+            audienceData = demoData.data;
+            debugInfo.push(`Audience demographics found (${tokenLabel}, ${demoData.data.length} rows)`);
+          } else if (demoData.error) {
+            debugInfo.push(`Audience(${tokenLabel}): ${demoData.error.message?.substring(0, 60)}`);
+          }
+        } catch (_e) { /* non-fatal */ }
+      }
+    }
+
     const result = {
       post_id,
       created_time: postData.created_time || null,
@@ -243,6 +266,7 @@ Deno.serve(async (req) => {
         actions: adActions,
         cost_per_action: adCostPerAction,
       } : null,
+      audience: audienceData,
       debug: debugInfo,
     };
 
