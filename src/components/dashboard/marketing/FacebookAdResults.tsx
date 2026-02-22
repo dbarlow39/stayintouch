@@ -144,7 +144,7 @@ const FacebookAdResults = ({ postId, listingAddress, onClose }: FacebookAdResult
         activityItems.push({
           label,
           value: parseInt(action.value),
-          color: 'bg-rose-500',
+          color: 'bg-primary',
         });
       }
     });
@@ -162,7 +162,7 @@ const FacebookAdResults = ({ postId, listingAddress, onClose }: FacebookAdResult
           activityItems.push({
             label: typeLabels[key] || key.replace(/_/g, ' '),
             value: val,
-            color: 'bg-rose-500',
+            color: 'bg-primary',
           });
         }
       });
@@ -170,9 +170,9 @@ const FacebookAdResults = ({ postId, listingAddress, onClose }: FacebookAdResult
 
     // Add organic reactions/comments/shares
     if (activityItems.length === 0) {
-      if (data.likes > 0) activityItems.push({ label: 'Reactions', value: data.likes, color: 'bg-rose-400' });
-      if (data.comments > 0) activityItems.push({ label: 'Comments', value: data.comments, color: 'bg-rose-500' });
-      if (data.shares > 0) activityItems.push({ label: 'Shares', value: data.shares, color: 'bg-rose-500' });
+      if (data.likes > 0) activityItems.push({ label: 'Reactions', value: data.likes, color: 'bg-primary/80' });
+      if (data.comments > 0) activityItems.push({ label: 'Comments', value: data.comments, color: 'bg-primary' });
+      if (data.shares > 0) activityItems.push({ label: 'Shares', value: data.shares, color: 'bg-primary' });
     }
   }
 
@@ -367,11 +367,11 @@ function AudienceBreakdown({ audience, totalReach }: { audience: AudienceRow[]; 
       </p>
       <div className="flex gap-4 text-xs mb-3">
         <span className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-sm bg-blue-500 inline-block" />
+          <span className="w-2.5 h-2.5 rounded-sm bg-primary inline-block" />
           {womenPct}% Women
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-sm bg-teal-400 inline-block" />
+          <span className="w-2.5 h-2.5 rounded-sm bg-primary/50 inline-block" />
           {menPct}% Men
         </span>
       </div>
@@ -382,8 +382,8 @@ function AudienceBreakdown({ audience, totalReach }: { audience: AudienceRow[]; 
           return (
             <div key={ag} className="flex-1 flex flex-col items-center gap-0.5">
               <div className="flex items-end gap-0.5 w-full h-24">
-                <div className="flex-1 bg-blue-500 rounded-t-sm transition-all" style={{ height: `${Math.max(fH, 2)}%` }} />
-                <div className="flex-1 bg-teal-400 rounded-t-sm transition-all" style={{ height: `${Math.max(mH, 2)}%` }} />
+                <div className="flex-1 bg-primary rounded-t-sm transition-all" style={{ height: `${Math.max(fH, 2)}%` }} />
+                <div className="flex-1 bg-primary/50 rounded-t-sm transition-all" style={{ height: `${Math.max(mH, 2)}%` }} />
               </div>
               <span className="text-[10px] text-muted-foreground">{ag}</span>
             </div>
