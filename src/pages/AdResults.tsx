@@ -256,8 +256,45 @@ const AdResultsPage = () => {
           if (value) value.style.cssText = 'font-size: 14px; font-weight: 600; color: #111827; width: 48px; text-align: right; flex-shrink: 0;';
         });
       }
+      // Style audience section for email
+      const audienceSection = clonedContent.querySelector('[data-audience-section]');
+      if (audienceSection) {
+        (audienceSection as HTMLElement).style.cssText = 'margin: 24px 0;';
+        const heading = audienceSection.querySelector('h3');
+        if (heading) (heading as HTMLElement).style.cssText = 'font-size: 18px; font-weight: 600; margin-bottom: 4px; color: #111827;';
+        // Style the bar chart container
+        const barChart = audienceSection.querySelector('.flex.items-end.gap-2');
+        if (barChart) {
+          (barChart as HTMLElement).style.cssText = 'display: flex; align-items: flex-end; gap: 8px; height: 160px;';
+          barChart.querySelectorAll('.flex-1.flex.flex-col').forEach(col => {
+            (col as HTMLElement).style.cssText = 'flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px;';
+            const barRow = col.querySelector('.flex.items-end') as HTMLElement;
+            if (barRow) {
+              barRow.style.cssText = 'display: flex; align-items: flex-end; gap: 4px; width: 100%; height: 128px;';
+              const bars = barRow.querySelectorAll('div');
+              bars.forEach(bar => {
+                const el = bar as HTMLElement;
+                if (el.classList.contains('bg-blue-500')) {
+                  el.style.cssText = el.style.cssText + '; flex: 1; background: #3b82f6; border-radius: 3px 3px 0 0;';
+                } else if (el.classList.contains('bg-teal-400')) {
+                  el.style.cssText = el.style.cssText + '; flex: 1; background: #2dd4bf; border-radius: 3px 3px 0 0;';
+                }
+              });
+            }
+          });
+        }
+        // Style legend
+        const legendItems = audienceSection.querySelectorAll('.flex.gap-4 span');
+        legendItems.forEach(span => {
+          const colorBox = (span as HTMLElement).querySelector('span');
+          if (colorBox?.classList.contains('bg-blue-500')) {
+            colorBox.style.cssText = 'width: 12px; height: 12px; border-radius: 3px; background: #3b82f6; display: inline-block;';
+          } else if (colorBox?.classList.contains('bg-teal-400')) {
+            colorBox.style.cssText = 'width: 12px; height: 12px; border-radius: 3px; background: #2dd4bf; display: inline-block;';
+          }
+        });
+      }
 
-      // Style paragraphs
       clonedContent.querySelectorAll('p').forEach((p) => {
         if (!(p as HTMLElement).style.cssText) {
           (p as HTMLElement).style.cssText = 'margin: 16px 0; line-height: 1.6; color: #374151;';
@@ -426,6 +463,59 @@ const AdResultsPage = () => {
                           <span className="text-sm font-semibold text-foreground w-12 text-right shrink-0">{formatNumber(item.value)}</span>
                         </div>
                       ))}
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Audience Breakdown */}
+              {data.audience && data.audience.length > 0 && (() => {
+                const ageGroups = ['13-17', '18-24', '25-34', '35-44', '45-54', '55-64', '65+'];
+                let totalWomen = 0, totalMen = 0;
+                const buckets: Record<string, { female: number; male: number }> = {};
+                for (const ag of ageGroups) buckets[ag] = { female: 0, male: 0 };
+                for (const row of data.audience) {
+                  const reach = parseInt(row.reach) || 0;
+                  const bucket = buckets[row.age];
+                  if (!bucket) continue;
+                  if (row.gender === 'female') { bucket.female += reach; totalWomen += reach; }
+                  else if (row.gender === 'male') { bucket.male += reach; totalMen += reach; }
+                }
+                const grandTotal = totalWomen + totalMen || 1;
+                const womenPct = ((totalWomen / grandTotal) * 100).toFixed(1);
+                const menPct = ((totalMen / grandTotal) * 100).toFixed(1);
+                const maxVal = Math.max(...ageGroups.map(ag => Math.max(buckets[ag].female, buckets[ag].male)), 1);
+
+                return (
+                  <div className="my-6 not-prose" data-audience-section>
+                    <h3 className="font-semibold text-lg mb-1 text-foreground">Audience</h3>
+                    <p className="text-sm text-muted-foreground mb-3">
+                      This ad reached <span className="font-semibold text-foreground">{formatNumber(totalReach)}</span> people in your audience.
+                    </p>
+                    <div className="flex gap-4 text-sm mb-4">
+                      <span className="flex items-center gap-1.5">
+                        <span className="w-3 h-3 rounded-sm bg-blue-500 inline-block" />
+                        {womenPct}% Women
+                      </span>
+                      <span className="flex items-center gap-1.5">
+                        <span className="w-3 h-3 rounded-sm bg-teal-400 inline-block" />
+                        {menPct}% Men
+                      </span>
+                    </div>
+                    <div className="flex items-end gap-2 h-40">
+                      {ageGroups.map(ag => {
+                        const fH = (buckets[ag].female / maxVal) * 100;
+                        const mH = (buckets[ag].male / maxVal) * 100;
+                        return (
+                          <div key={ag} className="flex-1 flex flex-col items-center gap-1">
+                            <div className="flex items-end gap-1 w-full h-32">
+                              <div className="flex-1 bg-blue-500 rounded-t-sm" style={{ height: `${Math.max(fH, 2)}%` }} />
+                              <div className="flex-1 bg-teal-400 rounded-t-sm" style={{ height: `${Math.max(mH, 2)}%` }} />
+                            </div>
+                            <span className="text-xs text-muted-foreground">{ag}</span>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 );
