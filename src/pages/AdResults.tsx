@@ -1,30 +1,16 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
-import { Input } from '@/components/ui/input';
-import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
-} from '@/components/ui/dialog';
-import {
-  BarChart3, Eye, MousePointerClick, DollarSign, Users, Heart,
-  MessageSquare, Share2, Loader2, TrendingUp, ExternalLink, RefreshCw,
-  ArrowLeft, Mail, Clock, Target, CircleDollarSign, Activity, Copy, Check, Send
-} from 'lucide-react';
-import { toast } from 'sonner';
+import { Card } from '@/components/ui/card';
+import { Loader2, RefreshCw, ArrowLeft, Copy } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/lib/auth';
 import { supabase } from '@/integrations/supabase/client';
+import { EmailClient, EMAIL_CLIENT_OPTIONS, getEmailClientPreference, setEmailClientPreference, getEmailLink } from '@/utils/emailClientUtils';
 import logo from '@/assets/logo.jpg';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const ANON_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-
-interface AudienceRow {
-  age: string;
-  gender: string;
-  reach: string;
-  impressions: string;
-}
 
 interface InsightsData {
   post_id: string;
@@ -52,18 +38,7 @@ interface InsightsData {
     actions: any[];
     cost_per_action: any[];
   } | null;
-  audience: AudienceRow[] | null;
-}
-
-interface AdPost {
-  id: string;
-  post_id: string;
-  listing_address: string;
-  listing_id: string;
-  status: string;
-  daily_budget: number;
-  duration_days: number;
-  boost_started_at: string;
+  audience: any[] | null;
 }
 
 const AdResultsPage = () => {
@@ -71,25 +46,22 @@ const AdResultsPage = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<InsightsData | null>(null);
-  const [adPost, setAdPost] = useState<AdPost | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
-  const [emailDialogOpen, setEmailDialogOpen] = useState(false);
-  const [recipientEmail, setRecipientEmail] = useState('');
-  const [sending, setSending] = useState(false);
-  const [profileData, setProfileData] = useState<{ full_name: string; preferred_email: string; email: string; first_name: string | null; cell_phone: string | null; bio: string | null } | null>(null);
-  const [emailPreviewHtml, setEmailPreviewHtml] = useState<string | null>(null);
-  const [showPreview, setShowPreview] = useState(false);
-  const [buildingPreview, setBuildingPreview] = useState(false);
+  const [profileData, setProfileData] = useState<{
+    full_name: string; preferred_email: string; email: string;
+    first_name: string | null; cell_phone: string | null; bio: string | null;
+  } | null>(null);
+  const [sellerEmail, setSellerEmail] = useState('');
+  const [clientFirstNames, setClientFirstNames] = useState('there');
   const fetchingRef = useRef(false);
 
   const listingAddress = searchParams.get('address') || '';
-  const listingId = searchParams.get('listingId') || '';
   const returnTo = searchParams.get('returnTo') || '';
 
-  // Fetch agent profile for email sending
+  // Fetch agent profile
   useEffect(() => {
     if (!user) return;
     supabase
@@ -97,70 +69,54 @@ const AdResultsPage = () => {
       .select('full_name, preferred_email, email, first_name, cell_phone, bio')
       .eq('id', user.id)
       .maybeSingle()
-      .then(({ data }) => {
-        if (data) setProfileData(data as any);
-      });
+      .then(({ data }) => { if (data) setProfileData(data as any); });
   }, [user]);
 
-  // Fetch ad post metadata and seller email from DB
+  // Fetch seller email
   useEffect(() => {
-    if (!user || !postId) return;
-    supabase
-      .from('facebook_ad_posts' as any)
-      .select('*')
-      .eq('agent_id', user.id)
-      .eq('post_id', postId)
-      .maybeSingle()
-      .then(({ data }) => {
-        if (data) setAdPost(data as any);
-      });
+    if (!user || !listingAddress) return;
+    const streetPart = listingAddress.split(',')[0].trim();
+    const addrWords = streetPart.split(/\s+/);
+    const streetNumber = addrWords[0] || '';
+    const streetKeyword = addrWords[1] || '';
+    const flexiblePattern = streetNumber && streetKeyword
+      ? `%${streetNumber}%${streetKeyword}%`
+      : `%${streetPart}%`;
 
-    // Try to find seller email - check estimated_net_properties first, then clients
-    if (listingAddress) {
-      const streetPart = listingAddress.split(',')[0].trim();
-      // Extract street number and first word of street name for flexible matching
-      // e.g. "113 Blackstone Court" -> number "113", keyword "Blackstone"
-      const addrWords = streetPart.split(/\s+/);
-      const streetNumber = addrWords[0] || '';
-      const streetKeyword = addrWords[1] || '';
-      const flexiblePattern = streetNumber && streetKeyword
-        ? `%${streetNumber}%${streetKeyword}%`
-        : `%${streetPart}%`;
-      
-      // Check estimated_net_properties for seller_email first
-      supabase
-        .from('estimated_net_properties')
-        .select('seller_email')
-        .eq('agent_id', user.id)
-        .ilike('street_address', flexiblePattern)
-        .limit(1)
-        .maybeSingle()
-        .then(({ data: propData }) => {
-          if (propData?.seller_email) {
-            setRecipientEmail(propData.seller_email);
-          } else {
-            // Fallback to clients table - match on street_number + street_name or location
-            supabase
-              .from('clients')
-              .select('email, first_name, last_name')
-              .eq('agent_id', user.id)
-              .or(`street_name.ilike.%${streetKeyword}%,location.ilike.%${streetPart}%`)
-              .limit(1)
-              .maybeSingle()
-              .then(({ data: clientData }) => {
-                if (clientData?.email) setRecipientEmail(clientData.email);
-              });
-          }
-        });
-    }
-  }, [user, postId, listingAddress]);
+    supabase
+      .from('estimated_net_properties')
+      .select('seller_email, name')
+      .eq('agent_id', user.id)
+      .ilike('street_address', flexiblePattern)
+      .limit(1)
+      .maybeSingle()
+      .then(({ data: propData }) => {
+        if (propData?.seller_email) setSellerEmail(propData.seller_email);
+        if (propData?.name) {
+          const firstNames = propData.name.split(/\s*[&,]\s*/).map((n: string) => n.split(' ')[0]).join(' & ');
+          if (firstNames) setClientFirstNames(firstNames);
+        }
+        if (!propData?.seller_email) {
+          supabase
+            .from('clients')
+            .select('email, first_name')
+            .eq('agent_id', user.id)
+            .or(`street_name.ilike.%${streetKeyword}%,location.ilike.%${streetPart}%`)
+            .limit(1)
+            .maybeSingle()
+            .then(({ data: clientData }) => {
+              if (clientData?.email) setSellerEmail(clientData.email);
+              if (clientData?.first_name) setClientFirstNames(clientData.first_name);
+            });
+        }
+      });
+  }, [user, listingAddress]);
 
   const fetchInsights = useCallback(async () => {
     if (!user || !postId || fetchingRef.current) return;
     fetchingRef.current = true;
     setLoading(true);
     setError(null);
-
     try {
       const resp = await fetch(`${SUPABASE_URL}/functions/v1/facebook-ad-insights`, {
         method: 'POST',
@@ -180,22 +136,13 @@ const AdResultsPage = () => {
     fetchingRef.current = false;
   }, [postId, user]);
 
-  useEffect(() => {
-    fetchInsights();
-  }, [fetchInsights]);
+  useEffect(() => { fetchInsights(); }, [fetchInsights]);
 
-  const buildEmailPayload = useCallback(() => {
-    if (!data) return null;
+  // Build activity items from data
+  const getActivityItems = useCallback(() => {
+    if (!data) return [];
+    const items: { label: string; value: number }[] = [];
     const ad = data.ad_insights;
-    const totalEngagements = data.engagements || 0;
-    const totalImpressions = ad?.impressions || data.impressions || 0;
-    const totalReach = ad?.reach || data.reach || 0;
-    const totalSpend = ad?.spend || 0;
-    const postDate = data.created_time
-      ? new Date(data.created_time).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
-      : 'N/A';
-
-    const emailActivityItems: { label: string; value: number }[] = [];
     if (ad?.actions?.length) {
       const allowedActions: Record<string, string> = {
         post_engagement: 'Post engagements',
@@ -208,92 +155,130 @@ const AdResultsPage = () => {
       for (const action of ad.actions) {
         const label = allowedActions[action.action_type];
         if (label && parseInt(action.value) > 0) {
-          emailActivityItems.push({ label, value: parseInt(action.value) });
+          items.push({ label, value: parseInt(action.value) });
         }
       }
+    } else {
+      if (data.likes > 0) items.push({ label: 'Reactions', value: data.likes });
+      if (data.comments > 0) items.push({ label: 'Comments', value: data.comments });
+      if (data.shares > 0) items.push({ label: 'Shares', value: data.shares });
     }
-    emailActivityItems.sort((a, b) => b.value - a.value);
+    items.sort((a, b) => b.value - a.value);
+    return items;
+  }, [data]);
 
-    // Determine client first names from listing address match
-    let clientFirstNames = '';
-    
-    return {
-      to_email: recipientEmail.trim(),
-      from_name: profileData?.full_name || 'Agent',
-      reply_to: profileData?.preferred_email || profileData?.email || '',
-      listing_address: listingAddress,
-      post_date: postDate,
-      post_engagements: totalEngagements,
-      views: totalImpressions,
-      reach: totalReach,
-      likes: data.likes,
-      comments: data.comments,
-      shares: data.shares,
-      amount_spent: totalSpend,
-      activity_items: emailActivityItems,
-      ad_preview_image: data.full_picture || null,
-      ad_preview_text: data.message || null,
-      facebook_post_url: `https://www.facebook.com/${postId}`,
-      logo_url: `${window.location.origin}/logo.jpg`,
-      // Letter-style fields
-      client_first_names: clientFirstNames || undefined,
-      agent_first_name: profileData?.first_name || undefined,
-      agent_full_name: profileData?.full_name || undefined,
-      agent_phone: profileData?.cell_phone || undefined,
-      agent_email: profileData?.preferred_email || profileData?.email || undefined,
-      agent_bio: profileData?.bio || undefined,
-    };
-  }, [data, recipientEmail, profileData, listingAddress, postId]);
+  const handleCopyAndEmail = async () => {
+    const content = document.getElementById('ad-results-letter-content');
+    if (!content) return;
 
-
-  const handlePreviewEmail = async () => {
-    if (!data) return;
-    setBuildingPreview(true);
     try {
-      const payload = buildEmailPayload();
-      if (!payload) throw new Error('No data');
-      const resp = await fetch(`${SUPABASE_URL}/functions/v1/send-ad-results-email`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${ANON_KEY}`,
-        },
-        body: JSON.stringify({ ...payload, preview_only: true }),
-      });
-      const result = await resp.json();
-      if (result.error) throw new Error(result.error);
-      setEmailPreviewHtml(result.html);
-      setShowPreview(true);
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to build preview');
-    }
-    setBuildingPreview(false);
-  };
+      const clonedContent = content.cloneNode(true) as HTMLElement;
 
-  const handleSendEmail = async () => {
-    if (!data || !recipientEmail.trim() || sending) return;
-    setSending(true);
-    try {
-      const payload = buildEmailPayload();
-      if (!payload) throw new Error('No data');
-      const resp = await fetch(`${SUPABASE_URL}/functions/v1/send-ad-results-email`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${ANON_KEY}`,
-        },
-        body: JSON.stringify(payload),
+      // Convert logo to base64
+      const logoImg = clonedContent.querySelector('img') as HTMLImageElement;
+      if (logoImg) {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        await new Promise((resolve, reject) => {
+          img.onload = () => {
+            const targetWidth = 175;
+            const scale = targetWidth / img.width;
+            const targetHeight = img.height * scale;
+            canvas.width = targetWidth;
+            canvas.height = targetHeight;
+            ctx?.drawImage(img, 0, 0, targetWidth, targetHeight);
+            logoImg.src = canvas.toDataURL('image/jpeg');
+            logoImg.style.width = `${targetWidth}px`;
+            logoImg.style.height = 'auto';
+            logoImg.setAttribute('width', String(targetWidth));
+            resolve(true);
+          };
+          img.onerror = reject;
+          img.src = logoImg.src;
+        });
+      }
+
+      // Remove non-email elements
+      clonedContent.querySelectorAll('.no-pdf, .print\\:hidden').forEach(el => el.remove());
+
+      // Style header
+      const headerSection = clonedContent.querySelector('.flex.items-center.justify-between.mb-8');
+      if (headerSection) {
+        (headerSection as HTMLElement).style.cssText = 'display: flex; align-items: center; margin-bottom: 32px;';
+      }
+      const logoContainer = clonedContent.querySelector('.flex.items-center.gap-3');
+      if (logoContainer) {
+        (logoContainer as HTMLElement).style.cssText = 'display: flex; align-items: center; gap: 12px;';
+        const textContainer = logoContainer.querySelector('div');
+        if (textContainer) {
+          (textContainer as HTMLElement).style.cssText = 'display: flex; flex-direction: column; justify-content: center; margin: 0;';
+          const heading = textContainer.querySelector('h1');
+          if (heading) (heading as HTMLElement).style.cssText = 'margin: 0; padding: 0; font-size: 30px; font-weight: bold; line-height: 1.2;';
+          const subtitle = textContainer.querySelector('p');
+          if (subtitle) (subtitle as HTMLElement).style.cssText = 'margin: 0; padding: 0; font-size: 16px; line-height: 1.2; color: #6b7280;';
+        }
+      }
+
+      // Style metrics grid
+      const metricsGrid = clonedContent.querySelector('[data-metrics-grid]');
+      if (metricsGrid) {
+        (metricsGrid as HTMLElement).style.cssText = 'display: flex; gap: 16px; margin: 24px 0;';
+        metricsGrid.querySelectorAll('[data-metric-card]').forEach(card => {
+          (card as HTMLElement).style.cssText = 'flex: 1; text-align: center; padding: 16px; border: 1px solid #e5e7eb; border-radius: 8px; background: #f9fafb;';
+        });
+        metricsGrid.querySelectorAll('[data-metric-value]').forEach(val => {
+          (val as HTMLElement).style.cssText = 'font-size: 28px; font-weight: bold; color: #111827; margin-bottom: 4px;';
+        });
+        metricsGrid.querySelectorAll('[data-metric-label]').forEach(lbl => {
+          (lbl as HTMLElement).style.cssText = 'font-size: 14px; color: #6b7280;';
+        });
+      }
+
+      // Style activity table
+      const activityTable = clonedContent.querySelector('[data-activity-table]');
+      if (activityTable) {
+        (activityTable as HTMLElement).style.cssText = 'width: 100%; border-collapse: collapse; margin: 16px 0;';
+        activityTable.querySelectorAll('td').forEach(td => {
+          (td as HTMLElement).style.cssText += '; padding: 6px 12px; border: 1px solid #e5e7eb; font-size: 14px;';
+        });
+      }
+
+      // Style paragraphs
+      clonedContent.querySelectorAll('p').forEach((p) => {
+        if (!(p as HTMLElement).style.cssText) {
+          (p as HTMLElement).style.cssText = 'margin: 16px 0; line-height: 1.6; color: #374151;';
+        }
       });
-      const result = await resp.json();
-      if (result.error) throw new Error(result.error);
-      toast.success(`Ad results emailed to ${recipientEmail.trim()}`);
-      setEmailDialogOpen(false);
-      setShowPreview(false);
-      setEmailPreviewHtml(null);
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to send email');
+
+      const htmlContent = clonedContent.innerHTML;
+      const plainText = content.innerText;
+
+      await navigator.clipboard.write([
+        new ClipboardItem({
+          'text/html': new Blob([htmlContent], { type: 'text/html' }),
+          'text/plain': new Blob([plainText], { type: 'text/plain' })
+        })
+      ]);
+
+      toast({
+        title: "Copied to clipboard",
+        description: "Opening your email client...",
+      });
+
+      const emailClient = getEmailClientPreference();
+      const subject = `Facebook Ad Results - ${listingAddress}`;
+      const link = getEmailLink(sellerEmail, emailClient, subject);
+      window.open(link, '_blank');
+    } catch (error) {
+      console.error('Failed to copy:', error);
+      toast({
+        title: "Copy failed",
+        description: "Please try again or copy manually",
+        variant: "destructive",
+      });
     }
-    setSending(false);
   };
 
   if (loading) {
@@ -313,7 +298,10 @@ const AdResultsPage = () => {
         <div className="text-center space-y-3">
           <p className="text-sm text-destructive">{error || 'No data found'}</p>
           <div className="flex gap-2 justify-center">
-            <Button variant="outline" size="sm" onClick={() => window.history.length > 1 ? navigate(-1) : navigate('/dashboard')}>
+            <Button variant="outline" size="sm" onClick={() => {
+              if (returnTo) navigate(`${returnTo}?tool=ad-results`);
+              else navigate('/dashboard');
+            }}>
               <ArrowLeft className="w-3.5 h-3.5 mr-1.5" /> Go Back
             </Button>
             <Button variant="outline" size="sm" onClick={fetchInsights}>
@@ -326,390 +314,129 @@ const AdResultsPage = () => {
   }
 
   const ad = data.ad_insights;
-  const totalReach = ad?.reach || data.reach || 0;
-  const totalImpressions = ad?.impressions || data.impressions || 0;
-  const totalClicks = ad?.clicks || (typeof data.clicks === 'number' ? data.clicks : 0);
-  const totalSpend = ad?.spend || 0;
   const totalEngagements = data.engagements || 0;
+  const totalImpressions = ad?.impressions || data.impressions || 0;
+  const totalReach = ad?.reach || data.reach || 0;
+  const activityItems = getActivityItems();
 
-  // Build activity items - only show 6 Facebook-standard activities
-  const activityItems: { label: string; value: number }[] = [];
-  if (ad?.actions?.length) {
-    const allowedActions: Record<string, string> = {
-      post_engagement: 'Post engagements',
-      link_click: 'Link clicks',
-      post_reaction: 'Post reactions',
-      post: 'Post shares',
-      like: 'Facebook likes',
-      'onsite_conversion.post_save': 'Post saves',
-    };
-    for (const action of ad.actions) {
-      const label = allowedActions[action.action_type];
-      if (label && parseInt(action.value) > 0) {
-        activityItems.push({ label, value: parseInt(action.value) });
-      }
-    }
-  } else if (data.click_types) {
-    Object.entries(data.click_types).forEach(([key, val]) => {
-      if (typeof val === 'number' && val > 0) {
-        activityItems.push({ label: key.replace(/_/g, ' '), value: val });
-      }
-    });
-  }
-  if (activityItems.length === 0) {
-    if (data.likes > 0) activityItems.push({ label: 'Reactions', value: data.likes });
-    if (data.comments > 0) activityItems.push({ label: 'Comments', value: data.comments });
-    if (data.shares > 0) activityItems.push({ label: 'Shares', value: data.shares });
-  }
-  activityItems.sort((a, b) => b.value - a.value);
-  const maxActivity = activityItems.length > 0 ? activityItems[0].value : 1;
+  const agentFirstName = profileData?.first_name || profileData?.full_name?.split(' ')[0] || '';
+  const agentFullName = profileData?.full_name || '';
+  const agentPhone = profileData?.cell_phone || '';
+  const agentEmail = profileData?.preferred_email || profileData?.email || '';
+  const agentBio = profileData?.bio || '';
 
-  const postDate = data.created_time
-    ? new Date(data.created_time).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
-    : null;
+  // clientFirstNames is set via state from DB lookup
 
-  const adStatus = adPost?.status === 'boosted' ? 'Active' : adPost?.status || 'Active';
+  const formatNumber = (num: number) => num.toLocaleString();
 
   return (
-    <div className="min-h-screen bg-muted/30">
-      {/* Header */}
-      <header className="bg-card border-b border-border sticky top-0 z-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" size="sm" onClick={() => {
-              if (returnTo) {
-                navigate(`${returnTo}?tool=ad-results`);
-              } else {
-                navigate('/dashboard');
-              }
-            }} className="h-8">
-              <ArrowLeft className="w-4 h-4 mr-1" /> Back
-            </Button>
-            <Separator orientation="vertical" className="h-5" />
-            <img src={logo} alt="Sellfor1Percent.com" className="h-8 rounded" />
-            <div>
-              <h1 className="text-lg font-bold text-card-foreground">Ad Results</h1>
-              <p className="text-xs text-muted-foreground">Sellfor1Percent.com</p>
+    <div className="min-h-screen bg-background">
+      {/* Top bar with back button */}
+      <div className="border-b border-border bg-card print:hidden no-pdf">
+        <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
+          <Button variant="ghost" size="sm" onClick={() => {
+            if (returnTo) navigate(`${returnTo}?tool=ad-results`);
+            else navigate('/dashboard');
+          }}>
+            <ArrowLeft className="w-4 h-4 mr-1.5" /> Back
+          </Button>
+          <Button variant="ghost" size="sm" onClick={fetchInsights}>
+            <RefreshCw className="w-4 h-4 mr-1.5" /> Refresh
+          </Button>
+        </div>
+      </div>
+
+      {/* Letter Content */}
+      <div className="py-8 px-4">
+        <div className="max-w-4xl mx-auto" id="ad-results-letter-content">
+          {/* Header: Logo + Title + Copy & Email */}
+          <div className="flex items-center justify-between mb-8 print:mb-4">
+            <div className="flex items-center gap-3">
+              <img src={logo} alt="Sell for 1 Percent" className="h-16 w-auto print:h-12" />
+              <div>
+                <h1 className="text-3xl font-bold text-foreground">Facebook Ad Results</h1>
+                <p className="text-muted-foreground">{listingAddress}</p>
+              </div>
             </div>
-          </div>
-          <div className="flex items-center gap-2">
-            {showPreview ? (
-              <Button variant="outline" size="sm" onClick={() => { setShowPreview(false); setEmailPreviewHtml(null); }} className="h-8">
-                <ArrowLeft className="w-3.5 h-3.5 mr-1.5" /> Back to Results
+            <div className="flex gap-2 print:hidden no-pdf">
+              <Button onClick={handleCopyAndEmail} size="lg" className="bg-rose-500 hover:bg-rose-600 text-white">
+                <Copy className="mr-2 h-4 w-4" />
+                Copy & Email
               </Button>
-            ) : (
-              <>
-                <Button variant="outline" size="sm" onClick={fetchInsights} className="h-8">
-                  <RefreshCw className="w-3.5 h-3.5 mr-1.5" /> Refresh
-                </Button>
-                <Button size="sm" onClick={handlePreviewEmail} disabled={buildingPreview} className="h-8">
-                  {buildingPreview ? (
-                    <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> Loading...</>
-                  ) : (
-                    <><Eye className="w-3.5 h-3.5 mr-1.5" /> Preview Email</>
-                  )}
-                </Button>
-              </>
-            )}
-          </div>
-        </div>
-      </header>
-
-      {/* Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left Column: Performance */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Performance Section */}
-            <section className="bg-card rounded-xl border border-border p-6">
-              <div className="flex items-center justify-between mb-1">
-                <h2 className="text-base font-semibold text-card-foreground flex items-center gap-2">
-                  <BarChart3 className="w-4 h-4 text-primary" /> Performance
-                </h2>
-                {postDate && (
-                  <span className="text-xs text-muted-foreground">Posted {postDate}</span>
-                )}
-              </div>
-              {listingAddress && (
-                <p className="text-sm text-muted-foreground mb-4">{listingAddress}</p>
-              )}
-              {totalSpend > 0 && (
-                <p className="text-xs text-muted-foreground mb-4">
-                  ${totalSpend.toFixed(2)} spent
-                  {adPost?.duration_days ? ` over ${adPost.duration_days} days` : ''}
-                </p>
-              )}
-
-              {/* Metric cards */}
-              <div className="grid grid-cols-2 gap-3">
-                <MetricCard
-                  icon={<Users className="w-4 h-4 text-primary" />}
-                  label="Post engagements"
-                  value={totalEngagements.toLocaleString()}
-                />
-                <MetricCard
-                  icon={<Eye className="w-4 h-4 text-blue-600" />}
-                  label="Views"
-                  value={totalImpressions.toLocaleString()}
-                />
-                <MetricCard
-                  icon={<TrendingUp className="w-4 h-4 text-amber-600" />}
-                  label="Reach"
-                  value={totalReach.toLocaleString()}
-                />
-              </div>
-            </section>
-
-            {/* Activity Section */}
-            {activityItems.length > 0 && (
-              <section className="bg-card rounded-xl border border-border p-6">
-                <h2 className="text-base font-semibold text-card-foreground flex items-center gap-2 mb-4">
-                  <Activity className="w-4 h-4 text-primary" /> Activity
-                </h2>
-                <div className="space-y-3">
-                  {activityItems.map((item, i) => (
-                    <div key={i}>
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-sm text-muted-foreground capitalize">{item.label}</span>
-                        <span className="text-sm font-semibold text-primary">
-                          {item.value.toLocaleString()}
-                        </span>
-                      </div>
-                      <div className="h-6 bg-muted rounded-sm overflow-hidden">
-                        <div
-                          className="h-full bg-primary/80 rounded-sm transition-all"
-                          style={{ width: `${Math.max((item.value / maxActivity) * 100, 3)}%` }}
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </section>
-            )}
-
-            {/* Engagement Section */}
-            <section className="bg-card rounded-xl border border-border p-6">
-              <h2 className="text-base font-semibold text-card-foreground mb-4">Engagement</h2>
-              <div className="grid grid-cols-3 gap-4">
-                <div className="flex items-center gap-2">
-                  <Heart className="w-4 h-4 text-red-500" />
-                  <span className="text-lg font-bold text-card-foreground">{data.likes}</span>
-                  <span className="text-sm text-muted-foreground">Likes</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <MessageSquare className="w-4 h-4 text-blue-500" />
-                  <span className="text-lg font-bold text-card-foreground">{data.comments}</span>
-                  <span className="text-sm text-muted-foreground">Comments</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Share2 className="w-4 h-4 text-emerald-500" />
-                  <span className="text-lg font-bold text-card-foreground">{data.shares}</span>
-                  <span className="text-sm text-muted-foreground">Shares</span>
-                </div>
-              </div>
-             </section>
-
-            {/* Audience Breakdown */}
-            {data.audience && data.audience.length > 0 && (
-              <section className="bg-card rounded-xl border border-border p-6">
-                <h2 className="text-base font-semibold text-card-foreground flex items-center gap-2 mb-2">
-                  <Users className="w-4 h-4 text-primary" /> Audience
-                </h2>
-                <AudienceChart audience={data.audience} totalReach={totalReach} />
-              </section>
-            )}
-          </div>
-
-          {/* Right Column: Details + Preview */}
-          <div className="space-y-6">
-            {/* Details Card */}
-            <section className="bg-card rounded-xl border border-border p-6">
-              <h2 className="text-base font-semibold text-card-foreground mb-4">Details</h2>
-              <div className="space-y-4">
-                <DetailRow
-                  icon={<div className="w-3 h-3 rounded-full border-2 border-emerald-500 bg-emerald-500/20" />}
-                  label="Status"
-                  value={adStatus}
-                />
-                <Separator />
-                <DetailRow
-                  icon={<Target className="w-4 h-4 text-blue-500" />}
-                  label="Goal"
-                  value="Get more engagement"
-                />
-                <Separator />
-                {adPost?.daily_budget && adPost.daily_budget > 0 && (
-                  <>
-                    <DetailRow
-                      icon={<CircleDollarSign className="w-4 h-4 text-emerald-500" />}
-                      label="Daily budget"
-                      value={`$${adPost.daily_budget.toFixed(2)}`}
-                    />
-                    <Separator />
-                  </>
-                )}
-                {adPost?.duration_days && adPost.duration_days > 0 && (
-                  <>
-                    <DetailRow
-                      icon={<Clock className="w-4 h-4 text-muted-foreground" />}
-                      label="Duration"
-                      value={`${adPost.duration_days} days`}
-                    />
-                    <Separator />
-                  </>
-                )}
-                {totalSpend > 0 && (
-                  <DetailRow
-                    icon={<DollarSign className="w-4 h-4 text-primary" />}
-                    label="Total spent"
-                    value={`$${totalSpend.toFixed(2)}`}
-                  />
-                )}
-              </div>
-            </section>
-
-            {/* Preview Card */}
-            <section className="bg-card rounded-xl border border-border p-6">
-              <h2 className="text-base font-semibold text-card-foreground mb-4">Preview</h2>
-              <div className="border border-border rounded-lg overflow-hidden">
-                {data.full_picture && (
-                  <img
-                    src={data.full_picture}
-                    alt="Ad preview"
-                    className="w-full h-48 object-cover"
-                  />
-                )}
-                {data.message && (
-                  <div className="p-3">
-                    <p className="text-xs text-card-foreground whitespace-pre-wrap leading-relaxed">
-                      {data.message}
-                    </p>
-                  </div>
-                )}
-              </div>
-              <div className="mt-3">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full text-xs"
-                  onClick={() => window.open(`https://www.facebook.com/${postId}`, '_blank')}
-                >
-                  <ExternalLink className="w-3.5 h-3.5 mr-1.5" /> View on Facebook
-                </Button>
-              </div>
-            </section>
-
-            {/* Branding Footer */}
-            <div className="bg-card rounded-xl border border-border p-4 text-center">
-              <img src={logo} alt="Sellfor1Percent.com" className="h-10 rounded mx-auto mb-2" />
-              <p className="text-xs font-medium text-card-foreground">Sellfor1Percent.com</p>
-              <p className="text-[10px] text-muted-foreground">Full Service Real Estate for just a 1% Commission</p>
             </div>
           </div>
+
+          {/* Letter Body */}
+          <Card className="p-8 mb-6 print:shadow-none">
+            <div className="prose prose-lg max-w-none text-foreground">
+              <p className="mb-4">Hi {clientFirstNames},</p>
+
+              <p className="mb-4">
+                We know that the more eyeballs that we can get to see your home from buyers looking on their favorite real estate website like Zillow, Realtor.com or Redfin to posting paid ads on social media sites like Facebook and Instagram the better our chances of finding you a buyer.
+              </p>
+
+              <p className="mb-4">
+                We recently posted a paid advertising campaign for your property on Facebook and Instagram and wanted to share the results of that ad with you.
+              </p>
+
+              {/* Metrics Grid */}
+              <div className="grid grid-cols-3 gap-4 my-6 not-prose" data-metrics-grid>
+                <div className="text-center p-4 border rounded-lg bg-muted/30" data-metric-card>
+                  <div className="text-3xl font-bold text-foreground" data-metric-value>{formatNumber(totalEngagements)}</div>
+                  <div className="text-sm text-muted-foreground" data-metric-label>Engagements</div>
+                </div>
+                <div className="text-center p-4 border rounded-lg bg-muted/30" data-metric-card>
+                  <div className="text-3xl font-bold text-foreground" data-metric-value>{formatNumber(totalImpressions)}</div>
+                  <div className="text-sm text-muted-foreground" data-metric-label>Views</div>
+                </div>
+                <div className="text-center p-4 border rounded-lg bg-muted/30" data-metric-card>
+                  <div className="text-3xl font-bold text-foreground" data-metric-value>{formatNumber(totalReach)}</div>
+                  <div className="text-sm text-muted-foreground" data-metric-label>People Reached</div>
+                </div>
+              </div>
+
+              {/* Activity Breakdown Table */}
+              {activityItems.length > 0 && (
+                <div className="my-6 not-prose">
+                  <h3 className="font-semibold text-lg mb-3 text-foreground">Activity Breakdown</h3>
+                  <table className="w-full border-collapse" data-activity-table>
+                    <tbody>
+                      {activityItems.map((item, i) => (
+                        <tr key={i}>
+                          <td className="py-1.5 px-3 text-sm text-muted-foreground border border-border">{item.label}</td>
+                          <td className="py-1.5 px-3 text-sm font-semibold text-foreground text-right border border-border">{formatNumber(item.value)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              <p className="mb-4">Let me know if you have any questions.</p>
+
+              <p className="mb-4">Thanks</p>
+              <p className="mb-4">{agentFirstName}</p>
+
+              {/* Agent Signature */}
+              {agentBio ? (
+                /<[a-z][\s\S]*>/i.test(agentBio) ? (
+                  <div className="mb-4 [&_img]:max-w-full [&_img]:h-auto" dangerouslySetInnerHTML={{ __html: agentBio.replace(/<P>/gi, '<br><br>') }} />
+                ) : (
+                  <p className="mb-4 whitespace-pre-line">{agentBio}</p>
+                )
+              ) : (
+                <>
+                  <p className="mb-0">{agentFullName}</p>
+                  {agentPhone && <p className="mb-0">cell: {agentPhone}</p>}
+                  {agentEmail && <p className="mb-4">email: {agentEmail}</p>}
+                </>
+              )}
+            </div>
+          </Card>
         </div>
-        {/* Inline Email Preview */}
-        {showPreview && emailPreviewHtml && (
-          <div className="mt-6" ref={(el) => { if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }}>
-            <section className="bg-card rounded-xl border border-border p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-base font-semibold text-card-foreground flex items-center gap-2">
-                  <Mail className="w-4 h-4 text-primary" /> Email Preview
-                </h2>
-                <Button variant="outline" size="sm" onClick={() => { setShowPreview(false); setEmailPreviewHtml(null); }}>
-                  Close Preview
-                </Button>
-              </div>
-              <div className="border border-border rounded-lg overflow-hidden bg-muted/30">
-                <iframe
-                  srcDoc={emailPreviewHtml}
-                  className="w-full h-[600px] border-0"
-                  title="Email Preview"
-                />
-              </div>
-            </section>
-          </div>
-        )}
-      </main>
+      </div>
     </div>
   );
 };
-
-function MetricCard({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
-  return (
-    <div className="border border-border rounded-lg p-4 bg-card">
-      <div className="flex items-center gap-1.5 mb-1.5">
-        {icon}
-        <span className="text-xs text-muted-foreground">{label}</span>
-      </div>
-      <span className="text-2xl font-bold text-card-foreground">{value}</span>
-    </div>
-  );
-}
-
-function DetailRow({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
-  return (
-    <div className="flex items-start gap-3">
-      <div className="mt-0.5">{icon}</div>
-      <div>
-        <p className="text-xs text-muted-foreground">{label}</p>
-        <p className="text-sm font-medium text-card-foreground">{value}</p>
-      </div>
-    </div>
-  );
-}
-
-function AudienceChart({ audience, totalReach }: { audience: AudienceRow[]; totalReach: number }) {
-  const ageGroups = ['13-17', '18-24', '25-34', '35-44', '45-54', '55-64', '65+'];
-  let totalWomen = 0;
-  let totalMen = 0;
-  const buckets: Record<string, { female: number; male: number }> = {};
-  for (const ag of ageGroups) buckets[ag] = { female: 0, male: 0 };
-
-  for (const row of audience) {
-    const reach = parseInt(row.reach) || 0;
-    const bucket = buckets[row.age];
-    if (!bucket) continue;
-    if (row.gender === 'female') { bucket.female += reach; totalWomen += reach; }
-    else if (row.gender === 'male') { bucket.male += reach; totalMen += reach; }
-  }
-
-  const grandTotal = totalWomen + totalMen || 1;
-  const womenPct = ((totalWomen / grandTotal) * 100).toFixed(1);
-  const menPct = ((totalMen / grandTotal) * 100).toFixed(1);
-  const maxVal = Math.max(...ageGroups.map(ag => Math.max(buckets[ag].female, buckets[ag].male)), 1);
-
-  return (
-    <div>
-      <p className="text-sm text-muted-foreground mb-3">
-        This ad reached <span className="font-semibold text-card-foreground">{totalReach.toLocaleString()}</span> people in your audience.
-      </p>
-      <div className="flex gap-4 text-sm mb-4">
-        <span className="flex items-center gap-1.5">
-          <span className="w-3 h-3 rounded-sm bg-blue-500 inline-block" />
-          {womenPct}% Women
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="w-3 h-3 rounded-sm bg-teal-400 inline-block" />
-          {menPct}% Men
-        </span>
-      </div>
-      <div className="flex items-end gap-2 h-40">
-        {ageGroups.map(ag => {
-          const fH = (buckets[ag].female / maxVal) * 100;
-          const mH = (buckets[ag].male / maxVal) * 100;
-          return (
-            <div key={ag} className="flex-1 flex flex-col items-center gap-1">
-              <div className="flex items-end gap-1 w-full h-32">
-                <div className="flex-1 bg-blue-500 rounded-t-sm transition-all" style={{ height: `${Math.max(fH, 2)}%` }} />
-                <div className="flex-1 bg-teal-400 rounded-t-sm transition-all" style={{ height: `${Math.max(mH, 2)}%` }} />
-              </div>
-              <span className="text-xs text-muted-foreground">{ag}</span>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
 
 export default AdResultsPage;
