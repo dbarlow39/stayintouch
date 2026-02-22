@@ -98,6 +98,8 @@ Deno.serve(async (req) => {
 
     // Step 3: Get ad insights via Ads API - use EQUAL operator and try multiple approaches
     let adInsights: any = null;
+    let foundAdId: string | null = null;
+    let foundAdToken: string | null = null;
     const AD_ACCOUNT_ID = tokenData.ad_account_id || "563726213662060";
 
     // Approach A: Search ads by effective_object_story_id with EQUAL operator
@@ -113,6 +115,8 @@ Deno.serve(async (req) => {
         const adsData = await fetchJson(adsUrl);
         if (!adsData.error && adsData.data?.length > 0 && adsData.data[0].insights?.data?.[0]) {
           adInsights = adsData.data[0].insights.data[0];
+          foundAdId = adsData.data[0].id;
+          foundAdToken = token;
           debugInfo.push(`Ad insights found via ads filter (${tokenLabel} token)`);
         } else if (adsData.error) {
           debugInfo.push(`Ads filter(${tokenLabel}): ${adsData.error.message?.substring(0, 60)}`);
@@ -140,6 +144,8 @@ Deno.serve(async (req) => {
               const insightsResp = await fetchJson(adInsightsUrl);
               if (!insightsResp.error && insightsResp.data?.[0]) {
                 adInsights = insightsResp.data[0];
+                foundAdId = matchingAd.id;
+                foundAdToken = token;
                 debugInfo.push(`Ad insights found via ad scan (${tokenLabel}, ad ${matchingAd.id})`);
               } else {
                 debugInfo.push(`Ad scan(${tokenLabel}): found ad ${matchingAd.id} but no insights`);
@@ -217,18 +223,17 @@ Deno.serve(async (req) => {
     // When ad insights exist, prefer ad-reported metrics for consistency with Facebook Ads Manager
     const finalEngagements = adInsights ? (adEngagements || organicEngagements) : (organicEngagements || promoEngaged);
 
-    // Step 4: Fetch audience demographics (age/gender breakdown) if ad insights exist
+    // Step 4: Fetch audience demographics (age/gender breakdown) using the found ad ID
     let audienceData: any = null;
-    if (adInsights) {
-      for (const [tokenLabel, token] of [["user", userToken], ["page", pageToken]]) {
+    if (foundAdId) {
+      // Query the specific ad's insights with age/gender breakdowns
+      const tokensToTry = foundAdToken
+        ? [[foundAdToken === userToken ? "user" : "page", foundAdToken], ...([["user", userToken], ["page", pageToken]] as const).filter(([,t]) => t !== foundAdToken)]
+        : [["user", userToken], ["page", pageToken]];
+      for (const [tokenLabel, token] of tokensToTry) {
         if (audienceData) break;
         try {
-          const filterJson = JSON.stringify([{
-            field: "effective_object_story_id",
-            operator: "EQUAL",
-            value: post_id
-          }]);
-          const demoUrl = `https://graph.facebook.com/v21.0/act_${AD_ACCOUNT_ID}/insights?fields=reach,impressions&breakdowns=age,gender&filtering=${encodeURIComponent(filterJson)}&level=ad&access_token=${token}`;
+          const demoUrl = `https://graph.facebook.com/v21.0/${foundAdId}/insights?fields=reach,impressions&breakdowns=age,gender&access_token=${token}`;
           const demoData = await fetchJson(demoUrl);
           if (!demoData.error && demoData.data?.length > 0) {
             audienceData = demoData.data;
