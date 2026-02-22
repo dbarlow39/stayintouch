@@ -408,7 +408,7 @@ const AdResultsPage = () => {
               </div>
             </div>
             <div className="flex gap-2 print:hidden no-pdf">
-              <Button onClick={handleCopyAndEmail} size="lg" className="bg-primary hover:bg-primary/90 text-primary-foreground">
+              <Button onClick={handleCopyAndEmail} size="lg" className="bg-emerald-600 hover:bg-emerald-700 text-white">
                 <Copy className="mr-2 h-4 w-4" />
                 Copy & Email
               </Button>

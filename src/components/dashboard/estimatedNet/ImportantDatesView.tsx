@@ -269,7 +269,7 @@ const ImportantDatesView = ({ propertyData, propertyId, onBack, onEdit, onNaviga
       <div className="flex-1 py-4 px-6 overflow-auto">
         {/* Action Button - Top Right */}
         <div className="flex justify-end mb-4 print:hidden">
-          <Button onClick={handleCopyToClipboard} className="gap-2 bg-rose-500 hover:bg-rose-600 text-white">
+          <Button onClick={handleCopyToClipboard} className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white">
             <Copy className="h-4 w-4" />
             Copy & Email
           </Button>

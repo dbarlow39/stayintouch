@@ -300,7 +300,7 @@ const DepositLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigat
               </div>
             </div>
             <div className="flex gap-2 print:hidden no-pdf">
-              <Button onClick={handleCopyToClipboard} size="lg" className="bg-rose-500 hover:bg-rose-600 text-white">
+              <Button onClick={handleCopyToClipboard} size="lg" className="bg-emerald-600 hover:bg-emerald-700 text-white">
                 <Copy className="mr-2 h-4 w-4" />
                 Copy & Email
               </Button>
@@ -344,7 +344,7 @@ const DepositLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigat
               </div>
             </div>
             <div className="flex gap-2 print:hidden no-pdf">
-              <Button onClick={handleCopyHomeownerLetter} size="lg" className="bg-rose-500 hover:bg-rose-600 text-white">
+              <Button onClick={handleCopyHomeownerLetter} size="lg" className="bg-emerald-600 hover:bg-emerald-700 text-white">
                 <Copy className="mr-2 h-4 w-4" />
                 Copy & Email
               </Button>
