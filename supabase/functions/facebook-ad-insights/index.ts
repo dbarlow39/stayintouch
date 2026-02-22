@@ -104,8 +104,8 @@ Deno.serve(async (req) => {
     let foundAdId: string | null = null;
     let foundAdToken: string | null = null;
     const AD_ACCOUNT_ID = tokenData.ad_account_id || "563726213662060";
-    const adInsightsFields = "impressions,reach,clicks,spend,cpc,cpm,actions,cost_per_action_type";
-    const attrParam = ""; // No attribution override - use API defaults
+    const adInsightsFields = "impressions,reach,clicks,spend,cpc,cpm,actions,cost_per_action_type,unique_actions,unique_clicks,inline_post_engagement,inline_link_clicks";
+    const attrParam = "&date_preset=maximum";
 
     // Also fetch with 7d_click only for comparison (diagnostic)
     let altAdInsights: any = null;
@@ -134,7 +134,7 @@ Deno.serve(async (req) => {
       } catch (_e) { /* non-fatal */ }
     }
 
-    // Approach B: If no ad found via filter, scan recent ads
+    // Approach B: If no ad found via filter, scan recent ads and check for MULTIPLE matches
     if (!adInsights) {
       for (const [tokenLabel, token] of [["user", userToken], ["page", pageToken]]) {
         if (adInsights) break;
@@ -142,22 +142,19 @@ Deno.serve(async (req) => {
           const recentAdsUrl = `https://graph.facebook.com/${API_VERSION}/act_${AD_ACCOUNT_ID}/ads?fields=id,creative{effective_object_story_id}&limit=100&access_token=${token}`;
           const recentAds = await fetchJson(recentAdsUrl);
           if (!recentAds.error && recentAds.data) {
-            const matchingAd = recentAds.data.find((ad: any) => 
+            const allMatching = recentAds.data.filter((ad: any) => 
               ad.creative?.effective_object_story_id === post_id
             );
-            if (matchingAd) {
-              const adInsightsUrl = `https://graph.facebook.com/${API_VERSION}/${matchingAd.id}/insights?fields=${adInsightsFields}${attrParam}&access_token=${token}`;
+            debugInfo.push(`Ad scan(${tokenLabel}): ${allMatching.length} matching ads out of ${recentAds.data.length} [${allMatching.map((a:any)=>a.id).join(',')}]`);
+            if (allMatching.length > 0) {
+              const adInsightsUrl = `https://graph.facebook.com/${API_VERSION}/${allMatching[0].id}/insights?fields=${adInsightsFields}&date_preset=maximum&access_token=${token}`;
               const insightsResp = await fetchJson(adInsightsUrl);
               if (!insightsResp.error && insightsResp.data?.[0]) {
                 adInsights = insightsResp.data[0];
-                foundAdId = matchingAd.id;
+                foundAdId = allMatching[0].id;
                 foundAdToken = token;
-                debugInfo.push(`Ad insights found via ad scan (${tokenLabel}, ad ${matchingAd.id})`);
-              } else {
-                debugInfo.push(`Ad scan(${tokenLabel}): found ad ${matchingAd.id} but no insights`);
+                debugInfo.push(`Ad insights from ad ${allMatching[0].id}`);
               }
-            } else {
-              debugInfo.push(`Ad scan(${tokenLabel}): ${recentAds.data.length} ads, no match for ${post_id}`);
             }
           } else if (recentAds.error) {
             debugInfo.push(`Ad scan(${tokenLabel}): ${recentAds.error.message?.substring(0, 60)}`);
@@ -166,35 +163,18 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Diagnostic: dump ALL available fields from this ad to find Facebook's exact numbers
+    // Diagnostic: log key unique metrics
     if (foundAdId && foundAdToken) {
       try {
-        const allFieldsUrl = `https://graph.facebook.com/${API_VERSION}/${foundAdId}/insights?fields=impressions,reach,clicks,spend,actions,unique_clicks,inline_link_clicks,inline_post_engagement,unique_inline_link_clicks,unique_actions,outbound_clicks,unique_outbound_clicks,frequency&access_token=${foundAdToken}`;
-        const allData = await fetchJson(allFieldsUrl);
-        if (!allData.error && allData.data?.[0]) {
-          const d = allData.data[0];
-          // Log key metrics that might match 260, 7568, 4479
-          const uniqueActions = d.unique_actions || [];
-          const uaPE = uniqueActions.find((a: any) => a.action_type === 'post_engagement');
-          const uaLC = uniqueActions.find((a: any) => a.action_type === 'link_click');
-          debugInfo.push(`ALL FIELDS: imp=${d.impressions} reach=${d.reach} clicks=${d.clicks}`);
-          debugInfo.push(`unique_impressions=${d.unique_impressions || '?'} unique_clicks=${d.unique_clicks || '?'}`);
-          debugInfo.push(`inline_post_engagement=${d.inline_post_engagement || '?'} inline_link_clicks=${d.inline_link_clicks || '?'}`);
-          debugInfo.push(`unique_actions PE=${uaPE?.value||'?'} LC=${uaLC?.value||'?'}`);
-          debugInfo.push(`frequency=${d.frequency||'?'} social_spend=${d.social_spend||'?'}`);
-          // Dump all unique_actions
-          if (uniqueActions.length > 0) {
-            debugInfo.push(`unique_actions: ${JSON.stringify(uniqueActions.map((a:any) => `${a.action_type}=${a.value}`))}`);
-          }
-          // Check outbound clicks
-          const obClicks = d.outbound_clicks || [];
-          if (obClicks.length > 0) {
-            debugInfo.push(`outbound_clicks: ${JSON.stringify(obClicks.map((a:any) => `${a.action_type}=${a.value}`))}`);
-          }
-        } else {
-          debugInfo.push(`ALL FIELDS err: ${allData.error?.message?.substring(0,80) || 'no data'}`);
+        const diagUrl = `https://graph.facebook.com/${API_VERSION}/${foundAdId}/insights?fields=unique_actions,unique_clicks,inline_post_engagement&date_preset=maximum&access_token=${foundAdToken}`;
+        const diagData = await fetchJson(diagUrl);
+        if (!diagData.error && diagData.data?.[0]) {
+          const d = diagData.data[0];
+          const ua = d.unique_actions || [];
+          debugInfo.push(`DIAG: unique_clicks=${d.unique_clicks} inline_pe=${d.inline_post_engagement}`);
+          debugInfo.push(`unique_actions: ${JSON.stringify(ua.map((a:any) => `${a.action_type}=${a.value}`))}`);
         }
-      } catch (_e) { debugInfo.push(`ALL FIELDS exception`); }
+      } catch (_e) { /* non-fatal */ }
     }
 
     // Approach C: Try promoted_posts edge on the post itself
@@ -242,16 +222,24 @@ Deno.serve(async (req) => {
     const promoReach = metrics._promo_reach || 0;
     const promoEngaged = metrics._promo_engaged || 0;
 
-    // Parse ad actions
+    // Parse ad actions - prefer unique_actions (matches Ads Manager)
     let adActions: any[] = [];
+    let adUniqueActions: any[] = [];
     let adCostPerAction: any[] = [];
     let adEngagements = 0;
     if (adInsights) {
       adActions = adInsights.actions || [];
+      adUniqueActions = adInsights.unique_actions || [];
       adCostPerAction = adInsights.cost_per_action_type || [];
-      const engagementAction = adActions.find((a: any) => a.action_type === 'post_engagement');
-      if (engagementAction) {
-        adEngagements = parseInt(engagementAction.value || "0");
+      // Use unique post_engagement if available (matches Ads Manager), fall back to total
+      const uniqueEngagement = adUniqueActions.find((a: any) => a.action_type === 'post_engagement');
+      const totalEngagement = adActions.find((a: any) => a.action_type === 'post_engagement');
+      if (uniqueEngagement) {
+        adEngagements = parseInt(uniqueEngagement.value || "0");
+        debugInfo.push(`Using unique post_engagement: ${adEngagements}`);
+      } else if (totalEngagement) {
+        adEngagements = parseInt(totalEngagement.value || "0");
+        debugInfo.push(`Using total post_engagement: ${adEngagements}`);
       }
     }
 
@@ -298,11 +286,15 @@ Deno.serve(async (req) => {
         impressions: parseInt(adInsights.impressions || "0"),
         reach: parseInt(adInsights.reach || "0"),
         clicks: parseInt(adInsights.clicks || "0"),
+        unique_clicks: parseInt(adInsights.unique_clicks || "0"),
         spend: parseFloat(adInsights.spend || "0"),
         cpc: parseFloat(adInsights.cpc || "0"),
         cpm: parseFloat(adInsights.cpm || "0"),
         actions: adActions,
+        unique_actions: adUniqueActions,
         cost_per_action: adCostPerAction,
+        inline_post_engagement: parseInt(adInsights.inline_post_engagement || "0"),
+        inline_link_clicks: parseInt(adInsights.inline_link_clicks || "0"),
       } : null,
       audience: audienceData,
       debug: debugInfo,
