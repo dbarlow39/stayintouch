@@ -128,9 +128,36 @@ const NoticesView = ({
 
       if (error) throw error;
 
+      // When "closed" notice is toggled, sync client status and deal status
+      if (noticeType === "closed") {
+        // Update deal_status on estimated_net_properties
+        const newDealStatus = completed ? "closed" : "active";
+        await supabase
+          .from('estimated_net_properties')
+          .update({ deal_status: newDealStatus })
+          .eq('id', propertyId);
+
+        // Update linked client status (S = Sold, A = Active)
+        const { data: propRecord } = await supabase
+          .from('estimated_net_properties')
+          .select('client_id')
+          .eq('id', propertyId)
+          .single();
+
+        if (propRecord?.client_id) {
+          const newClientStatus = completed ? "S" : "A";
+          await supabase
+            .from('clients')
+            .update({ status: newClientStatus })
+            .eq('id', propRecord.client_id);
+        }
+      }
+
       toast({
         title: completed ? "Notice marked complete" : "Notice marked incomplete",
-        description: `${noticeType.replace(/-/g, ' ')} status updated.`,
+        description: noticeType === "closed" && completed
+          ? "Property marked as closed. Client status updated to Sold."
+          : `${noticeType.replace(/-/g, ' ')} status updated.`,
       });
     } catch (error) {
       // Revert on error
