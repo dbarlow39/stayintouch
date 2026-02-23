@@ -156,7 +156,7 @@ const ClosedReferralLetterView = ({ propertyData, propertyId, onBack, onEdit, on
     }
   };
 
-  const clientFirstNames = propertyData.name || "there";
+  const clientFirstNames = propertyData.name?.split(/\s*(?:&|and|,)\s*/i).map(n => n.split(' ')[0]).join(' & ') || "there";
   const streetOnly = propertyData.streetAddress?.replace(/,.*$/, '').trim() || "";
 
   const navigationItems = [
