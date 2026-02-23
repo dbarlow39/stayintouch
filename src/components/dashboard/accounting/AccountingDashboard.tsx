@@ -197,7 +197,7 @@ const AccountingDashboard = ({ onNavigate }: AccountingDashboardProps) => {
       {/* Recent Closings */}
       <Card className="border-0 shadow-sm">
         <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <CardTitle className="text-lg font-medium">Recent Closings</CardTitle>
+          <CardTitle className="text-lg font-medium">Pending Closings</CardTitle>
           <div className="flex items-center gap-3">
             <div className="relative">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
