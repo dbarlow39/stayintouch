@@ -370,7 +370,7 @@ const EditClosingForm = ({ closingId, onBack }: EditClosingFormProps) => {
 
           <div className="flex justify-end gap-3">
             <Button variant="outline" onClick={onBack}>Cancel</Button>
-            <Button onClick={handleSave} disabled={saving} className="bg-[hsl(220,13%,38%)] hover:bg-[hsl(220,13%,30%)] text-white">
+            <Button onClick={handleSave} disabled={saving} className="bg-emerald-700 hover:bg-emerald-600 text-white">
               {saving ? "Saving..." : "Save Changes"}
             </Button>
           </div>
