@@ -59,7 +59,7 @@ Deno.serve(async (req) => {
       const sf = item.StandardFields || {};
       const rawPropType = sf.PropertyType || '';
       const resolvedPropType = unmask(sf.PropertyTypeLabel) || fieldMaps.PropertyType?.[rawPropType] || rawPropType || 'Residential';
-      const sqft = unmask(sf.BuildingAreaTotal) || unmask(sf.LivingArea) || 0;
+      const sqft = unmask(sf.LivingArea) || unmask(sf.BuildingAreaTotal) || 0;
       const price = unmask(sf.ListPrice) || unmask(sf.CurrentPrice) || 0;
       const isMultiFamily = (sf.PropertyClass === 'MultiFamily' || sf.PropertySubType === 'Duplex' || rawPropType === 'C');
 
