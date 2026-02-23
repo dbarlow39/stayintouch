@@ -25,6 +25,9 @@ const AddClosingForm = ({ onBack }: AddClosingFormProps) => {
   const [addressQuery, setAddressQuery] = useState("");
   const [showSuggestions, setShowSuggestions] = useState(false);
   const suggestionsRef = useRef<HTMLDivElement>(null);
+  const [lookupResult, setLookupResult] = useState<{ city: string; state: string; zip: string; annual_taxes: number; owner_name: string } | null>(null);
+  const [lookupLoading, setLookupLoading] = useState(false);
+  const lookupTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Query clients for address autocomplete
   const { data: clientSuggestions = [] } = useQuery({
@@ -41,6 +44,33 @@ const AddClosingForm = ({ onBack }: AddClosingFormProps) => {
     },
     enabled: addressQuery.length >= 2,
   });
+
+  // Fallback: Estated property lookup when no client matches found
+  useEffect(() => {
+    if (lookupTimerRef.current) clearTimeout(lookupTimerRef.current);
+    setLookupResult(null);
+
+    if (addressQuery.length < 5 || clientSuggestions.length > 0) return;
+
+    lookupTimerRef.current = setTimeout(async () => {
+      setLookupLoading(true);
+      try {
+        const { data, error } = await supabase.functions.invoke("lookup-property", {
+          body: { address: addressQuery, state: form.state || "OH" },
+        });
+        if (!error && data && !data.error && (data.city || data.zip)) {
+          setLookupResult(data);
+          setShowSuggestions(true);
+        }
+      } catch {
+        // silently fail
+      } finally {
+        setLookupLoading(false);
+      }
+    }, 1000);
+
+    return () => { if (lookupTimerRef.current) clearTimeout(lookupTimerRef.current); };
+  }, [addressQuery, clientSuggestions.length]);
 
   // Close suggestions on outside click
   useEffect(() => {
@@ -84,6 +114,18 @@ const AddClosingForm = ({ onBack }: AddClosingFormProps) => {
     }));
     setAddressQuery(address);
     setShowSuggestions(false);
+  };
+
+  const handleSelectLookup = () => {
+    if (!lookupResult) return;
+    setForm(prev => ({
+      ...prev,
+      city: lookupResult.city || prev.city,
+      state: lookupResult.state || prev.state,
+      zip: lookupResult.zip || prev.zip,
+    }));
+    setShowSuggestions(false);
+    setLookupResult(null);
   };
 
   const [form, setForm] = useState({
@@ -204,27 +246,45 @@ const AddClosingForm = ({ onBack }: AddClosingFormProps) => {
                   setAddressQuery(e.target.value);
                   setShowSuggestions(true);
                 }}
-                onFocus={() => { if (clientSuggestions.length > 0) setShowSuggestions(true); }}
+                onFocus={() => { if (clientSuggestions.length > 0 || lookupResult) setShowSuggestions(true); }}
                 placeholder="123 Main St"
                 autoComplete="off"
               />
-              {showSuggestions && clientSuggestions.length > 0 && (
+              {showSuggestions && (clientSuggestions.length > 0 || lookupResult || lookupLoading) && (
                 <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-popover border rounded-md shadow-lg max-h-48 overflow-y-auto">
-                  {clientSuggestions.map(c => {
-                    const addr = [c.street_number, c.street_name].filter(Boolean).join(" ");
-                    const name = [c.first_name, c.last_name].filter(Boolean).join(" ");
-                    return (
-                      <button
-                        key={c.id}
-                        type="button"
-                        className="w-full text-left px-3 py-2 hover:bg-accent text-sm flex justify-between items-center"
-                        onClick={() => handleSelectClient(c)}
-                      >
-                        <span className="font-medium">{addr}</span>
-                        <span className="text-muted-foreground text-xs ml-2">{name}</span>
-                      </button>
-                    );
-                  })}
+                  {clientSuggestions.length > 0 ? (
+                    clientSuggestions.map(c => {
+                      const addr = [c.street_number, c.street_name].filter(Boolean).join(" ");
+                      const name = [c.first_name, c.last_name].filter(Boolean).join(" ");
+                      return (
+                        <button
+                          key={c.id}
+                          type="button"
+                          className="w-full text-left px-3 py-2 hover:bg-accent text-sm flex justify-between items-center"
+                          onClick={() => handleSelectClient(c)}
+                        >
+                          <span className="font-medium">{addr}</span>
+                          <span className="text-muted-foreground text-xs ml-2">{name}</span>
+                        </button>
+                      );
+                    })
+                  ) : lookupLoading ? (
+                    <div className="px-3 py-2 text-sm text-muted-foreground">Looking up address...</div>
+                  ) : lookupResult ? (
+                    <button
+                      type="button"
+                      className="w-full text-left px-3 py-2 hover:bg-accent text-sm"
+                      onClick={handleSelectLookup}
+                    >
+                      <span className="font-medium">{form.property_address}</span>
+                      <span className="text-muted-foreground text-xs ml-2">
+                        {[lookupResult.city, lookupResult.state, lookupResult.zip].filter(Boolean).join(", ")}
+                      </span>
+                      {lookupResult.owner_name && (
+                        <span className="text-muted-foreground text-xs ml-2">• {lookupResult.owner_name}</span>
+                      )}
+                    </button>
+                  ) : null}
                 </div>
               )}
             </div>
