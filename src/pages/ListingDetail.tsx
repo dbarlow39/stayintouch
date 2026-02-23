@@ -654,7 +654,7 @@ const ListingDetail = () => {
                       <div className="mt-4">
                         <h4 className="font-bold text-foreground mb-2">Interior area</h4>
                         <ul className="list-disc list-inside text-sm text-foreground space-y-1">
-                          {!isBlank(listing.totalStructureArea) && <li>Total structure area: {(listing.totalStructureArea || 0).toLocaleString()}</li>}
+                          {!isBlank(listing.totalStructureArea) && <li>Documented Sq/Ft: {(listing.totalStructureArea || 0).toLocaleString()}</li>}
                           <li>Total interior livable area: {(listing.sqft || 0).toLocaleString()} sqft</li>
                           {!isBlank(listing.stories) && <li>Stories: {listing.stories}</li>}
                         </ul>
