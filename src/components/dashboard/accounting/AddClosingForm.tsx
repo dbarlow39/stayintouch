@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,6 +22,51 @@ const AddClosingForm = ({ onBack }: AddClosingFormProps) => {
   const queryClient = useQueryClient();
   const { data: agentOptions = [] } = useAgentsList();
   const [saving, setSaving] = useState(false);
+  const [addressQuery, setAddressQuery] = useState("");
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const suggestionsRef = useRef<HTMLDivElement>(null);
+
+  // Query clients for address autocomplete
+  const { data: clientSuggestions = [] } = useQuery({
+    queryKey: ["client-address-lookup", addressQuery],
+    queryFn: async () => {
+      if (addressQuery.length < 2) return [];
+      const { data, error } = await supabase
+        .from("clients")
+        .select("id, first_name, last_name, street_number, street_name, city, state, zip, price, agent, phone, email")
+        .or(`street_name.ilike.%${addressQuery}%,street_number.ilike.%${addressQuery}%`)
+        .limit(10);
+      if (error) throw error;
+      return (data || []).filter(c => c.street_number || c.street_name);
+    },
+    enabled: addressQuery.length >= 2,
+  });
+
+  // Close suggestions on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (suggestionsRef.current && !suggestionsRef.current.contains(e.target as Node)) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  const handleSelectClient = (client: typeof clientSuggestions[0]) => {
+    const address = [client.street_number, client.street_name].filter(Boolean).join(" ");
+    setForm(prev => ({
+      ...prev,
+      property_address: address,
+      city: client.city || prev.city,
+      state: client.state || prev.state,
+      zip: client.zip || prev.zip,
+      sale_price: client.price ? String(client.price) : prev.sale_price,
+      agent_name: client.agent || prev.agent_name,
+    }));
+    setAddressQuery(address);
+    setShowSuggestions(false);
+  };
 
   const [form, setForm] = useState({
     agent_name: "",
@@ -132,9 +177,38 @@ const AddClosingForm = ({ onBack }: AddClosingFormProps) => {
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2 relative" ref={suggestionsRef}>
               <Label>Property Address *</Label>
-              <Input value={form.property_address} onChange={e => update("property_address", e.target.value)} placeholder="123 Main St" />
+              <Input
+                value={form.property_address}
+                onChange={e => {
+                  update("property_address", e.target.value);
+                  setAddressQuery(e.target.value);
+                  setShowSuggestions(true);
+                }}
+                onFocus={() => { if (clientSuggestions.length > 0) setShowSuggestions(true); }}
+                placeholder="123 Main St"
+                autoComplete="off"
+              />
+              {showSuggestions && clientSuggestions.length > 0 && (
+                <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-popover border rounded-md shadow-lg max-h-48 overflow-y-auto">
+                  {clientSuggestions.map(c => {
+                    const addr = [c.street_number, c.street_name].filter(Boolean).join(" ");
+                    const name = [c.first_name, c.last_name].filter(Boolean).join(" ");
+                    return (
+                      <button
+                        key={c.id}
+                        type="button"
+                        className="w-full text-left px-3 py-2 hover:bg-accent text-sm flex justify-between items-center"
+                        onClick={() => handleSelectClient(c)}
+                      >
+                        <span className="font-medium">{addr}</span>
+                        <span className="text-muted-foreground text-xs ml-2">{name}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
             <div className="space-y-2">
               <Label>City</Label>
