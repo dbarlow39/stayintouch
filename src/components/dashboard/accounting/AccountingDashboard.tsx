@@ -101,9 +101,10 @@ const AccountingDashboard = ({ onNavigate }: AccountingDashboardProps) => {
   const selectedClosings = closings.filter(c => selectedIds.includes(c.id));
 
   const filteredClosings = useMemo(() => {
-    if (!searchQuery.trim()) return closings;
+    const unpaid = closings.filter(c => !c.paid);
+    if (!searchQuery.trim()) return unpaid;
     const q = searchQuery.toLowerCase();
-    return closings.filter(c =>
+    return unpaid.filter(c =>
       c.property_address?.toLowerCase().includes(q) ||
       c.agent_name?.toLowerCase().includes(q)
     );
@@ -186,6 +187,10 @@ const AccountingDashboard = ({ onNavigate }: AccountingDashboardProps) => {
         <Button onClick={() => onNavigate("vendors")} variant="outline">
           <Store className="h-4 w-4 mr-2" />
           Vendor(s)
+        </Button>
+        <Button onClick={() => onNavigate("closed-deals")} variant="outline">
+          <CheckCircle2 className="h-4 w-4 mr-2" />
+          Closed Deals
         </Button>
       </div>
 
