@@ -55,6 +55,24 @@ const AddClosingForm = ({ onBack }: AddClosingFormProps) => {
 
   const handleSelectClient = (client: typeof clientSuggestions[0]) => {
     const address = [client.street_number, client.street_name].filter(Boolean).join(" ");
+    
+    // Try to match client.agent to an agent in the dropdown (fuzzy by last name)
+    let matchedAgent = "";
+    if (client.agent) {
+      const clientAgentLower = client.agent.toLowerCase();
+      const exactMatch = agentOptions.find(a => a.full_name.toLowerCase() === clientAgentLower);
+      if (exactMatch) {
+        matchedAgent = exactMatch.full_name;
+      } else {
+        // Try matching by last name
+        const clientLastName = client.agent.split(" ").pop()?.toLowerCase() || "";
+        const lastNameMatch = agentOptions.find(a => 
+          a.full_name.toLowerCase().split(" ").pop() === clientLastName
+        );
+        if (lastNameMatch) matchedAgent = lastNameMatch.full_name;
+      }
+    }
+
     setForm(prev => ({
       ...prev,
       property_address: address,
@@ -62,7 +80,7 @@ const AddClosingForm = ({ onBack }: AddClosingFormProps) => {
       state: client.state || prev.state,
       zip: client.zip || prev.zip,
       sale_price: client.price ? String(client.price) : prev.sale_price,
-      agent_name: client.agent || prev.agent_name,
+      agent_name: matchedAgent || prev.agent_name,
     }));
     setAddressQuery(address);
     setShowSuggestions(false);
