@@ -92,6 +92,18 @@ export const TriageCategorySection = ({
           </Badge>
         </CollapsibleTrigger>
         
+        {(category === 'urgent' || category === 'important') && items.length > 0 && (
+          <Button
+            size="sm"
+            variant="ghost"
+            className="text-xs h-7 text-muted-foreground hover:text-destructive"
+            disabled={isDismissing}
+            onClick={() => onMarkAllRead(items.map(i => i.id))}
+          >
+            <Check className="w-3 h-3 mr-1" />
+            Clear All {config.label}
+          </Button>
+        )}
       </div>
 
       <CollapsibleContent className="space-y-2 pl-4">
