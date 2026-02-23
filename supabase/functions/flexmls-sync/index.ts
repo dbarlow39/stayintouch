@@ -226,6 +226,7 @@ Deno.serve(async (req) => {
 
     // ─── MY LISTINGS ───
     if (action === 'my_listings') {
+      const syncStart = Date.now();
       const wantedCount = params?.limit || 50;
       const statusParam = params?.status || 'active';
       const desiredStatuses: string[] = Array.isArray(statusParam)
@@ -237,19 +238,42 @@ Deno.serve(async (req) => {
       const scanFields = 'ListOfficeMlsId,MlsStatus';
       let startPage = 1;
       let scanDone = false;
-      const SCAN_PARALLEL = 4;
+      const SCAN_PARALLEL = 2;
+
+      // Helper: fetch with retry on 429
+      async function fetchWithRetry(url: string, opts: RequestInit, retries = 3): Promise<Response> {
+        for (let attempt = 0; attempt < retries; attempt++) {
+          const r = await fetch(url, opts);
+          if (r.status === 429 && attempt < retries - 1) {
+            const wait = (attempt + 1) * 2000; // 2s, 4s, 6s
+            console.log(`Rate limited (429), retrying in ${wait}ms...`);
+            await new Promise(resolve => setTimeout(resolve, wait));
+            continue;
+          }
+          return r;
+        }
+        return new Response(null, { status: 429 });
+      }
 
       while (matchedIds.length < wantedCount && !scanDone && startPage <= 20) {
         const pages = Array.from({ length: SCAN_PARALLEL }, (_, i) => startPage + i).filter(p => p <= 20);
         const results = await Promise.allSettled(
-          pages.map(p =>
-            fetch(`${baseUrl}/listings?_limit=${perPage}&_page=${p}&_select=${scanFields}`, { method: 'GET', headers: sparkHeaders })
-              .then(r => r.ok ? r.json() : null)
-          )
+          pages.map(async p => {
+            const url = `${baseUrl}/listings?_limit=${perPage}&_page=${p}&_select=${scanFields}`;
+            const r = await fetchWithRetry(url, { method: 'GET', headers: sparkHeaders });
+            if (!r.ok) {
+              console.log(`Scan page ${p} HTTP ${r.status}`);
+              return null;
+            }
+            return r.json();
+          })
         );
 
         for (const [idx, r] of results.entries()) {
-          if (r.status !== 'fulfilled' || !r.value) { scanDone = true; break; }
+          if (r.status !== 'fulfilled' || !r.value) {
+            console.log(`Scan page ${pages[idx]} failed or returned null, skipping`);
+            continue; // Skip failed pages instead of aborting entire scan
+          }
           const pageListings = r.value?.D?.Results || [];
           if (pageListings.length === 0) { scanDone = true; break; }
 
@@ -278,14 +302,14 @@ Deno.serve(async (req) => {
         'G': 'Mobile/Manufactured', 'H': 'Condominium', 'I': 'Business Opportunity',
       };
 
-      const BATCH = 10;
+      const BATCH = 20;
       const transformed: any[] = [];
 
       for (let i = 0; i < matchedIds.length; i += BATCH) {
         const batch = matchedIds.slice(i, i + BATCH);
         const results = await Promise.allSettled(
           batch.map(id =>
-            fetch(`${baseUrl}/listings/${id}?_select=${allDetailFields}&_expand=Photos`, { method: 'GET', headers: sparkHeaders })
+            fetchWithRetry(`${baseUrl}/listings/${id}?_select=${allDetailFields}&_expand=Photos`, { method: 'GET', headers: sparkHeaders })
               .then(r => r.ok ? r.json() : null)
           )
         );
@@ -586,17 +610,26 @@ Deno.serve(async (req) => {
           body: JSON.stringify({ sync_type: 'mls_listings', record_count: transformed.length }),
         });
 
-        // Update listings cache
-        await fetch(`${supabaseUrl}/rest/v1/listings_cache?id=eq.current`, {
-          method: 'DELETE',
-          headers: { ...dbHeaders, 'Prefer': 'return=minimal' },
-        });
-        await fetch(`${supabaseUrl}/rest/v1/listings_cache`, {
-          method: 'POST',
-          headers: { ...dbHeaders, 'Prefer': 'return=minimal' },
-          body: JSON.stringify({ id: 'current', listings: transformed, updated_at: new Date().toISOString() }),
-        });
-        console.log('Listings cache updated with', transformed.length, 'listings');
+        // Safety guard: don't overwrite cache if new count is drastically lower than previous
+        const prevCount = previousListings.length;
+        const newCount = transformed.length;
+        const shouldUpdateCache = prevCount === 0 || newCount >= Math.floor(prevCount * 0.5);
+
+        if (shouldUpdateCache) {
+          // Update listings cache
+          await fetch(`${supabaseUrl}/rest/v1/listings_cache?id=eq.current`, {
+            method: 'DELETE',
+            headers: { ...dbHeaders, 'Prefer': 'return=minimal' },
+          });
+          await fetch(`${supabaseUrl}/rest/v1/listings_cache`, {
+            method: 'POST',
+            headers: { ...dbHeaders, 'Prefer': 'return=minimal' },
+            body: JSON.stringify({ id: 'current', listings: transformed, updated_at: new Date().toISOString() }),
+          });
+          console.log('Listings cache updated with', newCount, 'listings');
+        } else {
+          console.log(`SKIPPED cache update: new count (${newCount}) is too low vs previous (${prevCount}). Possible API issue.`);
+        }
       } catch (e) {
         console.log('Failed to log sync:', e);
       }
