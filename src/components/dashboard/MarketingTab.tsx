@@ -79,11 +79,7 @@ const MarketingTab = () => {
     }
   }, []);
 
-  // Always background-sync on mount so new listings appear immediately
-  useEffect(() => {
-    syncFromMLS();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // Sync only happens via manual button click or hourly cron — no auto-sync on mount
 
   const statusOrder: Record<string, number> = { active: 0, contingent: 1, pending: 2, sold: 3 };
 
