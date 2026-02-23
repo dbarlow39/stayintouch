@@ -34,12 +34,23 @@ const AddClosingForm = ({ onBack }: AddClosingFormProps) => {
     queryKey: ["client-address-lookup", addressQuery],
     queryFn: async () => {
       if (addressQuery.length < 2) return [];
-      // Search all clients (no status filter) by street name or number
       const q = addressQuery.trim();
+      // Split into potential street number and street name parts
+      const parts = q.split(/\s+/);
+      let filters: string;
+      if (parts.length >= 2 && /^\d+/.test(parts[0])) {
+        // First part looks like a number, rest is street name
+        const num = parts[0];
+        const name = parts.slice(1).join(" ");
+        filters = `and(street_number.ilike.%${num}%,street_name.ilike.%${name}%)`;
+      } else {
+        // Single term - search both fields
+        filters = `street_name.ilike.%${q}%,street_number.ilike.%${q}%`;
+      }
       const { data, error } = await supabase
         .from("clients")
         .select("id, first_name, last_name, street_number, street_name, city, state, zip, price, agent, phone, email, status")
-        .or(`street_name.ilike.%${q}%,street_number.ilike.%${q}%`)
+        .or(filters)
         .limit(20);
       if (error) throw error;
       return (data || []).filter(c => c.street_number || c.street_name);
