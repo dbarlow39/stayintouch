@@ -149,7 +149,8 @@ export async function renderAdCanvas(opts: RenderOptions): Promise<string> {
   ctx.shadowColor = 'rgba(0,0,0,0.5)';
   ctx.shadowBlur = 4;
   ctx.shadowOffsetY = 2;
-  const specsText = `${listing.beds} Beds    ${listing.baths} Baths    ${(listing.sqft || 0).toLocaleString()} Sq Ft`;
+  const livableArea = listing.totalStructureArea || listing.sqft || 0;
+  const specsText = `${listing.beds} Beds    ${listing.baths} Baths    ${livableArea.toLocaleString()} Sq Ft`;
   ctx.fillText(specsText, bottomPad, specsY);
 
   // CTA button
