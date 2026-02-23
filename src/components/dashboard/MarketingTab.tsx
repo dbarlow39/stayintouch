@@ -18,29 +18,28 @@ const MarketingTab = () => {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [sortBy, setSortBy] = useState<string>('status-price');
   const [view, setView] = useState<'listings' | 'ad-results'>('listings');
-  const CACHE_KEY = 'mls_listings_cache';
+  
 
-  const [listings, setListings] = useState<MarketingListing[]>(() => {
-    try {
-      const raw = localStorage.getItem(CACHE_KEY);
-      if (raw) {
-        const { data } = JSON.parse(raw);
-        if (data?.length) return data;
-      }
-    } catch {}
-    return mockMarketingListings;
-  });
-  const [isLive, setIsLive] = useState(() => {
-    try {
-      const raw = localStorage.getItem(CACHE_KEY);
-      if (raw) {
-        const { data } = JSON.parse(raw);
-        return data?.length > 0;
-      }
-    } catch {}
-    return false;
-  });
+  const [listings, setListings] = useState<MarketingListing[]>(mockMarketingListings);
+  const [isLive, setIsLive] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
+
+  // Load listings from DB cache on mount for instant display
+  useEffect(() => {
+    (async () => {
+      try {
+        const { data, error } = await supabase
+          .from('listings_cache')
+          .select('listings')
+          .eq('id', 'current')
+          .single();
+        if (!error && data?.listings && Array.isArray(data.listings) && data.listings.length > 0) {
+          setListings(data.listings as unknown as MarketingListing[]);
+          setIsLive(true);
+        }
+      } catch {}
+    })();
+  }, []);
   const { data: lastSyncedFromDb } = useQuery({
     queryKey: ['mls-last-sync'],
     queryFn: async () => {
@@ -64,7 +63,7 @@ const MarketingTab = () => {
       if (result.success && result.data && result.data.length > 0) {
         setListings(result.data);
         setIsLive(true);
-        localStorage.setItem(CACHE_KEY, JSON.stringify({ data: result.data, timestamp: new Date().toISOString() }));
+        // DB cache is updated by the edge function, no need to write localStorage
         queryClient.invalidateQueries({ queryKey: ['mls-last-sync'] });
       } else {
         toast.error(result.error || 'No listings returned. Using cached data.');
