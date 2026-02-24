@@ -246,8 +246,8 @@ const FacebookPostPanel = ({ listing }: FacebookPostPanelProps) => {
     return (
       <div className="bg-card border border-border rounded-lg p-5">
         <div className="flex items-center gap-2 mb-4">
-          <Facebook className="w-5 h-5 text-blue-600" />
-          <h3 className="text-lg font-bold text-card-foreground">Post to Facebook</h3>
+        <Facebook className="w-5 h-5 text-blue-600" />
+        <h3 className="text-lg font-bold text-card-foreground">Post to Facebook & Instagram</h3>
         </div>
         <div className="flex items-center justify-center py-6">
           <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
@@ -260,7 +260,7 @@ const FacebookPostPanel = ({ listing }: FacebookPostPanelProps) => {
     <div className="bg-card border border-border rounded-lg p-5">
       <div className="flex items-center gap-2 mb-4">
         <Facebook className="w-5 h-5 text-blue-600" />
-        <h3 className="text-lg font-bold text-card-foreground">Post to Facebook</h3>
+        <h3 className="text-lg font-bold text-card-foreground">Post to Facebook & Instagram</h3>
       </div>
 
       {!connected ? (
@@ -390,7 +390,7 @@ const FacebookPostPanel = ({ listing }: FacebookPostPanelProps) => {
             ) : posting ? (
               <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Posting...</>
             ) : (
-              <><Facebook className="w-4 h-4 mr-2" /> Post to Facebook Page</>
+              <><Facebook className="w-4 h-4 mr-2" /> Post to Facebook & Instagram</>
             )}
           </Button>
 
