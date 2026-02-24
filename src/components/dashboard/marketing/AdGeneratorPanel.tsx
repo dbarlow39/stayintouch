@@ -429,7 +429,7 @@ const AdGeneratorPanel = ({ listing, autoGenerate = false }: AdGeneratorPanelPro
               ) : posting ? (
                 <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Posting...</>
               ) : (
-                <><Facebook className="w-4 h-4 mr-2" /> Post Ad to Facebook</>
+                <><Facebook className="w-4 h-4 mr-2" /> Post Ad to Facebook & Instagram</>
               )}
             </Button>
           )}
