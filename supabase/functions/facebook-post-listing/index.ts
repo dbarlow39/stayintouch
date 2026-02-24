@@ -160,22 +160,47 @@ serve(async (req) => {
           console.log("[facebook-post] IG container response:", JSON.stringify(containerData));
 
           if (containerData.id) {
-            // Step 2: Publish the container
-            const publishResp = await fetch(`https://graph.facebook.com/v21.0/${instagram_account_id}/media_publish`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                creation_id: containerData.id,
-                access_token: page_access_token,
-              }),
-            });
-            const publishData = await publishResp.json();
-            console.log("[facebook-post] IG publish response:", JSON.stringify(publishData));
+            // Step 2: Wait for container to be ready, then publish
+            let publishAttempts = 0;
+            const MAX_PUBLISH_ATTEMPTS = 5;
+            let publishData: any = null;
 
-            if (publishData.id) {
+            while (publishAttempts < MAX_PUBLISH_ATTEMPTS) {
+              const statusResp = await fetch(
+                `https://graph.facebook.com/v21.0/${containerData.id}?fields=status_code&access_token=${page_access_token}`
+              );
+              const statusData = await statusResp.json();
+              console.log(`[facebook-post] IG container status (attempt ${publishAttempts + 1}):`, JSON.stringify(statusData));
+
+              if (statusData.status_code === "FINISHED") {
+                const publishResp = await fetch(`https://graph.facebook.com/v21.0/${instagram_account_id}/media_publish`, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    creation_id: containerData.id,
+                    access_token: page_access_token,
+                  }),
+                });
+                publishData = await publishResp.json();
+                console.log("[facebook-post] IG publish response:", JSON.stringify(publishData));
+                break;
+              } else if (statusData.status_code === "ERROR") {
+                instagramWarning = "Instagram media processing failed.";
+                console.error("[facebook-post] IG container processing error:", statusData);
+                break;
+              }
+
+              await new Promise(resolve => setTimeout(resolve, 3000));
+              publishAttempts++;
+            }
+
+            if (!publishData && publishAttempts >= MAX_PUBLISH_ATTEMPTS) {
+              instagramWarning = "Instagram media took too long to process. Try again later.";
+              console.warn("[facebook-post] IG container not ready after max attempts");
+            } else if (publishData?.id) {
               instagramPostId = publishData.id;
               console.log("[facebook-post] Instagram post published:", instagramPostId);
-            } else if (publishData.error) {
+            } else if (publishData?.error) {
               instagramWarning = "Instagram publish failed: " + (publishData.error.message || "Unknown error");
               console.error("[facebook-post] IG publish error:", publishData.error);
             }
