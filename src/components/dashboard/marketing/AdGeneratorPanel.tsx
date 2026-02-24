@@ -222,7 +222,8 @@ const AdGeneratorPanel = ({ listing, autoGenerate = false }: AdGeneratorPanelPro
 
       // Post to Facebook
       const price = formatListingPrice(listing.price);
-      const message = `🏠 ${bannerText}\n\n📍 ${fullAddress}\n💰 ${price}\n🛏️ ${listing.beds} Beds | 🛁 ${listing.baths} Baths | 📐 ${listing.sqft.toLocaleString()} sqft\n\n👉 More info: ${listingUrl}\n\n📞 Contact ${listing.agent?.name || 'us'} for details!\n\n#RealEstate #${listing.city.replace(/\s/g, '')} #HomeForSale`;
+      const phoneDisplay = agentPhone ? ` at ${agentPhone}` : '';
+      const message = `🏠 ${bannerText}\n\n📍 ${fullAddress}\n💰 ${price}\n🛏️ ${listing.beds} Beds | 🛁 ${listing.baths} Baths | 📐 ${listing.sqft.toLocaleString()} sqft\n\n👉 For More info Copy and Paste This Link: ${listingUrl}\n\n📞 Contact ${listing.agent?.name || 'us'}${phoneDisplay} for details!\n\n#RealEstate #${listing.city.replace(/\s/g, '')} #HomeForSale`;
 
       const postResp = await fetch(`${SUPABASE_URL}/functions/v1/facebook-post-listing`, {
         method: 'POST',

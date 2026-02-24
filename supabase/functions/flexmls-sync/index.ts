@@ -522,14 +522,26 @@ Deno.serve(async (req) => {
                     const listingAgentMlsId = (l.agent?.mlsId || '').trim();
 
                     // Generate message based on type
+                    // Resolve agent phone with fallback map
+                    const agentPhoneMap: Record<string, string> = {
+                      'David E Barlow': '614-778-6616',
+                      'Jaysen E Barlow': '614-579-1442',
+                      'Jaime Barlow': '614-493-8541',
+                      'Jaime E Barlow': '614-493-8541',
+                    };
+                    const agentPhoneVal = (l.agent?.phone && !/^\*+$/.test(l.agent.phone))
+                      ? l.agent.phone
+                      : (l.agent?.name ? agentPhoneMap[l.agent.name] || '' : '');
+                    const phoneDisplay = agentPhoneVal ? ` at ${agentPhoneVal}` : '';
+
                     let message = '';
                     if (item.type === 'new') {
-                      message = `🏠 NEW LISTING!\n\n📍 ${fullAddress}\n💰 ${fmtPrice(l.price)}\n🛏️ ${l.beds} Beds | 🛁 ${l.baths} Baths | 📐 ${(l.sqft || 0).toLocaleString()} sqft\n\n${(l.description || '').slice(0, 200)}\n\n📞 Contact ${l.agent?.name || 'us'} for details!\n\n#RealEstate #${(l.city || '').replace(/\s/g, '')} #NewListing #HomeForSale #Ohio`;
+                      message = `🏠 NEW LISTING!\n\n📍 ${fullAddress}\n💰 ${fmtPrice(l.price)}\n🛏️ ${l.beds} Beds | 🛁 ${l.baths} Baths | 📐 ${(l.sqft || 0).toLocaleString()} sqft\n\n${(l.description || '').slice(0, 200)}\n\n📞 Contact ${l.agent?.name || 'us'}${phoneDisplay} for details!\n\n#RealEstate #${(l.city || '').replace(/\s/g, '')} #NewListing #HomeForSale #Ohio`;
                     } else if (item.type === 'price_change') {
                       const dir = (item.newPrice || 0) < (item.oldPrice || 0) ? 'REDUCED' : 'UPDATED';
-                      message = `💲 PRICE ${dir}!\n\n📍 ${fullAddress}\n💰 ${fmtPrice(item.oldPrice || 0)} → ${fmtPrice(item.newPrice || 0)}\n🛏️ ${l.beds} Beds | 🛁 ${l.baths} Baths | 📐 ${(l.sqft || 0).toLocaleString()} sqft\n\n${(l.description || '').slice(0, 200)}\n\n📞 Contact ${l.agent?.name || 'us'} for details!\n\n#RealEstate #${(l.city || '').replace(/\s/g, '')} #PriceReduced #HomeForSale #Ohio`;
+                      message = `💲 PRICE ${dir}!\n\n📍 ${fullAddress}\n💰 ${fmtPrice(item.oldPrice || 0)} → ${fmtPrice(item.newPrice || 0)}\n🛏️ ${l.beds} Beds | 🛁 ${l.baths} Baths | 📐 ${(l.sqft || 0).toLocaleString()} sqft\n\n${(l.description || '').slice(0, 200)}\n\n📞 Contact ${l.agent?.name || 'us'}${phoneDisplay} for details!\n\n#RealEstate #${(l.city || '').replace(/\s/g, '')} #PriceReduced #HomeForSale #Ohio`;
                     } else if (item.type === 'back_on_market') {
-                      message = `🔄 BACK ON MARKET!\n\n📍 ${fullAddress}\n💰 ${fmtPrice(l.price)}\n🛏️ ${l.beds} Beds | 🛁 ${l.baths} Baths | 📐 ${(l.sqft || 0).toLocaleString()} sqft\n\n${(l.description || '').slice(0, 200)}\n\n📞 Contact ${l.agent?.name || 'us'} for details!\n\n#RealEstate #${(l.city || '').replace(/\s/g, '')} #BackOnMarket #HomeForSale #Ohio`;
+                      message = `🔄 BACK ON MARKET!\n\n📍 ${fullAddress}\n💰 ${fmtPrice(l.price)}\n🛏️ ${l.beds} Beds | 🛁 ${l.baths} Baths | 📐 ${(l.sqft || 0).toLocaleString()} sqft\n\n${(l.description || '').slice(0, 200)}\n\n📞 Contact ${l.agent?.name || 'us'}${phoneDisplay} for details!\n\n#RealEstate #${(l.city || '').replace(/\s/g, '')} #BackOnMarket #HomeForSale #Ohio`;
                     }
 
                     // Post to relevant agents' pages:

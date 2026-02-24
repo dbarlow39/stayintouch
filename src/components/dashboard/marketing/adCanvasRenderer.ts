@@ -153,25 +153,10 @@ export async function renderAdCanvas(opts: RenderOptions): Promise<string> {
   const specsText = `${listing.beds} Beds    ${listing.baths} Baths    ${livableArea.toLocaleString()} Sq Ft`;
   ctx.fillText(specsText, bottomPad, specsY);
 
-  // CTA button
+  // Address (no CTA button — Instagram doesn't support clickable links)
   ctx.shadowBlur = 0;
   ctx.shadowOffsetY = 0;
-  const ctaText = 'Click for more info';
-  ctx.font = '800 20px "Segoe UI", Arial, sans-serif';
-  const ctaW = ctx.measureText(ctaText).width + 36;
-  const ctaH = 40;
-  const ctaX = W - bottomPad - ctaW;
-  const ctaY = specsY - ctaH;
-  ctx.fillStyle = '#cc0000';
-  roundRect(ctx, ctaX, ctaY, ctaW, ctaH, 8);
-  ctx.fill();
-  ctx.fillStyle = '#ffffff';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText(ctaText, ctaX + ctaW / 2, ctaY + ctaH / 2);
-
-  // Address
-  curY = ctaY - 16;
+  curY = specsY - 16;
   ctx.textAlign = 'left';
   ctx.textBaseline = 'bottom';
   ctx.fillStyle = '#e0e0e0';
