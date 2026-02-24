@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -81,6 +82,7 @@ const NoticesView = ({
   const [noticeStatuses, setNoticeStatuses] = useState<Record<string, { completed: boolean; completed_at: string | null }>>({});
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   // Fetch notice statuses from database
   const fetchNoticeStatuses = useCallback(async () => {
@@ -150,7 +152,12 @@ const NoticesView = ({
             .from('clients')
             .update({ status: newClientStatus })
             .eq('id', propRecord.client_id);
-        }
+        // Invalidate caches so other views update
+        queryClient.invalidateQueries({ queryKey: ['estimated-net-properties'] });
+        queryClient.invalidateQueries({ queryKey: ['clients'] });
+        queryClient.invalidateQueries({ queryKey: ['working-deals'] });
+        queryClient.invalidateQueries({ queryKey: ['dashboard-data'] });
+      }
       }
 
       toast({
