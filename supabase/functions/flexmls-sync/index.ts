@@ -449,7 +449,7 @@ Deno.serve(async (req) => {
 
         // ─── AUTO-POST TO FACEBOOK ───
         // Check if auto-posting is enabled and there are relevant changes
-        if (hasChanges && previousListings.length > 0) {
+        if (hasChanges && previousListings.length > 0 && changes.newListings.length < previousListings.length) {
           try {
             // Check global setting
             const settingsRes = await fetch(`${supabaseUrl}/rest/v1/app_settings?id=eq.default&select=auto_post_facebook`, {
@@ -501,6 +501,14 @@ Deno.serve(async (req) => {
                   if (sc.newStatus === 'active' && sc.oldStatus !== 'active') {
                     autoPostItems.push({ listing: sc.listing, type: 'back_on_market' });
                   }
+                }
+
+                // Safety: cap auto-posts per sync to prevent rate limiting / spam
+                const MAX_AUTO_POSTS_PER_SYNC = 5;
+
+                if (autoPostItems.length > MAX_AUTO_POSTS_PER_SYNC) {
+                  console.log(`[auto-post] ${autoPostItems.length} items detected but capping at ${MAX_AUTO_POSTS_PER_SYNC} to prevent rate limiting`);
+                  autoPostItems.length = MAX_AUTO_POSTS_PER_SYNC;
                 }
 
                 if (autoPostItems.length > 0) {
