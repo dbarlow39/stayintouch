@@ -149,7 +149,17 @@ const FacebookPostPanel = ({ listing }: FacebookPostPanelProps) => {
 
   const generateDefaultMessage = () => {
     const price = formatListingPrice(listing.price);
-    return `🏠 ${listing.status === 'sold' ? 'JUST SOLD!' : 'NEW LISTING!'}\n\n📍 ${fullAddress}\n💰 ${price}\n🛏️ ${listing.beds} Beds | 🛁 ${listing.baths} Baths | 📐 ${listing.sqft.toLocaleString()} sqft\n\n${listing.description?.slice(0, 200) || ''}\n\n📞 Contact ${listing.agent?.name || 'us'} for details!\n\n#RealEstate #${listing.city.replace(/\s/g, '')} #HomeForSale #Ohio`;
+    const agentPhoneMap: Record<string, string> = {
+      'David E Barlow': '614-778-6616',
+      'Jaysen E Barlow': '614-579-1442',
+      'Jaime Barlow': '614-493-8541',
+      'Jaime E Barlow': '614-493-8541',
+    };
+    const agentPhoneVal = (listing.agent?.phone && !/^\*+$/.test(listing.agent.phone))
+      ? listing.agent.phone
+      : (listing.agent?.name ? agentPhoneMap[listing.agent.name] || '' : '');
+    const phoneDisplay = agentPhoneVal ? ` at ${agentPhoneVal}` : '';
+    return `🏠 ${listing.status === 'sold' ? 'JUST SOLD!' : 'NEW LISTING!'}\n\n📍 ${fullAddress}\n💰 ${price}\n🛏️ ${listing.beds} Beds | 🛁 ${listing.baths} Baths | 📐 ${listing.sqft.toLocaleString()} sqft\n\n${listing.description?.slice(0, 200) || ''}\n\n📞 Contact ${listing.agent?.name || 'us'}${phoneDisplay} for details!\n\n#RealEstate #${listing.city.replace(/\s/g, '')} #HomeForSale #Ohio`;
   };
 
   useEffect(() => {
