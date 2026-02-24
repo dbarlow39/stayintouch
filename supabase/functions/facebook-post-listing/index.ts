@@ -34,7 +34,7 @@ serve(async (req) => {
       throw new Error("Facebook not connected. Please connect your Facebook Page first.");
     }
 
-    const { page_id, page_access_token } = tokenData;
+    const { page_id, page_access_token, instagram_account_id } = tokenData;
 
     if (!page_id || !page_access_token) {
       throw new Error("Facebook Page not configured. Please reconnect.");
@@ -135,10 +135,69 @@ serve(async (req) => {
     const finalPostId = result.post_id || result.id;
     console.log("[facebook-post] Result:", JSON.stringify(result), "Final post_id:", finalPostId);
 
+    // Cross-post to Instagram if connected
+    let instagramPostId: string | null = null;
+    let instagramWarning: string | undefined;
+    if (instagram_account_id) {
+      try {
+        console.log("[facebook-post] Cross-posting to Instagram, account:", instagram_account_id);
+        const imageUrl = photo_url || (link && link.includes("&image=") ? decodeURIComponent(link.split("&image=")[1]?.split("&")[0] || "") : null);
+        
+        if (imageUrl) {
+          // Step 1: Create media container
+          const containerBody: any = {
+            image_url: imageUrl,
+            caption: message,
+            access_token: page_access_token,
+          };
+
+          const containerResp = await fetch(`https://graph.facebook.com/v21.0/${instagram_account_id}/media`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(containerBody),
+          });
+          const containerData = await containerResp.json();
+          console.log("[facebook-post] IG container response:", JSON.stringify(containerData));
+
+          if (containerData.id) {
+            // Step 2: Publish the container
+            const publishResp = await fetch(`https://graph.facebook.com/v21.0/${instagram_account_id}/media_publish`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                creation_id: containerData.id,
+                access_token: page_access_token,
+              }),
+            });
+            const publishData = await publishResp.json();
+            console.log("[facebook-post] IG publish response:", JSON.stringify(publishData));
+
+            if (publishData.id) {
+              instagramPostId = publishData.id;
+              console.log("[facebook-post] Instagram post published:", instagramPostId);
+            } else if (publishData.error) {
+              instagramWarning = "Instagram publish failed: " + (publishData.error.message || "Unknown error");
+              console.error("[facebook-post] IG publish error:", publishData.error);
+            }
+          } else if (containerData.error) {
+            instagramWarning = "Instagram post failed: " + (containerData.error.message || "Unknown error");
+            console.error("[facebook-post] IG container error:", containerData.error);
+          }
+        } else {
+          instagramWarning = "Instagram requires an image — text-only posts skipped for Instagram.";
+          console.log("[facebook-post] Skipping Instagram: no image available");
+        }
+      } catch (igErr) {
+        instagramWarning = "Instagram cross-post failed: " + (igErr instanceof Error ? igErr.message : "Unknown error");
+        console.error("[facebook-post] Instagram error:", igErr);
+      }
+    }
+
     return new Response(JSON.stringify({
       success: true,
       post_id: finalPostId,
-      warning,
+      instagram_post_id: instagramPostId,
+      warning: warning || instagramWarning || undefined,
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

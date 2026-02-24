@@ -1,0 +1,1 @@
+ALTER TABLE public.facebook_oauth_tokens ADD COLUMN IF NOT EXISTS instagram_account_id text;
