@@ -33,7 +33,7 @@ serve(async (req) => {
       throw new Error("Facebook not connected. Please connect your Facebook Page first.");
     }
 
-    const { access_token, page_access_token, page_id } = tokenData;
+    const { access_token, page_access_token, page_id, instagram_account_id } = tokenData;
     if (!access_token || !page_id) {
       throw new Error("Facebook not properly configured. Please reconnect.");
     }
@@ -85,21 +85,30 @@ serve(async (req) => {
       targeting.geo_locations.countries = ["US"];
     }
 
+    // Build ad set body with Instagram placement if available
+    const adSetBody: any = {
+      name: `Boost AdSet - ${post_id}`,
+      campaign_id: campaignId,
+      daily_budget: Math.round(daily_budget * 100), // Facebook uses cents
+      billing_event: "IMPRESSIONS",
+      optimization_goal: "REACH",
+      start_time: now.toISOString(),
+      end_time: endDate.toISOString(),
+      targeting,
+      status: "PAUSED",
+      access_token: access_token,
+    };
+
+    // Add Instagram as a placement if connected
+    if (instagram_account_id) {
+      adSetBody.publisher_platforms = ["facebook", "instagram"];
+      adSetBody.instagram_actor_id = instagram_account_id;
+    }
+
     const adSetResp = await fetch(`${apiBase}/act_${AD_ACCOUNT_ID}/adsets`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name: `Boost AdSet - ${post_id}`,
-        campaign_id: campaignId,
-        daily_budget: Math.round(daily_budget * 100), // Facebook uses cents
-        billing_event: "IMPRESSIONS",
-        optimization_goal: "REACH",
-        start_time: now.toISOString(),
-        end_time: endDate.toISOString(),
-        targeting,
-        status: "PAUSED",
-        access_token: access_token,
-      }),
+      body: JSON.stringify(adSetBody),
     });
     const adSetData = await adSetResp.json();
     console.log("[boost] Ad Set response:", JSON.stringify(adSetData));

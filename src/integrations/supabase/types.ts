@@ -926,6 +926,7 @@ export type Database = {
           agent_id: string
           created_at: string
           id: string
+          instagram_account_id: string | null
           page_access_token: string | null
           page_id: string | null
           page_name: string | null
@@ -937,6 +938,7 @@ export type Database = {
           agent_id: string
           created_at?: string
           id?: string
+          instagram_account_id?: string | null
           page_access_token?: string | null
           page_id?: string | null
           page_name?: string | null
@@ -948,6 +950,7 @@ export type Database = {
           agent_id?: string
           created_at?: string
           id?: string
+          instagram_account_id?: string | null
           page_access_token?: string | null
           page_id?: string | null
           page_name?: string | null

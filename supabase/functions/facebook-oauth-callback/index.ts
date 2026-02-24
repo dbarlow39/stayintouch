@@ -106,6 +106,23 @@ serve(async (req) => {
         console.log("[FB Callback] Could not fetch ad accounts:", e);
       }
 
+      // Fetch Instagram Business Account ID linked to the page
+      let instagramAccountId = null;
+      if (page) {
+        try {
+          const igResp = await fetch(`https://graph.facebook.com/v21.0/${page.id}?fields=instagram_business_account&access_token=${page.access_token}`);
+          const igData = await igResp.json();
+          if (igData.instagram_business_account?.id) {
+            instagramAccountId = igData.instagram_business_account.id;
+            console.log("[FB Callback] Found Instagram Business Account:", instagramAccountId);
+          } else {
+            console.log("[FB Callback] No Instagram Business Account linked to page");
+          }
+        } catch (e) {
+          console.log("[FB Callback] Could not fetch Instagram account:", e);
+        }
+      }
+
       // Store in database - save token even without a page
       const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!);
 
@@ -114,6 +131,7 @@ serve(async (req) => {
         access_token: longLivedToken,
         updated_at: new Date().toISOString(),
         ad_account_id: adAccountId,
+        instagram_account_id: instagramAccountId,
       };
       if (page) {
         upsertData.page_id = page.id;
@@ -191,6 +209,16 @@ serve(async (req) => {
       }
     } catch (_e) { /* non-fatal */ }
 
+    // Fetch Instagram Business Account ID for legacy handler
+    let instagramAccountId = null;
+    try {
+      const igResp = await fetch(`https://graph.facebook.com/v21.0/${page.id}?fields=instagram_business_account&access_token=${page.access_token}`);
+      const igData = await igResp.json();
+      if (igData.instagram_business_account?.id) {
+        instagramAccountId = igData.instagram_business_account.id;
+      }
+    } catch (_e) { /* non-fatal */ }
+
     await supabase.from("facebook_oauth_tokens").upsert({
       agent_id,
       access_token: longLivedToken,
@@ -198,6 +226,7 @@ serve(async (req) => {
       page_name: page.name,
       page_access_token: page.access_token,
       ad_account_id: adAccountId,
+      instagram_account_id: instagramAccountId,
       updated_at: new Date().toISOString(),
     }, { onConflict: "agent_id" });
 
