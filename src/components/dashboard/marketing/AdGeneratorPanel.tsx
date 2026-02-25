@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import { MarketingListing, formatListingPrice } from '@/data/marketingListings';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/lib/auth';
+import { renderAdCanvas } from './adCanvasRenderer';
 import { renderInstagramCanvas } from './instagramAdRenderer';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
@@ -73,6 +74,7 @@ const AdGeneratorPanel = ({ listing, autoGenerate = false }: AdGeneratorPanelPro
   const [generating, setGenerating] = useState(false);
   const [posting, setPosting] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [fbPreviewUrl, setFbPreviewUrl] = useState<string | null>(null);
   const [heroDataUrl, setHeroDataUrl] = useState<string | null>(null);
   const [fbConnected, setFbConnected] = useState(false);
   const [fbPageName, setFbPageName] = useState('');
@@ -179,13 +181,14 @@ const AdGeneratorPanel = ({ listing, autoGenerate = false }: AdGeneratorPanelPro
           console.warn('Could not load hero photo, generating without it');
         }
       }
-      const url = await renderInstagramCanvas({
-        listing,
-        bannerText,
-        heroDataUrl: dataUrl,
-        agentPhone,
-      });
-      setPreviewUrl(url);
+      const renderOpts = { listing, bannerText, heroDataUrl: dataUrl, agentPhone };
+      // Generate both Instagram (square preview) and Facebook (landscape) images
+      const [igUrl, fbUrl] = await Promise.all([
+        renderInstagramCanvas(renderOpts),
+        renderAdCanvas(renderOpts),
+      ]);
+      setPreviewUrl(igUrl);
+      setFbPreviewUrl(fbUrl);
       setPosted(false);
       toast.success('Ad generated! Ready to post.');
     } catch (err: any) {
@@ -198,29 +201,34 @@ const AdGeneratorPanel = ({ listing, autoGenerate = false }: AdGeneratorPanelPro
   generateRef.current = generateAd;
 
   const postToFacebook = async () => {
-    if (!previewUrl || !user) return;
+    if (!previewUrl || !fbPreviewUrl || !user) return;
     setPosting(true);
     try {
-      // Convert data URL to blob
-      const res = await fetch(previewUrl);
-      const blob = await res.blob();
-      const fileName = `ad-${listing.mlsNumber || listing.id}-${Date.now()}.png`;
+      const ts = Date.now();
 
-      // Upload to storage
-      const { data: uploadData, error: uploadErr } = await supabase.storage
-        .from('ad-images')
-        .upload(fileName, blob, { contentType: 'image/png', upsert: true });
+      // Upload both images in parallel
+      const [igBlob, fbBlob] = await Promise.all([
+        fetch(previewUrl).then(r => r.blob()),
+        fetch(fbPreviewUrl).then(r => r.blob()),
+      ]);
+      const igFileName = `ig-${listing.mlsNumber || listing.id}-${ts}.png`;
+      const fbFileName = `fb-${listing.mlsNumber || listing.id}-${ts}.png`;
 
-      if (uploadErr) throw new Error(`Upload failed: ${uploadErr.message}`);
+      const [igUpload, fbUpload] = await Promise.all([
+        supabase.storage.from('ad-images').upload(igFileName, igBlob, { contentType: 'image/png', upsert: true }),
+        supabase.storage.from('ad-images').upload(fbFileName, fbBlob, { contentType: 'image/png', upsert: true }),
+      ]);
+      if (igUpload.error) throw new Error(`IG upload failed: ${igUpload.error.message}`);
+      if (fbUpload.error) throw new Error(`FB upload failed: ${fbUpload.error.message}`);
 
-      const { data: urlData } = supabase.storage.from('ad-images').getPublicUrl(fileName);
-      const publicUrl = urlData.publicUrl;
+      const igPublicUrl = supabase.storage.from('ad-images').getPublicUrl(igFileName).data.publicUrl;
+      const fbPublicUrl = supabase.storage.from('ad-images').getPublicUrl(fbFileName).data.publicUrl;
 
-      // Build OG URL with cache-busting timestamp
-      const timestamp = Math.floor(Date.now() / 1000);
-      const ogUrlWithImage = `${ogListingUrl}&image=${encodeURIComponent(publicUrl)}&v=${timestamp}`;
+      // Build OG URL with FB image for Facebook link share
+      const timestamp = Math.floor(ts / 1000);
+      const ogUrlWithImage = `${ogListingUrl}&image=${encodeURIComponent(fbPublicUrl)}&v=${timestamp}`;
 
-      // Post to Facebook
+      // Post to Facebook + Instagram
       const price = formatListingPrice(listing.price);
       const phoneDisplay = agentPhone ? ` at ${agentPhone}` : '';
       const message = `🏠 ${bannerText}\n\n📍 ${fullAddress}\n💰 ${price}\n🛏️ ${listing.beds} Beds | 🛁 ${listing.baths} Baths | 📐 ${listing.sqft.toLocaleString()} sqft\n\n👉 For More info Copy and Paste This Link: ${listingUrl}\n\n📞 Contact ${listing.agent?.name || 'us'}${phoneDisplay} for details!\n\n#RealEstate #${listing.city.replace(/\s/g, '')} #HomeForSale`;
@@ -232,6 +240,7 @@ const AdGeneratorPanel = ({ listing, autoGenerate = false }: AdGeneratorPanelPro
           agent_id: user.id,
           message,
           link: ogUrlWithImage,
+          instagram_image_url: igPublicUrl,
         }),
       });
       const postData = await postResp.json();

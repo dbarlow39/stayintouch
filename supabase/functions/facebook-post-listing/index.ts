@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    const { agent_id, message, photo_url, link } = await req.json();
+    const { agent_id, message, photo_url, link, instagram_image_url } = await req.json();
 
     if (!agent_id || !message) {
       throw new Error("agent_id and message are required");
@@ -141,7 +141,8 @@ serve(async (req) => {
     if (instagram_account_id) {
       try {
         console.log("[facebook-post] Cross-posting to Instagram, account:", instagram_account_id);
-        const imageUrl = photo_url || (link && link.includes("&image=") ? decodeURIComponent(link.split("&image=")[1]?.split("&")[0] || "") : null);
+        // Use dedicated Instagram image if provided, otherwise fall back to FB image
+        const imageUrl = instagram_image_url || photo_url || (link && link.includes("&image=") ? decodeURIComponent(link.split("&image=")[1]?.split("&")[0] || "") : null);
         
         if (imageUrl) {
           // Step 1: Create media container
