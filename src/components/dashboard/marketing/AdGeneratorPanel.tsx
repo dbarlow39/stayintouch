@@ -226,7 +226,7 @@ const AdGeneratorPanel = ({ listing, autoGenerate = false }: AdGeneratorPanelPro
 
       // Build OG URL with FB image for Facebook link share
       const timestamp = Math.floor(ts / 1000);
-      const ogUrlWithImage = `${ogListingUrl}&image=${encodeURIComponent(igPublicUrl)}&v=${timestamp}`;
+      const ogUrlWithImage = `${ogListingUrl}&image=${encodeURIComponent(fbPublicUrl)}&v=${timestamp}`;
 
       // Post to Facebook + Instagram
       const price = formatListingPrice(listing.price);
