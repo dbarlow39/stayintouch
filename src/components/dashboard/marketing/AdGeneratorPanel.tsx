@@ -8,7 +8,7 @@ import { toast } from 'sonner';
 import { MarketingListing, formatListingPrice } from '@/data/marketingListings';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/lib/auth';
-import { renderAdCanvas } from './adCanvasRenderer';
+import { renderInstagramCanvas } from './instagramAdRenderer';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const ANON_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
@@ -179,7 +179,7 @@ const AdGeneratorPanel = ({ listing, autoGenerate = false }: AdGeneratorPanelPro
           console.warn('Could not load hero photo, generating without it');
         }
       }
-      const url = await renderAdCanvas({
+      const url = await renderInstagramCanvas({
         listing,
         bannerText,
         heroDataUrl: dataUrl,
