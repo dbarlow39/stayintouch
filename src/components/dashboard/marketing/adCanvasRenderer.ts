@@ -4,7 +4,7 @@ import { MarketingListing, formatListingPrice } from '@/data/marketingListings';
 
 const W = 1200;
 const H = 630;
-const SCALE = 3; // render at 3600×1890 for crisp output
+const SCALE = 2; // render at 2400×1260 to match OG dimensions and avoid Facebook over-compression
 
 function loadImage(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
