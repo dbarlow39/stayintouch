@@ -18,117 +18,106 @@ export async function renderInstagramCanvas(opts: RenderOptions): Promise<string
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = 'high';
 
-  // ---- Layout zones ----
-  const heroH = 640;
-  const specBarH = 70;
-  const bottomH = H - heroH - specBarH;
-
-  // 1) Dark background
-  ctx.fillStyle = '#111111';
+  // 1) Hero photo — fills ENTIRE canvas
+  ctx.fillStyle = '#1a1a2e';
   ctx.fillRect(0, 0, W, H);
 
-  // 2) Hero photo — fills top portion
   if (heroDataUrl) {
     try {
       const heroImg = await loadImage(heroDataUrl);
-      drawCover(ctx, heroImg, 0, 0, W, heroH);
+      drawCover(ctx, heroImg, 0, 0, W, H);
     } catch (e) {
       console.warn('Could not draw hero photo', e);
     }
   }
 
-  // Subtle gradient at bottom of hero
-  const heroGrad = ctx.createLinearGradient(0, heroH - 180, 0, heroH);
-  heroGrad.addColorStop(0, 'rgba(0,0,0,0)');
-  heroGrad.addColorStop(1, 'rgba(0,0,0,0.5)');
-  ctx.fillStyle = heroGrad;
-  ctx.fillRect(0, heroH - 180, W, 180);
+  // 2) Dark gradient overlay on bottom ~45% for text readability
+  const gradStart = H * 0.50;
+  const grad = ctx.createLinearGradient(0, gradStart - 80, 0, H);
+  grad.addColorStop(0, 'rgba(0,0,0,0)');
+  grad.addColorStop(0.15, 'rgba(0,0,0,0.3)');
+  grad.addColorStop(0.4, 'rgba(0,0,0,0.7)');
+  grad.addColorStop(1, 'rgba(0,0,0,0.88)');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, gradStart - 80, W, H - gradStart + 80);
 
-  // 3) Red banner — overlaid at lower-left of hero
-  const bannerH2 = 60;
-  const bannerY = heroH - specBarH - bannerH2 - 20;
+  // 3) Red banner — overlaid in the transition area
+  const bannerH = 58;
+  const bannerY = H * 0.58;
   ctx.font = '800 34px "Segoe UI", Arial, sans-serif';
   const bannerTextW = ctx.measureText(bannerText.toUpperCase()).width;
   ctx.fillStyle = '#cc0000';
-  ctx.fillRect(0, bannerY, bannerTextW + 60, bannerH2);
+  ctx.fillRect(0, bannerY, bannerTextW + 60, bannerH);
   ctx.fillStyle = '#ffffff';
   ctx.textAlign = 'left';
   ctx.textBaseline = 'middle';
   ctx.letterSpacing = '3px';
-  ctx.fillText(bannerText.toUpperCase(), 24, bannerY + bannerH2 / 2);
+  ctx.fillText(bannerText.toUpperCase(), 24, bannerY + bannerH / 2);
   ctx.letterSpacing = '0px';
 
   // 4) Specs bar — bordered row with address + specs
-  const specBarY = heroH;
-  ctx.fillStyle = 'rgba(0,0,0,0.75)';
-  ctx.fillRect(0, specBarY, W, specBarH);
+  const specBarH = 56;
+  const specBarY = bannerY + bannerH + 10;
 
-  // Border lines
-  ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+  // Border lines (thin white box)
+  ctx.strokeStyle = 'rgba(255,255,255,0.35)';
   ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.moveTo(30, specBarY + 8);
-  ctx.lineTo(W - 30, specBarY + 8);
-  ctx.moveTo(30, specBarY + specBarH - 8);
-  ctx.lineTo(W - 30, specBarY + specBarH - 8);
-  ctx.stroke();
+  ctx.strokeRect(30, specBarY, W - 60, specBarH);
 
   // Specs text
   const livableArea = listing.totalStructureArea || listing.sqft || 0;
   const specsLine = `${listing.address.toUpperCase()}   ||   ${listing.beds} BEDS   |   ${listing.baths} BATHS   |   ${livableArea.toLocaleString()} SQ FT`;
   ctx.fillStyle = '#ffffff';
-  ctx.font = '600 22px "Segoe UI", Arial, sans-serif';
+  ctx.font = '600 21px "Segoe UI", Arial, sans-serif';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillText(specsLine, W / 2, specBarY + specBarH / 2);
 
-  // 5) Bottom info section
-  const botY = specBarY + specBarH;
-
+  // 5) Bottom info — company, price, agent, phone, MLS
+  const infoY = specBarY + specBarH + 24;
   const centerX = W / 2;
-  const infoStartY = botY + 40;
 
   // Company name
   ctx.fillStyle = '#ffffff';
-  ctx.font = '700 36px "Segoe UI", Arial, sans-serif';
+  ctx.font = '700 32px "Segoe UI", Arial, sans-serif';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'top';
-  ctx.fillText('SELL FOR 1 PERCENT', centerX, infoStartY);
+  ctx.fillText('SELL FOR 1 PERCENT', centerX, infoY);
 
   // Price
-  ctx.font = '700 56px "Segoe UI", Arial, sans-serif';
-  ctx.fillText(formatListingPrice(listing.price), centerX, infoStartY + 46);
+  ctx.font = '700 48px "Segoe UI", Arial, sans-serif';
+  ctx.fillText(formatListingPrice(listing.price), centerX, infoY + 40);
 
-  // Agent name + phone
-  ctx.font = '600 28px "Segoe UI", Arial, sans-serif';
-  const agentName = listing.agent?.name || 'Agent';
-  ctx.fillText(agentName, centerX, infoStartY + 116);
+  // Agent name
+  ctx.font = '600 26px "Segoe UI", Arial, sans-serif';
+  ctx.fillText(listing.agent?.name || 'Agent', centerX, infoY + 100);
 
+  // Phone
   if (agentPhone) {
     ctx.fillStyle = '#dddddd';
-    ctx.font = '400 26px "Segoe UI", Arial, sans-serif';
-    ctx.fillText(agentPhone, centerX, infoStartY + 152);
+    ctx.font = '400 24px "Segoe UI", Arial, sans-serif';
+    ctx.fillText(agentPhone, centerX, infoY + 134);
   }
 
   // MLS number
   ctx.fillStyle = '#999999';
-  ctx.font = '400 18px "Segoe UI", Arial, sans-serif';
-  ctx.fillText(`MLS# ${listing.mlsNumber}`, centerX, infoStartY + 192);
+  ctx.font = '400 16px "Segoe UI", Arial, sans-serif';
+  ctx.fillText(`MLS# ${listing.mlsNumber}`, centerX, infoY + 168);
 
   // Logo bottom-left
   try {
     const logoImg = await loadImage(logoSrc);
-    const lh = 55;
+    const lh = 50;
     const lw = (logoImg.naturalWidth / logoImg.naturalHeight) * lh;
-    ctx.drawImage(logoImg, 30, botY + bottomH - lh - 20, lw, lh);
+    ctx.drawImage(logoImg, 28, H - lh - 18, lw, lh);
   } catch {}
 
   // Fair Housing logo bottom-right
   try {
     const fhImg = await loadImage(fairHousingSrc);
-    const fhH = 40;
+    const fhH = 36;
     const fhW = (fhImg.naturalWidth / fhImg.naturalHeight) * fhH;
-    ctx.drawImage(fhImg, W - fhW - 30, botY + bottomH - fhH - 25, fhW, fhH);
+    ctx.drawImage(fhImg, W - fhW - 28, H - fhH - 22, fhW, fhH);
   } catch {}
 
   return canvas.toDataURL('image/png');
