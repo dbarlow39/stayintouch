@@ -2,9 +2,9 @@ import logoSrc from '@/assets/logo.jpg';
 import fairHousingSrc from '@/assets/equal-housing-white.png';
 import { MarketingListing, formatListingPrice } from '@/data/marketingListings';
 
-const W = 1080;
-const H = 1080;
-const SCALE = 2; // render at 2160×2160 for crisp output
+const W = 1200;
+const H = 630;
+const SCALE = 2; // render at 2400×1260 for crisp output
 
 function loadImage(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
@@ -30,7 +30,7 @@ function drawCover(ctx: CanvasRenderingContext2D, img: HTMLImageElement, x: numb
   ctx.drawImage(img, sx, sy, sw, sh, x, y, w, h);
 }
 
-interface RenderOptions {
+export interface RenderOptions {
   listing: MarketingListing;
   bannerText: string;
   heroDataUrl: string | null;
@@ -39,6 +39,7 @@ interface RenderOptions {
 
 export async function renderAdCanvas(opts: RenderOptions): Promise<string> {
   const { listing, bannerText, heroDataUrl, agentPhone } = opts;
+  const fullAddress = `${listing.address}, ${listing.city}, ${listing.state} ${listing.zip}`;
 
   const canvas = document.createElement('canvas');
   canvas.width = W * SCALE;
@@ -48,123 +49,149 @@ export async function renderAdCanvas(opts: RenderOptions): Promise<string> {
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = 'high';
 
-  // ---- Layout zones ----
-  const heroH = 640;       // top photo area
-  const specBarH = 70;     // address + specs row
-  const bottomH = H - heroH - specBarH; // bottom info section
-
-  // 1) Dark background
-  ctx.fillStyle = '#111111';
+  // Background
+  ctx.fillStyle = '#1a1a2e';
   ctx.fillRect(0, 0, W, H);
 
-  // 2) Hero photo
+  // Hero photo
   if (heroDataUrl) {
     try {
       const heroImg = await loadImage(heroDataUrl);
-      drawCover(ctx, heroImg, 0, 0, W, heroH);
+      drawCover(ctx, heroImg, 0, 0, W, H);
     } catch (e) {
       console.warn('Could not draw hero photo', e);
     }
   }
 
-  // Subtle gradient at bottom of hero for text contrast
-  const heroGrad = ctx.createLinearGradient(0, heroH - 180, 0, heroH);
-  heroGrad.addColorStop(0, 'rgba(0,0,0,0)');
-  heroGrad.addColorStop(1, 'rgba(0,0,0,0.5)');
-  ctx.fillStyle = heroGrad;
-  ctx.fillRect(0, heroH - 180, W, 180);
+  // Gradient overlay
+  const grad = ctx.createLinearGradient(0, 0, 0, H);
+  grad.addColorStop(0, 'rgba(0,0,0,0.05)');
+  grad.addColorStop(0.4, 'rgba(0,0,0,0.1)');
+  grad.addColorStop(0.7, 'rgba(0,0,0,0.65)');
+  grad.addColorStop(1, 'rgba(0,0,0,0.85)');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, W, H);
 
-  // 3) Red banner overlay — positioned at lower-left of hero
-  const bannerW = Math.min(ctx.measureText(bannerText.toUpperCase()).width + 80, 480);
-  const bannerH = 60;
-  const bannerY = heroH - specBarH - bannerH - 20;
-  ctx.font = '800 34px "Segoe UI", Arial, sans-serif';
-  const actualBannerW = ctx.measureText(bannerText.toUpperCase()).width + 60;
+  // Red banner
+  const bannerH = 70;
   ctx.fillStyle = '#cc0000';
-  ctx.fillRect(0, bannerY, actualBannerW + 10, bannerH);
+  ctx.fillRect(0, 0, W, bannerH);
   ctx.fillStyle = '#ffffff';
-  ctx.textAlign = 'left';
+  ctx.font = '800 36px "Segoe UI", Arial, sans-serif';
+  ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.letterSpacing = '3px';
-  ctx.fillText(bannerText.toUpperCase(), 24, bannerY + bannerH / 2);
+  ctx.letterSpacing = '5px';
+  ctx.fillText(bannerText.toUpperCase(), W / 2, bannerH / 2);
   ctx.letterSpacing = '0px';
 
-  // 4) Specs bar — thin bordered row below hero
-  const specBarY = heroH;
-  ctx.fillStyle = 'rgba(0,0,0,0.75)';
-  ctx.fillRect(0, specBarY, W, specBarH);
-
-  // Border lines
-  ctx.strokeStyle = 'rgba(255,255,255,0.3)';
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.moveTo(30, specBarY + 8);
-  ctx.lineTo(W - 30, specBarY + 8);
-  ctx.moveTo(30, specBarY + specBarH - 8);
-  ctx.lineTo(W - 30, specBarY + specBarH - 8);
-  ctx.stroke();
-
-  // Specs text
-  const livableArea = listing.totalStructureArea || listing.sqft || 0;
-  const specsLine = `${listing.address.toUpperCase()}   ||   ${listing.beds} BEDS   |   ${listing.baths} BATHS   |   ${livableArea.toLocaleString()} SQ FT`;
-  ctx.fillStyle = '#ffffff';
-  ctx.font = '600 22px "Segoe UI", Arial, sans-serif';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText(specsLine, W / 2, specBarY + specBarH / 2);
-
-  // 5) Bottom info section
-  const botY = specBarY + specBarH;
-  ctx.fillStyle = '#111111';
-  ctx.fillRect(0, botY, W, bottomH);
-
-  const centerX = W / 2;
-  const infoStartY = botY + 40;
-
-  // Company name
-  ctx.fillStyle = '#ffffff';
-  ctx.font = '700 36px "Segoe UI", Arial, sans-serif';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'top';
-  ctx.fillText('SELL FOR 1 PERCENT', centerX, infoStartY);
-
-  // Price
-  ctx.fillStyle = '#ffffff';
-  ctx.font = '700 56px "Segoe UI", Arial, sans-serif';
-  ctx.fillText(formatListingPrice(listing.price), centerX, infoStartY + 46);
-
-  // Agent name + phone
-  ctx.fillStyle = '#ffffff';
-  ctx.font = '600 28px "Segoe UI", Arial, sans-serif';
-  const agentName = listing.agent?.name || 'Agent';
-  ctx.fillText(agentName, centerX, infoStartY + 116);
-
-  if (agentPhone) {
-    ctx.fillStyle = '#dddddd';
-    ctx.font = '400 26px "Segoe UI", Arial, sans-serif';
-    ctx.fillText(agentPhone, centerX, infoStartY + 152);
-  }
-
-  // MLS number
-  ctx.fillStyle = '#999999';
-  ctx.font = '400 18px "Segoe UI", Arial, sans-serif';
-  ctx.fillText(`MLS# ${listing.mlsNumber}`, centerX, infoStartY + 192);
-
-  // Logo bottom-left
+  // Logo in banner
   try {
     const logoImg = await loadImage(logoSrc);
-    const lh = 55;
-    const lw = (logoImg.naturalWidth / logoImg.naturalHeight) * lh;
-    ctx.drawImage(logoImg, 30, botY + bottomH - lh - 20, lw, lh);
+    const logoH = 44;
+    const logoW = (logoImg.naturalWidth / logoImg.naturalHeight) * logoH;
+    ctx.drawImage(logoImg, W - logoW - 20, (bannerH - logoH) / 2, logoW, logoH);
   } catch {}
 
-  // Fair Housing logo bottom-right
+  // --- Bottom section ---
+  const bottomPad = 36;
+  let curY = H;
+
+  // Agent bar
+  const agentBarH = 56;
+  curY -= 20; // bottom margin
+  curY -= agentBarH;
+  ctx.fillStyle = 'rgba(0,0,0,0.5)';
+  roundRect(ctx, bottomPad, curY, W - bottomPad * 2, agentBarH, 8);
+  ctx.fill();
+
+  // Agent logo + name
+  try {
+    const logoImg = await loadImage(logoSrc);
+    const lh = 36;
+    const lw = (logoImg.naturalWidth / logoImg.naturalHeight) * lh;
+    ctx.drawImage(logoImg, bottomPad + 14, curY + (agentBarH - lh) / 2, lw, lh);
+
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '700 18px "Segoe UI", Arial, sans-serif';
+    ctx.fillText(listing.agent?.name || 'Agent', bottomPad + 14 + lw + 12, curY + agentBarH / 2 - 9);
+    ctx.fillStyle = '#bbbbbb';
+    ctx.font = '400 15px "Segoe UI", Arial, sans-serif';
+    ctx.fillText(agentPhone, bottomPad + 14 + lw + 12, curY + agentBarH / 2 + 11);
+  } catch {}
+
+  // MLS number + Fair Housing logo
+  ctx.textAlign = 'right';
+  ctx.fillStyle = '#cccccc';
+  ctx.font = '400 15px "Segoe UI", Arial, sans-serif';
+  const mlsText = `MLS# ${listing.mlsNumber}`;
+  const mlsTextWidth = ctx.measureText(mlsText).width;
+  ctx.fillText(mlsText, W - bottomPad - 14, curY + agentBarH / 2);
+
+  // Fair Housing logo to the left of MLS#
   try {
     const fhImg = await loadImage(fairHousingSrc);
-    const fhH = 40;
+    const fhH = 30;
     const fhW = (fhImg.naturalWidth / fhImg.naturalHeight) * fhH;
-    ctx.drawImage(fhImg, W - fhW - 30, botY + bottomH - fhH - 25, fhW, fhH);
+    const fhX = W - bottomPad - 14 - mlsTextWidth - 10 - fhW;
+    const fhY = curY + (agentBarH - fhH) / 2;
+    ctx.drawImage(fhImg, fhX, fhY, fhW, fhH);
   } catch {}
+
+  // Specs row
+  curY -= 14; // gap
+  const specsY = curY;
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'bottom';
+  ctx.fillStyle = '#ffffff';
+  ctx.font = '600 29px "Segoe UI", Arial, sans-serif';
+  ctx.shadowColor = 'rgba(0,0,0,0.5)';
+  ctx.shadowBlur = 4;
+  ctx.shadowOffsetY = 2;
+  const livableArea = listing.totalStructureArea || listing.sqft || 0;
+  const specsText = `${listing.beds} Beds    ${listing.baths} Baths    ${livableArea.toLocaleString()} Sq Ft`;
+  ctx.fillText(specsText, bottomPad, specsY);
+
+  // Address
+  ctx.shadowBlur = 0;
+  ctx.shadowOffsetY = 0;
+  curY = specsY - 16;
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'bottom';
+  ctx.fillStyle = '#e0e0e0';
+  ctx.font = '600 32px "Segoe UI", Arial, sans-serif';
+  ctx.shadowColor = 'rgba(0,0,0,0.5)';
+  ctx.shadowBlur = 4;
+  ctx.shadowOffsetY = 2;
+  ctx.fillText(fullAddress, bottomPad, curY);
+
+  // Price
+  curY -= 32;
+  ctx.fillStyle = '#ffffff';
+  ctx.font = '800 69px "Segoe UI", Arial, sans-serif';
+  ctx.shadowBlur = 6;
+  ctx.shadowOffsetY = 3;
+  ctx.fillText(formatListingPrice(listing.price), bottomPad, curY);
+
+  ctx.shadowBlur = 0;
+  ctx.shadowOffsetY = 0;
 
   return canvas.toDataURL('image/png');
 }
+
+function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
+
+export { loadImage, drawCover };
