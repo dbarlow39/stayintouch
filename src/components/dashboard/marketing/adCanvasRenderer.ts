@@ -4,7 +4,7 @@ import { MarketingListing, formatListingPrice } from '@/data/marketingListings';
 
 const W = 1200;
 const H = 630;
-const SCALE = 2; // render at 2400×1260 for crisp output
+const SCALE = 3; // render at 3600×1890 for crisp output
 
 function loadImage(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
@@ -140,7 +140,7 @@ export async function renderAdCanvas(opts: RenderOptions): Promise<string> {
   } catch {}
 
   // Specs row
-  curY -= 14; // gap
+  curY -= 18; // gap
   const specsY = curY;
   ctx.textAlign = 'left';
   ctx.textBaseline = 'bottom';
@@ -156,7 +156,7 @@ export async function renderAdCanvas(opts: RenderOptions): Promise<string> {
   // Address
   ctx.shadowBlur = 0;
   ctx.shadowOffsetY = 0;
-  curY = specsY - 16;
+  curY = specsY - 28;
   ctx.textAlign = 'left';
   ctx.textBaseline = 'bottom';
   ctx.fillStyle = '#e0e0e0';
@@ -167,7 +167,7 @@ export async function renderAdCanvas(opts: RenderOptions): Promise<string> {
   ctx.fillText(fullAddress, bottomPad, curY);
 
   // Price
-  curY -= 32;
+  curY -= 48;
   ctx.fillStyle = '#ffffff';
   ctx.font = '800 69px "Segoe UI", Arial, sans-serif';
   ctx.shadowBlur = 6;
