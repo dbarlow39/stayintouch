@@ -88,9 +88,11 @@ Deno.serve(async (req) => {
   const esc = (s: string) =>
     s.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
-  // Build the edge function's own URL for og:url so Facebook doesn't follow to the SPA
-  // Use the pretty listing URL for og:url so Facebook displays a clean domain
-  const ogUrl = listingPageUrl;
+  // Build a stable but versioned og:url so Facebook treats each post preview as fresh
+  const version = url.searchParams.get("v");
+  const ogUrl = version
+    ? `${listingPageUrl}?v=${encodeURIComponent(version)}`
+    : listingPageUrl;
 
   const html = `<!DOCTYPE html>
 <html>
@@ -100,6 +102,7 @@ Deno.serve(async (req) => {
    <meta property="og:title" content="${esc(ogTitle)}" />
    <meta property="og:description" content="${esc(ogDescription)}" />
    <meta property="og:image" content="${esc(ogImage)}" />
+   <meta property="og:image:secure_url" content="${esc(ogImage)}" />
    <meta property="og:image:width" content="2400" />
    <meta property="og:image:height" content="1260" />
    <meta property="og:url" content="${esc(ogUrl)}" />
@@ -119,7 +122,7 @@ Deno.serve(async (req) => {
   return new Response(html, {
     headers: {
       "Content-Type": "text/html; charset=utf-8",
-      "Cache-Control": "public, max-age=3600",
+      "Cache-Control": "no-store, max-age=0",
     },
   });
 });
