@@ -122,9 +122,9 @@ serve(async (req) => {
     if (instagram_account_id) {
       try {
         console.log("[facebook-post] Cross-posting to Instagram, account:", instagram_account_id);
-        // Use dedicated Instagram image if provided, otherwise fall back to FB image
-        const imageUrl = instagram_image_url || photo_url || (link && link.includes("&image=") ? decodeURIComponent(link.split("&image=")[1]?.split("&")[0] || "") : null);
-        
+        // Instagram must use its dedicated image only (no Facebook fallback)
+        const imageUrl = typeof instagram_image_url === "string" ? instagram_image_url.trim() : "";
+
         if (imageUrl) {
           // Step 1: Create media container
           const containerBody: any = {
@@ -169,8 +169,8 @@ serve(async (req) => {
             console.error("[facebook-post] IG container error:", containerData.error);
           }
         } else {
-          instagramWarning = "Instagram requires an image — text-only posts skipped for Instagram.";
-          console.log("[facebook-post] Skipping Instagram: no image available");
+          instagramWarning = "Instagram post skipped: dedicated Instagram image was not provided.";
+          console.log("[facebook-post] Skipping Instagram: missing instagram_image_url");
         }
       } catch (igErr) {
         instagramWarning = "Instagram cross-post failed: " + (igErr instanceof Error ? igErr.message : "Unknown error");
