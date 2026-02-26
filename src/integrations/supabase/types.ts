@@ -118,6 +118,53 @@ export type Database = {
         }
         Relationships: []
       }
+      audio_transcriptions: {
+        Row: {
+          audio_file_path: string | null
+          created_at: string
+          duration_seconds: number | null
+          id: string
+          inspection_id: string | null
+          status: string
+          summary: string | null
+          transcription: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          audio_file_path?: string | null
+          created_at?: string
+          duration_seconds?: number | null
+          id?: string
+          inspection_id?: string | null
+          status?: string
+          summary?: string | null
+          transcription?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          audio_file_path?: string | null
+          created_at?: string
+          duration_seconds?: number | null
+          id?: string
+          inspection_id?: string | null
+          status?: string
+          summary?: string | null
+          transcription?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audio_transcriptions_inspection_id_fkey"
+            columns: ["inspection_id"]
+            isOneToOne: false
+            referencedRelation: "inspections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_email_logs: {
         Row: {
           agent_id: string
@@ -1018,6 +1065,36 @@ export type Database = {
           refresh_token?: string
           token_expiry?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      inspections: {
+        Row: {
+          created_at: string
+          id: string
+          inspection_data: Json | null
+          photos: Json | null
+          property_address: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          inspection_data?: Json | null
+          photos?: Json | null
+          property_address?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          inspection_data?: Json | null
+          photos?: Json | null
+          property_address?: string
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
