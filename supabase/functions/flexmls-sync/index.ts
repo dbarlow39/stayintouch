@@ -557,37 +557,60 @@ Deno.serve(async (req) => {
                       }
 
                       try {
-                        // Use OG link share (like manual ads) so Facebook renders a rich preview card
-                        // with listing details, branded image, and the FORMOREINFO domain
+                        // ── Generate branded ad images server-side ──
+                        let brandedFbUrl = '';
+                        let brandedIgUrl = '';
+                        try {
+                          const adImageResp = await fetch(`${supabaseUrl}/functions/v1/generate-ad-image`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${serviceRoleKey}` },
+                            body: JSON.stringify({
+                              listing: l,
+                              bannerText: item.type === 'new' ? 'NEW LISTING'
+                                : item.type === 'price_change'
+                                  ? ((item.newPrice || 0) < (item.oldPrice || 0) ? 'PRICE REDUCED!' : 'PRICE UPDATED')
+                                  : 'BACK ON MARKET',
+                              agentPhone: agentPhoneVal,
+                            }),
+                          });
+                          const adImageData = await adImageResp.json();
+                          if (adImageData.success) {
+                            brandedFbUrl = adImageData.fb_image_url || '';
+                            brandedIgUrl = adImageData.ig_image_url || '';
+                            console.log(`[auto-post] Generated branded images – FB: ${brandedFbUrl}`);
+                          } else {
+                            console.warn(`[auto-post] Image gen failed: ${adImageData.error}`);
+                          }
+                        } catch (imgErr) {
+                          console.error('[auto-post] Image gen error:', imgErr);
+                        }
+
+                        // ── Build OG link with branded image (or raw photo fallback) ──
                         const ogBaseUrl = 'https://formoreinfo.sellfor1percent.com/og-listing';
                         const listingId = l.id || l.mlsNumber;
                         let ogLink = `${ogBaseUrl}?id=${encodeURIComponent(listingId)}`;
 
-                        // If there's a photo, include it as the og:image source
-                        if (l.photos && l.photos.length > 0) {
-                          ogLink += `&image=${encodeURIComponent(l.photos[0])}`;
+                        const imageForOg = brandedFbUrl || (l.photos?.length > 0 ? l.photos[0] : '');
+                        if (imageForOg) {
+                          ogLink += `&image=${encodeURIComponent(imageForOg)}`;
                         }
-
-                        // Add cache-busting timestamp
                         ogLink += `&v=${Math.floor(Date.now() / 1000)}`;
 
-                        const postBody: any = {
-                          message,
-                          link: ogLink,
-                          access_token: agent.page_access_token,
-                        };
-
-                        const postUrl = `https://graph.facebook.com/v21.0/${agent.page_id}/feed`;
-
-                        const postResp = await fetch(postUrl, {
+                        // ── Post through facebook-post-listing for proper pre-scraping ──
+                        const postResp = await fetch(`${supabaseUrl}/functions/v1/facebook-post-listing`, {
                           method: 'POST',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify(postBody),
+                          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${serviceRoleKey}` },
+                          body: JSON.stringify({
+                            agent_id: agent.agent_id,
+                            message,
+                            link: ogLink,
+                            instagram_image_url: brandedIgUrl || undefined,
+                          }),
                         });
                         const postResult = await postResp.json();
 
                         if (postResult.error) {
-                          console.error(`[auto-post] Failed for agent ${agent.agent_id}:`, postResult.error.message);
+                          console.error(`[auto-post] Failed for agent ${agent.agent_id}:`, postResult.error);
                           continue;
                         }
 
