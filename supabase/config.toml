@@ -83,3 +83,6 @@ verify_jwt = false
 
 [functions.boost-facebook-post]
 verify_jwt = false
+
+[functions.generate-ad-image]
+verify_jwt = false
