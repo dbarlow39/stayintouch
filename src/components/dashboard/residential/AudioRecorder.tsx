@@ -43,6 +43,7 @@ export function AudioRecorder({ inspectionId, userId }: AudioRecorderProps) {
   const chunkIndexRef = useRef(0);
   const streamRef = useRef<MediaStream | null>(null);
   const isRecordingRef = useRef(false);
+  const finalChunkResolveRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     loadFailedRecordings();
@@ -180,6 +181,11 @@ export function AudioRecorder({ inspectionId, userId }: AudioRecorderProps) {
         const uploadedPath = await uploadChunk(currentChunks, currentIndex);
         if (uploadedPath) uploadedPathsRef.current.push(uploadedPath);
       }
+      // Signal that the final chunk is done if we're stopping
+      if (!isRecordingRef.current && finalChunkResolveRef.current) {
+        finalChunkResolveRef.current();
+        finalChunkResolveRef.current = null;
+      }
       if (isRecordingRef.current) createNewRecorder();
     };
     mediaRecorderRef.current = newRecorder;
@@ -210,8 +216,17 @@ export function AudioRecorder({ inspectionId, userId }: AudioRecorderProps) {
       if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
       if (chunkTimerRef.current) { clearInterval(chunkTimerRef.current); chunkTimerRef.current = null; }
       isRecordingRef.current = false;
+      
+      // Wait for the final chunk to finish uploading
+      const finalChunkPromise = new Promise<void>(resolve => {
+        finalChunkResolveRef.current = resolve;
+      });
+      
       if (mediaRecorderRef.current.state === "recording") mediaRecorderRef.current.stop();
-      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Wait for onstop handler to finish uploading the final chunk
+      await finalChunkPromise;
+      
       if (streamRef.current) streamRef.current.getTracks().forEach(track => track.stop());
       await processRecording();
     }
