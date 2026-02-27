@@ -590,15 +590,25 @@ Deno.serve(async (req) => {
                         const igImageForPost = brandedIgUrl
                           || (l.photos?.length > 0 ? l.photos[0] : '');
 
-                        // ── Post branded image directly (no link share) ──
-                        const fbImageForPost = brandedFbUrl || (l.photos?.length > 0 ? l.photos[0] : '');
+                        // ── Build OG link with branded image for rich preview + clickable link ──
+                        const ogBaseUrl = 'https://formoreinfo.sellfor1percent.com/og-listing';
+                        const listingId = l.id || l.mlsNumber;
+                        let ogLink = `${ogBaseUrl}?id=${encodeURIComponent(listingId)}`;
+
+                        const imageForOg = brandedFbUrl || (l.photos?.length > 0 ? l.photos[0] : '');
+                        if (imageForOg) {
+                          ogLink += `&image=${encodeURIComponent(imageForOg)}`;
+                        }
+                        ogLink += `&v=${Math.floor(Date.now() / 1000)}`;
+
+                        // ── Post as link share (branded OG preview + clickable link) ──
                         const postResp = await fetch(`${supabaseUrl}/functions/v1/facebook-post-listing`, {
                           method: 'POST',
                           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${serviceRoleKey}` },
                           body: JSON.stringify({
                             agent_id: agent.agent_id,
                             message,
-                            photo_url: fbImageForPost || undefined,
+                            link: ogLink,
                             instagram_image_url: igImageForPost || undefined,
                           }),
                         });
