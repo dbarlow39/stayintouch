@@ -78,35 +78,47 @@ const AdResultsPage = () => {
     const streetPart = listingAddress.split(',')[0].trim();
     const addrWords = streetPart.split(/\s+/);
     const streetNumber = addrWords[0] || '';
-    const streetKeyword = addrWords[1] || '';
-    const flexiblePattern = streetNumber && streetKeyword
-      ? `%${streetNumber}%${streetKeyword}%`
-      : `%${streetPart}%`;
+    const streetKeyword = addrWords.length > 1 ? addrWords.slice(1).join(' ') : '';
 
+    // Reset to default before lookup so stale names don't persist
+    setClientFirstNames('there');
+
+    // Try estimated_net_properties first with a strict street_address match
     supabase
       .from('estimated_net_properties')
-      .select('seller_email, name')
+      .select('seller_email, name, street_address')
       .eq('agent_id', user.id)
-      .ilike('street_address', flexiblePattern)
-      .limit(1)
-      .maybeSingle()
-      .then(({ data: propData }) => {
-        if (propData?.seller_email) setSellerEmail(propData.seller_email);
-        if (propData?.name) {
-          const firstNames = propData.name.split(/\s*[&,]\s*/).map((n: string) => n.split(' ')[0]).join(' & ');
+      .then(({ data: allProps }) => {
+        // Find the best match by checking if the street part appears in the stored address
+        const match = allProps?.find(p => {
+          const stored = (p.street_address || '').toLowerCase();
+          const search = streetPart.toLowerCase();
+          // Require both the street number AND full street name to match
+          return stored.includes(streetNumber.toLowerCase()) &&
+                 streetKeyword && stored.includes(streetKeyword.toLowerCase());
+        });
+
+        if (match?.seller_email) setSellerEmail(match.seller_email);
+        if (match?.name) {
+          const firstNames = match.name.split(/\s*[&,]\s*/).map((n: string) => n.split(' ')[0]).join(' & ');
           if (firstNames) setClientFirstNames(firstNames);
         }
-        if (!propData?.seller_email) {
+
+        // Fallback to clients table only if no estimated_net match found
+        if (!match) {
           supabase
             .from('clients')
-            .select('email, first_name')
+            .select('email, first_name, street_number, street_name')
             .eq('agent_id', user.id)
-            .or(`street_name.ilike.%${streetKeyword}%,location.ilike.%${streetPart}%`)
-            .limit(1)
-            .maybeSingle()
-            .then(({ data: clientData }) => {
-              if (clientData?.email) setSellerEmail(clientData.email);
-              if (clientData?.first_name) setClientFirstNames(clientData.first_name);
+            .then(({ data: allClients }) => {
+              const clientMatch = allClients?.find(c => {
+                const cStreetNum = (c.street_number || '').toLowerCase();
+                const cStreetName = (c.street_name || '').toLowerCase();
+                return cStreetNum === streetNumber.toLowerCase() &&
+                       streetKeyword && cStreetName.includes(streetKeyword.toLowerCase());
+              });
+              if (clientMatch?.email) setSellerEmail(clientMatch.email);
+              if (clientMatch?.first_name) setClientFirstNames(clientMatch.first_name);
             });
         }
       });
