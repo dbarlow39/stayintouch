@@ -49,6 +49,9 @@ const LeadsTab = () => {
     address: "",
     first_name: "",
     last_name: "",
+    city: "",
+    state: "OH",
+    zip: "",
     email: "",
     phone: "",
     status: "new",
@@ -132,6 +135,9 @@ const LeadsTab = () => {
       address: "",
       first_name: "",
       last_name: "",
+      city: "",
+      state: "OH",
+      zip: "",
       email: "",
       phone: "",
       status: "new",
@@ -153,9 +159,12 @@ const LeadsTab = () => {
   const handleEdit = (lead: Lead) => {
     setEditingLead(lead);
     setFormData({
-      address: lead.address || "",
+      address: (lead as any).address || "",
       first_name: lead.first_name,
       last_name: lead.last_name,
+      city: (lead as any).city || "",
+      state: (lead as any).state || "OH",
+      zip: (lead as any).zip || "",
       email: lead.email || "",
       phone: lead.phone || "",
       status: lead.status,
@@ -216,17 +225,21 @@ const LeadsTab = () => {
                         setLookingUpAddress(true);
                         try {
                           const { data, error } = await supabase.functions.invoke('lookup-property', {
-                            body: { address, state: 'OH' }
+                            body: { address, state: formData.state || 'OH' }
                           });
                           if (!error && data) {
                             const ownerName = data.owner_name || "";
                             const parts = ownerName.split(" ");
                             const firstName = parts[0] || "";
                             const lastName = parts.slice(1).join(" ") || "";
+                            const titleCase = (s: string) => s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : "";
                             setFormData(prev => ({
                               ...prev,
-                              first_name: prev.first_name || firstName,
-                              last_name: prev.last_name || lastName,
+                              first_name: prev.first_name || titleCase(firstName),
+                              last_name: prev.last_name || titleCase(lastName),
+                              city: data.city ? titleCase(data.city) : prev.city,
+                              state: data.state || prev.state,
+                              zip: data.zip || prev.zip,
                             }));
                           }
                         } catch (err) {
@@ -260,6 +273,32 @@ const LeadsTab = () => {
                     value={formData.last_name}
                     onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
                     required
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="city">City</Label>
+                  <Input
+                    id="city"
+                    value={formData.city}
+                    onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="state">State</Label>
+                  <Input
+                    id="state"
+                    value={formData.state}
+                    onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="zip">Zip</Label>
+                  <Input
+                    id="zip"
+                    value={formData.zip}
+                    onChange={(e) => setFormData({ ...formData, zip: e.target.value })}
                   />
                 </div>
               </div>
