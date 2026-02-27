@@ -258,7 +258,7 @@ const ClientsTab = ({ onSelectClientForEstimate }: ClientsTabProps) => {
   });
 
   const updateMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: typeof formData }) => {
+    mutationFn: async ({ id, data, previousStatus }: { id: string; data: typeof formData; previousStatus?: string }) => {
       const submitData: any = { ...data };
       
       // Convert price to number if it exists, otherwise set to null
@@ -276,11 +276,23 @@ const ClientsTab = ({ onSelectClientForEstimate }: ClientsTabProps) => {
       
       const { error } = await supabase.from("clients").update(submitData).eq("id", id);
       if (error) throw error;
+
+      // If status changed from Active to something else, remove linked working deals
+      const wasActive = previousStatus?.toUpperCase() === "A";
+      const isNowActive = submitData.status?.toUpperCase() === "A";
+      if (wasActive && !isNowActive) {
+        const { error: deleteError } = await supabase
+          .from("estimated_net_properties")
+          .delete()
+          .eq("client_id", id);
+        if (deleteError) console.error("Failed to remove linked working deal:", deleteError);
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["clients"] });
       queryClient.invalidateQueries({ queryKey: ["clients-count"] });
       queryClient.invalidateQueries({ queryKey: ["active-clients-count"] });
+      queryClient.invalidateQueries({ queryKey: ["estimated-net-properties"] });
       toast.success("Client updated successfully");
       setOpen(false);
       resetForm();
@@ -350,7 +362,7 @@ const ClientsTab = ({ onSelectClientForEstimate }: ClientsTabProps) => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (editingClient) {
-      updateMutation.mutate({ id: editingClient.id, data: formData });
+      updateMutation.mutate({ id: editingClient.id, data: formData, previousStatus: editingClient.status });
     } else {
       createMutation.mutate(formData);
     }

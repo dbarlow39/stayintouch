@@ -102,11 +102,23 @@ const ClientEditForm = ({ client, onSuccess, onCancel }: ClientEditFormProps) =>
       }
       const { error } = await supabase.from("clients").update(submitData).eq("id", client.id);
       if (error) throw error;
+
+      // If status changed from Active to something else, remove linked working deals
+      const wasActive = client.status?.toUpperCase() === "A";
+      const isNowActive = submitData.status?.toUpperCase() === "A";
+      if (wasActive && !isNowActive) {
+        const { error: deleteError } = await supabase
+          .from("estimated_net_properties")
+          .delete()
+          .eq("client_id", client.id);
+        if (deleteError) console.error("Failed to remove linked working deal:", deleteError);
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["clients"] });
       queryClient.invalidateQueries({ queryKey: ["clients-count"] });
       queryClient.invalidateQueries({ queryKey: ["active-clients-count"] });
+      queryClient.invalidateQueries({ queryKey: ["estimated-net-properties"] });
       toast.success("Client updated successfully");
       onSuccess();
     },
