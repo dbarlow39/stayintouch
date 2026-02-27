@@ -1150,6 +1150,7 @@ export type Database = {
         Row: {
           address: string | null
           agent_id: string
+          city: string | null
           created_at: string | null
           email: string | null
           first_name: string
@@ -1159,12 +1160,15 @@ export type Database = {
           phone: string | null
           preferences: Json | null
           source: string | null
+          state: string | null
           status: Database["public"]["Enums"]["lead_status"]
           updated_at: string | null
+          zip: string | null
         }
         Insert: {
           address?: string | null
           agent_id: string
+          city?: string | null
           created_at?: string | null
           email?: string | null
           first_name: string
@@ -1174,12 +1178,15 @@ export type Database = {
           phone?: string | null
           preferences?: Json | null
           source?: string | null
+          state?: string | null
           status?: Database["public"]["Enums"]["lead_status"]
           updated_at?: string | null
+          zip?: string | null
         }
         Update: {
           address?: string | null
           agent_id?: string
+          city?: string | null
           created_at?: string | null
           email?: string | null
           first_name?: string
@@ -1189,8 +1196,10 @@ export type Database = {
           phone?: string | null
           preferences?: Json | null
           source?: string | null
+          state?: string | null
           status?: Database["public"]["Enums"]["lead_status"]
           updated_at?: string | null
+          zip?: string | null
         }
         Relationships: []
       }
