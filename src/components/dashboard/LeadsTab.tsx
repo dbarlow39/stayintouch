@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { UserPlus, Pencil, Trash2, Phone, Mail, Asterisk, Zap, Users, Settings2 } from "lucide-react";
+import { UserPlus, Pencil, Trash2, Phone, Mail, Asterisk, Zap, Users, Settings2, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth";
 import SequenceManager from "./SequenceManager";
@@ -25,6 +25,7 @@ interface Lead {
   status: string;
   source: string | null;
   notes: string | null;
+  address: string | null;
   created_at: string;
 }
 
@@ -42,7 +43,10 @@ const LeadsTab = () => {
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [editingLead, setEditingLead] = useState<Lead | null>(null);
+  const [lookingUpAddress, setLookingUpAddress] = useState(false);
+  const lookupTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [formData, setFormData] = useState({
+    address: "",
     first_name: "",
     last_name: "",
     email: "",
@@ -125,6 +129,7 @@ const LeadsTab = () => {
 
   const resetForm = () => {
     setFormData({
+      address: "",
       first_name: "",
       last_name: "",
       email: "",
@@ -148,6 +153,7 @@ const LeadsTab = () => {
   const handleEdit = (lead: Lead) => {
     setEditingLead(lead);
     setFormData({
+      address: lead.address || "",
       first_name: lead.first_name,
       last_name: lead.last_name,
       email: lead.email || "",
@@ -192,6 +198,47 @@ const LeadsTab = () => {
               <DialogTitle>{editingLead ? "Edit Lead" : "Add New Lead"}</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="address" className="flex items-center gap-1">
+                  Property Address {lookingUpAddress && <Loader2 className="w-3 h-3 animate-spin text-muted-foreground" />}
+                </Label>
+                <Input
+                  id="address"
+                  placeholder="Enter street address, city, state"
+                  value={formData.address}
+                  onChange={(e) => {
+                    const address = e.target.value;
+                    setFormData({ ...formData, address });
+                    // Debounced Estated lookup
+                    if (lookupTimeoutRef.current) clearTimeout(lookupTimeoutRef.current);
+                    if (address.length > 10) {
+                      lookupTimeoutRef.current = setTimeout(async () => {
+                        setLookingUpAddress(true);
+                        try {
+                          const { data, error } = await supabase.functions.invoke('lookup-property', {
+                            body: { address, state: 'OH' }
+                          });
+                          if (!error && data) {
+                            const ownerName = data.owner_name || "";
+                            const parts = ownerName.split(" ");
+                            const firstName = parts[0] || "";
+                            const lastName = parts.slice(1).join(" ") || "";
+                            setFormData(prev => ({
+                              ...prev,
+                              first_name: prev.first_name || firstName,
+                              last_name: prev.last_name || lastName,
+                            }));
+                          }
+                        } catch (err) {
+                          console.error("Address lookup error:", err);
+                        } finally {
+                          setLookingUpAddress(false);
+                        }
+                      }, 1000);
+                    }
+                  }}
+                />
+              </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="first_name" className="flex items-center gap-1">

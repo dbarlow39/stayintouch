@@ -1148,6 +1148,7 @@ export type Database = {
       }
       leads: {
         Row: {
+          address: string | null
           agent_id: string
           created_at: string | null
           email: string | null
@@ -1162,6 +1163,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          address?: string | null
           agent_id: string
           created_at?: string | null
           email?: string | null
@@ -1176,6 +1178,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          address?: string | null
           agent_id?: string
           created_at?: string | null
           email?: string | null
