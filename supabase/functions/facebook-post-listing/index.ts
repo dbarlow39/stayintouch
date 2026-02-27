@@ -122,10 +122,16 @@ serve(async (req) => {
     if (instagram_account_id) {
       try {
         console.log("[facebook-post] Cross-posting to Instagram, account:", instagram_account_id);
-        // Instagram must use its dedicated image only (no Facebook fallback)
-        const imageUrl = typeof instagram_image_url === "string" ? instagram_image_url.trim() : "";
+        // Use dedicated IG image, fall back to photo_url if available
+        let imageUrl = typeof instagram_image_url === "string" ? instagram_image_url.trim() : "";
+        if (!imageUrl && typeof photo_url === "string" && photo_url.trim()) {
+          imageUrl = photo_url.trim();
+          console.log("[facebook-post] IG using photo_url fallback:", imageUrl);
+        }
 
         if (imageUrl) {
+          console.log("[facebook-post] IG image URL:", imageUrl);
+
           // Step 1: Create media container
           const containerBody: any = {
             image_url: imageUrl,
@@ -142,7 +148,7 @@ serve(async (req) => {
           console.log("[facebook-post] IG container response:", JSON.stringify(containerData));
 
           if (containerData.id) {
-            // Step 2: Wait 10 seconds for Instagram to process, then publish once
+            // Step 2: Wait for Instagram to process, then publish
             console.log("[facebook-post] Waiting 10s for IG media processing...");
             await new Promise(resolve => setTimeout(resolve, 10000));
 
@@ -162,15 +168,15 @@ serve(async (req) => {
               console.log("[facebook-post] Instagram post published:", instagramPostId);
             } else if (publishData.error) {
               instagramWarning = "Instagram publish failed: " + (publishData.error.message || "Unknown error");
-              console.error("[facebook-post] IG publish error:", publishData.error);
+              console.error("[facebook-post] IG publish error:", JSON.stringify(publishData.error));
             }
           } else if (containerData.error) {
             instagramWarning = "Instagram post failed: " + (containerData.error.message || "Unknown error");
-            console.error("[facebook-post] IG container error:", containerData.error);
+            console.error("[facebook-post] IG container error:", JSON.stringify(containerData.error));
           }
         } else {
-          instagramWarning = "Instagram post skipped: dedicated Instagram image was not provided.";
-          console.log("[facebook-post] Skipping Instagram: missing instagram_image_url");
+          instagramWarning = "Instagram post skipped: no image URL available.";
+          console.log("[facebook-post] Skipping Instagram: no image URL provided");
         }
       } catch (igErr) {
         instagramWarning = "Instagram cross-post failed: " + (igErr instanceof Error ? igErr.message : "Unknown error");
