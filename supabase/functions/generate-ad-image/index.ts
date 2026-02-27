@@ -120,10 +120,13 @@ function buildInstagramSvg(opts: {
   agentName: string;
   agentPhone: string;
   mlsNumber: string;
+  logoBase64?: string;
+  fhBase64?: string;
 }): string {
   const {
     photoBase64, photoMime, bannerText, price, address,
     beds, baths, sqft, agentName, agentPhone, mlsNumber,
+    logoBase64, fhBase64,
   } = opts;
 
   const W = IG_W;
@@ -188,6 +191,12 @@ function buildInstagramSvg(opts: {
 
   <!-- MLS number -->
   <text x="${centerX}" y="${infoY + 168}" dominant-baseline="hanging" text-anchor="middle" fill="#999999" font-size="16" font-weight="400" font-family="Segoe UI, Arial, sans-serif">MLS# ${escXml(mlsNumber)}</text>
+
+  ${logoBase64 ? `<!-- Company logo bottom-left -->
+  <image xlink:href="data:image/jpeg;base64,${logoBase64}" x="28" y="${H - 50 - 18}" width="90" height="50" preserveAspectRatio="xMidYMid meet"/>` : ""}
+
+  ${fhBase64 ? `<!-- Fair Housing logo bottom-right -->
+  <image xlink:href="data:image/png;base64,${fhBase64}" x="${W - 60 - 28}" y="${H - 36 - 22}" width="60" height="36" preserveAspectRatio="xMidYMid meet"/>` : ""}
 </svg>`;
 }
 
@@ -270,9 +279,29 @@ Deno.serve(async (req) => {
         }
       }
 
+      // Fetch branding logos for Instagram image
+      let logoBase64: string | undefined;
+      let fhBase64: string | undefined;
+      try {
+        const logoUrl = supabase.storage.from("ad-images").getPublicUrl("branding/logo.jpg").data.publicUrl;
+        const logoResp = await fetch(logoUrl, { signal: AbortSignal.timeout(8000) });
+        if (logoResp.ok) {
+          const logoBytes = new Uint8Array(await logoResp.arrayBuffer());
+          logoBase64 = uint8ToBase64(logoBytes);
+        }
+      } catch (e) { console.warn("[generate-ad-image] Could not fetch company logo:", e); }
+      try {
+        const fhUrl = supabase.storage.from("ad-images").getPublicUrl("branding/equal-housing-white.png").data.publicUrl;
+        const fhResp = await fetch(fhUrl, { signal: AbortSignal.timeout(8000) });
+        if (fhResp.ok) {
+          const fhBytes = new Uint8Array(await fhResp.arrayBuffer());
+          fhBase64 = uint8ToBase64(fhBytes);
+        }
+      } catch (e) { console.warn("[generate-ad-image] Could not fetch fair housing logo:", e); }
+
       // Generate branded Instagram image (1080×1080)
       try {
-        const igSvg = buildInstagramSvg(commonOpts);
+        const igSvg = buildInstagramSvg({ ...commonOpts, logoBase64, fhBase64 });
 
         console.log(`[generate-ad-image] IG SVG built, rendering to PNG...`);
         const igPngData = await render(igSvg);
