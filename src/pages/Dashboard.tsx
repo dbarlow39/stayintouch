@@ -216,7 +216,7 @@ const Dashboard = () => {
                 </TabsTrigger>
                 <TabsTrigger value="buyers" className="flex-col lg:flex-row gap-1 lg:gap-2 text-xs lg:text-sm py-2">
                   <UserCheck className="w-4 h-4" />
-                  Buyers
+                  <span className="text-center leading-tight">Buyer<br className="lg:hidden" /> Leads</span>
                 </TabsTrigger>
                 <TabsTrigger value="weekly" className="flex-col lg:flex-row gap-1 lg:gap-2 text-xs lg:text-sm py-2">
                   <Calendar className="w-4 h-4" />
