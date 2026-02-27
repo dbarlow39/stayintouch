@@ -597,6 +597,10 @@ Deno.serve(async (req) => {
                         }
                         ogLink += `&v=${Math.floor(Date.now() / 1000)}`;
 
+                        // ── Ensure Instagram always has a valid image URL ──
+                        const igImageForPost = brandedIgUrl
+                          || (l.photos?.length > 0 ? l.photos[0] : '');
+
                         // ── Post through facebook-post-listing for proper pre-scraping ──
                         const postResp = await fetch(`${supabaseUrl}/functions/v1/facebook-post-listing`, {
                           method: 'POST',
@@ -605,7 +609,7 @@ Deno.serve(async (req) => {
                             agent_id: agent.agent_id,
                             message,
                             link: ogLink,
-                            instagram_image_url: brandedIgUrl || undefined,
+                            instagram_image_url: igImageForPost || undefined,
                           }),
                         });
                         const postResult = await postResp.json();
