@@ -16,6 +16,10 @@ export default defineConfig(({ mode }) => ({
     VitePWA({
       registerType: "autoUpdate",
       includeAssets: ["favicon.ico", "logo.jpg"],
+      workbox: {
+        navigateFallback: "/index.html",
+        navigateFallbackDenylist: [/^\/api/],
+      },
       manifest: {
         name: "Stay in Touch - Real Estate CRM",
         short_name: "Stay in Touch",
