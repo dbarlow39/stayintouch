@@ -204,7 +204,7 @@ const LeadsTab = () => {
           </DialogTrigger>
           <DialogContent className="max-w-2xl">
             <DialogHeader>
-              <DialogTitle>{editingLead ? "Edit Lead" : "Add New Lead"}</DialogTitle>
+              <DialogTitle>{editingLead ? "Edit Seller Lead" : "Add New Seller Lead"}</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
