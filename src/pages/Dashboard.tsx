@@ -201,45 +201,45 @@ const Dashboard = () => {
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           
             <CardHeader>
-              <TabsList className="w-full justify-start">
-                <TabsTrigger value="clients" className="flex-col gap-0.5 text-xs py-2 px-2 lg:px-3">
+              <TabsList className="w-full">
+                <TabsTrigger value="clients" className="flex-1 flex-col gap-0.5 text-xs py-2 whitespace-normal">
                   <Users className="w-4 h-4" />
                   Clients
                 </TabsTrigger>
-                <TabsTrigger value="deals" className="flex-col gap-0.5 text-xs py-2 px-2 lg:px-3">
+                <TabsTrigger value="deals" className="flex-1 flex-col gap-0.5 text-xs py-2 whitespace-normal">
                   <Briefcase className="w-4 h-4" />
                   <span className="text-center leading-tight">Working<br />Deals</span>
                 </TabsTrigger>
-                <TabsTrigger value="leads" className="flex-col gap-0.5 text-xs py-2 px-2 lg:px-3">
+                <TabsTrigger value="leads" className="flex-1 flex-col gap-0.5 text-xs py-2 whitespace-normal">
                   <UserPlus className="w-4 h-4" />
                   <span className="text-center leading-tight">Seller<br />Leads</span>
                 </TabsTrigger>
-                <TabsTrigger value="buyers" className="flex-col gap-0.5 text-xs py-2 px-2 lg:px-3">
+                <TabsTrigger value="buyers" className="flex-1 flex-col gap-0.5 text-xs py-2 whitespace-normal">
                   <UserCheck className="w-4 h-4" />
                   <span className="text-center leading-tight">Buyer<br />Leads</span>
                 </TabsTrigger>
-                <TabsTrigger value="weekly" className="flex-col gap-0.5 text-xs py-2 px-2 lg:px-3">
+                <TabsTrigger value="weekly" className="flex-1 flex-col gap-0.5 text-xs py-2 whitespace-normal">
                   <Calendar className="w-4 h-4" />
                   <span className="text-center leading-tight">Weekly<br />Update</span>
                 </TabsTrigger>
-                <TabsTrigger value="assistant" className="flex-col gap-0.5 text-xs py-2 px-2 lg:px-3">
+                <TabsTrigger value="assistant" className="flex-1 flex-col gap-0.5 text-xs py-2 whitespace-normal">
                   <Sparkles className="w-4 h-4" />
                   <span className="text-center leading-tight">AI<br />Assistant</span>
                 </TabsTrigger>
-                <TabsTrigger value="tasks" className="flex-col gap-0.5 text-xs py-2 px-2 lg:px-3">
+                <TabsTrigger value="tasks" className="flex-1 flex-col gap-0.5 text-xs py-2 whitespace-normal">
                   <CheckSquare className="w-4 h-4" />
                   Tasks
                 </TabsTrigger>
-                <TabsTrigger value="marketing" className="flex-col gap-0.5 text-xs py-2 px-2 lg:px-3">
+                <TabsTrigger value="marketing" className="flex-1 flex-col gap-0.5 text-xs py-2 whitespace-normal">
                   <Megaphone className="w-4 h-4" />
                   Marketing
                 </TabsTrigger>
-                <TabsTrigger value="residential" className="flex-col gap-0.5 text-xs py-2 px-2 lg:px-3">
+                <TabsTrigger value="residential" className="flex-1 flex-col gap-0.5 text-xs py-2 whitespace-normal">
                   <FileText className="w-4 h-4" />
                   <span className="text-center leading-tight">Residential<br />Work Sheet</span>
                 </TabsTrigger>
                 {isAdmin && (
-                  <TabsTrigger value="accounting" className="flex-col gap-0.5 text-xs py-2 px-2 lg:px-3">
+                  <TabsTrigger value="accounting" className="flex-1 flex-col gap-0.5 text-xs py-2 whitespace-normal">
                     <DollarSign className="w-4 h-4" />
                     Accounting
                   </TabsTrigger>
