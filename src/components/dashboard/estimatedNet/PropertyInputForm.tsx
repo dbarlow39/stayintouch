@@ -34,9 +34,10 @@ interface PropertyInputFormProps {
   onCancel: () => void;
   initialClient?: InitialClientData | null;
   onClearInitialClient?: () => void;
+  hideSections?: string[];
 }
 
-const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClearInitialClient }: PropertyInputFormProps) => {
+const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClearInitialClient, hideSections = [] }: PropertyInputFormProps) => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [lookingUp, setLookingUp] = useState(false);
@@ -1965,7 +1966,7 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
           </div>
         </Card>
 
-        <Card className="p-6 mb-6">
+        {!hideSections.includes('parties') && <Card className="p-6 mb-6">
           <h3 className="text-xl font-semibold mb-4 text-foreground">Parties of the Contract</h3>
           
           {/* Buyer Agent Section - Light Rose Background */}
@@ -2144,9 +2145,9 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
               </div>
             </div>
           </div>
-        </Card>
+        </Card>}
 
-       <Card className="p-6 mb-6">
+       {!hideSections.includes('title-company') && <Card className="p-6 mb-6">
          <h3 className="text-xl font-semibold mb-4 text-foreground">Title Company Info</h3>
          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
            <div>
@@ -2219,7 +2220,7 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
             </div>
            </div>
          </div>
-       </Card>
+        </Card>}
 
         <Card className="p-6 mb-6">
           <h3 className="text-xl font-semibold mb-4 text-foreground">Additional Information</h3>
