@@ -203,282 +203,282 @@ const SellerLeadDetail = () => {
         </nav>
 
         {/* Main Content */}
-        <main className="flex-1 px-6 py-8 max-w-3xl">
-          {activeTab === "details" && (
-            <Card className="shadow-medium">
-              <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle>Lead Details</CardTitle>
-                <div className="flex items-center gap-2">
-                  {lead && (
-                    <Badge className={statusColors[lead.status] || ""}>
-                      {lead.status}
-                    </Badge>
-                  )}
-                  {lead && (
-                    <LeadEnrollmentDialog
-                      leadId={lead.id}
-                      leadName={`${lead.first_name} ${lead.last_name}`}
-                      trigger={
-                        <Button variant="outline" size="sm">
-                          <Zap className="w-4 h-4 mr-1" />
-                          Sequences
-                        </Button>
-                      }
-                    />
-                  )}
-                </div>
-              </CardHeader>
-              <CardContent>
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  <div className="space-y-2 relative" ref={suggestionsRef}>
-                    <Label htmlFor="address" className="flex items-center gap-1">
-                      Property Address {lookingUpAddress && <Loader2 className="w-3 h-3 animate-spin text-muted-foreground" />}
-                    </Label>
-                    <Input
-                      id="address"
-                      placeholder="Enter street address"
-                      value={formData.address}
-                      onChange={(e) => {
-                        const address = e.target.value;
-                        setFormData({ ...formData, address });
-                        setAddressSuggestion(null);
-                        setShowSuggestions(false);
-                        if (lookupTimeoutRef.current) clearTimeout(lookupTimeoutRef.current);
-                        if (address.length > 10) {
-                          lookupTimeoutRef.current = setTimeout(async () => {
-                            setLookingUpAddress(true);
-                            try {
-                              const { data, error } = await supabase.functions.invoke('lookup-property', {
-                                body: { address, state: formData.state || 'OH' }
-                              });
-                              if (!error && data && !data.error && (data.city || data.zip || data.owner_name)) {
-                                setAddressSuggestion({
-                                  address,
-                                  city: data.city || "",
-                                  state: data.state || "OH",
-                                  zip: data.zip || "",
-                                  owner_name: data.owner_name || "",
-                                });
-                                setShowSuggestions(true);
-                              }
-                            } catch (err) {
-                              console.error("Address lookup error:", err);
-                            } finally {
-                              setLookingUpAddress(false);
-                            }
-                          }, 1000);
+        {activeTab === "estimated-net" ? (
+          <div className="flex-1 overflow-auto">
+            <EstimatedNetTab />
+          </div>
+        ) : (
+          <main className="flex-1 px-6 py-8 max-w-3xl">
+            {activeTab === "details" && (
+              <Card className="shadow-medium">
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <CardTitle>Lead Details</CardTitle>
+                  <div className="flex items-center gap-2">
+                    {lead && (
+                      <Badge className={statusColors[lead.status] || ""}>
+                        {lead.status}
+                      </Badge>
+                    )}
+                    {lead && (
+                      <LeadEnrollmentDialog
+                        leadId={lead.id}
+                        leadName={`${lead.first_name} ${lead.last_name}`}
+                        trigger={
+                          <Button variant="outline" size="sm">
+                            <Zap className="w-4 h-4 mr-1" />
+                            Sequences
+                          </Button>
                         }
-                      }}
-                      onFocus={() => { if (addressSuggestion) setShowSuggestions(true); }}
-                    />
-                    {showSuggestions && addressSuggestion && (
-                      <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-popover border border-border rounded-md shadow-md max-h-48 overflow-y-auto">
-                        <button
-                          type="button"
-                          className="w-full text-left px-3 py-2 hover:bg-accent/50 text-sm transition-colors"
-                          onClick={() => {
-                            const titleCase = (s: string) => s ? s.split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(" ") : "";
-                            const ownerName = addressSuggestion.owner_name;
-                            const parts = ownerName.split(" ");
-                            const firstName = parts[0] || "";
-                            const lastName = parts.slice(1).join(" ") || "";
-                            setFormData(prev => ({
-                              ...prev,
-                              first_name: prev.first_name || titleCase(firstName),
-                              last_name: prev.last_name || titleCase(lastName),
-                              city: titleCase(addressSuggestion.city) || prev.city,
-                              state: addressSuggestion.state || prev.state,
-                              zip: addressSuggestion.zip || prev.zip,
-                            }));
-                            setShowSuggestions(false);
-                          }}
-                        >
-                          <div className="font-medium">{formData.address}</div>
-                          <div className="text-xs text-muted-foreground">
-                            {[addressSuggestion.city, addressSuggestion.state, addressSuggestion.zip].filter(Boolean).join(", ")}
-                            {addressSuggestion.owner_name && ` • Owner: ${addressSuggestion.owner_name}`}
-                          </div>
-                        </button>
-                      </div>
+                      />
                     )}
                   </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="first_name" className="flex items-center gap-1">
-                        First Name <Asterisk className="w-3 h-3 text-destructive" />
+                </CardHeader>
+                <CardContent>
+                  <form onSubmit={handleSubmit} className="space-y-4">
+                    <div className="space-y-2 relative" ref={suggestionsRef}>
+                      <Label htmlFor="address" className="flex items-center gap-1">
+                        Property Address {lookingUpAddress && <Loader2 className="w-3 h-3 animate-spin text-muted-foreground" />}
                       </Label>
                       <Input
-                        id="first_name"
-                        value={formData.first_name}
-                        onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
-                        required
+                        id="address"
+                        placeholder="Enter street address"
+                        value={formData.address}
+                        onChange={(e) => {
+                          const address = e.target.value;
+                          setFormData({ ...formData, address });
+                          setAddressSuggestion(null);
+                          setShowSuggestions(false);
+                          if (lookupTimeoutRef.current) clearTimeout(lookupTimeoutRef.current);
+                          if (address.length > 10) {
+                            lookupTimeoutRef.current = setTimeout(async () => {
+                              setLookingUpAddress(true);
+                              try {
+                                const { data, error } = await supabase.functions.invoke('lookup-property', {
+                                  body: { address, state: formData.state || 'OH' }
+                                });
+                                if (!error && data && !data.error && (data.city || data.zip || data.owner_name)) {
+                                  setAddressSuggestion({
+                                    address,
+                                    city: data.city || "",
+                                    state: data.state || "OH",
+                                    zip: data.zip || "",
+                                    owner_name: data.owner_name || "",
+                                  });
+                                  setShowSuggestions(true);
+                                }
+                              } catch (err) {
+                                console.error("Address lookup error:", err);
+                              } finally {
+                                setLookingUpAddress(false);
+                              }
+                            }, 1000);
+                          }
+                        }}
+                        onFocus={() => { if (addressSuggestion) setShowSuggestions(true); }}
                       />
+                      {showSuggestions && addressSuggestion && (
+                        <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-popover border border-border rounded-md shadow-md max-h-48 overflow-y-auto">
+                          <button
+                            type="button"
+                            className="w-full text-left px-3 py-2 hover:bg-accent/50 text-sm transition-colors"
+                            onClick={() => {
+                              const titleCase = (s: string) => s ? s.split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(" ") : "";
+                              const ownerName = addressSuggestion.owner_name;
+                              const parts = ownerName.split(" ");
+                              const firstName = parts[0] || "";
+                              const lastName = parts.slice(1).join(" ") || "";
+                              setFormData(prev => ({
+                                ...prev,
+                                first_name: prev.first_name || titleCase(firstName),
+                                last_name: prev.last_name || titleCase(lastName),
+                                city: titleCase(addressSuggestion.city) || prev.city,
+                                state: addressSuggestion.state || prev.state,
+                                zip: addressSuggestion.zip || prev.zip,
+                              }));
+                              setShowSuggestions(false);
+                            }}
+                          >
+                            <div className="font-medium">{formData.address}</div>
+                            <div className="text-xs text-muted-foreground">
+                              {[addressSuggestion.city, addressSuggestion.state, addressSuggestion.zip].filter(Boolean).join(", ")}
+                              {addressSuggestion.owner_name && ` • Owner: ${addressSuggestion.owner_name}`}
+                            </div>
+                          </button>
+                        </div>
+                      )}
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="last_name" className="flex items-center gap-1">
-                        Last Name <Asterisk className="w-3 h-3 text-destructive" />
-                      </Label>
-                      <Input
-                        id="last_name"
-                        value={formData.last_name}
-                        onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
-                        required
-                      />
-                    </div>
-                  </div>
 
-                  <div className="grid grid-cols-3 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="city">City</Label>
-                      <Input
-                        id="city"
-                        value={formData.city}
-                        onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                      />
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="first_name" className="flex items-center gap-1">
+                          First Name <Asterisk className="w-3 h-3 text-destructive" />
+                        </Label>
+                        <Input
+                          id="first_name"
+                          value={formData.first_name}
+                          onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
+                          required
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="last_name" className="flex items-center gap-1">
+                          Last Name <Asterisk className="w-3 h-3 text-destructive" />
+                        </Label>
+                        <Input
+                          id="last_name"
+                          value={formData.last_name}
+                          onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
+                          required
+                        />
+                      </div>
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="state">State</Label>
-                      <Input
-                        id="state"
-                        value={formData.state}
-                        onChange={(e) => setFormData({ ...formData, state: e.target.value })}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="zip">Zip</Label>
-                      <Input
-                        id="zip"
-                        value={formData.zip}
-                        onChange={(e) => setFormData({ ...formData, zip: e.target.value })}
-                      />
-                    </div>
-                  </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-3 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="city">City</Label>
+                        <Input
+                          id="city"
+                          value={formData.city}
+                          onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="state">State</Label>
+                        <Input
+                          id="state"
+                          value={formData.state}
+                          onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="zip">Zip</Label>
+                        <Input
+                          id="zip"
+                          value={formData.zip}
+                          onChange={(e) => setFormData({ ...formData, zip: e.target.value })}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="email">Email</Label>
+                        <Input
+                          id="email"
+                          type="email"
+                          value={formData.email}
+                          onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="phone">Phone</Label>
+                        <Input
+                          id="phone"
+                          value={formData.phone}
+                          onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="status">Status</Label>
+                        <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value })}>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="new">New</SelectItem>
+                            <SelectItem value="contacted">Contacted</SelectItem>
+                            <SelectItem value="qualified">Qualified</SelectItem>
+                            <SelectItem value="unqualified">Unqualified</SelectItem>
+                            <SelectItem value="nurturing">Nurturing</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="source">Source</Label>
+                        <Input
+                          id="source"
+                          placeholder="Website, Referral, etc."
+                          value={formData.source}
+                          onChange={(e) => setFormData({ ...formData, source: e.target.value })}
+                        />
+                      </div>
+                    </div>
+
                     <div className="space-y-2">
-                      <Label htmlFor="email">Email</Label>
-                      <Input
-                        id="email"
-                        type="email"
-                        value={formData.email}
-                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      <Label htmlFor="notes">Notes</Label>
+                      <Textarea
+                        id="notes"
+                        rows={4}
+                        value={formData.notes}
+                        onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                       />
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="phone">Phone</Label>
-                      <Input
-                        id="phone"
-                        value={formData.phone}
-                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                      />
-                    </div>
-                  </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="status">Status</Label>
-                      <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value })}>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="new">New</SelectItem>
-                          <SelectItem value="contacted">Contacted</SelectItem>
-                          <SelectItem value="qualified">Qualified</SelectItem>
-                          <SelectItem value="unqualified">Unqualified</SelectItem>
-                          <SelectItem value="nurturing">Nurturing</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="source">Source</Label>
-                      <Input
-                        id="source"
-                        placeholder="Website, Referral, etc."
-                        value={formData.source}
-                        onChange={(e) => setFormData({ ...formData, source: e.target.value })}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="notes">Notes</Label>
-                    <Textarea
-                      id="notes"
-                      rows={4}
-                      value={formData.notes}
-                      onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                    />
-                  </div>
-
-                  <div className="flex justify-between pt-4">
-                    <Button
-                      type="button"
-                      variant="destructive"
-                      onClick={() => {
-                        if (confirm("Are you sure you want to delete this seller lead?")) {
-                          deleteMutation.mutate();
-                        }
-                      }}
-                    >
-                      <Trash2 className="w-4 h-4 mr-2" />
-                      Delete Lead
-                    </Button>
-                    <div className="flex gap-2">
-                      <Button type="button" variant="outline" onClick={() => navigate("/dashboard?tab=leads")}>
-                        Cancel
+                    <div className="flex justify-between pt-4">
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        onClick={() => {
+                          if (confirm("Are you sure you want to delete this seller lead?")) {
+                            deleteMutation.mutate();
+                          }
+                        }}
+                      >
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        Delete Lead
                       </Button>
-                      <Button type="submit" disabled={updateMutation.isPending}>
-                        <Save className="w-4 h-4 mr-2" />
-                        Save Changes
-                      </Button>
+                      <div className="flex gap-2">
+                        <Button type="button" variant="outline" onClick={() => navigate("/dashboard?tab=leads")}>
+                          Cancel
+                        </Button>
+                        <Button type="submit" disabled={updateMutation.isPending}>
+                          <Save className="w-4 h-4 mr-2" />
+                          Save Changes
+                        </Button>
+                      </div>
                     </div>
-                  </div>
-                </form>
-              </CardContent>
-            </Card>
-          )}
+                  </form>
+                </CardContent>
+              </Card>
+            )}
 
-          {activeTab === "pre-listing" && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Pre-Listing Pack</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">Pre-listing pack content coming soon.</p>
-              </CardContent>
-            </Card>
-          )}
+            {activeTab === "pre-listing" && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Pre-Listing Pack</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground">Pre-listing pack content coming soon.</p>
+                </CardContent>
+              </Card>
+            )}
 
-          {activeTab === "market-analysis" && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Market Analysis</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">Market analysis content coming soon.</p>
-              </CardContent>
-            </Card>
-          )}
+            {activeTab === "market-analysis" && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Market Analysis</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground">Market analysis content coming soon.</p>
+                </CardContent>
+              </Card>
+            )}
 
-          {activeTab === "pipeline" && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Pipeline</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">Pipeline content coming soon.</p>
-              </CardContent>
-            </Card>
-          )}
-
-          {activeTab === "estimated-net" && (
-            <div className="-mx-6 -mt-8">
-              <EstimatedNetTab />
-            </div>
-          )}
-        </main>
+            {activeTab === "pipeline" && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Pipeline</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground">Pipeline content coming soon.</p>
+                </CardContent>
+              </Card>
+            )}
+          </main>
+        )}
       </div>
     </div>
   );
