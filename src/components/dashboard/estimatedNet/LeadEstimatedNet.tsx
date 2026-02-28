@@ -153,15 +153,19 @@ const LeadEstimatedNet = ({ lead }: LeadEstimatedNetProps) => {
     );
   }
 
+  const wrapperClass = "[&_aside.w-56]:hidden";
+
   if (viewState === 'form') {
     return (
-      <PropertyInputForm
-        editingId={editingId}
-        onSave={handleFormSave}
-        onCancel={handleFormCancel}
-        initialClient={initialClient}
-        onClearInitialClient={() => setInitialClient(null)}
-      />
+      <div className={wrapperClass}>
+        <PropertyInputForm
+          editingId={editingId}
+          onSave={handleFormSave}
+          onCancel={handleFormCancel}
+          initialClient={initialClient}
+          onClearInitialClient={() => setInitialClient(null)}
+        />
+      </div>
     );
   }
 
@@ -175,53 +179,59 @@ const LeadEstimatedNet = ({ lead }: LeadEstimatedNetProps) => {
       onNavigate: handleNavigate,
     };
 
-    switch (viewState) {
-      case 'results':
-        return <ClosingCostsView {...commonProps} />;
-      case 'offer-letter':
-        return <OfferLetterView {...commonProps} />;
-      case 'offer-summary':
-        return <OfferSummaryView {...commonProps} />;
-      case 'important-dates':
-        return <ImportantDatesView {...commonProps} />;
-      case 'title-letter':
-        return <TitleLetterView {...commonProps} />;
-      case 'agent-letter':
-        return <AgentLetterView {...commonProps} />;
-      case 'request-to-remedy':
-        return <RequestToRemedyView {...commonProps} />;
-      case 'settlement-statement':
-        return <SettlementStatementView {...commonProps} />;
-      case 'notices':
-        return <NoticesView {...commonProps} />;
-      case 'clear-to-close-letter':
-        return <ClearToCloseLetterView {...commonProps} />;
-      case 'home-inspection-letter':
-        return <HomeInspectionLetterView {...commonProps} />;
-      case 'deposit-letter':
-        return <DepositLetterView {...commonProps} />;
-      case 'appraisal-letter':
-        return <AppraisalLetterView {...commonProps} />;
-      case 'loan-application-letter':
-        return <LoanApplicationLetterView {...commonProps} />;
-      case 'title-commitment-letter':
-        return <TitleCommitmentLetterView {...commonProps} />;
-      case 'closed-referral-letter':
-        return <ClosedReferralLetterView {...commonProps} />;
-      case 'ad-results-letter':
-        return <AdResultsLetterView {...commonProps} />;
-    }
+    const renderView = () => {
+      switch (viewState) {
+        case 'results':
+          return <ClosingCostsView {...commonProps} />;
+        case 'offer-letter':
+          return <OfferLetterView {...commonProps} />;
+        case 'offer-summary':
+          return <OfferSummaryView {...commonProps} />;
+        case 'important-dates':
+          return <ImportantDatesView {...commonProps} />;
+        case 'title-letter':
+          return <TitleLetterView {...commonProps} />;
+        case 'agent-letter':
+          return <AgentLetterView {...commonProps} />;
+        case 'request-to-remedy':
+          return <RequestToRemedyView {...commonProps} />;
+        case 'settlement-statement':
+          return <SettlementStatementView {...commonProps} />;
+        case 'notices':
+          return <NoticesView {...commonProps} />;
+        case 'clear-to-close-letter':
+          return <ClearToCloseLetterView {...commonProps} />;
+        case 'home-inspection-letter':
+          return <HomeInspectionLetterView {...commonProps} />;
+        case 'deposit-letter':
+          return <DepositLetterView {...commonProps} />;
+        case 'appraisal-letter':
+          return <AppraisalLetterView {...commonProps} />;
+        case 'loan-application-letter':
+          return <LoanApplicationLetterView {...commonProps} />;
+        case 'title-commitment-letter':
+          return <TitleCommitmentLetterView {...commonProps} />;
+        case 'closed-referral-letter':
+          return <ClosedReferralLetterView {...commonProps} />;
+        case 'ad-results-letter':
+          return <AdResultsLetterView {...commonProps} />;
+      }
+    };
+
+    return <div className={wrapperClass}>{renderView()}</div>;
   }
 
   // Fallback — go back to form
   return (
-    <PropertyInputForm
-      editingId={editingId}
-      onSave={handleFormSave}
-      onCancel={handleFormCancel}
-      initialClient={initialClient}
-      onClearInitialClient={() => setInitialClient(null)}
-    />
+    <div className={wrapperClass}>
+      <PropertyInputForm
+        editingId={editingId}
+        onSave={handleFormSave}
+        onCancel={handleFormCancel}
+        initialClient={initialClient}
+        onClearInitialClient={() => setInitialClient(null)}
+      />
+    </div>
   );
 };
 
