@@ -1177,7 +1177,9 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
         if (savedId) {
           toast({
             title: "Property Auto-Saved",
-            description: "You can now upload contract documents",
+            description: hideSections.includes('document-upload') 
+              ? "Property data has been saved" 
+              : "You can now upload contract documents",
           });
         }
       }, 1500);
