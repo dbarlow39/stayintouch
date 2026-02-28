@@ -1547,11 +1547,13 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
           </div>
         </Card>
 
+        {!hideSections.includes('document-upload') && (
         <DocumentUploadSection 
           propertyId={currentPropertyId} 
           clientId={linkedClientId}
           onContractParsed={handleContractParsed}
         />
+        )}
 
         <Card className="p-6 mb-6">
           <h3 className="text-xl font-semibold mb-4 text-foreground">Contract Details</h3>
@@ -1635,6 +1637,7 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
                 placeholder="0"
               />
             </div>
+            {!hideSections.includes('contract-extra-fields') && (<>
             <div>
               <Label htmlFor="preApprovalDays">(3.2a) Lender Pre-Qualification (Days Due)</Label>
               <Input
@@ -1680,7 +1683,6 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
                 onValueChange={(value) => updateField("typeOfLoan", value)}
               >
                 <SelectTrigger>
-                  {/* Render our own label so the trigger never appears blank */}
                   <span className="truncate">{typeOfLoanValue}</span>
                 </SelectTrigger>
                 <SelectContent>
@@ -1795,6 +1797,7 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
                 onChange={(e) => updateField("finalWalkThrough", e.target.value)}
               />
             </div>
+            </>)}
             <div>
               <Label htmlFor="adminFee">Admin Fee</Label>
               <div className="relative">
@@ -1812,6 +1815,7 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
           </div>
         </Card>
 
+        {!hideSections.includes('dates-timeline') && (
         <Card className="p-6 mb-6">
           <h3 className="text-xl font-semibold mb-4 text-foreground">Dates & Timeline</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1855,6 +1859,7 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
             </div>
           </div>
         </Card>
+        )}
 
         <Card className="p-6 mb-6">
           <h3 className="text-xl font-semibold mb-4 text-foreground">Tax Information</h3>
