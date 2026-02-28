@@ -223,12 +223,21 @@ const ClosingCostsView = ({ propertyData, propertyId, onBack, onEdit, onNavigate
                 }
               }
             ` }} />
-            <div className="flex items-center gap-3 mb-8 header-section">
-              <img src={logo} alt="Sell for 1 Percent" className="h-16 w-auto" />
-              <div>
-                <h1 className="text-3xl font-bold text-foreground">Estimated Net</h1>
-                <p className="text-muted-foreground">A Breakdown of Your Expenses</p>
+            <div className="flex items-center justify-between mb-8 header-section">
+              <div className="flex items-center gap-3">
+                <img src={logo} alt="Sell for 1 Percent" className="h-16 w-auto" />
+                <div>
+                  <h1 className="text-3xl font-bold text-foreground">Estimated Net</h1>
+                  <p className="text-muted-foreground">A Breakdown of Your Expenses</p>
+                </div>
               </div>
+              {propertyData.closingDate && (
+                <div className="text-right">
+                  <p className="text-sm font-semibold text-foreground">
+                    Estimated Closing Date: {new Date(propertyData.closingDate + 'T00:00:00').toLocaleDateString()}
+                  </p>
+                </div>
+              )}
             </div>
 
             <Card className="p-6 mb-6 card-content">
