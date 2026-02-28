@@ -14,7 +14,7 @@ import { ArrowLeft, Save, Trash2, Loader2, Asterisk, Zap, FileText, BarChart3, G
 import { useToast } from "@/hooks/use-toast";
 import LeadEnrollmentDialog from "@/components/dashboard/LeadEnrollmentDialog";
 import logo from "@/assets/logo.jpg";
-import EstimatedNetTab from "@/components/dashboard/EstimatedNetTab";
+import LeadEstimatedNet from "@/components/dashboard/estimatedNet/LeadEstimatedNet";
 
 const statusColors: Record<string, string> = {
   new: "bg-primary/10 text-primary border-primary/20",
@@ -203,9 +203,9 @@ const SellerLeadDetail = () => {
         </nav>
 
         {/* Main Content */}
-        {activeTab === "estimated-net" ? (
+        {activeTab === "estimated-net" && lead ? (
           <div className="flex-1 overflow-auto">
-            <EstimatedNetTab />
+            <LeadEstimatedNet lead={lead} />
           </div>
         ) : (
           <main className="flex-1 px-6 py-8 max-w-3xl">
