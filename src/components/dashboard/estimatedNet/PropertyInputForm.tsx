@@ -1815,7 +1815,6 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
           </div>
         </Card>
 
-        {!hideSections.includes('dates-timeline') && (
         <Card className="p-6 mb-6">
           <h3 className="text-xl font-semibold mb-4 text-foreground">Dates & Timeline</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1829,6 +1828,7 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
                 required
               />
             </div>
+            {!hideSections.includes('dates-timeline') && (<>
             <div>
               <Label htmlFor="possession">(15.3) Possession Date</Label>
               <Input
@@ -1857,9 +1857,9 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
                 onChange={(e) => updateField("inContract", e.target.value)}
               />
             </div>
+            </>)}
           </div>
         </Card>
-        )}
 
         <Card className="p-6 mb-6">
           <h3 className="text-xl font-semibold mb-4 text-foreground">Tax Information</h3>
