@@ -14,6 +14,7 @@ import { ArrowLeft, Save, Trash2, Loader2, Asterisk, Zap, FileText, BarChart3, G
 import { useToast } from "@/hooks/use-toast";
 import LeadEnrollmentDialog from "@/components/dashboard/LeadEnrollmentDialog";
 import logo from "@/assets/logo.jpg";
+import EstimatedNetTab from "@/components/dashboard/EstimatedNetTab";
 
 const statusColors: Record<string, string> = {
   new: "bg-primary/10 text-primary border-primary/20",
@@ -473,14 +474,9 @@ const SellerLeadDetail = () => {
           )}
 
           {activeTab === "estimated-net" && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Estimated Net</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">Estimated net content coming soon.</p>
-              </CardContent>
-            </Card>
+            <div className="-mx-6 -mt-8">
+              <EstimatedNetTab />
+            </div>
           )}
         </main>
       </div>
