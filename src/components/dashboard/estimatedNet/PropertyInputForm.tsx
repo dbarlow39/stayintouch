@@ -619,7 +619,7 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
       
       const propertyData = {
         agent_id: user.id,
-        client_id: clientId,
+        client_id: clientId || null,
         name: dataToSave.name,
         seller_phone: dataToSave.sellerPhone || null,
         seller_email: dataToSave.sellerEmail || null,
@@ -711,7 +711,7 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
       
       const propertyData = {
         agent_id: user.id,
-        client_id: linkedClientId,
+        client_id: linkedClientId || null,
         name: formData.name,
         seller_phone: formData.sellerPhone || null,
         seller_email: formData.sellerEmail || null,
