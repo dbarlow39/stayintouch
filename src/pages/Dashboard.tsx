@@ -201,50 +201,54 @@ const Dashboard = () => {
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           
             <CardHeader>
-              <TabsList className="w-full h-auto flex flex-wrap justify-start gap-1">
-                <TabsTrigger value="clients" className="gap-1.5 text-xs lg:text-sm">
-                  <Users className="w-4 h-4" />
-                  Clients
-                </TabsTrigger>
-                <TabsTrigger value="deals" className="gap-1.5 text-xs lg:text-sm">
-                  <Briefcase className="w-4 h-4" />
-                  Working Deals
-                </TabsTrigger>
-                <TabsTrigger value="leads" className="gap-1.5 text-xs lg:text-sm">
-                  <UserPlus className="w-4 h-4" />
-                  Seller Leads
-                </TabsTrigger>
-                <TabsTrigger value="buyers" className="gap-1.5 text-xs lg:text-sm">
-                  <UserCheck className="w-4 h-4" />
-                  Buyer Leads
-                </TabsTrigger>
-                <TabsTrigger value="weekly" className="gap-1.5 text-xs lg:text-sm">
-                  <Calendar className="w-4 h-4" />
-                  Weekly Update
-                </TabsTrigger>
-                <TabsTrigger value="assistant" className="gap-1.5 text-xs lg:text-sm">
-                  <Sparkles className="w-4 h-4" />
-                  AI Assistant
-                </TabsTrigger>
-                <TabsTrigger value="tasks" className="gap-1.5 text-xs lg:text-sm">
-                  <CheckSquare className="w-4 h-4" />
-                  Tasks
-                </TabsTrigger>
-                <TabsTrigger value="marketing" className="gap-1.5 text-xs lg:text-sm">
-                  <Megaphone className="w-4 h-4" />
-                  Marketing
-                </TabsTrigger>
-                <TabsTrigger value="residential" className="gap-1.5 text-xs lg:text-sm">
-                  <FileText className="w-4 h-4" />
-                  Residential Work Sheet
-                </TabsTrigger>
-                {isAdmin && (
-                  <TabsTrigger value="accounting" className="gap-1.5 text-xs lg:text-sm">
-                    <DollarSign className="w-4 h-4" />
-                    Accounting
+              <div className="flex flex-col gap-1">
+                <TabsList className="w-full justify-start">
+                  <TabsTrigger value="clients" className="gap-1.5 text-xs lg:text-sm">
+                    <Users className="w-4 h-4" />
+                    Clients
                   </TabsTrigger>
-                )}
-              </TabsList>
+                  <TabsTrigger value="deals" className="gap-1.5 text-xs lg:text-sm">
+                    <Briefcase className="w-4 h-4" />
+                    Working Deals
+                  </TabsTrigger>
+                  <TabsTrigger value="leads" className="gap-1.5 text-xs lg:text-sm">
+                    <UserPlus className="w-4 h-4" />
+                    Seller Leads
+                  </TabsTrigger>
+                  <TabsTrigger value="buyers" className="gap-1.5 text-xs lg:text-sm">
+                    <UserCheck className="w-4 h-4" />
+                    Buyer Leads
+                  </TabsTrigger>
+                  <TabsTrigger value="weekly" className="gap-1.5 text-xs lg:text-sm">
+                    <Calendar className="w-4 h-4" />
+                    Weekly Update
+                  </TabsTrigger>
+                </TabsList>
+                <TabsList className="w-full justify-start">
+                  <TabsTrigger value="assistant" className="gap-1.5 text-xs lg:text-sm">
+                    <Sparkles className="w-4 h-4" />
+                    AI Assistant
+                  </TabsTrigger>
+                  <TabsTrigger value="tasks" className="gap-1.5 text-xs lg:text-sm">
+                    <CheckSquare className="w-4 h-4" />
+                    Tasks
+                  </TabsTrigger>
+                  <TabsTrigger value="marketing" className="gap-1.5 text-xs lg:text-sm">
+                    <Megaphone className="w-4 h-4" />
+                    Marketing
+                  </TabsTrigger>
+                  <TabsTrigger value="residential" className="gap-1.5 text-xs lg:text-sm">
+                    <FileText className="w-4 h-4" />
+                    Residential Work Sheet
+                  </TabsTrigger>
+                  {isAdmin && (
+                    <TabsTrigger value="accounting" className="gap-1.5 text-xs lg:text-sm">
+                      <DollarSign className="w-4 h-4" />
+                      Accounting
+                    </TabsTrigger>
+                  )}
+                </TabsList>
+              </div>
             </CardHeader>
             <CardContent>
               <TabsContent value="assistant">
