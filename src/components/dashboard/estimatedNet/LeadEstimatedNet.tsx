@@ -164,7 +164,7 @@ const LeadEstimatedNet = ({ lead }: LeadEstimatedNetProps) => {
           onCancel={handleFormCancel}
           initialClient={initialClient}
           onClearInitialClient={() => setInitialClient(null)}
-          hideSections={['parties', 'title-company']}
+          hideSections={['parties', 'title-company', 'document-upload', 'contract-extra-fields', 'dates-timeline']}
         />
       </div>
     );
