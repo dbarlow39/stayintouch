@@ -201,45 +201,45 @@ const Dashboard = () => {
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           
             <CardHeader>
-              <TabsList className="w-full justify-start flex overflow-x-auto overflow-y-hidden scrollbar-none">
-                <TabsTrigger value="clients" className="shrink-0 gap-2 text-xs lg:text-sm py-2">
+              <TabsList className="w-full h-auto flex flex-wrap justify-start gap-1">
+                <TabsTrigger value="clients" className="gap-1.5 text-xs lg:text-sm">
                   <Users className="w-4 h-4" />
                   Clients
                 </TabsTrigger>
-                <TabsTrigger value="deals" className="shrink-0 gap-2 text-xs lg:text-sm py-2">
+                <TabsTrigger value="deals" className="gap-1.5 text-xs lg:text-sm">
                   <Briefcase className="w-4 h-4" />
                   Working Deals
                 </TabsTrigger>
-                <TabsTrigger value="leads" className="shrink-0 gap-2 text-xs lg:text-sm py-2">
+                <TabsTrigger value="leads" className="gap-1.5 text-xs lg:text-sm">
                   <UserPlus className="w-4 h-4" />
                   Seller Leads
                 </TabsTrigger>
-                <TabsTrigger value="buyers" className="shrink-0 gap-2 text-xs lg:text-sm py-2">
+                <TabsTrigger value="buyers" className="gap-1.5 text-xs lg:text-sm">
                   <UserCheck className="w-4 h-4" />
                   Buyer Leads
                 </TabsTrigger>
-                <TabsTrigger value="weekly" className="shrink-0 gap-2 text-xs lg:text-sm py-2">
+                <TabsTrigger value="weekly" className="gap-1.5 text-xs lg:text-sm">
                   <Calendar className="w-4 h-4" />
                   Weekly Update
                 </TabsTrigger>
-                <TabsTrigger value="assistant" className="shrink-0 gap-2 text-xs lg:text-sm py-2">
+                <TabsTrigger value="assistant" className="gap-1.5 text-xs lg:text-sm">
                   <Sparkles className="w-4 h-4" />
                   AI Assistant
                 </TabsTrigger>
-                <TabsTrigger value="tasks" className="shrink-0 gap-2 text-xs lg:text-sm py-2">
+                <TabsTrigger value="tasks" className="gap-1.5 text-xs lg:text-sm">
                   <CheckSquare className="w-4 h-4" />
                   Tasks
                 </TabsTrigger>
-                <TabsTrigger value="marketing" className="shrink-0 gap-2 text-xs lg:text-sm py-2">
+                <TabsTrigger value="marketing" className="gap-1.5 text-xs lg:text-sm">
                   <Megaphone className="w-4 h-4" />
                   Marketing
                 </TabsTrigger>
-                <TabsTrigger value="residential" className="shrink-0 gap-2 text-xs lg:text-sm py-2">
+                <TabsTrigger value="residential" className="gap-1.5 text-xs lg:text-sm">
                   <FileText className="w-4 h-4" />
                   Residential Work Sheet
                 </TabsTrigger>
                 {isAdmin && (
-                  <TabsTrigger value="accounting" className="shrink-0 gap-2 text-xs lg:text-sm py-2">
+                  <TabsTrigger value="accounting" className="gap-1.5 text-xs lg:text-sm">
                     <DollarSign className="w-4 h-4" />
                     Accounting
                   </TabsTrigger>
