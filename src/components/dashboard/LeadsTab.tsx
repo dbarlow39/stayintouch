@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { UserPlus, Pencil, Trash2, Phone, Mail, Asterisk, Zap, Users, Settings2, Loader2 } from "lucide-react";
+import { UserPlus, Trash2, Phone, Mail, Asterisk, Zap, Users, Settings2, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth";
 import SequenceManager from "./SequenceManager";
@@ -415,12 +415,12 @@ const LeadsTab = () => {
                 <TableHead>Source</TableHead>
                 <TableHead>Created</TableHead>
                 <TableHead>Sequences</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {leads.map((lead) => (
-                <TableRow key={lead.id}>
+                <TableRow key={lead.id} className="cursor-pointer hover:bg-muted/50" onClick={() => handleEdit(lead)}>
                   <TableCell className="font-medium">
                     {lead.first_name} {lead.last_name}
                   </TableCell>
@@ -449,7 +449,7 @@ const LeadsTab = () => {
                   <TableCell className="text-muted-foreground">
                     {new Date(lead.created_at).toLocaleDateString()}
                   </TableCell>
-                  <TableCell>
+                  <TableCell onClick={(e) => e.stopPropagation()}>
                     <LeadEnrollmentDialog
                       leadId={lead.id}
                       leadName={`${lead.first_name} ${lead.last_name}`}
@@ -461,23 +461,18 @@ const LeadsTab = () => {
                       }
                     />
                   </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
-                      <Button variant="ghost" size="sm" onClick={() => handleEdit(lead)}>
-                        <Pencil className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          if (confirm("Are you sure you want to delete this lead?")) {
-                            deleteMutation.mutate(lead.id);
-                          }
-                        }}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
+                  <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        if (confirm("Are you sure you want to delete this lead?")) {
+                          deleteMutation.mutate(lead.id);
+                        }
+                      }}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
                   </TableCell>
                 </TableRow>
               ))}
