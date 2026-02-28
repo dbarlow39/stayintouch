@@ -206,7 +206,7 @@ const SellerLeadDetail = () => {
           {activeTab === "details" && (
             <Card className="shadow-medium">
               <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle>Edit Seller Lead</CardTitle>
+                <CardTitle>Lead Details</CardTitle>
                 <div className="flex items-center gap-2">
                   {lead && (
                     <Badge className={statusColors[lead.status] || ""}>
