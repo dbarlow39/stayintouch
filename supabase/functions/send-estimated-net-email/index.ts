@@ -43,6 +43,8 @@ function formatCurrency(amount: number): string {
   }).format(amount);
 }
 
+const PUBLIC_LOGO_URL = 'https://ujhohggsvijjqoatvwnl.supabase.co/storage/v1/object/public/email-assets/logo.jpg';
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -108,7 +110,7 @@ serve(async (req) => {
               <table width="100%" cellpadding="0" cellspacing="0">
                 <tr>
                   <td style="vertical-align: middle;">
-                    ${logo_url ? `<img src="${logo_url}" alt="Sellfor1Percent.com" style="height: 48px; border-radius: 6px;" />` : ''}
+                    <img src="${PUBLIC_LOGO_URL}" alt="Sellfor1Percent.com" style="height: 48px; border-radius: 6px;" />
                   </td>
                   <td style="text-align: right; vertical-align: middle;">
                     <span style="font-size: 22px; font-weight: 700; color: #1f2937;">Estimated Net</span><br/>
@@ -160,7 +162,7 @@ serve(async (req) => {
           <!-- Footer -->
           <tr>
             <td style="padding: 20px 32px; border-top: 1px solid #e5e7eb; text-align: center;">
-              ${logo_url ? `<img src="${logo_url}" alt="Sellfor1Percent.com" style="height: 32px; border-radius: 6px; margin-bottom: 8px;" />` : ''}
+              <img src="${PUBLIC_LOGO_URL}" alt="Sellfor1Percent.com" style="height: 32px; border-radius: 6px; margin-bottom: 8px;" />
               <p style="margin: 0; font-size: 12px; font-weight: 600; color: #1f2937;">Sellfor1Percent.com</p>
               <p style="margin: 2px 0 0; font-size: 10px; color: #9ca3af;">Full Service Real Estate for just a 1% Commission</p>
             </td>
