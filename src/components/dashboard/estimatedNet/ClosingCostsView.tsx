@@ -427,13 +427,6 @@ const ClosingCostsView = ({ propertyData, propertyId, onBack, onEdit, onNavigate
                   <p className="text-muted-foreground">A Breakdown of Your Expenses</p>
                 </div>
               </div>
-              {propertyData.closingDate && (
-                <div className="text-right">
-                  <p className="text-sm font-semibold text-foreground">
-                    Estimated Closing Date: {new Date(propertyData.closingDate + 'T00:00:00').toLocaleDateString()}
-                  </p>
-                </div>
-              )}
             </div>
 
             <Card className="p-6 mb-6 card-content">
@@ -444,6 +437,11 @@ const ClosingCostsView = ({ propertyData, propertyId, onBack, onEdit, onNavigate
               </div>
 
               <div className="space-y-1">
+                {propertyData.closingDate && (
+                  <p className="text-sm font-semibold text-foreground text-right pb-1">
+                    Estimated Closing Date: {new Date(propertyData.closingDate + 'T00:00:00').toLocaleDateString()}
+                  </p>
+                )}
                 <CostRow label="Selling Price" amount={closingCosts.sellingPrice} />
                 <CostRow label="1st Mortgage" amount={closingCosts.firstMortgage} />
                 <CostRow label="2nd Mortgage" amount={closingCosts.secondMortgage} />
