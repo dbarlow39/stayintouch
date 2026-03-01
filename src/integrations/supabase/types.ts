@@ -1523,6 +1523,30 @@ export type Database = {
           },
         ]
       }
+      removed_listings_memory: {
+        Row: {
+          expires_at: string
+          id: string
+          listing_data: Json
+          mls_number: string
+          removed_at: string
+        }
+        Insert: {
+          expires_at?: string
+          id?: string
+          listing_data?: Json
+          mls_number: string
+          removed_at?: string
+        }
+        Update: {
+          expires_at?: string
+          id?: string
+          listing_data?: Json
+          mls_number?: string
+          removed_at?: string
+        }
+        Relationships: []
+      }
       scheduled_messages: {
         Row: {
           agent_id: string
