@@ -27,6 +27,7 @@ const ClosingCostsView = ({ propertyData, propertyId, onBack, onEdit, onNavigate
   const [emailClient, setEmailClient] = useState<EmailClient>(getEmailClientPreference);
   const sellerFirstName = propertyData.name ? propertyData.name.split(/\s*[&,]\s*/).map((n: string) => n.split(' ')[0]).join(' & ') : 'there';
   const [introText, setIntroText] = useState(`Hi ${sellerFirstName},\n\nThank you for the time you spent with me talking about the sale of your home. As promised here is a breakdown of all of the fees associated with the sale of your home. All of these fees come from the standard Columbus Realtors purchase contract including the buyer agent's commission. As we talked about, we recommend making the buyer's commission negotiable, but you can count on the buyer asking you to pay their Realtors fee. While most of these fees are not negotiable, we recommend you build them into your sales price to get a satisfactory bottom line number including the buyer agents commission.`);
+  const [closingText, setClosingText] = useState("Once you have had a chance to review please let me know if you have any questions. Once again thanks for your time and I look forward to working you in the near future.");
   const { toast } = useToast();
   const { user } = useAuth();
 
@@ -128,6 +129,7 @@ const ClosingCostsView = ({ propertyData, propertyId, onBack, onEdit, onNavigate
       agent_email: profileData?.preferred_email || profileData?.email || '',
       agent_bio: profileData?.bio || '',
       intro_text: introText,
+      closing_text: closingText,
     };
   };
 
@@ -497,7 +499,12 @@ const ClosingCostsView = ({ propertyData, propertyId, onBack, onEdit, onNavigate
 
               {/* Closing & Agent Signature */}
               <div className="mt-8 pt-4">
-                <p className="text-foreground mb-2">Once you have had a chance to review please let me know if you have any questions.  Once again thanks for your time and I look forward to working you in the near future.</p>
+                <textarea
+                  className="w-full text-foreground bg-background border border-border rounded-md p-3 text-sm resize-y focus:outline-none focus:ring-2 focus:ring-ring mb-2"
+                  rows={3}
+                  value={closingText}
+                  onChange={(e) => setClosingText(e.target.value)}
+                />
                 <p className="text-foreground mb-1">Thanks</p>
                 <p className="text-foreground mb-3">{profileData?.first_name || profileData?.full_name?.split(' ')[0] || 'Your Agent'}</p>
                 {profileData?.bio ? (
