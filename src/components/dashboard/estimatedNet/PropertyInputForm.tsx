@@ -1987,24 +1987,17 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
                   id="agentContact"
                   value={formData.agentContact}
                   onChange={(e) => updateField("agentContact", e.target.value)}
-                 className="pr-10"
+                 className="pr-16"
                 />
                {formData.agentContact && (
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button type="button" variant="ghost" size="sm" className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 p-0 text-primary hover:text-primary/80" title="Call or Text">
-                        <Phone className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => window.open(`tel:${formData.agentContact}`, '_self')}>
-                        <Phone className="h-4 w-4 mr-2" /> Call
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => window.open(`sms:${formData.agentContact.replace(/\D/g, '')}`, '_self')}>
-                        <MessageSquare className="h-4 w-4 mr-2" /> Text
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                  <div className="absolute right-1 top-1/2 -translate-y-1/2 flex gap-0.5">
+                    <Button type="button" variant="ghost" size="sm" className="h-7 w-7 p-0 text-primary hover:text-primary/80" title="Call" onClick={() => window.open(`tel:${formData.agentContact}`, '_self')}>
+                      <Phone className="h-4 w-4" />
+                    </Button>
+                    <Button type="button" variant="ghost" size="sm" className="h-7 w-7 p-0 text-primary hover:text-primary/80" title="Text" onClick={() => window.open(`sms:${formData.agentContact.replace(/\D/g, '')}`, '_self')}>
+                      <MessageSquare className="h-4 w-4" />
+                    </Button>
+                  </div>
                 )}
                </div>
               </div>
@@ -2165,24 +2158,17 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
                type="tel"
                value={formData.titlePhone || ""}
                onChange={(e) => updateField("titlePhone", e.target.value)}
-              className="pr-10"
+              className="pr-16"
              />
             {formData.titlePhone && (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button type="button" variant="ghost" size="sm" className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 p-0 text-primary hover:text-primary/80" title="Call or Text">
-                    <Phone className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => window.open(`tel:${formData.titlePhone}`, '_self')}>
-                    <Phone className="h-4 w-4 mr-2" /> Call
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => window.open(`sms:${formData.titlePhone?.replace(/\D/g, '')}`, '_self')}>
-                    <MessageSquare className="h-4 w-4 mr-2" /> Text
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              <div className="absolute right-1 top-1/2 -translate-y-1/2 flex gap-0.5">
+                <Button type="button" variant="ghost" size="sm" className="h-7 w-7 p-0 text-primary hover:text-primary/80" title="Call" onClick={() => window.open(`tel:${formData.titlePhone}`, '_self')}>
+                  <Phone className="h-4 w-4" />
+                </Button>
+                <Button type="button" variant="ghost" size="sm" className="h-7 w-7 p-0 text-primary hover:text-primary/80" title="Text" onClick={() => window.open(`sms:${formData.titlePhone?.replace(/\D/g, '')}`, '_self')}>
+                  <MessageSquare className="h-4 w-4" />
+                </Button>
+              </div>
             )}
             </div>
            </div>

@@ -1,10 +1,4 @@
 import { Phone, MessageSquare } from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 
 interface PhoneCallTextLinkProps {
   phone: string;
@@ -21,35 +15,25 @@ const PhoneCallTextLink = ({ phone, className = "", children, inline = false }: 
   }
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        {inline ? (
-          <span
-            role="button"
-            tabIndex={0}
-            className={`cursor-pointer text-primary hover:underline ${className}`}
-          >
-            {children ?? phone}
-          </span>
-        ) : (
-          <span
-            role="button"
-            tabIndex={0}
-            className={`cursor-pointer ${className}`}
-          >
-            {children ?? phone}
-          </span>
-        )}
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        <DropdownMenuItem onClick={() => window.open(`tel:${digits}`, "_self")}>
-          <Phone className="h-4 w-4 mr-2" /> Call
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => window.open(`sms:${digits}`, "_self")}>
-          <MessageSquare className="h-4 w-4 mr-2" /> Text
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <span className={`inline-flex items-center gap-1 ${className}`}>
+      <span className={inline ? "text-foreground" : ""}>{children ?? phone}</span>
+      <button
+        type="button"
+        onClick={() => window.open(`tel:${digits}`, "_self")}
+        className="inline-flex items-center justify-center h-6 w-6 rounded-md text-primary hover:bg-accent transition-colors"
+        title="Call"
+      >
+        <Phone className="h-3.5 w-3.5" />
+      </button>
+      <button
+        type="button"
+        onClick={() => window.open(`sms:${digits}`, "_self")}
+        className="inline-flex items-center justify-center h-6 w-6 rounded-md text-primary hover:bg-accent transition-colors"
+        title="Text"
+      >
+        <MessageSquare className="h-3.5 w-3.5" />
+      </button>
+    </span>
   );
 };
 
