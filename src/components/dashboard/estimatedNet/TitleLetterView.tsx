@@ -15,9 +15,10 @@ interface TitleLetterViewProps {
   onBack: () => void;
   onEdit: (id: string) => void;
   onNavigate: (view: string) => void;
+  hideEmailButton?: boolean;
 }
 
-const TitleLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate }: TitleLetterViewProps) => {
+const TitleLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate, hideEmailButton }: TitleLetterViewProps) => {
   const { toast } = useToast();
   const [emailClient, setEmailClient] = useState<EmailClient>(getEmailClientPreference);
   const [agentEmail, setAgentEmail] = useState<string>("");
@@ -327,7 +328,14 @@ const TitleLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate 
               </div>
             </div>
           </div>
-
+            {!hideEmailButton && (
+              <div className="flex gap-2 print:hidden no-pdf">
+                <Button onClick={handleCopyToClipboard} size="lg" className="bg-emerald-600 hover:bg-emerald-700 text-white">
+                  <Copy className="mr-2 h-4 w-4" />
+                  Copy & Email
+                </Button>
+              </div>
+            )}
           <Card className="p-8 mb-6 print:shadow-none">
             <div className="prose prose-lg max-w-none text-foreground">
               <p className="mb-4">Hi Everyone,</p>
