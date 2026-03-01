@@ -148,7 +148,7 @@ serve(async (req) => {
                 </tr>
               </table>
 
-              <p style="margin: 0 0 16px; line-height: 1.6; color: #374151; font-size: 15px;">Let me know if you have any questions.</p>
+              <p style="margin: 0 0 16px; line-height: 1.6; color: #374151; font-size: 15px;">Once you have had a chance to review please let me know if you have any questions.  Once again thanks for your time and I look forward to working you in the near future.</p>
 
               <p style="margin: 0 0 8px; line-height: 1.6; color: #374151; font-size: 15px;">Thanks</p>
               <p style="margin: 0 0 16px; line-height: 1.6; color: #374151; font-size: 15px;">${signoff}</p>
