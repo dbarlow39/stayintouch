@@ -436,6 +436,11 @@ const ClosingCostsView = ({ propertyData, propertyId, onBack, onEdit, onNavigate
                 <p className="text-muted-foreground">{propertyData.city}, {propertyData.state} {propertyData.zip}</p>
               </div>
 
+              <div className="mb-6">
+                <p className="text-foreground mb-4">Hi {propertyData.name ? propertyData.name.split(/\s*[&,]\s*/).map((n: string) => n.split(' ')[0]).join(' & ') : 'there'},</p>
+                <p className="text-foreground">Below is an estimated breakdown of the closing costs for your property. Please note that these are estimates and the actual amounts may vary at closing.</p>
+              </div>
+
               <div className="space-y-1">
                 {propertyData.closingDate && (
                   <p className="text-sm font-semibold text-foreground text-right pb-1">
