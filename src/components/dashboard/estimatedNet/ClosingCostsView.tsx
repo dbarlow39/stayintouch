@@ -306,7 +306,7 @@ const ClosingCostsView = ({ propertyData, propertyId, onBack, onEdit, onNavigate
   const CostRow = ({ label, amount, isTotal = false }: { label: string; amount: number; isTotal?: boolean }) => (
     <div className={`flex justify-between py-2 cost-row ${isTotal ? 'border-t-2 border-primary font-bold text-lg' : 'border-b border-border'}`}>
       <span className={isTotal ? 'text-foreground' : 'text-foreground'}>{label}</span>
-      <span className={isTotal ? 'text-accent' : 'text-foreground'}>{formatCurrency(amount)}</span>
+      <span className={isTotal ? 'text-green-600' : 'text-foreground'}>{formatCurrency(amount)}</span>
     </div>
   );
 

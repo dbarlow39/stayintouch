@@ -147,9 +147,9 @@ serve(async (req) => {
               <!-- Cost Breakdown Table -->
               <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 16px; border-collapse: collapse; border: 1px solid #e5e7eb; border-radius: 8px;">
                 ${costRowsHtml}
-                <tr style="border-top: 2px solid #c21a4e;">
+                <tr style="border-top: 2px solid #16a34a;">
                   <td style="padding: 12px; font-size: 16px; font-weight: 700; color: #1f2937;">Estimated Net</td>
-                  <td style="padding: 12px; font-size: 16px; font-weight: 700; color: #c21a4e; text-align: right;">${formatCurrency(estimated_net)}</td>
+                  <td style="padding: 12px; font-size: 16px; font-weight: 700; color: #16a34a; text-align: right;">${formatCurrency(estimated_net)}</td>
                 </tr>
               </table>
 
