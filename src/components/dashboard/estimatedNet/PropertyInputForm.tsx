@@ -2234,20 +2234,6 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
          </div>
         </Card>}
 
-        <Card className="p-6 mb-6">
-          <h3 className="text-xl font-semibold mb-4 text-foreground">Additional Information</h3>
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="notes">Notes</Label>
-              <Textarea
-                id="notes"
-                value={formData.notes}
-                onChange={(e) => updateField("notes", e.target.value)}
-                rows={4}
-              />
-            </div>
-          </div>
-        </Card>
 
         <div className="flex justify-end">
           <Button type="submit" size="lg" className="text-lg px-8" disabled={loading}>
