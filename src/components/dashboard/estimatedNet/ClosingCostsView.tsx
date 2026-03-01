@@ -438,7 +438,7 @@ const ClosingCostsView = ({ propertyData, propertyId, onBack, onEdit, onNavigate
 
               <div className="mb-6">
                 <p className="text-foreground mb-4">Hi {propertyData.name ? propertyData.name.split(/\s*[&,]\s*/).map((n: string) => n.split(' ')[0]).join(' & ') : 'there'},</p>
-                <p className="text-foreground">Below is an estimated breakdown of the closing costs for your property. Please note that these are estimates and the actual amounts may vary at closing.</p>
+                <p className="text-foreground">Thank you for the time you spent with me talking about the sale of your home. As promised here is a breakdown of all of the fees associated with the sale of your home. All of these fees come from the standard Columbus Realtors purchase contract including the buyer agent's commission. As we talked about, we recommend making the buyer's commission negotiable, but you can count on the buyer asking you to pay their Realtors fee. While most of these fees are not negotiable, we recommend you build them into your sales price to get a satisfactory bottom line number including the buyer agents commission.</p>
               </div>
 
               <div className="space-y-1">
