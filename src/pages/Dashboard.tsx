@@ -4,7 +4,7 @@ import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Users, Mail, LogOut, Calendar, Briefcase, CheckSquare, Sparkles, Settings, UserPlus, DollarSign, Megaphone, UserCheck, FileText } from "lucide-react";
+import { Users, Mail, LogOut, Calendar, Briefcase, CheckSquare, Sparkles, Settings, UserPlus, DollarSign, Megaphone, UserCheck } from "lucide-react";
 import ClientsTab from "@/components/dashboard/ClientsTab";
 import LeadsTab from "@/components/dashboard/LeadsTab";
 import WeeklyUpdateTab from "@/components/dashboard/WeeklyUpdateTab";
@@ -14,7 +14,7 @@ import SmartAssistantTab from "@/components/dashboard/SmartAssistantTab";
 import AccountingTab from "@/components/dashboard/AccountingTab";
 import MarketingTab from "@/components/dashboard/MarketingTab";
 import BuyersTab from "@/components/dashboard/BuyersTab";
-import ResidentialWorkSheetTab from "@/components/dashboard/ResidentialWorkSheetTab";
+
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import logo from "@/assets/logo.jpg";
@@ -234,10 +234,6 @@ const Dashboard = () => {
                   <Megaphone className="w-4 h-4" />
                   Marketing
                 </TabsTrigger>
-                <TabsTrigger value="residential" className="flex-1 flex-col gap-0.5 text-xs py-2 whitespace-normal">
-                  <FileText className="w-4 h-4" />
-                  <span className="text-center leading-tight">Residential<br />Work Sheet</span>
-                </TabsTrigger>
                 {isAdmin && (
                   <TabsTrigger value="accounting" className="flex-1 flex-col gap-0.5 text-xs py-2 whitespace-normal">
                     <DollarSign className="w-4 h-4" />
@@ -275,9 +271,6 @@ const Dashboard = () => {
               </TabsContent>
               <TabsContent value="marketing">
                 <MarketingTab />
-              </TabsContent>
-              <TabsContent value="residential">
-                <ResidentialWorkSheetTab />
               </TabsContent>
               {isAdmin && (
                 <TabsContent value="accounting">
