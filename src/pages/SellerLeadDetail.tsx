@@ -159,7 +159,7 @@ const SellerLeadDetail = () => {
     { id: "market-analysis", label: "Market Analysis", icon: BarChart3 },
     { id: "pipeline", label: "Pipeline", icon: GitBranch },
     { id: "estimated-net", label: "Estimated Net", icon: DollarSign },
-    { id: "residential", label: "Residential Disclosure", icon: ClipboardList },
+    { id: "residential", label: "Residential Work Sheet", icon: ClipboardList },
   ];
 
   return (
