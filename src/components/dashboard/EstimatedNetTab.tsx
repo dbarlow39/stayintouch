@@ -28,6 +28,7 @@ import LoanApplicationLetterView from "./estimatedNet/LoanApplicationLetterView"
 import TitleCommitmentLetterView from "./estimatedNet/TitleCommitmentLetterView";
 import ClosedReferralLetterView from "./estimatedNet/ClosedReferralLetterView";
 import AdResultsLetterView from "./estimatedNet/AdResultsLetterView";
+import PropertyNotesView from "./estimatedNet/PropertyNotesView";
 import ClientSelectionView from "./estimatedNet/ClientSelectionView";
 import UpcomingClosingsView from "./estimatedNet/UpcomingClosingsView";
 import ContractNoticesSection from "./ContractNoticesSection";
@@ -42,7 +43,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-type ViewState = 'list' | 'select-client' | 'form' | 'results' | 'offer-letter' | 'offer-summary' | 'important-dates' | 'title-letter' | 'agent-letter' | 'request-to-remedy' | 'settlement-statement' | 'notices' | 'upcoming-closings' | 'clear-to-close-letter' | 'home-inspection-letter' | 'deposit-letter' | 'appraisal-letter' | 'loan-application-letter' | 'title-commitment-letter' | 'closed-referral-letter' | 'ad-results-letter';
+type ViewState = 'list' | 'select-client' | 'form' | 'results' | 'offer-letter' | 'offer-summary' | 'important-dates' | 'title-letter' | 'agent-letter' | 'request-to-remedy' | 'settlement-statement' | 'notices' | 'upcoming-closings' | 'clear-to-close-letter' | 'home-inspection-letter' | 'deposit-letter' | 'appraisal-letter' | 'loan-application-letter' | 'title-commitment-letter' | 'closed-referral-letter' | 'ad-results-letter' | 'property-notes';
 
 interface SelectedClientForEstimate {
   id: string;
@@ -430,6 +431,8 @@ const EstimatedNetTab = ({ selectedClient, onClearSelectedClient, navigateToProp
       setViewState('settlement-statement');
     } else if (targetView === 'notices') {
       setViewState('notices');
+    } else if (targetView === 'property-notes') {
+      setViewState('property-notes');
     } else {
       setViewState('results');
     }
@@ -796,6 +799,18 @@ const EstimatedNetTab = ({ selectedClient, onClearSelectedClient, navigateToProp
         propertyData={currentPropertyData}
         propertyId={currentPropertyId}
         onBack={handleBackToNotices}
+        onEdit={handleEditEstimate}
+        onNavigate={(view) => setViewState(view as ViewState)}
+      />
+    );
+  }
+
+  if (viewState === 'property-notes' && currentPropertyData && currentPropertyId) {
+    return (
+      <PropertyNotesView
+        propertyData={currentPropertyData}
+        propertyId={currentPropertyId}
+        onBack={handleBackToForm}
         onEdit={handleEditEstimate}
         onNavigate={(view) => setViewState(view as ViewState)}
       />

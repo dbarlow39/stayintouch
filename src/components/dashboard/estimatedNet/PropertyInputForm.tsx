@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { PropertyData } from "@/types/estimatedNet";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, List, Download, Mail, Calendar, FileText, ArrowRight, DollarSign, ClipboardList, Phone, MessageSquare, Save } from "lucide-react";
+import { ArrowLeft, List, Download, Mail, Calendar, FileText, ArrowRight, DollarSign, ClipboardList, Phone, MessageSquare, StickyNote } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import DocumentUploadSection, { ContractExtractedData } from "./DocumentUploadSection";
 import { getEmailClientPreference, openEmailClient } from "@/utils/emailClientUtils";
@@ -1294,33 +1294,9 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
       onClick: () => triggerSubmitAndNavigate("notices"),
     },
     ...(editingId ? [{
-      label: "Save Note",
-      icon: Save,
-      onClick: async () => {
-        const now = new Date();
-        const timestamp = now.toLocaleString("en-US", {
-          month: "2-digit",
-          day: "2-digit",
-          year: "numeric",
-          hour: "2-digit",
-          minute: "2-digit",
-          hour12: true,
-        });
-        const existingNotes = formData.notes || "";
-        const updatedNotes = `[${timestamp}]\n${existingNotes}`;
-        updateField("notes", updatedNotes);
-
-        const { error } = await supabase
-          .from("estimated_net_properties")
-          .update({ notes: updatedNotes })
-          .eq("id", editingId);
-
-        if (error) {
-          toast({ title: "Error saving note", description: error.message, variant: "destructive" });
-        } else {
-          toast({ title: "Note saved", description: `Saved at ${timestamp}` });
-        }
-      },
+      label: "Notes",
+      icon: StickyNote,
+      onClick: () => triggerSubmitAndNavigate("property-notes"),
     }] : []),
   ];
 
