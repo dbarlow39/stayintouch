@@ -1435,24 +1435,17 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
                   type="tel"
                   value={formData.sellerPhone}
                   onChange={(e) => updateField("sellerPhone", e.target.value)}
-                  className="pr-10"
+                  className="pr-16"
                 />
                 {formData.sellerPhone && (
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button type="button" variant="ghost" size="sm" className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 p-0 text-primary hover:text-primary/80" title="Call or Text">
-                        <Phone className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => window.open(`tel:${formData.sellerPhone}`, '_self')}>
-                        <Phone className="h-4 w-4 mr-2" /> Call
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => window.open(`sms:${formData.sellerPhone.replace(/\D/g, '')}`, '_self')}>
-                        <MessageSquare className="h-4 w-4 mr-2" /> Text
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                  <div className="absolute right-1 top-1/2 -translate-y-1/2 flex gap-0.5">
+                    <Button type="button" variant="ghost" size="sm" className="h-7 w-7 p-0 text-primary hover:text-primary/80" title="Call" onClick={() => window.open(`tel:${formData.sellerPhone}`, '_self')}>
+                      <Phone className="h-4 w-4" />
+                    </Button>
+                    <Button type="button" variant="ghost" size="sm" className="h-7 w-7 p-0 text-primary hover:text-primary/80" title="Text" onClick={() => window.open(`sms:${formData.sellerPhone.replace(/\D/g, '')}`, '_self')}>
+                      <MessageSquare className="h-4 w-4" />
+                    </Button>
+                  </div>
                 )}
               </div>
             </div>
@@ -1506,24 +1499,17 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
                   type="tel"
                   value={formData.listingAgentPhone}
                   onChange={(e) => updateField("listingAgentPhone", e.target.value)}
-                  className="pr-10"
+                  className="pr-16"
                 />
                 {formData.listingAgentPhone && (
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button type="button" variant="ghost" size="sm" className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 p-0 text-primary hover:text-primary/80" title="Call or Text">
-                        <Phone className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => window.open(`tel:${formData.listingAgentPhone}`, '_self')}>
-                        <Phone className="h-4 w-4 mr-2" /> Call
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => window.open(`sms:${formData.listingAgentPhone.replace(/\D/g, '')}`, '_self')}>
-                        <MessageSquare className="h-4 w-4 mr-2" /> Text
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                  <div className="absolute right-1 top-1/2 -translate-y-1/2 flex gap-0.5">
+                    <Button type="button" variant="ghost" size="sm" className="h-7 w-7 p-0 text-primary hover:text-primary/80" title="Call" onClick={() => window.open(`tel:${formData.listingAgentPhone}`, '_self')}>
+                      <Phone className="h-4 w-4" />
+                    </Button>
+                    <Button type="button" variant="ghost" size="sm" className="h-7 w-7 p-0 text-primary hover:text-primary/80" title="Text" onClick={() => window.open(`sms:${formData.listingAgentPhone.replace(/\D/g, '')}`, '_self')}>
+                      <MessageSquare className="h-4 w-4" />
+                    </Button>
+                  </div>
                 )}
               </div>
             </div>
@@ -2090,21 +2076,14 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
                  className="pr-10"
                 />
                {formData.lendingOfficerPhone && (
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button type="button" variant="ghost" size="sm" className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 p-0 text-primary hover:text-primary/80" title="Call or Text">
-                        <Phone className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => window.open(`tel:${formData.lendingOfficerPhone}`, '_self')}>
-                        <Phone className="h-4 w-4 mr-2" /> Call
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => window.open(`sms:${formData.lendingOfficerPhone.replace(/\D/g, '')}`, '_self')}>
-                        <MessageSquare className="h-4 w-4 mr-2" /> Text
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                  <div className="absolute right-1 top-1/2 -translate-y-1/2 flex gap-0.5">
+                    <Button type="button" variant="ghost" size="sm" className="h-7 w-7 p-0 text-primary hover:text-primary/80" title="Call" onClick={() => window.open(`tel:${formData.lendingOfficerPhone}`, '_self')}>
+                      <Phone className="h-4 w-4" />
+                    </Button>
+                    <Button type="button" variant="ghost" size="sm" className="h-7 w-7 p-0 text-primary hover:text-primary/80" title="Text" onClick={() => window.open(`sms:${formData.lendingOfficerPhone.replace(/\D/g, '')}`, '_self')}>
+                      <MessageSquare className="h-4 w-4" />
+                    </Button>
+                  </div>
                 )}
                </div>
               </div>
@@ -2116,7 +2095,7 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
                   type="email"
                   value={formData.lendingOfficerEmail || ""}
                   onChange={(e) => updateField("lendingOfficerEmail", e.target.value)}
-                 className="pr-10"
+                 className="pr-16"
                 />
                {formData.lendingOfficerEmail && (
                  <Button
