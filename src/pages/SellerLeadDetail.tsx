@@ -175,16 +175,21 @@ const SellerLeadDetail = () => {
               </p>
             </div>
           </div>
-          <Button variant="outline" size="sm" onClick={() => navigate("/dashboard?tab=leads")}>
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Leads
-          </Button>
+          <div />
+
         </div>
       </header>
 
       <div className="flex min-h-[calc(100vh-73px)]">
         {/* Vertical Sidebar Navigation */}
         <nav className="w-48 shrink-0 border-r border-border bg-muted/30">
+          <button
+            onClick={() => navigate("/dashboard?tab=leads")}
+            className="w-full flex items-center gap-2 px-4 py-3 text-sm text-left text-muted-foreground hover:bg-muted hover:text-foreground border-b border-border transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4 shrink-0" />
+            Back to Leads
+          </button>
           <ul className="flex flex-col py-2">
             {sidebarTabs.map((tab) => (
               <li key={tab.id}>
