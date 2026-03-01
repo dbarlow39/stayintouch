@@ -82,10 +82,29 @@ const ClosingCostsView = ({ propertyData, propertyId, onBack, onEdit, onNavigate
     return rows;
   };
 
-  const getEmailPayload = () => {
+  const imageUrlToBase64 = async (url: string): Promise<string> => {
+    const response = await fetch(url);
+    if (!response.ok) throw new Error(`HTTP error: ${response.status}`);
+    const blob = await response.blob();
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  };
+
+  const getEmailPayload = async () => {
     const clientFirstNames = propertyData.name
       ? propertyData.name.split(/\s*[&,]\s*/).map((n: string) => n.split(' ')[0]).join(' & ')
       : 'there';
+
+    let logoBase64 = '';
+    try {
+      logoBase64 = await imageUrlToBase64(logo);
+    } catch (e) {
+      console.warn('Failed to convert logo to base64:', e);
+    }
 
     return {
       to_email: recipientEmail,
@@ -99,7 +118,7 @@ const ClosingCostsView = ({ propertyData, propertyId, onBack, onEdit, onNavigate
       closing_date: propertyData.closingDate || null,
       cost_rows: buildCostRows(),
       estimated_net: closingCosts.estimatedNet,
-      logo_url: `${window.location.origin}/logo.jpg`,
+      logo_url: logoBase64,
       client_first_names: clientFirstNames,
       agent_first_name: profileData?.first_name || profileData?.full_name?.split(' ')[0] || '',
       agent_full_name: profileData?.full_name || '',
@@ -115,7 +134,7 @@ const ClosingCostsView = ({ propertyData, propertyId, onBack, onEdit, onNavigate
     setRecipientEmail(propertyData.sellerEmail || "");
 
     try {
-      const payload = { ...getEmailPayload(), preview_only: true };
+      const payload = { ...(await getEmailPayload()), preview_only: true };
       const { data, error } = await supabase.functions.invoke('send-estimated-net-email', {
         body: payload,
       });
@@ -139,7 +158,7 @@ const ClosingCostsView = ({ propertyData, propertyId, onBack, onEdit, onNavigate
 
     setEmailSending(true);
     try {
-      const payload = { ...getEmailPayload(), to_email: recipientEmail };
+      const payload = { ...(await getEmailPayload()), to_email: recipientEmail };
       const { data, error } = await supabase.functions.invoke('send-estimated-net-email', {
         body: payload,
       });
