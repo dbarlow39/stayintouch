@@ -326,12 +326,6 @@ const TitleLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate 
                 <p className="text-muted-foreground">Property in contract notification</p>
               </div>
             </div>
-            <div className="flex gap-2 print:hidden no-pdf">
-              <Button onClick={handleCopyToClipboard} size="lg" className="bg-emerald-600 hover:bg-emerald-700 text-white">
-                <Copy className="mr-2 h-4 w-4" />
-                Copy & Email
-              </Button>
-            </div>
           </div>
 
           <Card className="p-8 mb-6 print:shadow-none">
