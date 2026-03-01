@@ -1,12 +1,17 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { PropertyData } from "@/types/estimatedNet";
 import { calculateClosingCosts, formatCurrency } from "@/utils/estimatedNetCalculations";
-import { ArrowLeft, Download, List, Mail, Calendar, FileText, ArrowRight, DollarSign, ClipboardList, Settings, Copy } from "lucide-react";
+import { ArrowLeft, Download, List, Mail, Calendar, FileText, ArrowRight, DollarSign, ClipboardList, Settings, Copy, Loader2, Send } from "lucide-react";
 import { EmailClient, EMAIL_CLIENT_OPTIONS, getEmailClientPreference, setEmailClientPreference, getEmailLink } from "@/utils/emailClientUtils";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/lib/auth";
+import { supabase } from "@/integrations/supabase/client";
 import logo from "@/assets/logo.jpg";
 
 interface ClosingCostsViewProps {
@@ -21,11 +26,133 @@ const ClosingCostsView = ({ propertyData, propertyId, onBack, onEdit, onNavigate
   const closingCosts = calculateClosingCosts(propertyData);
   const [emailClient, setEmailClient] = useState<EmailClient>(getEmailClientPreference);
   const { toast } = useToast();
+  const { user } = useAuth();
+
+  // Email dialog state
+  const [emailDialogOpen, setEmailDialogOpen] = useState(false);
+  const [emailPreviewHtml, setEmailPreviewHtml] = useState("");
+  const [emailLoading, setEmailLoading] = useState(false);
+  const [emailSending, setEmailSending] = useState(false);
+  const [recipientEmail, setRecipientEmail] = useState(propertyData.sellerEmail || "");
+  const [profileData, setProfileData] = useState<{
+    full_name: string; preferred_email: string; email: string;
+    first_name: string | null; cell_phone: string | null; bio: string | null;
+  } | null>(null);
+
+  // Fetch agent profile
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from('profiles')
+      .select('full_name, preferred_email, email, first_name, cell_phone, bio')
+      .eq('id', user.id)
+      .maybeSingle()
+      .then(({ data }) => { if (data) setProfileData(data as any); });
+  }, [user]);
 
   const handleEmailClientChange = (value: string) => {
     const client = value as EmailClient;
     setEmailClient(client);
     setEmailClientPreference(client);
+  };
+
+  const buildCostRows = () => {
+    const rows = [
+      { label: "Selling Price", amount: closingCosts.sellingPrice },
+      { label: "1st Mortgage", amount: closingCosts.firstMortgage },
+      { label: "2nd Mortgage", amount: closingCosts.secondMortgage },
+      { label: "Buyer Closing Cost", amount: closingCosts.buyerClosingCost },
+      { label: "Taxes 1st Half 2025", amount: closingCosts.taxesFirstHalf },
+      { label: "Taxes 2nd Half 2025", amount: closingCosts.taxesSecondHalf },
+      { label: "Taxes Due for Year 2026", amount: closingCosts.taxesDueForYear },
+      { label: `Listing Agent Commission (${propertyData.listingAgentCommission}%)`, amount: closingCosts.listingAgentCommission },
+      { label: `Buyer Agent Commission (${propertyData.buyerAgentCommission}%)`, amount: closingCosts.buyerAgentCommission },
+      { label: "County Conveyance Fee", amount: closingCosts.countyConveyanceFee },
+      { label: `Home Warranty${closingCosts.homeWarrantyCompany ? ` - ${closingCosts.homeWarrantyCompany}` : ''}`, amount: closingCosts.homeWarranty },
+      { label: "Title Examination", amount: closingCosts.titleExamination },
+      { label: "Title Settlement", amount: closingCosts.titleSettlement },
+      { label: "Closing Fee", amount: closingCosts.closingFee },
+      { label: "Deed Preparation", amount: closingCosts.deedPreparation },
+      { label: "Overnight Fee", amount: closingCosts.overnightFee },
+      { label: "Recording Fee", amount: closingCosts.recordingFee },
+      { label: "Survey Coverage", amount: closingCosts.surveyCoverage },
+      { label: "Admin Fee", amount: closingCosts.adminFee },
+      { label: "Title Insurance", amount: closingCosts.titleInsurance },
+    ];
+    return rows;
+  };
+
+  const getEmailPayload = () => {
+    const clientFirstNames = propertyData.name
+      ? propertyData.name.split(/\s*[&,]\s*/).map((n: string) => n.split(' ')[0]).join(' & ')
+      : 'there';
+
+    return {
+      to_email: recipientEmail,
+      from_name: profileData?.full_name || "Agent",
+      reply_to: profileData?.preferred_email || profileData?.email || "",
+      client_name: propertyData.name || "Client",
+      street_address: propertyData.streetAddress,
+      city: propertyData.city,
+      state: propertyData.state,
+      zip: propertyData.zip,
+      closing_date: propertyData.closingDate || null,
+      cost_rows: buildCostRows(),
+      estimated_net: closingCosts.estimatedNet,
+      logo_url: `${window.location.origin}/logo.jpg`,
+      client_first_names: clientFirstNames,
+      agent_first_name: profileData?.first_name || profileData?.full_name?.split(' ')[0] || '',
+      agent_full_name: profileData?.full_name || '',
+      agent_phone: profileData?.cell_phone || '',
+      agent_email: profileData?.preferred_email || profileData?.email || '',
+      agent_bio: profileData?.bio || '',
+    };
+  };
+
+  const handleOpenEmailPreview = async () => {
+    setEmailDialogOpen(true);
+    setEmailLoading(true);
+    setRecipientEmail(propertyData.sellerEmail || "");
+
+    try {
+      const payload = { ...getEmailPayload(), preview_only: true };
+      const { data, error } = await supabase.functions.invoke('send-estimated-net-email', {
+        body: payload,
+      });
+
+      if (error) throw error;
+      setEmailPreviewHtml(data.html || "");
+    } catch (err: any) {
+      console.error("Preview error:", err);
+      toast({ title: "Failed to load preview", description: err.message, variant: "destructive" });
+      setEmailDialogOpen(false);
+    } finally {
+      setEmailLoading(false);
+    }
+  };
+
+  const handleSendEmail = async () => {
+    if (!recipientEmail) {
+      toast({ title: "Email required", description: "Please enter a recipient email address", variant: "destructive" });
+      return;
+    }
+
+    setEmailSending(true);
+    try {
+      const payload = { ...getEmailPayload(), to_email: recipientEmail };
+      const { data, error } = await supabase.functions.invoke('send-estimated-net-email', {
+        body: payload,
+      });
+
+      if (error) throw error;
+      toast({ title: "Email sent!", description: `Estimated Net sent to ${recipientEmail}` });
+      setEmailDialogOpen(false);
+    } catch (err: any) {
+      console.error("Send error:", err);
+      toast({ title: "Failed to send email", description: err.message, variant: "destructive" });
+    } finally {
+      setEmailSending(false);
+    }
   };
 
   const handleDownloadPDF = async () => {
@@ -47,8 +174,6 @@ const ClosingCostsView = ({ propertyData, propertyId, onBack, onEdit, onNavigate
     const pageWidth = pdf.internal.pageSize.getWidth();
     const pageHeight = pdf.internal.pageSize.getHeight();
 
-    // Ensure we never clip at the bottom by fitting the image within the page bounds
-    // with an explicit bottom margin (~5/8" = 15.9mm).
     const marginLeft = 10;
     const marginRight = 10;
     const marginTop = 10;
@@ -57,7 +182,6 @@ const ClosingCostsView = ({ propertyData, propertyId, onBack, onEdit, onNavigate
     const maxWidth = pageWidth - marginLeft - marginRight;
     const maxHeight = pageHeight - marginTop - marginBottom;
 
-    // Start by fitting to width, then shrink to fit height if needed.
     let imgWidth = maxWidth;
     let imgHeight = (canvas.height * imgWidth) / canvas.width;
 
@@ -80,7 +204,6 @@ const ClosingCostsView = ({ propertyData, propertyId, onBack, onEdit, onNavigate
     try {
       const clonedContent = content.cloneNode(true) as HTMLElement;
 
-      // Convert logo to base64 at reduced size
       const logoImg = clonedContent.querySelector('img') as HTMLImageElement;
       if (logoImg) {
         const canvas = document.createElement('canvas');
@@ -108,11 +231,9 @@ const ClosingCostsView = ({ propertyData, propertyId, onBack, onEdit, onNavigate
         });
       }
 
-      // Remove print:hidden and no-pdf elements
       const noPdfElements = clonedContent.querySelectorAll('.no-pdf, .print\\:hidden');
       noPdfElements.forEach(el => el.remove());
 
-      // Style the header
       const logoContainer = clonedContent.querySelector('.flex.items-center.gap-3');
       if (logoContainer) {
         (logoContainer as HTMLElement).style.cssText = 'display: flex; align-items: center; gap: 12px;';
@@ -171,65 +292,21 @@ const ClosingCostsView = ({ propertyData, propertyId, onBack, onEdit, onNavigate
   );
 
   const navigationItems = [
-    {
-      label: "Back",
-      icon: ArrowLeft,
-      onClick: onBack,
-    },
-    {
-      label: "Back to Property Info",
-      icon: ArrowLeft,
-      onClick: () => onEdit(propertyId),
-    },
-    {
-      label: "My Properties",
-      icon: List,
-      onClick: onBack,
-    },
-    {
-      label: "Estimated Net",
-      icon: DollarSign,
-      onClick: () => {},
-      active: true,
-    },
-    {
-      label: "Offer Summary",
-      icon: ClipboardList,
-      onClick: () => onNavigate('offer-summary'),
-    },
-    {
-      label: "Offer Letter",
-      icon: Mail,
-      onClick: () => onNavigate('offer-letter'),
-    },
-    {
-      label: "Important Dates Letter",
-      icon: Calendar,
-      onClick: () => onNavigate('important-dates'),
-    },
-    {
-      label: "Title Letter",
-      icon: Mail,
-      onClick: () => onNavigate('title-letter'),
-    },
-    {
-      label: "Agent Letter",
-      icon: Mail,
-      onClick: () => onNavigate('agent-letter'),
-    },
-    {
-      label: "Request to Remedy",
-      icon: FileText,
-      onClick: () => onNavigate('request-to-remedy'),
-    },
-    {
-      label: "Settlement Statement",
-      icon: FileText,
-      onClick: () => onNavigate('settlement-statement'),
-    },
+    { label: "Back", icon: ArrowLeft, onClick: onBack },
+    { label: "Back to Property Info", icon: ArrowLeft, onClick: () => onEdit(propertyId) },
+    { label: "My Properties", icon: List, onClick: onBack },
+    { label: "Estimated Net", icon: DollarSign, onClick: () => {}, active: true },
+    { label: "Offer Summary", icon: ClipboardList, onClick: () => onNavigate('offer-summary') },
+    { label: "Offer Letter", icon: Mail, onClick: () => onNavigate('offer-letter') },
+    { label: "Important Dates Letter", icon: Calendar, onClick: () => onNavigate('important-dates') },
+    { label: "Title Letter", icon: Mail, onClick: () => onNavigate('title-letter') },
+    { label: "Agent Letter", icon: Mail, onClick: () => onNavigate('agent-letter') },
+    { label: "Request to Remedy", icon: FileText, onClick: () => onNavigate('request-to-remedy') },
+    { label: "Settlement Statement", icon: FileText, onClick: () => onNavigate('settlement-statement') },
   ];
 
   return (
+    <>
     <div className="flex w-full min-h-[600px]">
       {/* Left Sidebar Navigation */}
       <aside className="w-56 p-3 border-r bg-card shrink-0 print:hidden">
@@ -268,8 +345,12 @@ const ClosingCostsView = ({ propertyData, propertyId, onBack, onEdit, onNavigate
 
       {/* Main Content */}
       <div className="flex-1 py-4 px-6 overflow-auto">
-        {/* Download PDF Button - Top Right */}
+        {/* Action Buttons - Top Right */}
         <div className="flex justify-end gap-2 mb-4 print:hidden">
+          <Button onClick={handleOpenEmailPreview} size="lg" className="bg-emerald-600 hover:bg-emerald-700 text-white">
+            <Mail className="mr-2 h-4 w-4" />
+            Email
+          </Button>
           <Button onClick={handleCopyToClipboard} size="lg" className="bg-emerald-600 hover:bg-emerald-700 text-white">
             <Copy className="mr-2 h-4 w-4" />
             Copy & Email
@@ -389,6 +470,58 @@ const ClosingCostsView = ({ propertyData, propertyId, onBack, onEdit, onNavigate
         </div>
       </div>
     </div>
+
+    {/* Email Preview Dialog */}
+    <Dialog open={emailDialogOpen} onOpenChange={setEmailDialogOpen}>
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Email Preview - Estimated Net</DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-4">
+          <div className="flex items-end gap-3">
+            <div className="flex-1">
+              <Label htmlFor="recipient-email">Recipient Email</Label>
+              <Input
+                id="recipient-email"
+                type="email"
+                value={recipientEmail}
+                onChange={(e) => setRecipientEmail(e.target.value)}
+                placeholder="seller@example.com"
+              />
+            </div>
+            <Button
+              onClick={handleSendEmail}
+              disabled={emailSending || !recipientEmail}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white"
+            >
+              {emailSending ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Send className="mr-2 h-4 w-4" />
+              )}
+              {emailSending ? "Sending..." : "Send Email"}
+            </Button>
+          </div>
+
+          {emailLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          ) : (
+            <div className="border border-border rounded-lg overflow-hidden bg-muted/30">
+              <iframe
+                srcDoc={emailPreviewHtml}
+                className="w-full min-h-[600px] bg-white"
+                title="Email Preview"
+                sandbox="allow-same-origin"
+              />
+            </div>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 };
 
