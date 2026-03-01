@@ -212,6 +212,12 @@ const SellerLeadDetail = () => {
         {/* Main Content */}
         {activeTab === "estimated-net" && lead ? (
           <div className="flex-1 overflow-auto">
+            <div className="px-6 pt-4">
+              <Button variant="ghost" size="sm" onClick={() => setActiveTab("details")} className="text-muted-foreground hover:text-foreground">
+                <ArrowLeft className="w-4 h-4 mr-1" />
+                Back to Lead Details
+              </Button>
+            </div>
             <LeadEstimatedNet lead={lead} onBack={() => setActiveTab("details")} />
           </div>
         ) : activeTab === "residential" ? (
