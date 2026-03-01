@@ -40,9 +40,10 @@ interface LeadData {
 
 interface LeadEstimatedNetProps {
   lead: LeadData;
+  onBack?: () => void;
 }
 
-const LeadEstimatedNet = ({ lead }: LeadEstimatedNetProps) => {
+const LeadEstimatedNet = ({ lead, onBack }: LeadEstimatedNetProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -128,7 +129,7 @@ const LeadEstimatedNet = ({ lead }: LeadEstimatedNetProps) => {
   };
 
   const handleFormCancel = () => {
-    // Stay on form — nowhere to go "back" to
+    if (onBack) onBack();
   };
 
   const handleBackToForm = () => {
