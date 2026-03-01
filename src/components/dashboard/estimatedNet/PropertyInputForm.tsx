@@ -2240,6 +2240,45 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
                 onChange={(e) => updateField("notes", e.target.value)}
                 rows={4}
               />
+              {editingId && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="mt-2"
+                  onClick={async () => {
+                    const now = new Date();
+                    const timestamp = now.toLocaleString("en-US", {
+                      month: "2-digit",
+                      day: "2-digit",
+                      year: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                      hour12: true,
+                    });
+                    const noteWithTimestamp = `[${timestamp}] ${formData.notes || ""}`;
+                    const existingNotes = formData.notes || "";
+                    // Prepend timestamp to the current note text
+                    const updatedNotes = existingNotes.includes(`[${timestamp}]`)
+                      ? existingNotes
+                      : `[${timestamp}]\n${existingNotes}`;
+                    updateField("notes", updatedNotes);
+
+                    const { error } = await supabase
+                      .from("estimated_net_properties")
+                      .update({ notes: updatedNotes })
+                      .eq("id", editingId);
+
+                    if (error) {
+                      toast({ title: "Error saving note", description: error.message, variant: "destructive" });
+                    } else {
+                      toast({ title: "Note saved", description: `Saved at ${timestamp}` });
+                    }
+                  }}
+                >
+                  Save Note
+                </Button>
+              )}
             </div>
           </div>
         </Card>
