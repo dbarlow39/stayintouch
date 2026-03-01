@@ -250,7 +250,7 @@ const PropertyNotesView = ({
                 value={newNote}
                 onChange={(e) => setNewNote(e.target.value)}
                 placeholder="Type your note here..."
-                rows={4}
+                rows={10}
                 className="mb-3"
               />
               <Button onClick={handleAddNote} disabled={saving || !newNote.trim()}>
