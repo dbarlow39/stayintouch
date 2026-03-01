@@ -254,7 +254,7 @@ const OfferSummaryView = ({ propertyData, propertyId, onBack, onEdit, onNavigate
       <div className="flex-1 py-4 px-6 overflow-auto">
         {/* Action Buttons - Top Right */}
         <div className="flex justify-end gap-2 mb-4 print:hidden">
-          <Button onClick={handleCopyAndEmail} variant="outline" className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-600">
+          <Button onClick={handleCopyAndEmail} variant="outline" className="copy-email-btn gap-2 bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-600">
             <Copy className="h-4 w-4" />
             Copy & Email
           </Button>
