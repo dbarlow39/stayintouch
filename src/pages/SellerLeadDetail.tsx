@@ -10,11 +10,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Save, Trash2, Loader2, Asterisk, Zap, FileText, BarChart3, GitBranch, DollarSign } from "lucide-react";
+import { ArrowLeft, Save, Trash2, Loader2, Asterisk, Zap, FileText, BarChart3, GitBranch, DollarSign, ClipboardList } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import LeadEnrollmentDialog from "@/components/dashboard/LeadEnrollmentDialog";
 import logo from "@/assets/logo.jpg";
 import LeadEstimatedNet from "@/components/dashboard/estimatedNet/LeadEstimatedNet";
+import ResidentialWorkSheetTab from "@/components/dashboard/ResidentialWorkSheetTab";
 
 const statusColors: Record<string, string> = {
   new: "bg-primary/10 text-primary border-primary/20",
@@ -158,6 +159,7 @@ const SellerLeadDetail = () => {
     { id: "market-analysis", label: "Market Analysis", icon: BarChart3 },
     { id: "pipeline", label: "Pipeline", icon: GitBranch },
     { id: "estimated-net", label: "Estimated Net", icon: DollarSign },
+    { id: "residential", label: "Residential Disclosure", icon: ClipboardList },
   ];
 
   return (
@@ -206,6 +208,10 @@ const SellerLeadDetail = () => {
         {activeTab === "estimated-net" && lead ? (
           <div className="flex-1 overflow-auto">
             <LeadEstimatedNet lead={lead} />
+          </div>
+        ) : activeTab === "residential" ? (
+          <div className="flex-1 overflow-auto p-6">
+            <ResidentialWorkSheetTab />
           </div>
         ) : (
           <main className="flex-1 px-6 py-8 max-w-3xl">
