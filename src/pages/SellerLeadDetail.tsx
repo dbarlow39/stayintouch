@@ -184,11 +184,17 @@ const SellerLeadDetail = () => {
         {/* Vertical Sidebar Navigation */}
         <nav className="w-48 shrink-0 border-r border-border bg-muted/30">
           <button
-            onClick={() => navigate("/dashboard?tab=leads")}
+            onClick={() => {
+              if (activeTab !== "details") {
+                setActiveTab("details");
+              } else {
+                navigate("/dashboard?tab=leads");
+              }
+            }}
             className="w-full flex items-center gap-2 px-4 py-3 text-sm text-left text-muted-foreground hover:bg-muted hover:text-foreground border-b border-border transition-colors"
           >
             <ArrowLeft className="w-4 h-4 shrink-0" />
-            Back to Leads
+            {activeTab !== "details" ? "Back to Lead Details" : "Back to Leads"}
           </button>
           <ul className="flex flex-col py-2">
             {sidebarTabs.map((tab) => (
@@ -212,12 +218,6 @@ const SellerLeadDetail = () => {
         {/* Main Content */}
         {activeTab === "estimated-net" && lead ? (
           <div className="flex-1 overflow-auto">
-            <div className="px-6 pt-4">
-              <Button variant="ghost" size="sm" onClick={() => setActiveTab("details")} className="text-muted-foreground hover:text-foreground">
-                <ArrowLeft className="w-4 h-4 mr-1" />
-                Back to Lead Details
-              </Button>
-            </div>
             <LeadEstimatedNet lead={lead} onBack={() => setActiveTab("details")} />
           </div>
         ) : activeTab === "residential" ? (
