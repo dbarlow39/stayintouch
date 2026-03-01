@@ -357,21 +357,58 @@ Deno.serve(async (req) => {
           }
         } catch {}
 
+        // Fetch recently removed listings from memory (last 24hrs)
+        let recentlyRemoved: Map<string, any> = new Map();
+        try {
+          const memRes = await fetch(
+            `${supabaseUrl}/rest/v1/removed_listings_memory?expires_at=gt.${new Date().toISOString()}&select=mls_number,listing_data`,
+            { headers: dbHeaders }
+          );
+          if (memRes.ok) {
+            const memData = await memRes.json();
+            for (const row of (memData || [])) {
+              recentlyRemoved.set(row.mls_number, row.listing_data);
+            }
+          }
+          console.log(`[memory] Loaded ${recentlyRemoved.size} recently-removed listings from memory`);
+        } catch (e) {
+          console.log('[memory] Failed to load removed listings memory:', e);
+        }
+
         // Detect changes
         const prevMap = new Map(previousListings.map((l: any) => [l.mlsNumber, l]));
         const newMap = new Map(transformed.map((l: any) => [l.mlsNumber, l]));
 
-        const changes: { newListings: any[]; removedListings: any[]; priceChanges: any[]; statusChanges: any[] } = {
+        const changes: { newListings: any[]; removedListings: any[]; priceChanges: any[]; statusChanges: any[]; backOnMarket: any[] } = {
           newListings: [],
           removedListings: [],
           priceChanges: [],
           statusChanges: [],
+          backOnMarket: [],
         };
 
         for (const [mls, listing] of newMap) {
           const prev = prevMap.get(mls);
           if (!prev) {
-            changes.newListings.push(listing);
+            // Not in current cache — check 24hr memory
+            const remembered = recentlyRemoved.get(mls);
+            if (remembered) {
+              // Listing was temporarily removed and came back
+              if (remembered.price !== listing.price) {
+                // Price changed while it was gone — classify as price change
+                changes.priceChanges.push({ listing, oldPrice: remembered.price, newPrice: listing.price });
+                console.log(`[memory] ${listing.address} recognized as PRICE CHANGE (was $${remembered.price}, now $${listing.price})`);
+              } else if (remembered.status !== listing.status) {
+                changes.statusChanges.push({ listing, oldStatus: remembered.status, newStatus: listing.status });
+                console.log(`[memory] ${listing.address} recognized as STATUS CHANGE (was ${remembered.status}, now ${listing.status})`);
+              } else {
+                // Same price/status — back on market (temporarily disappeared)
+                changes.backOnMarket.push(listing);
+                console.log(`[memory] ${listing.address} recognized as BACK ON MARKET (no changes)`);
+              }
+            } else {
+              changes.newListings.push(listing);
+            }
           } else {
             if (prev.price !== listing.price) {
               changes.priceChanges.push({ listing, oldPrice: prev.price, newPrice: listing.price });
@@ -387,8 +424,50 @@ Deno.serve(async (req) => {
           }
         }
 
+        // Save removed listings to memory table for 24hr recognition
+        if (changes.removedListings.length > 0) {
+          try {
+            const memRows = changes.removedListings.map((l: any) => ({
+              mls_number: l.mlsNumber,
+              listing_data: l,
+            }));
+            await fetch(`${supabaseUrl}/rest/v1/removed_listings_memory`, {
+              method: 'POST',
+              headers: { ...dbHeaders, 'Prefer': 'resolution=merge-duplicates' },
+              body: JSON.stringify(memRows),
+            });
+            console.log(`[memory] Stored ${changes.removedListings.length} removed listings in memory`);
+          } catch (e) {
+            console.log('[memory] Failed to store removed listings:', e);
+          }
+        }
+
+        // Clean up expired memory entries
+        try {
+          await fetch(
+            `${supabaseUrl}/rest/v1/removed_listings_memory?expires_at=lt.${new Date().toISOString()}`,
+            { method: 'DELETE', headers: dbHeaders }
+          );
+        } catch {}
+
+        // Clean up memory entries for listings that are back
+        const returnedMls = [
+          ...changes.priceChanges.map(c => c.listing.mlsNumber),
+          ...changes.statusChanges.filter(c => recentlyRemoved.has(c.listing.mlsNumber)).map(c => c.listing.mlsNumber),
+          ...changes.backOnMarket.map((l: any) => l.mlsNumber),
+        ];
+        if (returnedMls.length > 0) {
+          try {
+            await fetch(
+              `${supabaseUrl}/rest/v1/removed_listings_memory?mls_number=in.(${returnedMls.join(',')})`,
+              { method: 'DELETE', headers: dbHeaders }
+            );
+            console.log(`[memory] Cleaned up ${returnedMls.length} returned listings from memory`);
+          } catch {}
+        }
+
         const hasChanges = changes.newListings.length > 0 || changes.removedListings.length > 0 ||
-          changes.priceChanges.length > 0 || changes.statusChanges.length > 0;
+          changes.priceChanges.length > 0 || changes.statusChanges.length > 0 || changes.backOnMarket.length > 0;
 
         // Send email notification if changes detected
         if (hasChanges && resendKey && previousListings.length > 0) {
@@ -429,6 +508,14 @@ Deno.serve(async (req) => {
             html += `</ul>`;
           }
 
+          if (changes.backOnMarket.length > 0) {
+            html += `<h3 style="color:#f59e0b;font-family:sans-serif;">🔙 Back on Market (${changes.backOnMarket.length})</h3><ul style="font-family:sans-serif;font-size:14px;">`;
+            for (const l of changes.backOnMarket) {
+              html += `<li><strong>${l.address}</strong> — ${fmtPrice(l.price)} | ${l.status} | MLS# ${l.mlsNumber}</li>`;
+            }
+            html += `</ul>`;
+          }
+
           try {
             await fetch('https://api.resend.com/emails', {
               method: 'POST',
@@ -436,7 +523,7 @@ Deno.serve(async (req) => {
               body: JSON.stringify({
                 from: 'MLS Alerts <updates@resend.sellfor1percent.com>',
                 to: ['dave@sellfor1percent.com'],
-                subject: `Sellfor1Percent.com MLS Changes: ${changes.newListings.length} new, ${changes.priceChanges.length} price, ${changes.statusChanges.length} status, ${changes.removedListings.length} removed qqqqq`,
+                subject: `Sellfor1Percent.com MLS Changes: ${changes.newListings.length} new, ${changes.priceChanges.length} price, ${changes.statusChanges.length} status, ${changes.removedListings.length} removed, ${changes.backOnMarket.length} returned qqqqq`,
                 html,
               }),
             });
@@ -446,7 +533,7 @@ Deno.serve(async (req) => {
           }
         }
 
-        console.log(`Changes detected: ${hasChanges} (new: ${changes.newListings.length}, removed: ${changes.removedListings.length}, price: ${changes.priceChanges.length}, status: ${changes.statusChanges.length})`);
+        console.log(`Changes detected: ${hasChanges} (new: ${changes.newListings.length}, removed: ${changes.removedListings.length}, price: ${changes.priceChanges.length}, status: ${changes.statusChanges.length}, returned: ${changes.backOnMarket.length})`);
 
         // ─── AUTO-POST TO FACEBOOK ───
         // Check if auto-posting is enabled and there are relevant changes
@@ -502,6 +589,10 @@ Deno.serve(async (req) => {
                   if (sc.newStatus === 'active' && sc.oldStatus !== 'active') {
                     autoPostItems.push({ listing: sc.listing, type: 'back_on_market' });
                   }
+                }
+                // Back-on-market from memory (listings that temporarily disappeared and returned)
+                for (const listing of changes.backOnMarket) {
+                  autoPostItems.push({ listing, type: 'back_on_market' });
                 }
 
                 // Safety: cap auto-posts per sync to prevent rate limiting / spam
