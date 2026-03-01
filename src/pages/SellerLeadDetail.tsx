@@ -157,9 +157,9 @@ const SellerLeadDetail = () => {
     { id: "details", label: "Lead Details", icon: FileText },
     { id: "pre-listing", label: "Pre-Listing Pack", icon: FileText },
     { id: "market-analysis", label: "Market Analysis", icon: BarChart3 },
-    { id: "pipeline", label: "Pipeline", icon: GitBranch },
     { id: "estimated-net", label: "Estimated Net", icon: DollarSign },
     { id: "residential", label: "Residential Work Sheet", icon: ClipboardList },
+    { id: "pipeline", label: "Pipeline", icon: GitBranch },
   ];
 
   return (
