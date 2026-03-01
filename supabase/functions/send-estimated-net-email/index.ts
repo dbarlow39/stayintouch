@@ -30,6 +30,7 @@ interface EstimatedNetEmailPayload {
   agent_phone?: string;
   agent_email?: string;
   agent_bio?: string;
+  intro_text?: string;
 }
 
 function formatCurrency(amount: number): string {
@@ -54,6 +55,7 @@ serve(async (req) => {
       cost_rows, estimated_net, logo_url,
       preview_only,
       client_first_names, agent_first_name, agent_full_name, agent_phone, agent_email, agent_bio,
+      intro_text,
     } = payload;
 
     const greeting = client_first_names || 'there';
@@ -134,11 +136,7 @@ serve(async (req) => {
           <!-- Letter Body -->
           <tr>
             <td style="padding: 24px 32px;">
-              <p style="margin: 0 0 16px; line-height: 1.6; color: #374151; font-size: 15px;">Hi ${greeting},</p>
-
-              <p style="margin: 0 0 24px; line-height: 1.6; color: #374151; font-size: 15px;">
-                Below is an estimated breakdown of the closing costs for your property. Please note that these are estimates and the actual amounts may vary at closing.
-              </p>
+              <p style="margin: 0 0 24px; line-height: 1.6; color: #374151; font-size: 15px; white-space: pre-line;">${intro_text || `Hi ${greeting},\n\nBelow is an estimated breakdown of the closing costs for your property. Please note that these are estimates and the actual amounts may vary at closing.`}</p>
 
               ${closingDateFormatted ? `<p style="margin: 0 0 8px; font-size: 13px; font-weight: 600; color: #1f2937; text-align: right;">Estimated Closing Date: ${closingDateFormatted}</p>` : ''}
               <!-- Cost Breakdown Table -->
