@@ -25,7 +25,8 @@ interface ClosingCostsViewProps {
 const ClosingCostsView = ({ propertyData, propertyId, onBack, onEdit, onNavigate }: ClosingCostsViewProps) => {
   const closingCosts = calculateClosingCosts(propertyData);
   const [emailClient, setEmailClient] = useState<EmailClient>(getEmailClientPreference);
-  const [introText, setIntroText] = useState("Thank you for the time you spent with me talking about the sale of your home. As promised here is a breakdown of all of the fees associated with the sale of your home. All of these fees come from the standard Columbus Realtors purchase contract including the buyer agent's commission. As we talked about, we recommend making the buyer's commission negotiable, but you can count on the buyer asking you to pay their Realtors fee. While most of these fees are not negotiable, we recommend you build them into your sales price to get a satisfactory bottom line number including the buyer agents commission.");
+  const sellerFirstName = propertyData.name ? propertyData.name.split(/\s*[&,]\s*/).map((n: string) => n.split(' ')[0]).join(' & ') : 'there';
+  const [introText, setIntroText] = useState(`Hi ${sellerFirstName},\n\nThank you for the time you spent with me talking about the sale of your home. As promised here is a breakdown of all of the fees associated with the sale of your home. All of these fees come from the standard Columbus Realtors purchase contract including the buyer agent's commission. As we talked about, we recommend making the buyer's commission negotiable, but you can count on the buyer asking you to pay their Realtors fee. While most of these fees are not negotiable, we recommend you build them into your sales price to get a satisfactory bottom line number including the buyer agents commission.`);
   const { toast } = useToast();
   const { user } = useAuth();
 
@@ -438,9 +439,9 @@ const ClosingCostsView = ({ propertyData, propertyId, onBack, onEdit, onNavigate
               </div>
 
               <div className="mb-6">
-                <p className="text-foreground mb-4">Hi {propertyData.name ? propertyData.name.split(/\s*[&,]\s*/).map((n: string) => n.split(' ')[0]).join(' & ') : 'there'},</p>
                 <textarea
-                  className="w-full text-foreground bg-background border border-border rounded-md p-3 text-sm resize-y min-h-[120px] focus:outline-none focus:ring-2 focus:ring-ring"
+                  className="w-full text-foreground bg-background border border-border rounded-md p-3 text-sm resize-y focus:outline-none focus:ring-2 focus:ring-ring"
+                  rows={9}
                   value={introText}
                   onChange={(e) => setIntroText(e.target.value)}
                 />
