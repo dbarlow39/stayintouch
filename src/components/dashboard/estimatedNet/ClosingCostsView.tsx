@@ -497,7 +497,7 @@ const ClosingCostsView = ({ propertyData, propertyId, onBack, onEdit, onNavigate
 
               {/* Closing & Agent Signature */}
               <div className="mt-8 pt-4">
-                <p className="text-foreground mb-2">Let me know if you have any questions.</p>
+                <p className="text-foreground mb-2">Once you have had a chance to review please let me know if you have any questions.  Once again thanks for your time and I look forward to working you in the near future.</p>
                 <p className="text-foreground mb-1">Thanks</p>
                 <p className="text-foreground mb-3">{profileData?.first_name || profileData?.full_name?.split(' ')[0] || 'Your Agent'}</p>
                 {profileData?.bio ? (
