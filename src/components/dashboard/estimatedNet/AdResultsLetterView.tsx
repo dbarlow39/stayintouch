@@ -321,7 +321,7 @@ const AdResultsLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavig
               </div>
             </div>
             <div className="flex gap-2 print:hidden no-pdf">
-              <Button onClick={handleCopyToClipboard} size="lg" className="bg-emerald-600 hover:bg-emerald-700 text-white" disabled={loading || noAds}>
+              <Button onClick={handleCopyToClipboard} size="lg" className="copy-email-btn bg-emerald-600 hover:bg-emerald-700 text-white" disabled={loading || noAds}>
                 <Copy className="mr-2 h-4 w-4" />
                 Copy & Email
               </Button>

@@ -156,7 +156,7 @@ const LeadEstimatedNet = ({ lead, onBack }: LeadEstimatedNetProps) => {
     );
   }
 
-  const wrapperClass = "[&_aside.w-56]:hidden [&_.no-pdf]:hidden [&_.print\\:hidden]:hidden";
+  const wrapperClass = "[&_aside.w-56]:hidden [&_button.copy-email-btn]:hidden";
 
   if (viewState === 'form') {
     return (
