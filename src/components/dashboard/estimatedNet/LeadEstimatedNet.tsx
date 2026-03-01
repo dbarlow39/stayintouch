@@ -194,7 +194,7 @@ const LeadEstimatedNet = ({ lead, onBack }: LeadEstimatedNetProps) => {
         case 'important-dates':
           return <ImportantDatesView {...commonProps} />;
         case 'title-letter':
-          return <TitleLetterView {...commonProps} />;
+          return <TitleLetterView {...commonProps} hideEmailButton />;
         case 'agent-letter':
           return <AgentLetterView {...commonProps} />;
         case 'request-to-remedy':
