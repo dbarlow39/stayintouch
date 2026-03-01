@@ -22,8 +22,9 @@ import LoanApplicationLetterView from "./LoanApplicationLetterView";
 import TitleCommitmentLetterView from "./TitleCommitmentLetterView";
 import ClosedReferralLetterView from "./ClosedReferralLetterView";
 import AdResultsLetterView from "./AdResultsLetterView";
+import PropertyNotesView from "./PropertyNotesView";
 
-type ViewState = 'form' | 'results' | 'offer-letter' | 'offer-summary' | 'important-dates' | 'title-letter' | 'agent-letter' | 'request-to-remedy' | 'settlement-statement' | 'notices' | 'clear-to-close-letter' | 'home-inspection-letter' | 'deposit-letter' | 'appraisal-letter' | 'loan-application-letter' | 'title-commitment-letter' | 'closed-referral-letter' | 'ad-results-letter';
+type ViewState = 'form' | 'results' | 'offer-letter' | 'offer-summary' | 'important-dates' | 'title-letter' | 'agent-letter' | 'request-to-remedy' | 'settlement-statement' | 'notices' | 'clear-to-close-letter' | 'home-inspection-letter' | 'deposit-letter' | 'appraisal-letter' | 'loan-application-letter' | 'title-commitment-letter' | 'closed-referral-letter' | 'ad-results-letter' | 'property-notes';
 
 interface LeadData {
   id: string;
@@ -121,6 +122,7 @@ const LeadEstimatedNet = ({ lead }: LeadEstimatedNetProps) => {
       'request-to-remedy': 'request-to-remedy',
       'settlement-statement': 'settlement-statement',
       'notices': 'notices',
+      'property-notes': 'property-notes',
     };
     setViewState(viewMap[targetView || 'closing-costs'] || 'results');
   };
@@ -216,6 +218,8 @@ const LeadEstimatedNet = ({ lead }: LeadEstimatedNetProps) => {
           return <ClosedReferralLetterView {...commonProps} />;
         case 'ad-results-letter':
           return <AdResultsLetterView {...commonProps} />;
+        case 'property-notes':
+          return <PropertyNotesView {...commonProps} />;
       }
     };
 
