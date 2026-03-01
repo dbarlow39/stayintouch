@@ -4,8 +4,9 @@ import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PropertyData } from "@/types/estimatedNet";
 import { calculateClosingCosts, formatCurrency } from "@/utils/estimatedNetCalculations";
-import { ArrowLeft, Download, List, Mail, Calendar, FileText, ArrowRight, DollarSign, ClipboardList, Settings } from "lucide-react";
-import { EmailClient, EMAIL_CLIENT_OPTIONS, getEmailClientPreference, setEmailClientPreference } from "@/utils/emailClientUtils";
+import { ArrowLeft, Download, List, Mail, Calendar, FileText, ArrowRight, DollarSign, ClipboardList, Settings, Copy } from "lucide-react";
+import { EmailClient, EMAIL_CLIENT_OPTIONS, getEmailClientPreference, setEmailClientPreference, getEmailLink } from "@/utils/emailClientUtils";
+import { useToast } from "@/hooks/use-toast";
 import logo from "@/assets/logo.jpg";
 
 interface ClosingCostsViewProps {
@@ -19,6 +20,7 @@ interface ClosingCostsViewProps {
 const ClosingCostsView = ({ propertyData, propertyId, onBack, onEdit, onNavigate }: ClosingCostsViewProps) => {
   const closingCosts = calculateClosingCosts(propertyData);
   const [emailClient, setEmailClient] = useState<EmailClient>(getEmailClientPreference);
+  const { toast } = useToast();
 
   const handleEmailClientChange = (value: string) => {
     const client = value as EmailClient;
@@ -69,6 +71,96 @@ const ClosingCostsView = ({ propertyData, propertyId, onBack, onEdit, onNavigate
 
     pdf.addImage(imgData, 'PNG', x, y, imgWidth, imgHeight);
     pdf.save(`Estimated Net - ${propertyData.streetAddress}.pdf`);
+  };
+
+  const handleCopyToClipboard = async () => {
+    const content = document.getElementById('closing-costs-content');
+    if (!content) return;
+
+    try {
+      const clonedContent = content.cloneNode(true) as HTMLElement;
+
+      // Convert logo to base64 at reduced size
+      const logoImg = clonedContent.querySelector('img') as HTMLImageElement;
+      if (logoImg) {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+
+        await new Promise((resolve, reject) => {
+          img.onload = () => {
+            const targetWidth = 175;
+            const scale = targetWidth / img.width;
+            const targetHeight = img.height * scale;
+            canvas.width = targetWidth;
+            canvas.height = targetHeight;
+            ctx?.drawImage(img, 0, 0, targetWidth, targetHeight);
+            const dataUrl = canvas.toDataURL('image/jpeg');
+            logoImg.src = dataUrl;
+            logoImg.style.width = `${targetWidth}px`;
+            logoImg.style.height = 'auto';
+            logoImg.setAttribute('width', String(targetWidth));
+            resolve(true);
+          };
+          img.onerror = reject;
+          img.src = logoImg.src;
+        });
+      }
+
+      // Remove print:hidden and no-pdf elements
+      const noPdfElements = clonedContent.querySelectorAll('.no-pdf, .print\\:hidden');
+      noPdfElements.forEach(el => el.remove());
+
+      // Style the header
+      const logoContainer = clonedContent.querySelector('.flex.items-center.gap-3');
+      if (logoContainer) {
+        (logoContainer as HTMLElement).style.cssText = 'display: flex; align-items: center; gap: 12px;';
+        const logoInContainer = logoContainer.querySelector('img');
+        if (logoInContainer) {
+          (logoInContainer as HTMLElement).style.cssText = 'display: block; margin: 0; flex-shrink: 0;';
+        }
+        const textContainer = logoContainer.querySelector('div');
+        if (textContainer) {
+          (textContainer as HTMLElement).style.cssText = 'display: flex; flex-direction: column; justify-content: center; margin: 0;';
+          const heading = textContainer.querySelector('h1');
+          if (heading) {
+            (heading as HTMLElement).style.cssText = 'margin: 0; padding: 0; font-size: 30px; font-weight: bold; line-height: 1.2;';
+          }
+          const subtitle = textContainer.querySelector('p');
+          if (subtitle) {
+            (subtitle as HTMLElement).style.cssText = 'margin: 0; padding: 0; font-size: 16px; line-height: 1.2; color: #6b7280;';
+          }
+        }
+      }
+
+      const htmlContent = clonedContent.innerHTML;
+      const plainText = content.innerText;
+
+      await navigator.clipboard.write([
+        new ClipboardItem({
+          'text/html': new Blob([htmlContent], { type: 'text/html' }),
+          'text/plain': new Blob([plainText], { type: 'text/plain' })
+        })
+      ]);
+
+      toast({
+        title: "Copied to clipboard",
+        description: "Opening your email client...",
+      });
+
+      const subject = `Estimated Net - ${propertyData.streetAddress}`;
+      const recipients = propertyData.sellerEmail || "";
+      const link = getEmailLink(recipients, emailClient, subject);
+      window.open(link, '_blank');
+    } catch (error) {
+      console.error('Failed to copy:', error);
+      toast({
+        title: "Copy failed",
+        description: "Please try again or copy manually",
+        variant: "destructive",
+      });
+    }
   };
 
   const CostRow = ({ label, amount, isTotal = false }: { label: string; amount: number; isTotal?: boolean }) => (
@@ -177,7 +269,11 @@ const ClosingCostsView = ({ propertyData, propertyId, onBack, onEdit, onNavigate
       {/* Main Content */}
       <div className="flex-1 py-4 px-6 overflow-auto">
         {/* Download PDF Button - Top Right */}
-        <div className="flex justify-end mb-4 print:hidden">
+        <div className="flex justify-end gap-2 mb-4 print:hidden">
+          <Button onClick={handleCopyToClipboard} size="lg" className="bg-emerald-600 hover:bg-emerald-700 text-white">
+            <Copy className="mr-2 h-4 w-4" />
+            Copy & Email
+          </Button>
           <Button onClick={handleDownloadPDF} variant="outline" className="gap-2">
             <Download className="h-4 w-4" />
             Download PDF
