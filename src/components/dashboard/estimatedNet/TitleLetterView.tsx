@@ -15,10 +15,9 @@ interface TitleLetterViewProps {
   onBack: () => void;
   onEdit: (id: string) => void;
   onNavigate: (view: string) => void;
-  hideEmailButton?: boolean;
 }
 
-const TitleLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate, hideEmailButton }: TitleLetterViewProps) => {
+const TitleLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate }: TitleLetterViewProps) => {
   const { toast } = useToast();
   const [emailClient, setEmailClient] = useState<EmailClient>(getEmailClientPreference);
   const [agentEmail, setAgentEmail] = useState<string>("");
