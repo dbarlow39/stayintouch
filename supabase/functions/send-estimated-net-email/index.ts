@@ -126,10 +126,6 @@ serve(async (req) => {
                     <p style="margin: 0; font-size: 14px; color: #6b7280;">${street_address}</p>
                     <p style="margin: 0; font-size: 14px; color: #6b7280;">${city}, ${state} ${zip}</p>
                   </td>
-                  ${closingDateFormatted ? `
-                  <td style="text-align: right; vertical-align: top;">
-                    <p style="margin: 0; font-size: 13px; font-weight: 600; color: #1f2937;">Estimated Closing Date: ${closingDateFormatted}</p>
-                  </td>` : ''}
                 </tr>
               </table>
             </td>
@@ -144,6 +140,7 @@ serve(async (req) => {
                 Below is an estimated breakdown of the closing costs for your property. Please note that these are estimates and the actual amounts may vary at closing.
               </p>
 
+              ${closingDateFormatted ? `<p style="margin: 0 0 8px; font-size: 13px; font-weight: 600; color: #1f2937; text-align: right;">Estimated Closing Date: ${closingDateFormatted}</p>` : ''}
               <!-- Cost Breakdown Table -->
               <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 16px; border-collapse: collapse; border: 1px solid #e5e7eb; border-radius: 8px;">
                 ${costRowsHtml}
