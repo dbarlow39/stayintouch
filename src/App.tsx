@@ -15,7 +15,16 @@ import NotFound from "./pages/NotFound";
 import AdResults from "./pages/AdResults";
 import SellerLeadDetail from "./pages/SellerLeadDetail";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 30,       // Data is fresh for 30 seconds
+      gcTime: 1000 * 60 * 5,      // Garbage collect after 5 minutes
+      refetchOnWindowFocus: true,  // Always refetch when user returns to tab
+      retry: 1,
+    },
+  },
+});
 
 const isListingsSubdomain = () => {
   const host = window.location.hostname;
