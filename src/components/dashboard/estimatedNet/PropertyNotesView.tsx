@@ -17,7 +17,28 @@ import {
   Bell,
   StickyNote,
   Plus,
+  Pencil,
+  Trash2,
+  Check,
+  X,
 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface PropertyNotesViewProps {
   propertyData: PropertyData;
@@ -72,6 +93,8 @@ const PropertyNotesView = ({
   const [newNote, setNewNote] = useState("");
   const [allNotes, setAllNotes] = useState(propertyData.notes || "");
   const [saving, setSaving] = useState(false);
+  const [editingIdx, setEditingIdx] = useState<number | null>(null);
+  const [editContent, setEditContent] = useState("");
 
   // Reload notes from DB on mount
   useEffect(() => {
@@ -116,6 +139,54 @@ const PropertyNotesView = ({
       setAllNotes(updatedNotes);
       setNewNote("");
       toast({ title: "Note added", description: `Saved at ${timestamp}` });
+    }
+    setSaving(false);
+  };
+
+  const rebuildNotes = (notes: ParsedNote[]): string => {
+    return notes
+      .map((n) => (n.timestamp ? `[${n.timestamp}]\n${n.content}` : n.content))
+      .join("\n\n");
+  };
+
+  const saveNotesToDb = async (updatedRaw: string) => {
+    const { error } = await supabase
+      .from("estimated_net_properties")
+      .update({ notes: updatedRaw })
+      .eq("id", propertyId);
+    if (error) {
+      toast({ title: "Error saving", description: error.message, variant: "destructive" });
+      return false;
+    }
+    setAllNotes(updatedRaw);
+    return true;
+  };
+
+  const handleEditNote = (idx: number) => {
+    setEditingIdx(idx);
+    setEditContent(parsedNotes[idx].content);
+  };
+
+  const handleSaveEdit = async () => {
+    if (editingIdx === null) return;
+    setSaving(true);
+    const updated = [...parsedNotes];
+    updated[editingIdx] = { ...updated[editingIdx], content: editContent.trim() };
+    const success = await saveNotesToDb(rebuildNotes(updated));
+    if (success) {
+      setEditingIdx(null);
+      setEditContent("");
+      toast({ title: "Note updated" });
+    }
+    setSaving(false);
+  };
+
+  const handleDeleteNote = async (idx: number) => {
+    setSaving(true);
+    const updated = parsedNotes.filter((_, i) => i !== idx);
+    const success = await saveNotesToDb(rebuildNotes(updated));
+    if (success) {
+      toast({ title: "Note deleted" });
     }
     setSaving(false);
   };
@@ -199,18 +270,89 @@ const PropertyNotesView = ({
             </Card>
           ) : (
             <div className="space-y-3">
+              <TooltipProvider>
               {parsedNotes.map((note, idx) => (
                 <Card key={idx} className="p-4">
-                  {note.timestamp && (
-                    <p className="text-xs text-muted-foreground mb-1 font-medium">
-                      {note.timestamp}
-                    </p>
-                  )}
-                  <p className="text-sm text-foreground whitespace-pre-wrap">
-                    {note.content || "(empty note)"}
-                  </p>
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      {note.timestamp && (
+                        <p className="text-xs text-muted-foreground mb-1 font-medium">
+                          {note.timestamp}
+                        </p>
+                      )}
+                      {editingIdx === idx ? (
+                        <div className="space-y-2">
+                          <Textarea
+                            value={editContent}
+                            onChange={(e) => setEditContent(e.target.value)}
+                            rows={3}
+                          />
+                          <div className="flex gap-2">
+                            <Button size="sm" onClick={handleSaveEdit} disabled={saving}>
+                              <Check className="mr-1 h-3 w-3" /> Save
+                            </Button>
+                            <Button size="sm" variant="ghost" onClick={() => setEditingIdx(null)}>
+                              <X className="mr-1 h-3 w-3" /> Cancel
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="text-sm text-foreground whitespace-pre-wrap">
+                          {note.content || "(empty note)"}
+                        </p>
+                      )}
+                    </div>
+                    {editingIdx !== idx && (
+                      <div className="flex gap-1 shrink-0">
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7"
+                              onClick={() => handleEditNote(idx)}
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Edit note</TooltipContent>
+                        </Tooltip>
+                        <AlertDialog>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <AlertDialogTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7 text-destructive hover:text-destructive"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                              </AlertDialogTrigger>
+                            </TooltipTrigger>
+                            <TooltipContent>Delete note</TooltipContent>
+                          </Tooltip>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Delete this note?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                This action cannot be undone.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => handleDeleteNote(idx)}>
+                                Delete
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
+                    )}
+                  </div>
                 </Card>
               ))}
+              </TooltipProvider>
             </div>
           )}
         </div>
