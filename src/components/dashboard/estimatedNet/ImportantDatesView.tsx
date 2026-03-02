@@ -1,10 +1,14 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { PropertyData } from "@/types/estimatedNet";
-import { ArrowLeft, List, Mail, Calendar, FileText, Copy, DollarSign, ClipboardList, Settings, Home, Phone, Search, Wrench, Eye, Key, Wallet, MapPin } from "lucide-react";
-import { EmailClient, EMAIL_CLIENT_OPTIONS, getEmailClientPreference, setEmailClientPreference, openEmailClient } from "@/utils/emailClientUtils";
+import { ArrowLeft, List, Mail, Calendar, FileText, DollarSign, ClipboardList, Settings, Home, Phone, Search, Wrench, Eye, Key, Wallet, MapPin, Loader2, Send, Paperclip, X } from "lucide-react";
+import { EmailClient, EMAIL_CLIENT_OPTIONS, getEmailClientPreference, setEmailClientPreference } from "@/utils/emailClientUtils";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 import logo from "@/assets/logo.jpg";
 
 interface ImportantDatesViewProps {
@@ -18,6 +22,21 @@ interface ImportantDatesViewProps {
 const ImportantDatesView = ({ propertyData, propertyId, onBack, onEdit, onNavigate }: ImportantDatesViewProps) => {
   const { toast } = useToast();
   const [emailClient, setEmailClient] = useState<EmailClient>(getEmailClientPreference);
+  const [profileData, setProfileData] = useState<{
+    full_name: string; preferred_email: string; email: string;
+    first_name: string | null; cell_phone: string | null; bio: string | null;
+  } | null>(null);
+
+  // Email dialog state
+  const [emailDialogOpen, setEmailDialogOpen] = useState(false);
+  const [emailPreviewHtml, setEmailPreviewHtml] = useState("");
+  const [emailLoading, setEmailLoading] = useState(false);
+  const [emailSending, setEmailSending] = useState(false);
+  const [recipientEmail, setRecipientEmail] = useState(propertyData.sellerEmail || "");
+
+  // File attachments state
+  const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleEmailClientChange = (value: string) => {
     const client = value as EmailClient;
@@ -29,10 +48,26 @@ const ImportantDatesView = ({ propertyData, propertyId, onBack, onEdit, onNaviga
   const ownerFirstName = propertyData.name.split(' ')[0];
   const listingAgentFirstName = propertyData.listingAgentName?.split(' ')[0] || 'Dave';
 
+  useEffect(() => {
+    const fetchAgentProfile = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('first_name, full_name, preferred_email, email, cell_phone, bio')
+          .eq('id', user.id)
+          .single();
+        if (profile) {
+          setProfileData(profile);
+        }
+      }
+    };
+    fetchAgentProfile();
+  }, []);
+
   const calculateDate = (baseDate: string, daysToAdd: number): string => {
     let date: Date;
     if (baseDate) {
-      // Parse as local date to avoid timezone shifts
       const [year, month, day] = baseDate.split('-');
       date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
     } else {
@@ -55,180 +90,182 @@ const ImportantDatesView = ({ propertyData, propertyId, onBack, onEdit, onNaviga
   const utilitiesShutoffDate = calculateDate(propertyData.closingDate || '', 1);
   const changeAddressDate = calculateDate(propertyData.closingDate || '', -10);
 
-  const handleCopyToClipboard = async () => {
-    const content = document.getElementById('important-dates-content');
-    if (!content) return;
+  // File attachment helpers
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+    const newFiles = Array.from(files);
+    const totalSize = [...attachedFiles, ...newFiles].reduce((sum, f) => sum + f.size, 0);
+    if (totalSize > 20 * 1024 * 1024) {
+      toast({ title: "Files too large", description: "Total attachments must be under 20MB", variant: "destructive" });
+      return;
+    }
+    setAttachedFiles(prev => [...prev, ...newFiles]);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const removeFile = (index: number) => {
+    setAttachedFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const filesToBase64 = async (files: File[]): Promise<{ filename: string; content: string; }[]> => {
+    return Promise.all(files.map(file => new Promise<{ filename: string; content: string }>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const base64 = (reader.result as string).split(',')[1];
+        resolve({ filename: file.name, content: base64 });
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    })));
+  };
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+  // Build email content from the page data
+  const buildDatesHtml = () => {
+    const rows = [
+      { label: 'Closing Date:', value: formatDate(propertyData.closingDate || '') },
+      { label: 'Possession given to buyer:', value: propertyData.possession ? formatDate(propertyData.possession) : formatDate(propertyData.closingDate || '') },
+      { label: 'Home Inspection to be completed by:', value: propertyData.inspectionDays === 0 ? 'Buyer Waived' : inspectionDeadline },
+      { label: "Buyers Request to Remedy to be completed by:", value: propertyData.remedyPeriodDays === 0 ? 'Buyer Waived' : remedyDeadline },
+      { label: 'Call to schedule final readings for your utilities:', value: utilitiesCallDate },
+      { label: 'Schedule utilities to be taken out of your name as of:', value: utilitiesShutoffDate },
+      { label: 'Change of Address:', value: changeAddressDate },
+    ];
+
+    return `
+      <p style="margin: 0 0 16px; line-height: 1.7; color: #374151; font-size: 15px;">Hi ${ownerFirstName},</p>
+      <p style="margin: 0 0 12px; line-height: 1.7; color: #374151; font-size: 15px;">Congratulations on your property going into contract, it is always an exciting time! I have attached a copy of the signed offer to this email for your files.</p>
+      <p style="margin: 0 0 20px; line-height: 1.7; color: #374151; font-size: 15px;">Most of the heavy lifting has been completed but there are still several steps for us to work through to get to a successful closing. As we move along there are a number of things to keep in mind in which I will touch on below.</p>
+      <h2 style="font-size: 18px; font-weight: 700; color: #1f2937; margin: 24px 0 12px;">📅 Important Dates</h2>
+      <table width="100%" cellpadding="0" cellspacing="0" style="border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden;">
+        ${rows.map(r => `<tr><td style="padding: 10px 16px; font-weight: 600; color: #374151; border-bottom: 1px solid #e5e7eb; width: 55%;">${r.label}</td><td style="padding: 10px 16px; color: #374151; border-bottom: 1px solid #e5e7eb;">${r.value}</td></tr>`).join('')}
+      </table>
+    `;
+  };
+
+  const buildSectionsHtml = () => {
+    const sections = [
+      { title: '🏠 TITLE COMPANY', text: 'We can send your paperwork to any title company you prefer. If you do not have a preference, I will send your paperwork to Caliber Title can close your home anywhere you would prefer, even come to your home to do so. Title insurance is regulated by State Law and overseen by the State Insurance Board who regulates most of the fees any Title company can charge. Our company does have a business relationship with Caliber Title but the fees are the same as any other title company in the state of Ohio. Beyond that I know once I send the paperwork to Caliber Title we don\'t have to worry about things getting done, Caliber Title has a team dedicated to our closings so we know every T gets crossed and every I gets dotted. Let me know if you prefer another Title company and if not I will forward your paperwork to Caliber Title. You will next hear from either Kathy or Barb who will want to get your mortgage information to order a payoff for the closing.' },
+      { title: '📞 Expect a Phone Call or Email from the Title Company', text: 'You will be contacted by someone from Caliber Title. Typically, it will be Kameron Faulkner or Kiyla Reed with Caliber Title/Title First via email or a phone call who will then begin the process of getting the deal closed. They will need to get your current mortgage company, account number and have you sign an authorization letter to request the info from your lender. Most likely you will be sent a secure email with a secure link that will take you to a secure portal to fill out the information. If you should have any questions please feel free to give me a call.' },
+      { title: '🔍 HOME INSPECTION', text: 'The next step will be the buyers scheduling their home inspection, this will be scheduled through our showing service and may look like a showing request, but you will notice the length of time for the request will be 2 to 3 hours long. We would recommend you treat the home inspection like you would a showing and vacate the home to allow the home inspector, agent and buyer to inspect your property. It is very likely the buyer and their agent will show up for the home inspection, we highly recommend to all buyers to go to the home inspection to be educated about the home, things like what light switches turn on what, how to operate the appliances, how to change the furnace filter and so forth. In addition if any issues come up the inspector can show and explain what is going on versus the buyer just reading a black and white version of the report, by being there it really does help the whole process.' },
+      { title: '🔧 BUYERS REQUEST TO REMEDY', text: 'Once the inspection is completed the buyer most likely will be sending over what is called the Buyer\'s request to remedy. These are items the buyer have identified as a result of the home inspection that they would like you to address. Every home inspector is different, every agent is different, and every buyer is different. I say this because what might be important to you may not be important to the buyer and vice versa, so don\'t worry about the home inspection or the remedy request until they send over their request. Once we come to terms on the request to remedy by either agreeing to make repairs as requested or I normally recommend offering some sort of cash compensation so you don\'t have to do any work at all prior to closing. If you do agree to make repairs they only need to be made prior to the buyers final walk through which happens anywhere from 1 to 3 days prior to the closing date.' },
+      { title: '💰 BANKS APPRAISAL', text: 'An appraisal will be ordered by the buyer\'s lender, if the buyer is getting a loan, if the buyer is paying cash there will be no appraisal. The appraiser will need access to your home to inspect the property and take photos. This will be scheduled through our showing service and will look like a traditional showing. Keep in mind these could happen at any time after the home goes into contract. Please treat this like a traditional showing and just vacate the property during the appointment.' },
+      { title: '👁️ FINAL WALK THROUGH', text: 'The buyers will be coming to the home one final time, this is typically scheduled 24 to 48 hours prior to closing. This is the buyer\'s opportunity to ensure everything is just as it was when they submitted the offer, minus whatever repairs or improvements had been made. We ask that you leave the home vacant during this time but that the utilities all remain on so the buyer can make sure all the lights and switches work. This usually only lasts 30 minutes to an hour.' },
+      { title: '🔑 CLOSING', text: 'Due to Covid-19 we are scheduling separate closings for the buyer and seller. You can sign anytime up to and including the day of closing. Ohio Real Title\'s main office is located near Polaris or they most often will come to you to make it convenient for you. They can come to your home, your office or we have been known to close them at the local Starbucks or Panera. Just let me know what day, time and location works best for you and we\'ll get it scheduled.' },
+      { title: '💵 YOUR FUNDS', text: 'Once the closing has been completed, all sides have signed, the buyers lender will release the funds to the title company at which point your funds will become available. You can receive your funds in several different ways. First, you can wait at the title company for a check to be issued, normally available as soon as the lender makes the funds available. Second, you can have your funds overnighted to your address. The third way you can have your funds wired directly to your bank account. By wiring your funds they will be available immediately upon deposit.' },
+      { title: '📍 Change of Address', text: 'About 1 week prior to closing be sure to go online and change your postal address. You can get started with this link; https://moversguide.usps.com Also, don\'t forget to change your address on Amazon, Walmart or any other service you use to buy product and have it delivered to your home.' },
+    ];
+
+    let html = sections.map(s => `
+      <h2 style="font-size: 16px; font-weight: 700; color: #1f2937; margin: 20px 0 8px;">${s.title}</h2>
+      <p style="margin: 0 0 12px; line-height: 1.7; color: #374151; font-size: 14px;">${s.text}</p>
+    `).join('');
+
+    html += `
+      <p style="margin: 20px 0 4px; line-height: 1.7; color: #374151; font-size: 15px;">There is a lot of information here, you might go ahead and print this email off and keep for your reference but if you have any questions please feel to give me a call.</p>
+      <p style="margin: 4px 0; line-height: 1.7; color: #374151; font-size: 15px;">Again, congratulations!</p>
+      <p style="margin: 4px 0 20px; line-height: 1.7; color: #374151; font-size: 15px; font-weight: 600;">${listingAgentFirstName}</p>
+    `;
+
+    return html;
+  };
+
+  // Email handlers
+  const handleOpenEmailPreview = async () => {
+    setEmailDialogOpen(true);
+    setEmailLoading(true);
+    setRecipientEmail(propertyData.sellerEmail || "");
 
     try {
-      const clonedContent = content.cloneNode(true) as HTMLElement;
-      
-      // Remove print:hidden elements
-      clonedContent.querySelectorAll('.print\\:hidden').forEach((el) => el.remove());
-      
-      // Find the logo image and convert to base64 at reduced size
-      const logoImg = clonedContent.querySelector('img') as HTMLImageElement;
-      if (logoImg) {
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        const img = new Image();
-        img.crossOrigin = 'anonymous';
-        
-        await new Promise((resolve, reject) => {
-          img.onload = () => {
-            // Resize to 175px width
-            const targetWidth = 175;
-            const scale = targetWidth / img.width;
-            const targetHeight = img.height * scale;
-            
-            canvas.width = targetWidth;
-            canvas.height = targetHeight;
-            ctx?.drawImage(img, 0, 0, targetWidth, targetHeight);
-            
-            const dataUrl = canvas.toDataURL('image/jpeg');
-            logoImg.src = dataUrl;
-            logoImg.style.width = `${targetWidth}px`;
-            logoImg.style.height = 'auto';
-            logoImg.setAttribute('width', String(targetWidth));
-            resolve(true);
-          };
-          img.onerror = reject;
-          img.src = logoImg.src;
-        });
-      }
-      
-      // Add inline styles for email compatibility
-      const logoContainer = clonedContent.querySelector('.flex.items-center.gap-3');
-      if (logoContainer) {
-        (logoContainer as HTMLElement).style.cssText = 'display: flex; align-items: center; gap: 12px;';
-        
-        const logoInContainer = logoContainer.querySelector('img');
-        if (logoInContainer) {
-          (logoInContainer as HTMLElement).style.cssText = 'display: block; margin: 0; flex-shrink: 0;';
-        }
-        
-        const textContainer = logoContainer.querySelector('div');
-        if (textContainer) {
-          (textContainer as HTMLElement).style.cssText = 'display: flex; flex-direction: column; justify-content: center; margin: 0;';
-          
-          const heading = textContainer.querySelector('h1');
-          if (heading) {
-            (heading as HTMLElement).style.cssText = 'margin: 0; padding: 0; font-size: 30px; font-weight: bold; line-height: 1.2;';
-          }
-          
-          const subtitle = textContainer.querySelector('p');
-          if (subtitle) {
-            (subtitle as HTMLElement).style.cssText = 'margin: 0; padding: 0; font-size: 16px; line-height: 1.2; color: #6b7280;';
-          }
-        }
-      }
-      
-      // Style all paragraphs
-      clonedContent.querySelectorAll('p').forEach((p) => {
-        (p as HTMLElement).style.cssText = 'margin: 16px 0; line-height: 1.6; color: #374151;';
+      const payload = {
+        to_email: "",
+        from_name: profileData?.full_name || "Agent",
+        reply_to: profileData?.preferred_email || profileData?.email || "",
+        client_name: propertyData.name || "Client",
+        street_address: propertyData.streetAddress,
+        dates_html: buildDatesHtml(),
+        sections_html: buildSectionsHtml(),
+        agent_first_name: profileData?.first_name || profileData?.full_name?.split(' ')[0] || '',
+        agent_full_name: profileData?.full_name || '',
+        agent_phone: profileData?.cell_phone || '',
+        agent_email: profileData?.preferred_email || profileData?.email || '',
+        agent_bio: profileData?.bio || '',
+        preview_only: true,
+      };
+      const { data, error } = await supabase.functions.invoke('send-important-dates-email', {
+        body: payload,
       });
-      
-      // Style headings
-      clonedContent.querySelectorAll('h2').forEach((h2) => {
-        (h2 as HTMLElement).style.cssText = 'font-size: 20px; font-weight: bold; margin: 24px 0 16px; color: #111827;';
-      });
-      
-      // Style tables
-      clonedContent.querySelectorAll('table').forEach((table) => {
-        (table as HTMLElement).style.cssText = 'width: 100%; border-collapse: collapse; margin: 16px 0;';
-      });
-      
-      clonedContent.querySelectorAll('td').forEach((td) => {
-        (td as HTMLElement).style.cssText = 'padding: 12px 16px; border-bottom: 1px solid #e5e7eb;';
-      });
-      
-      const htmlContent = clonedContent.innerHTML;
-      const plainText = content.innerText;
-      
-      await navigator.clipboard.write([
-        new ClipboardItem({
-          'text/html': new Blob([htmlContent], { type: 'text/html' }),
-          'text/plain': new Blob([plainText], { type: 'text/plain' })
-        })
-      ]);
-      
-      toast({
-        title: "Copied to clipboard",
-        description: "The letter has been copied. Opening email client...",
-      });
+      if (error) throw error;
+      setEmailPreviewHtml(data.html || "");
+    } catch (err: any) {
+      console.error("Preview error:", err);
+      toast({ title: "Failed to load preview", description: err.message, variant: "destructive" });
+      setEmailDialogOpen(false);
+    } finally {
+      setEmailLoading(false);
+    }
+  };
 
-      const sellerEmail = propertyData.sellerEmail || '';
-      const subject = `Important Dates for Your Property Sale - ${propertyData.streetAddress}`;
-      openEmailClient(sellerEmail, emailClient, subject);
-    } catch (err) {
-      console.error('Copy error:', err);
-      toast({
-        title: "Error",
-        description: "Failed to copy content. Please try again.",
-        variant: "destructive",
+  const handleSendEmail = async () => {
+    if (!recipientEmail) {
+      toast({ title: "Email required", description: "Please enter a recipient email address", variant: "destructive" });
+      return;
+    }
+
+    setEmailSending(true);
+    try {
+      const attachments = attachedFiles.length > 0 ? await filesToBase64(attachedFiles) : [];
+      const payload = {
+        to_email: recipientEmail,
+        from_name: profileData?.full_name || "Agent",
+        reply_to: profileData?.preferred_email || profileData?.email || "",
+        client_name: propertyData.name || "Client",
+        street_address: propertyData.streetAddress,
+        dates_html: buildDatesHtml(),
+        sections_html: buildSectionsHtml(),
+        agent_first_name: profileData?.first_name || profileData?.full_name?.split(' ')[0] || '',
+        agent_full_name: profileData?.full_name || '',
+        agent_phone: profileData?.cell_phone || '',
+        agent_email: profileData?.preferred_email || profileData?.email || '',
+        agent_bio: profileData?.bio || '',
+        attachments,
+      };
+      const { data, error } = await supabase.functions.invoke('send-important-dates-email', {
+        body: payload,
       });
+      if (error) throw error;
+      toast({ title: "Email sent!", description: `Important Dates letter sent to ${recipientEmail}` });
+      setEmailDialogOpen(false);
+    } catch (err: any) {
+      console.error("Send error:", err);
+      toast({ title: "Failed to send email", description: err.message, variant: "destructive" });
+    } finally {
+      setEmailSending(false);
     }
   };
 
   const navigationItems = [
-    {
-      label: "Back",
-      icon: ArrowLeft,
-      onClick: onBack,
-    },
-    {
-      label: "Back to Property Info",
-      icon: ArrowLeft,
-      onClick: () => onEdit(propertyId),
-    },
-    {
-      label: "My Properties",
-      icon: List,
-      onClick: onBack,
-    },
-    {
-      label: "Estimated Net",
-      icon: DollarSign,
-      onClick: () => onNavigate('results'),
-    },
-    {
-      label: "Offer Summary",
-      icon: ClipboardList,
-      onClick: () => onNavigate('offer-summary'),
-    },
-    {
-      label: "Offer Letter",
-      icon: Mail,
-      onClick: () => onNavigate('offer-letter'),
-    },
-    {
-      label: "Important Dates Letter",
-      icon: Calendar,
-      onClick: () => {},
-      active: true,
-    },
-    {
-      label: "Title Letter",
-      icon: Mail,
-      onClick: () => onNavigate('title-letter'),
-    },
-    {
-      label: "Agent Letter",
-      icon: Mail,
-      onClick: () => onNavigate('agent-letter'),
-    },
-    {
-      label: "Request to Remedy",
-      icon: FileText,
-      onClick: () => onNavigate('request-to-remedy'),
-    },
-    {
-      label: "Settlement Statement",
-      icon: FileText,
-      onClick: () => onNavigate('settlement-statement'),
-    },
+    { label: "Back", icon: ArrowLeft, onClick: onBack },
+    { label: "Back to Property Info", icon: ArrowLeft, onClick: () => onEdit(propertyId) },
+    { label: "My Properties", icon: List, onClick: onBack },
+    { label: "Estimated Net", icon: DollarSign, onClick: () => onNavigate('results') },
+    { label: "Offer Summary", icon: ClipboardList, onClick: () => onNavigate('offer-summary') },
+    { label: "Offer Letter", icon: Mail, onClick: () => onNavigate('offer-letter') },
+    { label: "Important Dates Letter", icon: Calendar, onClick: () => {}, active: true },
+    { label: "Title Letter", icon: Mail, onClick: () => onNavigate('title-letter') },
+    { label: "Agent Letter", icon: Mail, onClick: () => onNavigate('agent-letter') },
+    { label: "Request to Remedy", icon: FileText, onClick: () => onNavigate('request-to-remedy') },
+    { label: "Settlement Statement", icon: FileText, onClick: () => onNavigate('settlement-statement') },
   ];
 
   return (
+    <>
     <div className="flex w-full min-h-[600px]">
       {/* Left Sidebar Navigation */}
       <aside className="w-56 p-3 border-r bg-card shrink-0 print:hidden">
@@ -269,9 +306,9 @@ const ImportantDatesView = ({ propertyData, propertyId, onBack, onEdit, onNaviga
       <div className="flex-1 py-4 px-6 overflow-auto">
         {/* Action Button - Top Right */}
         <div className="flex justify-end mb-4 print:hidden">
-          <Button onClick={handleCopyToClipboard} className="copy-email-btn gap-2 bg-emerald-600 hover:bg-emerald-700 text-white">
-            <Copy className="h-4 w-4" />
-            Copy & Email
+          <Button onClick={handleOpenEmailPreview} className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white">
+            <Mail className="h-4 w-4" />
+            Email
           </Button>
         </div>
         
@@ -453,6 +490,101 @@ const ImportantDatesView = ({ propertyData, propertyId, onBack, onEdit, onNaviga
         </div>
       </div>
     </div>
+
+    {/* Email Preview Dialog */}
+    <Dialog open={emailDialogOpen} onOpenChange={setEmailDialogOpen}>
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Email Preview - Important Dates</DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-4">
+          <div className="flex items-end gap-3">
+            <div className="flex-1">
+              <Label htmlFor="dates-recipient-email">Recipient Email</Label>
+              <Input
+                id="dates-recipient-email"
+                type="email"
+                value={recipientEmail}
+                onChange={(e) => setRecipientEmail(e.target.value)}
+                placeholder="seller@example.com"
+              />
+            </div>
+            <Button
+              onClick={handleSendEmail}
+              disabled={emailSending || !recipientEmail}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white"
+            >
+              {emailSending ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Send className="mr-2 h-4 w-4" />
+              )}
+              {emailSending ? "Sending..." : "Send Email"}
+            </Button>
+          </div>
+
+          {/* File Attachments */}
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <Label>Attachments</Label>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="gap-1 h-7 text-xs"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <Paperclip className="h-3 w-3" />
+                Attach Files
+              </Button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                className="hidden"
+                accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.gif,.txt,.csv"
+                onChange={handleFileSelect}
+              />
+            </div>
+            {attachedFiles.length > 0 && (
+              <div className="space-y-1">
+                {attachedFiles.map((file, idx) => (
+                  <div key={idx} className="flex items-center gap-2 text-sm bg-muted/50 rounded px-2 py-1">
+                    <FileText className="h-3 w-3 text-muted-foreground shrink-0" />
+                    <span className="truncate flex-1">{file.name}</span>
+                    <span className="text-muted-foreground text-xs shrink-0">{formatFileSize(file.size)}</span>
+                    <button
+                      type="button"
+                      onClick={() => removeFile(idx)}
+                      className="text-muted-foreground hover:text-destructive shrink-0"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {emailLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          ) : (
+            <div className="border border-border rounded-lg overflow-hidden bg-muted/30">
+              <iframe
+                srcDoc={emailPreviewHtml}
+                className="w-full min-h-[600px] bg-white"
+                title="Email Preview"
+                sandbox="allow-same-origin"
+              />
+            </div>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 };
 
