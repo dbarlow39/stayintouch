@@ -27,7 +27,7 @@ const ClosingCostsView = ({ propertyData, propertyId, onBack, onEdit, onNavigate
   const [emailClient, setEmailClient] = useState<EmailClient>(getEmailClientPreference);
   const sellerFirstName = propertyData.name ? propertyData.name.split(/\s*[&,]\s*/).map((n: string) => n.split(' ')[0]).join(' & ') : 'there';
   const [introText, setIntroText] = useState(`Hi ${sellerFirstName},\n\nPlease find attached an updated Estimated Net Sheet for your review.`);
-  const [closingText, setClosingText] = useState("Once you have had a chance to review please let me know if you have any questions. Once again thanks for your time and I look forward to working you in the near future.");
+  const [closingText, setClosingText] = useState("Once you have had a chance to take a look let me know if you have any questions.");
   const { toast } = useToast();
   const { user } = useAuth();
 
