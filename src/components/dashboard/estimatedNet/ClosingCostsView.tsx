@@ -428,7 +428,12 @@ const ClosingCostsView = ({ propertyData, propertyId, onBack, onEdit, onNavigate
 
             <Card className="p-6 mb-6 card-content">
 
-
+              <textarea
+                className="w-full text-foreground bg-background border border-border rounded-md p-3 text-sm resize-y focus:outline-none focus:ring-2 focus:ring-ring mb-4"
+                rows={9}
+                value={introText}
+                onChange={(e) => setIntroText(e.target.value)}
+              />
 
               <div className="space-y-1">
                 {propertyData.closingDate && (
