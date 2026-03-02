@@ -649,6 +649,53 @@ Deno.serve(async (req) => {
                       }
 
                       try {
+                        // ── Pre-fetch hero photo using Spark auth and upload to storage ──
+                        // Spark photo URLs may require auth headers that generate-ad-image doesn't have,
+                        // causing intermittent 404s. Upload to storage first for a reliable public URL.
+                        let listingForAd = l;
+                        if (l.photos?.length > 0) {
+                          try {
+                            const heroPhotoUrl = l.photos[0];
+                            console.log(`[auto-post] Pre-fetching hero photo: ${heroPhotoUrl.substring(0, 80)}...`);
+                            const photoResp = await fetch(heroPhotoUrl, {
+                              headers: sparkHeaders,
+                              signal: AbortSignal.timeout(15000),
+                            });
+                            if (photoResp.ok) {
+                              const photoBlob = await photoResp.blob();
+                              const photoMime = photoResp.headers.get('content-type') || 'image/jpeg';
+                              const photoExt = photoMime.includes('png') ? 'png' : 'jpg';
+                              const mlsNum = l.mlsNumber || l.id || 'unknown';
+                              const storagePath = `auto-hero-${mlsNum}-${Date.now()}.${photoExt}`;
+
+                              const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2');
+                              const storageClient = createClient(supabaseUrl, serviceRoleKey);
+                              const photoArrayBuffer = await photoBlob.arrayBuffer();
+                              const { error: uploadErr } = await storageClient.storage
+                                .from('ad-images')
+                                .upload(storagePath, new Uint8Array(photoArrayBuffer), {
+                                  contentType: photoMime,
+                                  upsert: true,
+                                });
+
+                              if (!uploadErr) {
+                                const publicUrl = storageClient.storage
+                                  .from('ad-images')
+                                  .getPublicUrl(storagePath).data.publicUrl;
+                                console.log(`[auto-post] Hero photo uploaded to storage: ${publicUrl}`);
+                                // Pass a copy of the listing with the public storage URL
+                                listingForAd = { ...l, photos: [publicUrl, ...l.photos.slice(1)] };
+                              } else {
+                                console.warn(`[auto-post] Hero photo upload failed: ${uploadErr.message}`);
+                              }
+                            } else {
+                              console.warn(`[auto-post] Hero photo fetch failed (${photoResp.status}), will pass original URL`);
+                            }
+                          } catch (preErr) {
+                            console.warn('[auto-post] Hero photo pre-fetch error:', preErr);
+                          }
+                        }
+
                         // ── Generate branded ad images server-side ──
                         let brandedFbUrl = '';
                         let brandedIgUrl = '';
@@ -657,7 +704,7 @@ Deno.serve(async (req) => {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${serviceRoleKey}` },
                             body: JSON.stringify({
-                              listing: l,
+                              listing: listingForAd,
                               bannerText: item.type === 'new' ? 'NEW LISTING'
                                 : item.type === 'price_change'
                                   ? ((item.newPrice || 0) < (item.oldPrice || 0) ? 'PRICE REDUCED!' : 'PRICE UPDATED')
