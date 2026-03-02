@@ -519,51 +519,89 @@ const ClosingCostsView = ({ propertyData, propertyId, onBack, onEdit, onNavigate
             </Button>
           </div>
 
-          <div>
-            <Label htmlFor="intro-text" className="text-xs italic text-muted-foreground">Letter Introduction</Label>
+          {/* Inline editable email body */}
+          <div className="border border-border rounded-lg p-6 bg-white text-sm text-foreground space-y-4">
+            {/* Header */}
+            <div className="flex items-center gap-3 mb-4">
+              <img src={logo} alt="Sell for 1 Percent" className="h-14 w-auto" />
+              <div>
+                <h2 className="text-xl font-bold">Estimated Net</h2>
+                <p className="text-muted-foreground text-xs italic">A Breakdown of Your Expenses</p>
+              </div>
+            </div>
+
+            {/* Client info */}
+            <div>
+              <p className="font-semibold">{propertyData.name || "Client"}</p>
+              <p>{propertyData.streetAddress}</p>
+              <p>{propertyData.city}, {propertyData.state} {propertyData.zip}</p>
+            </div>
+
+            {/* Intro text - editable */}
             <textarea
-              id="intro-text"
               value={introText}
               onChange={(e) => setIntroText(e.target.value)}
-              className="w-full min-h-[120px] p-3 text-sm border border-border rounded-md bg-background resize-y focus:outline-none focus:ring-2 focus:ring-ring"
+              className="w-full bg-transparent border border-dashed border-border rounded p-2 text-sm resize-y focus:outline-none focus:ring-1 focus:ring-ring min-h-[120px]"
+              rows={7}
             />
-          </div>
 
-          <div>
-            <Label htmlFor="closing-text" className="text-xs italic text-muted-foreground">Closing Text</Label>
+            {/* Cost table */}
+            <div className="space-y-1">
+              {propertyData.closingDate && (
+                <p className="text-sm font-semibold text-right pb-1">
+                  Estimated Closing Date: {new Date(propertyData.closingDate + 'T00:00:00').toLocaleDateString()}
+                </p>
+              )}
+              <CostRow label="Selling Price" amount={closingCosts.sellingPrice} />
+              <CostRow label="1st Mortgage" amount={closingCosts.firstMortgage} />
+              <CostRow label="2nd Mortgage" amount={closingCosts.secondMortgage} />
+              <CostRow label="Buyer Closing Cost" amount={closingCosts.buyerClosingCost} />
+              <div className="pt-2 pb-1"><h3 className="font-semibold">Tax Information</h3></div>
+              <CostRow label="Taxes 1st Half 2025" amount={closingCosts.taxesFirstHalf} />
+              <CostRow label="Taxes 2nd Half 2025" amount={closingCosts.taxesSecondHalf} />
+              <CostRow label="Taxes Due for Year 2026" amount={closingCosts.taxesDueForYear} />
+              <div className="pt-2 pb-1"><h3 className="font-semibold">Commissions & Fees</h3></div>
+              <CostRow label={`Listing Agent Commission (${propertyData.listingAgentCommission}%)`} amount={closingCosts.listingAgentCommission} />
+              <CostRow label={`Buyer Agent Commission (${propertyData.buyerAgentCommission}%)`} amount={closingCosts.buyerAgentCommission} />
+              <CostRow label="County Conveyance Fee" amount={closingCosts.countyConveyanceFee} />
+              <div className="pt-2 pb-1"><h3 className="font-semibold">Additional Costs</h3></div>
+              <CostRow label={`Home Warranty${closingCosts.homeWarrantyCompany ? ` - ${closingCosts.homeWarrantyCompany}` : ''}`} amount={closingCosts.homeWarranty} />
+              <CostRow label="Title Examination" amount={closingCosts.titleExamination} />
+              <CostRow label="Title Settlement" amount={closingCosts.titleSettlement} />
+              <CostRow label="Closing Fee" amount={closingCosts.closingFee} />
+              <CostRow label="Deed Preparation" amount={closingCosts.deedPreparation} />
+              <CostRow label="Overnight Fee" amount={closingCosts.overnightFee} />
+              <CostRow label="Recording Fee" amount={closingCosts.recordingFee} />
+              <CostRow label="Survey Coverage" amount={closingCosts.surveyCoverage} />
+              <CostRow label="Admin Fee" amount={closingCosts.adminFee} />
+              <CostRow label="Title Insurance" amount={closingCosts.titleInsurance} />
+              <div className="pt-4">
+                <CostRow label="Estimated Net" amount={closingCosts.estimatedNet} isTotal />
+              </div>
+            </div>
+
+            {/* Closing text - editable */}
             <textarea
-              id="closing-text"
               value={closingText}
               onChange={(e) => setClosingText(e.target.value)}
-              className="w-full min-h-[60px] p-3 text-sm border border-border rounded-md bg-background resize-y focus:outline-none focus:ring-2 focus:ring-ring"
+              className="w-full bg-transparent border border-dashed border-border rounded p-2 text-sm resize-y focus:outline-none focus:ring-1 focus:ring-ring min-h-[60px]"
+              rows={3}
             />
+
+            {/* Agent signature */}
+            <div className="pt-2">
+              <p>Thanks</p>
+              <p>{profileData?.first_name || profileData?.full_name?.split(' ')[0] || 'Your Agent'}</p>
+              {profileData?.bio && (
+                <div
+                  className="mt-2 text-sm [&_img]:max-w-full"
+                  dangerouslySetInnerHTML={{
+                    __html: profileData.bio.replace(/<P>/g, '<br><br>').replace(/<\/P>/g, '').replace(/<p>/g, '<br><br>').replace(/<\/p>/g, '')
+                  }}
+                />
+              )}
+            </div>
           </div>
-
-          <Button
-            onClick={handleOpenEmailPreview}
-            variant="outline"
-            size="sm"
-            disabled={emailLoading}
-            className="gap-2"
-          >
-            {emailLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}
-            Refresh Preview
-          </Button>
-
-          {emailLoading && !emailPreviewHtml ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            </div>
-          ) : emailPreviewHtml ? (
-            <div className="border border-border rounded-lg overflow-hidden bg-muted/30">
-              <iframe
-                srcDoc={emailPreviewHtml}
-                className="w-full min-h-[600px] bg-white"
-                title="Email Preview"
-                sandbox="allow-same-origin"
-              />
-            </div>
-          ) : null}
         </div>
       </DialogContent>
     </Dialog>
