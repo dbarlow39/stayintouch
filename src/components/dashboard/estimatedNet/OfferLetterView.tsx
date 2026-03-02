@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -21,6 +21,29 @@ const OfferLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate 
   const { toast } = useToast();
   const [emailClient, setEmailClient] = useState<EmailClient>(getEmailClientPreference);
   const [agentFirstName, setAgentFirstName] = useState<string>("");
+
+  // Extract first name from seller
+  const ownerFirstName = propertyData.name.split(' ')[0];
+
+  const defaultLetterText = useMemo(() => {
+    return `Hey ${ownerFirstName},
+
+We have received an offer for your property. I have attached a summary of the offer to make it easier to understand the important terms, an estimated net sheet showing all of the numbers and the bottom line for you after everything is paid and a copy of the offer itself.
+
+We can respond in 1 of 3 ways, (1) you can say I'll take it. . . (2) You can decline to respond altogether or (3) you can send over a counter offer with terms acceptable to you. It is my experience the buyer's first offer is not their best offer, sometimes they'll go fishing just to see what you are or are not willing to take. I would say put together a reasonable counter offer and let's see what we can do with this.
+
+Also be sure to check the items listed in Paragraph 5 to make sure you are OK with leaving those items. Otherwise I think everything else looks good to me.
+
+The buyer was asking for a response of some kind before ${propertyData.respondToOfferBy || '[Date not specified]'}.
+
+Take a look and let me know your thoughts.
+
+Thanks
+${agentFirstName}`;
+  }, [ownerFirstName, propertyData.respondToOfferBy, agentFirstName]);
+
+  const [letterText, setLetterText] = useState<string>("");
+  const [hasInitialized, setHasInitialized] = useState(false);
 
   useEffect(() => {
     const fetchAgentProfile = async () => {
@@ -91,8 +114,26 @@ const OfferLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate 
     setEmailClientPreference(client);
   };
 
-  // Extract first name from seller
-  const ownerFirstName = propertyData.name.split(' ')[0];
+  // Initialize letter text after agent name loads
+  useEffect(() => {
+    if (!hasInitialized && agentFirstName) {
+      setLetterText(defaultLetterText);
+      setHasInitialized(true);
+    }
+  }, [agentFirstName, defaultLetterText, hasInitialized]);
+
+  // Also initialize if no agent name after a delay
+  useEffect(() => {
+    if (!hasInitialized) {
+      const timer = setTimeout(() => {
+        if (!hasInitialized) {
+          setLetterText(defaultLetterText);
+          setHasInitialized(true);
+        }
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [hasInitialized, defaultLetterText]);
 
 
   const handleCopyToClipboard = async () => {
@@ -324,30 +365,11 @@ const OfferLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate 
             </div>
 
             <Card className="p-8 mb-6 card-content">
-              <div className="prose prose-lg max-w-none text-foreground space-y-4">
-                <p>Hey {ownerFirstName},</p>
-                
-                <p>
-                  We have received an offer for your property. I have attached a summary of the offer to make it easier to understand the important terms, an estimated net sheet showing all of the numbers and the bottom line for you after everything is paid and a copy of the offer itself.
-                </p>
-                
-                <p>
-                  We can respond in 1 of 3 ways, (1) you can say I'll take it. . . (2) You can decline to respond altogether or (3) you can send over a counter offer with terms acceptable to you. It is my experience the buyer's first offer is not their best offer, sometimes they'll go fishing just to see what you are or are not willing to take. I would say put together a reasonable counter offer and let's see what we can do with this.
-                </p>
-                
-                <p>
-                  Also be sure to check the items listed in Paragraph 5 to make sure you are OK with leaving those items. Otherwise I think everything else looks good to me.
-                </p>
-                
-                <p>
-                  The buyer was asking for a response of some kind before {propertyData.respondToOfferBy || '[Date not specified]'}.
-                </p>
-                
-                <p>Take a look and let me know your thoughts.</p>
-                
-                <p className="mb-0">Thanks</p>
-                <p className="mb-0">{agentFirstName}</p>
-              </div>
+              <textarea
+                className="w-full min-h-[400px] text-foreground bg-background border border-border rounded-md p-4 text-base leading-relaxed resize-y focus:outline-none focus:ring-2 focus:ring-ring font-sans"
+                value={letterText}
+                onChange={(e) => setLetterText(e.target.value)}
+              />
             </Card>
           </div>
         </div>
