@@ -2,8 +2,11 @@ import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { PropertyData } from "@/types/estimatedNet";
-import { ArrowLeft, List, Mail, Calendar, FileText, Copy, DollarSign, ClipboardList, Settings } from "lucide-react";
+import { ArrowLeft, List, Mail, Calendar, FileText, Copy, DollarSign, ClipboardList, Settings, Loader2, Send } from "lucide-react";
 import { EmailClient, EMAIL_CLIENT_OPTIONS, getEmailClientPreference, setEmailClientPreference, openEmailClient } from "@/utils/emailClientUtils";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -21,6 +24,17 @@ const OfferLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate 
   const { toast } = useToast();
   const [emailClient, setEmailClient] = useState<EmailClient>(getEmailClientPreference);
   const [agentFirstName, setAgentFirstName] = useState<string>("");
+  const [profileData, setProfileData] = useState<{
+    full_name: string; preferred_email: string; email: string;
+    first_name: string | null; cell_phone: string | null; bio: string | null;
+  } | null>(null);
+
+  // Email dialog state
+  const [emailDialogOpen, setEmailDialogOpen] = useState(false);
+  const [emailPreviewHtml, setEmailPreviewHtml] = useState("");
+  const [emailLoading, setEmailLoading] = useState(false);
+  const [emailSending, setEmailSending] = useState(false);
+  const [recipientEmail, setRecipientEmail] = useState(propertyData.sellerEmail || "");
 
   // Extract first name from seller
   const ownerFirstName = propertyData.name.split(' ')[0];
@@ -51,11 +65,14 @@ ${agentFirstName}`;
       if (user) {
         const { data: profile } = await supabase
           .from('profiles')
-          .select('first_name')
+          .select('first_name, full_name, preferred_email, email, cell_phone, bio')
           .eq('id', user.id)
           .single();
-        if (profile?.first_name) {
-          setAgentFirstName(profile.first_name);
+        if (profile) {
+          setProfileData(profile);
+          if (profile.first_name) {
+            setAgentFirstName(profile.first_name);
+          }
         }
       }
     };
@@ -67,42 +84,31 @@ ${agentFirstName}`;
   const resizeImageForEmail = async (imageUrl: string, targetWidth: number): Promise<string> => {
     return await new Promise((resolve, reject) => {
       const img = new Image();
-
-      // Set crossOrigin BEFORE src to avoid "tainted" canvas errors
       if (!imageUrl.startsWith('data:') && !imageUrl.startsWith('blob:')) {
         img.crossOrigin = 'anonymous';
       }
-
       img.onload = () => {
         const canvas = document.createElement('canvas');
-
         const naturalWidth = img.naturalWidth || img.width;
         const naturalHeight = img.naturalHeight || img.height;
         if (!naturalWidth || !naturalHeight) {
           reject(new Error('Invalid logo dimensions'));
           return;
         }
-
         const scale = targetWidth / naturalWidth;
         const targetHeight = Math.max(1, Math.round(naturalHeight * scale));
-
         canvas.width = targetWidth;
         canvas.height = targetHeight;
-
         const ctx = canvas.getContext('2d');
         if (!ctx) {
           reject(new Error('Failed to get canvas context'));
           return;
         }
-
         ctx.imageSmoothingEnabled = true;
         ctx.imageSmoothingQuality = 'high';
         ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
-
-        // PNG keeps text/logo edges crisp
         resolve(canvas.toDataURL('image/png'));
       };
-
       img.onerror = () => reject(new Error('Failed to load logo'));
       img.src = imageUrl;
     });
@@ -135,16 +141,83 @@ ${agentFirstName}`;
     }
   }, [hasInitialized, defaultLetterText]);
 
+  // Email handlers
+  const handleOpenEmailPreview = async () => {
+    setEmailDialogOpen(true);
+    setEmailLoading(true);
+    setRecipientEmail(propertyData.sellerEmail || "");
+
+    try {
+      const payload = {
+        to_email: "",
+        from_name: profileData?.full_name || "Agent",
+        reply_to: profileData?.preferred_email || profileData?.email || "",
+        client_name: propertyData.name || "Client",
+        street_address: propertyData.streetAddress,
+        letter_text: letterText,
+        agent_first_name: profileData?.first_name || profileData?.full_name?.split(' ')[0] || '',
+        agent_full_name: profileData?.full_name || '',
+        agent_phone: profileData?.cell_phone || '',
+        agent_email: profileData?.preferred_email || profileData?.email || '',
+        agent_bio: profileData?.bio || '',
+        preview_only: true,
+      };
+      const { data, error } = await supabase.functions.invoke('send-offer-letter-email', {
+        body: payload,
+      });
+      if (error) throw error;
+      setEmailPreviewHtml(data.html || "");
+    } catch (err: any) {
+      console.error("Preview error:", err);
+      toast({ title: "Failed to load preview", description: err.message, variant: "destructive" });
+      setEmailDialogOpen(false);
+    } finally {
+      setEmailLoading(false);
+    }
+  };
+
+  const handleSendEmail = async () => {
+    if (!recipientEmail) {
+      toast({ title: "Email required", description: "Please enter a recipient email address", variant: "destructive" });
+      return;
+    }
+
+    setEmailSending(true);
+    try {
+      const payload = {
+        to_email: recipientEmail,
+        from_name: profileData?.full_name || "Agent",
+        reply_to: profileData?.preferred_email || profileData?.email || "",
+        client_name: propertyData.name || "Client",
+        street_address: propertyData.streetAddress,
+        letter_text: letterText,
+        agent_first_name: profileData?.first_name || profileData?.full_name?.split(' ')[0] || '',
+        agent_full_name: profileData?.full_name || '',
+        agent_phone: profileData?.cell_phone || '',
+        agent_email: profileData?.preferred_email || profileData?.email || '',
+        agent_bio: profileData?.bio || '',
+      };
+      const { data, error } = await supabase.functions.invoke('send-offer-letter-email', {
+        body: payload,
+      });
+      if (error) throw error;
+      toast({ title: "Email sent!", description: `Offer letter sent to ${recipientEmail}` });
+      setEmailDialogOpen(false);
+    } catch (err: any) {
+      console.error("Send error:", err);
+      toast({ title: "Failed to send email", description: err.message, variant: "destructive" });
+    } finally {
+      setEmailSending(false);
+    }
+  };
 
   const handleCopyToClipboard = async () => {
     const content = document.getElementById('offer-letter-content');
     if (!content) return;
 
     try {
-      // Clone the content
       const clonedContent = content.cloneNode(true) as HTMLElement;
       
-      // Find the logo image and convert to a physically resized base64 image
       const logoImg = clonedContent.querySelector('img') as HTMLImageElement;
       if (logoImg) {
         const resizedDataUrl = await resizeImageForEmail(logoImg.src, EMAIL_LOGO_WIDTH_PX);
@@ -160,37 +233,28 @@ ${agentFirstName}`;
         ].join(';');
       }
       
-      // Remove print:hidden elements
       const noPdfElements = clonedContent.querySelectorAll('.print\\:hidden');
       noPdfElements.forEach(el => el.remove());
       
-      // Add inline styles for email compatibility
       const logoContainer = clonedContent.querySelector('.flex.items-center.gap-3');
       if (logoContainer) {
         (logoContainer as HTMLElement).style.cssText = 'display: flex; align-items: center; gap: 12px;';
-        
         const logoInContainer = logoContainer.querySelector('img');
         if (logoInContainer) {
-          // IMPORTANT: must include width constraints here too (cssText overwrites previous styles)
           (logoInContainer as HTMLElement).style.cssText = [
-            `display:block`,
-            `margin:0`,
-            `flex-shrink:0`,
+            `display:block`, `margin:0`, `flex-shrink:0`,
             `width:${EMAIL_LOGO_WIDTH_PX}px !important`,
             `max-width:${EMAIL_LOGO_WIDTH_PX}px !important`,
             `height:auto !important`,
           ].join(';');
         }
-        
         const textContainer = logoContainer.querySelector('div');
         if (textContainer) {
           (textContainer as HTMLElement).style.cssText = 'display: flex; flex-direction: column; justify-content: center; margin: 0;';
-          
           const heading = textContainer.querySelector('h1');
           if (heading) {
             (heading as HTMLElement).style.cssText = 'margin: 0; padding: 0; font-size: 30px; font-weight: bold; line-height: 1.2;';
           }
-          
           const subtitle = textContainer.querySelector('p');
           if (subtitle) {
             (subtitle as HTMLElement).style.cssText = 'margin: 0; padding: 0; font-size: 16px; line-height: 1.2; color: #6b7280;';
@@ -198,7 +262,6 @@ ${agentFirstName}`;
         }
       }
 
-      // Style the card content
       const card = clonedContent.querySelector('.bg-card, [class*="Card"]');
       if (card) {
         (card as HTMLElement).style.cssText = 'padding: 32px; background: white; border: 1px solid #e5e7eb; border-radius: 8px;';
@@ -219,7 +282,6 @@ ${agentFirstName}`;
         description: "The letter with formatted header has been copied. Opening email client...",
       });
 
-      // Open email client using selected preference
       const sellerEmail = propertyData.sellerEmail || '';
       const subject = `We have received an offer for ${propertyData.streetAddress}`;
       openEmailClient(sellerEmail, emailClient, subject);
@@ -234,65 +296,21 @@ ${agentFirstName}`;
   };
 
   const navigationItems = [
-    {
-      label: "Back",
-      icon: ArrowLeft,
-      onClick: onBack,
-    },
-    {
-      label: "Back to Property Info",
-      icon: ArrowLeft,
-      onClick: () => onEdit(propertyId),
-    },
-    {
-      label: "My Properties",
-      icon: List,
-      onClick: onBack,
-    },
-    {
-      label: "Estimated Net",
-      icon: DollarSign,
-      onClick: () => onNavigate('results'),
-    },
-    {
-      label: "Offer Summary",
-      icon: ClipboardList,
-      onClick: () => onNavigate('offer-summary'),
-    },
-    {
-      label: "Offer Letter",
-      icon: Mail,
-      onClick: () => {},
-      active: true,
-    },
-    {
-      label: "Important Dates Letter",
-      icon: Calendar,
-      onClick: () => onNavigate('important-dates'),
-    },
-    {
-      label: "Title Letter",
-      icon: Mail,
-      onClick: () => onNavigate('title-letter'),
-    },
-    {
-      label: "Agent Letter",
-      icon: Mail,
-      onClick: () => onNavigate('agent-letter'),
-    },
-    {
-      label: "Request to Remedy",
-      icon: FileText,
-      onClick: () => onNavigate('request-to-remedy'),
-    },
-    {
-      label: "Settlement Statement",
-      icon: FileText,
-      onClick: () => onNavigate('settlement-statement'),
-    },
+    { label: "Back", icon: ArrowLeft, onClick: onBack },
+    { label: "Back to Property Info", icon: ArrowLeft, onClick: () => onEdit(propertyId) },
+    { label: "My Properties", icon: List, onClick: onBack },
+    { label: "Estimated Net", icon: DollarSign, onClick: () => onNavigate('results') },
+    { label: "Offer Summary", icon: ClipboardList, onClick: () => onNavigate('offer-summary') },
+    { label: "Offer Letter", icon: Mail, onClick: () => {}, active: true },
+    { label: "Important Dates Letter", icon: Calendar, onClick: () => onNavigate('important-dates') },
+    { label: "Title Letter", icon: Mail, onClick: () => onNavigate('title-letter') },
+    { label: "Agent Letter", icon: Mail, onClick: () => onNavigate('agent-letter') },
+    { label: "Request to Remedy", icon: FileText, onClick: () => onNavigate('request-to-remedy') },
+    { label: "Settlement Statement", icon: FileText, onClick: () => onNavigate('settlement-statement') },
   ];
 
   return (
+    <>
     <div className="flex w-full min-h-[600px]">
       {/* Left Sidebar Navigation */}
       <aside className="w-56 p-3 border-r bg-card shrink-0 print:hidden">
@@ -331,9 +349,13 @@ ${agentFirstName}`;
 
       {/* Main Content */}
       <div className="flex-1 py-4 px-6 overflow-auto">
-        {/* Action Button - Top Right */}
-        <div className="flex justify-end mb-4 print:hidden">
-          <Button onClick={handleCopyToClipboard} className="copy-email-btn gap-2 bg-emerald-600 hover:bg-emerald-700 text-white">
+        {/* Action Buttons - Top Right */}
+        <div className="flex justify-end gap-2 mb-4 print:hidden">
+          <Button onClick={handleOpenEmailPreview} className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white">
+            <Mail className="h-4 w-4" />
+            Email
+          </Button>
+          <Button onClick={handleCopyToClipboard} variant="outline" className="gap-2">
             <Copy className="h-4 w-4" />
             Copy & Email
           </Button>
@@ -376,6 +398,58 @@ ${agentFirstName}`;
         </div>
       </div>
     </div>
+
+    {/* Email Preview Dialog */}
+    <Dialog open={emailDialogOpen} onOpenChange={setEmailDialogOpen}>
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Email Preview - Offer Letter</DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-4">
+          <div className="flex items-end gap-3">
+            <div className="flex-1">
+              <Label htmlFor="offer-recipient-email">Recipient Email</Label>
+              <Input
+                id="offer-recipient-email"
+                type="email"
+                value={recipientEmail}
+                onChange={(e) => setRecipientEmail(e.target.value)}
+                placeholder="seller@example.com"
+              />
+            </div>
+            <Button
+              onClick={handleSendEmail}
+              disabled={emailSending || !recipientEmail}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white"
+            >
+              {emailSending ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Send className="mr-2 h-4 w-4" />
+              )}
+              {emailSending ? "Sending..." : "Send Email"}
+            </Button>
+          </div>
+
+          {emailLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          ) : (
+            <div className="border border-border rounded-lg overflow-hidden bg-muted/30">
+              <iframe
+                srcDoc={emailPreviewHtml}
+                className="w-full min-h-[600px] bg-white"
+                title="Email Preview"
+                sandbox="allow-same-origin"
+              />
+            </div>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 };
 
