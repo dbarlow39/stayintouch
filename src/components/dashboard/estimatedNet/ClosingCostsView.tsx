@@ -519,11 +519,42 @@ const ClosingCostsView = ({ propertyData, propertyId, onBack, onEdit, onNavigate
             </Button>
           </div>
 
-          {emailLoading ? (
+          <div>
+            <Label htmlFor="intro-text" className="text-xs italic text-muted-foreground">Letter Introduction</Label>
+            <textarea
+              id="intro-text"
+              value={introText}
+              onChange={(e) => setIntroText(e.target.value)}
+              className="w-full min-h-[120px] p-3 text-sm border border-border rounded-md bg-background resize-y focus:outline-none focus:ring-2 focus:ring-ring"
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="closing-text" className="text-xs italic text-muted-foreground">Closing Text</Label>
+            <textarea
+              id="closing-text"
+              value={closingText}
+              onChange={(e) => setClosingText(e.target.value)}
+              className="w-full min-h-[60px] p-3 text-sm border border-border rounded-md bg-background resize-y focus:outline-none focus:ring-2 focus:ring-ring"
+            />
+          </div>
+
+          <Button
+            onClick={handleOpenEmailPreview}
+            variant="outline"
+            size="sm"
+            disabled={emailLoading}
+            className="gap-2"
+          >
+            {emailLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}
+            Refresh Preview
+          </Button>
+
+          {emailLoading && !emailPreviewHtml ? (
             <div className="flex items-center justify-center py-12">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
-          ) : (
+          ) : emailPreviewHtml ? (
             <div className="border border-border rounded-lg overflow-hidden bg-muted/30">
               <iframe
                 srcDoc={emailPreviewHtml}
@@ -532,7 +563,7 @@ const ClosingCostsView = ({ propertyData, propertyId, onBack, onEdit, onNavigate
                 sandbox="allow-same-origin"
               />
             </div>
-          )}
+          ) : null}
         </div>
       </DialogContent>
     </Dialog>
