@@ -365,12 +365,6 @@ const OfferSummaryView = ({ propertyData, propertyId, onBack, onEdit, onNavigate
                 {propertyData.agentEmail && <SummaryRow label="Buyer Agent Email" value={propertyData.agentEmail} />}
               </div>
 
-              {propertyData.notes && (
-                <div className="mt-6 pt-4 border-t border-border">
-                  <h3 className="text-lg font-semibold text-foreground mb-2">Notes</h3>
-                  <p className="text-muted-foreground whitespace-pre-wrap">{propertyData.notes}</p>
-                </div>
-              )}
             </Card>
           </div>
         </div>
