@@ -5,7 +5,7 @@ import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import { PropertyData } from "@/types/estimatedNet";
 import PropertyInputForm from "./PropertyInputForm";
-import ClosingCostsView from "./ClosingCostsView";
+import LeadClosingCostsView from "./LeadClosingCostsView";
 import OfferLetterView from "./OfferLetterView";
 import OfferSummaryView from "./OfferSummaryView";
 import ImportantDatesView from "./ImportantDatesView";
@@ -186,7 +186,7 @@ const LeadEstimatedNet = ({ lead, onBack }: LeadEstimatedNetProps) => {
     const renderView = () => {
       switch (viewState) {
         case 'results':
-          return <ClosingCostsView {...commonProps} />;
+          return <LeadClosingCostsView {...commonProps} />;
         case 'offer-letter':
           return <OfferLetterView {...commonProps} />;
         case 'offer-summary':
