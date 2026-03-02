@@ -366,7 +366,8 @@ ${agentFirstName}`;
 
             <Card className="p-8 mb-6 card-content">
               <textarea
-                className="w-full min-h-[400px] text-foreground bg-background border border-border rounded-md p-4 text-base leading-relaxed resize-y focus:outline-none focus:ring-2 focus:ring-ring font-sans"
+                className="w-full text-foreground bg-background border border-border rounded-md p-4 text-base leading-relaxed resize-y focus:outline-none focus:ring-2 focus:ring-ring font-sans"
+                rows={22}
                 value={letterText}
                 onChange={(e) => setLetterText(e.target.value)}
               />
