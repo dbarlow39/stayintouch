@@ -435,8 +435,8 @@ ${agentFirstName}`;
                 value={letterText}
                 onChange={(e) => setLetterText(e.target.value)}
               />
+              <p className="text-sm text-muted-foreground mt-3 italic">Attachments can be added on the next page</p>
             </Card>
-              <p className="text-sm text-muted-foreground mt-2 italic">Attachments can be added on the next page</p>
           </div>
         </div>
       </div>
