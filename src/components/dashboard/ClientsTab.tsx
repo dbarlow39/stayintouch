@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Upload, Pencil, Trash2, Filter, CalendarIcon, FileUp, MessageSquare, Search } from "lucide-react";
+import { Plus, Upload, Pencil, Trash2, Filter, CalendarIcon, FileUp, MessageSquare, Search, Loader2, Home } from "lucide-react";
 import PhoneCallTextLink from "@/components/PhoneCallTextLink";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth";
@@ -152,6 +152,81 @@ const ClientsTab = ({ onSelectClientForEstimate }: ClientsTabProps) => {
   });
   const lookupTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [lookupAddress, setLookupAddress] = useState("");
+  const [isLookingUp, setIsLookingUp] = useState(false);
+
+  const toProperCase = (text: string): string => {
+    if (!text) return '';
+    return text.toLowerCase().split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+  };
+
+  const handlePropertyLookup = async () => {
+    if (!lookupAddress.trim()) {
+      toast.error("Please enter an address to look up");
+      return;
+    }
+    setIsLookingUp(true);
+    try {
+      // Call get-property-info for owner name and structural data
+      const { data: propData, error: propError } = await supabase.functions.invoke('get-property-info', {
+        body: { address: lookupAddress.trim() }
+      });
+
+      // Call lookup-property for tax data
+      const { data: taxData, error: taxError } = await supabase.functions.invoke('lookup-property', {
+        body: { address: lookupAddress.trim() }
+      });
+
+      if (propError && taxError) {
+        toast.error("Property lookup failed");
+        return;
+      }
+
+      const updates: Partial<typeof formData> = {};
+
+      if (propData && !propError) {
+        // Split owner name into first/last
+        const ownerName = propData.ownerName || '';
+        if (ownerName) {
+          const parts = ownerName.split(' ');
+          if (parts.length >= 2) {
+            updates.first_name = parts[0];
+            updates.last_name = parts.slice(1).join(' ');
+          } else {
+            updates.first_name = ownerName;
+          }
+        }
+        // Parse street address into number and name
+        const addr = propData.address || '';
+        if (addr) {
+          const addrParts = addr.split(' ');
+          const streetNum = addrParts[0] && /^\d/.test(addrParts[0]) ? addrParts[0] : '';
+          const streetName = streetNum ? addrParts.slice(1).join(' ') : addr;
+          updates.street_number = streetNum;
+          updates.street_name = streetName;
+        }
+        if (propData.city) updates.city = propData.city;
+        if (propData.state) updates.state = propData.state;
+        if (propData.zipCode) updates.zip = propData.zipCode;
+      }
+
+      if (taxData && !taxError && taxData.annual_amount) {
+        updates.annual_taxes = taxData.annual_amount.toString();
+      }
+
+      if (Object.keys(updates).length > 0) {
+        setFormData(prev => ({ ...prev, ...updates }));
+        toast.success("Property data populated");
+      } else {
+        toast.info("No property data found for this address");
+      }
+    } catch (err) {
+      console.error('Property lookup error:', err);
+      toast.error("Property lookup failed");
+    } finally {
+      setIsLookingUp(false);
+    }
+  };
 
   // Auto-lookup property taxes when address fields change (for new clients)
   useEffect(() => {
@@ -357,6 +432,7 @@ const ClientsTab = ({ onSelectClientForEstimate }: ClientsTabProps) => {
       annual_taxes: "",
     });
     setEditingClient(null);
+    setLookupAddress("");
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -643,6 +719,33 @@ const ClientsTab = ({ onSelectClientForEstimate }: ClientsTabProps) => {
                 <DialogTitle>{editingClient ? "Edit Client" : "Add New Client"}</DialogTitle>
               </DialogHeader>
               <form onSubmit={handleSubmit} className="space-y-4">
+                {!editingClient && (
+                  <div className="border rounded-lg p-4 bg-muted/30">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Home className="h-4 w-4 text-primary" />
+                      <h3 className="font-semibold">Property Lookup</h3>
+                    </div>
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="Enter full address (e.g., 123 Main St, Columbus, OH 43215)"
+                        value={lookupAddress}
+                        onChange={(e) => setLookupAddress(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handlePropertyLookup(); } }}
+                        className="flex-1"
+                      />
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        onClick={handlePropertyLookup}
+                        disabled={isLookingUp}
+                      >
+                        {isLookingUp ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Search className="h-4 w-4 mr-2" />}
+                        Lookup
+                      </Button>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">Enter an address to auto-fill owner name, property details, and taxes</p>
+                  </div>
+                )}
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="status">Status</Label>
