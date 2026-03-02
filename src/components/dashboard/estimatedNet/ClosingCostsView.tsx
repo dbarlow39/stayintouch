@@ -427,20 +427,8 @@ const ClosingCostsView = ({ propertyData, propertyId, onBack, onEdit, onNavigate
             </div>
 
             <Card className="p-6 mb-6 card-content">
-              <div className="mb-6 property-info">
-                <h2 className="text-xl font-semibold text-foreground mb-1">{propertyData.name}</h2>
-                <p className="text-muted-foreground">{propertyData.streetAddress}</p>
-                <p className="text-muted-foreground">{propertyData.city}, {propertyData.state} {propertyData.zip}</p>
-              </div>
 
-              <div className="mb-6">
-                <textarea
-                  className="w-full text-foreground bg-background border border-border rounded-md p-3 text-sm resize-y focus:outline-none focus:ring-2 focus:ring-ring"
-                  rows={9}
-                  value={introText}
-                  onChange={(e) => setIntroText(e.target.value)}
-                />
-              </div>
+
 
               <div className="space-y-1">
                 {propertyData.closingDate && (
