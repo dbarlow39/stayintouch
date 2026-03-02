@@ -26,7 +26,7 @@ const ClosingCostsView = ({ propertyData, propertyId, onBack, onEdit, onNavigate
   const closingCosts = calculateClosingCosts(propertyData);
   const [emailClient, setEmailClient] = useState<EmailClient>(getEmailClientPreference);
   const sellerFirstName = propertyData.name ? propertyData.name.split(/\s*[&,]\s*/).map((n: string) => n.split(' ')[0]).join(' & ') : 'there';
-  const [introText, setIntroText] = useState(`Hi ${sellerFirstName},\n\nThank you for the time you spent with me talking about the sale of your home. As promised here is a breakdown of all of the fees associated with the sale of your home. All of these fees come from the standard Columbus Realtors purchase contract including the buyer agent's commission. As we talked about, we recommend making the buyer's commission negotiable, but you can count on the buyer asking you to pay their Realtors fee. While most of these fees are not negotiable, we recommend you build them into your sales price to get a satisfactory bottom line number including the buyer agents commission.`);
+  const [introText, setIntroText] = useState(`Hi ${sellerFirstName},\n\nPlease find attached an updated Estimated Net Sheet for your review.`);
   const [closingText, setClosingText] = useState("Once you have had a chance to review please let me know if you have any questions. Once again thanks for your time and I look forward to working you in the near future.");
   const { toast } = useToast();
   const { user } = useAuth();
@@ -541,8 +541,8 @@ const ClosingCostsView = ({ propertyData, propertyId, onBack, onEdit, onNavigate
             <textarea
               value={introText}
               onChange={(e) => setIntroText(e.target.value)}
-              className="w-full bg-transparent border border-dashed border-border rounded p-2 text-sm resize-y focus:outline-none focus:ring-1 focus:ring-ring min-h-[120px]"
-              rows={7}
+              className="w-full bg-transparent border border-dashed border-border rounded p-2 text-sm resize-y focus:outline-none focus:ring-1 focus:ring-ring min-h-[80px]"
+              rows={5}
             />
 
             {/* Cost table */}
