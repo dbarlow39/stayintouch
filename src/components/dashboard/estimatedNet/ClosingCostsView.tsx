@@ -475,35 +475,6 @@ const ClosingCostsView = ({ propertyData, propertyId, onBack, onEdit, onNavigate
                 </div>
               </div>
 
-              {/* Closing & Agent Signature */}
-              <div className="mt-8 pt-4">
-                <textarea
-                  className="w-full text-foreground bg-background border border-border rounded-md p-3 text-sm resize-y focus:outline-none focus:ring-2 focus:ring-ring mb-2"
-                  rows={3}
-                  value={closingText}
-                  onChange={(e) => setClosingText(e.target.value)}
-                />
-                <p className="text-foreground mb-1">Thanks</p>
-                <p className="text-foreground mb-3">{profileData?.first_name || profileData?.full_name?.split(' ')[0] || 'Your Agent'}</p>
-                {profileData?.bio ? (
-                  <div
-                    className="text-foreground [&_img]:max-w-full"
-                    dangerouslySetInnerHTML={{
-                      __html: /<[a-z][\s\S]*>/i.test(profileData.bio)
-                        ? profileData.bio.replace(/<P>/gi, '<br><br>')
-                        : `<p style="white-space: pre-line;">${profileData.bio}</p>`
-                    }}
-                  />
-                ) : (
-                  <div className="text-foreground">
-                    <p>{profileData?.full_name || ''}</p>
-                    {profileData?.cell_phone && <p>cell: {profileData.cell_phone}</p>}
-                    {(profileData?.preferred_email || profileData?.email) && (
-                      <p>email: {profileData.preferred_email || profileData.email}</p>
-                    )}
-                  </div>
-                )}
-              </div>
 
             </Card>
           </div>
