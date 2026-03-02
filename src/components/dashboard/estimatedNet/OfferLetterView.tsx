@@ -429,6 +429,7 @@ ${agentFirstName}`;
             </div>
 
             <Card className="p-8 mb-6 card-content">
+              <p className="text-sm text-muted-foreground mb-3 italic">This is editable text</p>
               <textarea
                 className="w-full text-foreground bg-background border border-border rounded-md p-4 text-base leading-relaxed resize-y focus:outline-none focus:ring-2 focus:ring-ring font-sans"
                 rows={22}
