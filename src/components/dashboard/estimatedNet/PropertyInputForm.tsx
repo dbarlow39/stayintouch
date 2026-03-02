@@ -1192,6 +1192,38 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
     };
   }, [formData.name, formData.streetAddress, formData.city, formData.zip, editingId, currentPropertyId, linkedClientId]);
 
+  // Auto-save contract fields for Seller Leads (when property already exists)
+  const leadAutoSaveRef = useRef<NodeJS.Timeout | null>(null);
+  
+  useEffect(() => {
+    // Only for seller lead context and only when property already exists
+    if (!hideSections.includes('document-upload') || !currentPropertyId) return;
+    
+    if (leadAutoSaveRef.current) {
+      clearTimeout(leadAutoSaveRef.current);
+    }
+    
+    leadAutoSaveRef.current = setTimeout(async () => {
+      await performAutoSave(formData, linkedClientId);
+    }, 2000);
+    
+    return () => {
+      if (leadAutoSaveRef.current) {
+        clearTimeout(leadAutoSaveRef.current);
+      }
+    };
+  }, [
+    formData.offerPrice, formData.firstMortgage, formData.secondMortgage,
+    formData.closingCost, formData.listingAgentCommission, formData.buyerAgentCommission,
+    formData.adminFee, formData.annualTaxes, formData.closingDate, formData.homeWarranty,
+    formData.deposit, formData.inspectionDays, formData.remedyPeriodDays,
+    formData.firstHalfPaid, formData.secondHalfPaid,
+    formData.name, formData.sellerPhone, formData.sellerEmail,
+    formData.streetAddress, formData.city, formData.state, formData.zip,
+    formData.appliances, formData.notes,
+    currentPropertyId, linkedClientId, hideSections,
+  ]);
+
   // Calculate tax days due this year based on closing date
   const calculateTaxDaysDue = () => {
     if (!formData.closingDate) return 0;
