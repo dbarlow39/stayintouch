@@ -772,14 +772,15 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
 
       let savedId: string;
 
-      if (editingId) {
+      const existingId = editingId || currentPropertyId;
+      if (existingId) {
         const { error } = await supabase
           .from("estimated_net_properties")
           .update(propertyData)
-          .eq("id", editingId);
+          .eq("id", existingId);
 
         if (error) throw error;
-        savedId = editingId;
+        savedId = existingId;
       } else {
         const { data, error } = await supabase
           .from("estimated_net_properties")
