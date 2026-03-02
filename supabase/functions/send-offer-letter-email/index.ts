@@ -5,6 +5,11 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+interface Attachment {
+  filename: string;
+  content: string; // base64
+}
+
 interface OfferLetterEmailPayload {
   to_email: string;
   from_name: string;
@@ -18,6 +23,7 @@ interface OfferLetterEmailPayload {
   agent_email?: string;
   agent_bio?: string;
   preview_only?: boolean;
+  attachments?: Attachment[];
 }
 
 const PUBLIC_LOGO_URL = 'https://ujhohggsvijjqoatvwnl.supabase.co/storage/v1/object/public/email-assets/logo.jpg';
@@ -33,7 +39,7 @@ serve(async (req) => {
       to_email, from_name, reply_to,
       client_name, street_address, letter_text,
       agent_first_name, agent_full_name, agent_phone, agent_email, agent_bio,
-      preview_only,
+      preview_only, attachments,
     } = payload;
 
     const signoff = agent_first_name || from_name || 'Your Agent';
@@ -58,6 +64,15 @@ serve(async (req) => {
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;')
       .replace(/\n/g, '<br>');
+
+    // Build attachment info for preview
+    const attachmentCount = attachments?.length || 0;
+    const attachmentPreviewHtml = attachmentCount > 0 ? `
+      <div style="margin-top: 16px; padding: 12px 16px; background: #f3f4f6; border-radius: 8px; border: 1px solid #e5e7eb;">
+        <p style="margin: 0 0 8px; font-size: 13px; font-weight: 600; color: #374151;">📎 ${attachmentCount} Attachment${attachmentCount > 1 ? 's' : ''}</p>
+        ${(attachments || []).map(a => `<p style="margin: 0; font-size: 12px; color: #6b7280;">• ${a.filename}</p>`).join('')}
+      </div>
+    ` : '';
 
     const html = `
 <!DOCTYPE html>
@@ -95,6 +110,7 @@ serve(async (req) => {
               <p style="margin: 0 0 24px; line-height: 1.7; color: #374151; font-size: 15px;">${escapedLetterText}</p>
 
               ${signatureHtml}
+              ${preview_only ? attachmentPreviewHtml : ''}
             </td>
           </tr>
 
@@ -125,19 +141,31 @@ serve(async (req) => {
       throw new Error('RESEND_API_KEY is not configured');
     }
 
+    // Build Resend attachments array
+    const resendAttachments = (attachments || []).map(a => ({
+      filename: a.filename,
+      content: a.content,
+    }));
+
+    const emailBody: Record<string, unknown> = {
+      from: `${from_name} via Sellfor1Percent.com <updates@resend.sellfor1percent.com>`,
+      reply_to: reply_to,
+      to: [to_email],
+      subject: `We have received an offer for ${street_address}`,
+      html: html,
+    };
+
+    if (resendAttachments.length > 0) {
+      emailBody.attachments = resendAttachments;
+    }
+
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${RESEND_API_KEY}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        from: `${from_name} via Sellfor1Percent.com <updates@resend.sellfor1percent.com>`,
-        reply_to: reply_to,
-        to: [to_email],
-        subject: `We have received an offer for ${street_address}`,
-        html: html,
-      }),
+      body: JSON.stringify(emailBody),
     });
 
     const result = await res.json();

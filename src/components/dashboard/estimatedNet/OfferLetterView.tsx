@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PropertyData } from "@/types/estimatedNet";
-import { ArrowLeft, List, Mail, Calendar, FileText, Copy, DollarSign, ClipboardList, Settings, Loader2, Send } from "lucide-react";
+import { ArrowLeft, List, Mail, Calendar, FileText, Copy, DollarSign, ClipboardList, Settings, Loader2, Send, Paperclip, X } from "lucide-react";
 import { EmailClient, EMAIL_CLIENT_OPTIONS, getEmailClientPreference, setEmailClientPreference, openEmailClient } from "@/utils/emailClientUtils";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -35,6 +35,10 @@ const OfferLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate 
   const [emailLoading, setEmailLoading] = useState(false);
   const [emailSending, setEmailSending] = useState(false);
   const [recipientEmail, setRecipientEmail] = useState(propertyData.sellerEmail || "");
+
+  // File attachments state
+  const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Extract first name from seller
   const ownerFirstName = propertyData.name.split(' ')[0];
@@ -141,6 +145,42 @@ ${agentFirstName}`;
     }
   }, [hasInitialized, defaultLetterText]);
 
+  // File attachment helpers
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+    const newFiles = Array.from(files);
+    const totalSize = [...attachedFiles, ...newFiles].reduce((sum, f) => sum + f.size, 0);
+    if (totalSize > 20 * 1024 * 1024) {
+      toast({ title: "Files too large", description: "Total attachments must be under 20MB", variant: "destructive" });
+      return;
+    }
+    setAttachedFiles(prev => [...prev, ...newFiles]);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const removeFile = (index: number) => {
+    setAttachedFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const filesToBase64 = async (files: File[]): Promise<{ filename: string; content: string; }[]> => {
+    return Promise.all(files.map(file => new Promise<{ filename: string; content: string }>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const base64 = (reader.result as string).split(',')[1];
+        resolve({ filename: file.name, content: base64 });
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    })));
+  };
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
   // Email handlers
   const handleOpenEmailPreview = async () => {
     setEmailDialogOpen(true);
@@ -184,6 +224,7 @@ ${agentFirstName}`;
 
     setEmailSending(true);
     try {
+      const attachments = attachedFiles.length > 0 ? await filesToBase64(attachedFiles) : [];
       const payload = {
         to_email: recipientEmail,
         from_name: profileData?.full_name || "Agent",
@@ -196,6 +237,7 @@ ${agentFirstName}`;
         agent_phone: profileData?.cell_phone || '',
         agent_email: profileData?.preferred_email || profileData?.email || '',
         agent_bio: profileData?.bio || '',
+        attachments,
       };
       const { data, error } = await supabase.functions.invoke('send-offer-letter-email', {
         body: payload,
@@ -430,6 +472,49 @@ ${agentFirstName}`;
               )}
               {emailSending ? "Sending..." : "Send Email"}
             </Button>
+          </div>
+
+          {/* File Attachments */}
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <Label>Attachments</Label>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="gap-1 h-7 text-xs"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <Paperclip className="h-3 w-3" />
+                Attach Files
+              </Button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                className="hidden"
+                accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.gif,.txt,.csv"
+                onChange={handleFileSelect}
+              />
+            </div>
+            {attachedFiles.length > 0 && (
+              <div className="space-y-1">
+                {attachedFiles.map((file, idx) => (
+                  <div key={idx} className="flex items-center gap-2 text-sm bg-muted/50 rounded px-2 py-1">
+                    <FileText className="h-3 w-3 text-muted-foreground shrink-0" />
+                    <span className="truncate flex-1">{file.name}</span>
+                    <span className="text-muted-foreground text-xs shrink-0">{formatFileSize(file.size)}</span>
+                    <button
+                      type="button"
+                      onClick={() => removeFile(idx)}
+                      className="text-muted-foreground hover:text-destructive shrink-0"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {emailLoading ? (
