@@ -155,12 +155,22 @@ const ClientsTab = ({ onSelectClientForEstimate }: ClientsTabProps) => {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [lookupAddress, setLookupAddress] = useState("");
   const [isLookingUp, setIsLookingUp] = useState(false);
+  const [addressSuggestion, setAddressSuggestion] = useState<{
+    address: string; city: string; state: string; zip: string;
+    ownerName: string; streetNumber: string; streetName: string;
+    annualTaxes: string;
+  } | null>(null);
+  const [showSuggestions, setShowSuggestions] = useState(false);
 
-  // Auto-lookup property when address is typed (debounced)
+  // Debounced address lookup - fetches suggestion but does NOT auto-populate
   useEffect(() => {
     if (editingClient) return;
     const addr = lookupAddress.trim();
-    if (addr.length < 10) return; // Need a reasonable address length
+    if (addr.length < 10) {
+      setAddressSuggestion(null);
+      setShowSuggestions(false);
+      return;
+    }
 
     if (addressLookupRef.current) clearTimeout(addressLookupRef.current);
 
@@ -179,40 +189,26 @@ const ClientsTab = ({ onSelectClientForEstimate }: ClientsTabProps) => {
 
         if (propError && taxError) return;
 
-        const updates: Partial<typeof formData> = {};
-
-        if (propData && !propError) {
-          const ownerName = propData.ownerName || '';
-          if (ownerName) {
-            const parts = ownerName.split(' ');
-            if (parts.length >= 2) {
-              updates.first_name = parts[0];
-              updates.last_name = parts.slice(1).join(' ');
-            } else {
-              updates.first_name = ownerName;
-            }
-          }
-          const address = propData.address || '';
-          if (address) {
-            const addrParts = address.split(' ');
-            const streetNum = addrParts[0] && /^\d/.test(addrParts[0]) ? addrParts[0] : '';
-            const streetName = streetNum ? addrParts.slice(1).join(' ') : address;
-            updates.street_number = streetNum;
-            updates.street_name = streetName;
-          }
-          if (propData.city) updates.city = propData.city;
-          if (propData.state) updates.state = propData.state;
-          if (propData.zipCode) updates.zip = propData.zipCode;
+        let streetNumber = '';
+        let streetName = '';
+        const rawAddr = propData?.address || '';
+        if (rawAddr) {
+          const addrParts = rawAddr.split(' ');
+          streetNumber = addrParts[0] && /^\d/.test(addrParts[0]) ? addrParts[0] : '';
+          streetName = streetNumber ? addrParts.slice(1).join(' ') : rawAddr;
         }
 
-        if (taxData && !taxError && taxData.annual_amount) {
-          updates.annual_taxes = taxData.annual_amount.toString();
-        }
-
-        if (Object.keys(updates).length > 0) {
-          setFormData(prev => ({ ...prev, ...updates }));
-          toast.success("Property data populated");
-        }
+        setAddressSuggestion({
+          address: rawAddr,
+          city: propData?.city || '',
+          state: propData?.state || '',
+          zip: propData?.zipCode || '',
+          ownerName: propData?.ownerName || '',
+          streetNumber,
+          streetName,
+          annualTaxes: (taxData?.annual_amount || 0).toString(),
+        });
+        setShowSuggestions(true);
       } catch (err) {
         console.error('Property lookup error:', err);
       } finally {
@@ -222,6 +218,32 @@ const ClientsTab = ({ onSelectClientForEstimate }: ClientsTabProps) => {
 
     return () => { if (addressLookupRef.current) clearTimeout(addressLookupRef.current); };
   }, [lookupAddress, editingClient]);
+
+  const handleSelectSuggestion = () => {
+    if (!addressSuggestion) return;
+    const updates: Partial<typeof formData> = {};
+    const ownerName = addressSuggestion.ownerName;
+    if (ownerName) {
+      const parts = ownerName.split(' ');
+      if (parts.length >= 2) {
+        updates.first_name = parts[0];
+        updates.last_name = parts.slice(1).join(' ');
+      } else {
+        updates.first_name = ownerName;
+      }
+    }
+    updates.street_number = addressSuggestion.streetNumber;
+    updates.street_name = addressSuggestion.streetName;
+    if (addressSuggestion.city) updates.city = addressSuggestion.city;
+    if (addressSuggestion.state) updates.state = addressSuggestion.state;
+    if (addressSuggestion.zip) updates.zip = addressSuggestion.zip;
+    if (addressSuggestion.annualTaxes && addressSuggestion.annualTaxes !== '0') {
+      updates.annual_taxes = addressSuggestion.annualTaxes;
+    }
+    setFormData(prev => ({ ...prev, ...updates }));
+    setShowSuggestions(false);
+    toast.success("Property data populated");
+  };
 
   // Auto-lookup property taxes when address fields change (for new clients)
   useEffect(() => {
@@ -428,6 +450,8 @@ const ClientsTab = ({ onSelectClientForEstimate }: ClientsTabProps) => {
     });
     setEditingClient(null);
     setLookupAddress("");
+    setAddressSuggestion(null);
+    setShowSuggestions(false);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -721,12 +745,33 @@ const ClientsTab = ({ onSelectClientForEstimate }: ClientsTabProps) => {
                       <h3 className="font-semibold">Property Lookup</h3>
                       {isLookingUp && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
                     </div>
-                    <Input
-                      placeholder="Enter full address (e.g., 123 Main St, Columbus, OH 43215)"
-                      value={lookupAddress}
-                      onChange={(e) => setLookupAddress(e.target.value)}
-                    />
-                    <p className="text-xs text-muted-foreground mt-1">Auto-fills owner name, property details, and taxes</p>
+                    <div className="relative">
+                      <Input
+                        placeholder="Enter full address (e.g., 123 Main St, Columbus, OH 43215)"
+                        value={lookupAddress}
+                        onChange={(e) => setLookupAddress(e.target.value)}
+                        onFocus={() => { if (addressSuggestion) setShowSuggestions(true); }}
+                      />
+                      {showSuggestions && addressSuggestion && (
+                        <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-popover border border-border rounded-md shadow-md max-h-48 overflow-y-auto">
+                          <button
+                            type="button"
+                            className="w-full text-left px-3 py-2 hover:bg-accent transition-colors"
+                            onClick={handleSelectSuggestion}
+                          >
+                            <div className="font-medium">
+                              {addressSuggestion.streetNumber} {addressSuggestion.streetName}
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              {[addressSuggestion.city, addressSuggestion.state, addressSuggestion.zip].filter(Boolean).join(", ")}
+                              {addressSuggestion.ownerName && ` • Owner: ${addressSuggestion.ownerName}`}
+                              {addressSuggestion.annualTaxes && addressSuggestion.annualTaxes !== '0' && ` • Taxes: $${Number(addressSuggestion.annualTaxes).toLocaleString()}`}
+                            </div>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">Type an address and select from results to auto-fill</p>
                   </div>
                 )}
                 <div className="grid grid-cols-2 gap-4">
