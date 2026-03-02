@@ -89,3 +89,6 @@ verify_jwt = false
 
 [functions.send-offer-letter-email]
 verify_jwt = false
+
+[functions.send-important-dates-email]
+verify_jwt = false
