@@ -20,9 +20,23 @@ interface Inspection {
 
 const MAPBOX_API_KEY = 'pk.eyJ1IjoiZGJhcmxvdzM5IiwiYSI6ImNtaHY3bGppZjA4YjAybHBxMTFpcXc4cjUifQ.FR_LuIGPTri475ANOVKxFw';
 
-const ResidentialWorkSheetTab = () => {
+interface LeadData {
+  id: string;
+  first_name: string;
+  last_name: string;
+  address?: string | null;
+  city?: string | null;
+  state?: string | null;
+  zip?: string | null;
+}
+
+interface ResidentialWorkSheetTabProps {
+  lead?: LeadData;
+}
+
+const ResidentialWorkSheetTab = ({ lead }: ResidentialWorkSheetTabProps) => {
   const { user } = useAuth();
-  const [view, setView] = useState<"list" | "form">("list");
+  const [view, setView] = useState<"list" | "form">(lead ? "form" : "list");
   const [saving, setSaving] = useState(false);
   const [currentInspectionId, setCurrentInspectionId] = useState<string | null>(null);
   const [inspectionData, setInspectionData] = useState<Record<string, any>>({});
@@ -31,6 +45,7 @@ const ResidentialWorkSheetTab = () => {
   const [loading, setLoading] = useState(true);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [loadingId, setLoadingId] = useState<string | null>(null);
+  const [leadLoaded, setLeadLoaded] = useState(false);
 
   // Auto-save refs
   const autoSaveRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -45,6 +60,46 @@ const ResidentialWorkSheetTab = () => {
   useEffect(() => {
     if (user) loadInspections();
   }, [user]);
+
+  // When opened from a lead, find existing worksheet or pre-fill a new one
+  useEffect(() => {
+    if (!user || !lead || leadLoaded) return;
+
+    const initForLead = async () => {
+      const address = lead.address?.trim();
+      if (address) {
+        // Try to find an existing inspection matching this lead's address
+        const { data } = await supabase
+          .from("inspections")
+          .select("id")
+          .eq("user_id", user.id)
+          .ilike("property_address", `%${address}%`)
+          .limit(1);
+
+        if (data && data.length > 0) {
+          // Load existing worksheet
+          await handleLoad(data[0].id);
+          setLeadLoaded(true);
+          return;
+        }
+      }
+
+      // No existing worksheet — pre-fill from lead data
+      setInspectionData({
+        'property-info': {
+          name: `${lead.first_name || ''} ${lead.last_name || ''}`.trim(),
+          address: address || '',
+          city: lead.city || '',
+          zip: lead.zip || '',
+        },
+      });
+      setCurrentInspectionId(null);
+      setView("form");
+      setLeadLoaded(true);
+    };
+
+    initForLead();
+  }, [user, lead, leadLoaded]);
 
   // Auto-save every 10 minutes when in form view
   useEffect(() => {

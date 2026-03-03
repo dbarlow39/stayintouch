@@ -220,9 +220,9 @@ const SellerLeadDetail = () => {
           <div className="flex-1 overflow-auto">
             <LeadEstimatedNet lead={lead} onBack={() => setActiveTab("details")} />
           </div>
-        ) : activeTab === "residential" ? (
+        ) : activeTab === "residential" && lead ? (
           <div className="flex-1 overflow-auto p-6">
-            <ResidentialWorkSheetTab />
+            <ResidentialWorkSheetTab lead={lead} />
           </div>
         ) : (
           <main className="flex-1 px-6 py-8 max-w-3xl">
