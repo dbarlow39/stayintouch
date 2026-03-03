@@ -784,6 +784,7 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
 
         if (error) throw error;
         savedId = data.id;
+        setCurrentPropertyId(savedId);
       }
 
       const updatedFormData = {
