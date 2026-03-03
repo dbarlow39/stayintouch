@@ -259,20 +259,37 @@ ${agentFirstName}`;
 
     try {
       const clonedContent = content.cloneNode(true) as HTMLElement;
+
+      // Replace textarea with rendered text so copy produces formatted content
+      const textarea = clonedContent.querySelector('textarea');
+      if (textarea) {
+        const div = document.createElement('div');
+        div.style.cssText = 'white-space: pre-wrap; font-size: 16px; line-height: 1.6;';
+        div.innerHTML = letterText.replace(/\n/g, '<br>');
+        textarea.parentNode?.replaceChild(div, textarea);
+      }
+
+      // Remove the "Editable Text" and "Attachments" helper labels
+      const italicLabels = clonedContent.querySelectorAll('.text-sm.italic, p.italic');
+      italicLabels.forEach(el => el.remove());
       
       const logoImg = clonedContent.querySelector('img') as HTMLImageElement;
       if (logoImg) {
-        const resizedDataUrl = await resizeImageForEmail(logoImg.src, EMAIL_LOGO_WIDTH_PX);
-        logoImg.src = resizedDataUrl;
-        logoImg.removeAttribute('class');
-        logoImg.setAttribute('width', String(EMAIL_LOGO_WIDTH_PX));
-        logoImg.style.cssText = [
-          `width:${EMAIL_LOGO_WIDTH_PX}px !important`,
-          `max-width:${EMAIL_LOGO_WIDTH_PX}px !important`,
-          `height:auto !important`,
-          `display:block`,
-          `margin:0`,
-        ].join(';');
+        try {
+          const resizedDataUrl = await resizeImageForEmail(logoImg.src, EMAIL_LOGO_WIDTH_PX);
+          logoImg.src = resizedDataUrl;
+          logoImg.removeAttribute('class');
+          logoImg.setAttribute('width', String(EMAIL_LOGO_WIDTH_PX));
+          logoImg.style.cssText = [
+            `width:${EMAIL_LOGO_WIDTH_PX}px !important`,
+            `max-width:${EMAIL_LOGO_WIDTH_PX}px !important`,
+            `height:auto !important`,
+            `display:block`,
+            `margin:0`,
+          ].join(';');
+        } catch (logoErr) {
+          console.error('Logo resize failed, continuing without resize:', logoErr);
+        }
       }
       
       const noPdfElements = clonedContent.querySelectorAll('.print\\:hidden');
