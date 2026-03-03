@@ -20,8 +20,8 @@ import { AnalyzingPill, AnalyzingToastDescription } from "./AnalyzingIndicator";
 
 const DOCUMENT_TYPES = [
   { value: "purchase_contract", label: "Purchase Contract" },
-  { value: "counter_offer", label: "Counter Offer" },
   { value: "lender_pre_approval", label: "Lender Pre-Approval" },
+  { value: "counter_offer", label: "Counter Offer" },
   { value: "inspection_report", label: "Inspection Report" },
   { value: "other", label: "Other" },
 ] as const;
