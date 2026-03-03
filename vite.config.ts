@@ -18,18 +18,23 @@ export default defineConfig(({ mode }) => ({
       includeAssets: ["favicon.ico", "logo.jpg"],
       workbox: {
         navigateFallback: "/index.html",
-        navigateFallbackDenylist: [/^\/api/],
+        navigateFallbackDenylist: [/^\/api/, /^\/rest\/v1/],
         skipWaiting: true,
         clientsClaim: true,
+        cleanupOutdatedCaches: true,
         runtimeCaching: [
+          {
+            urlPattern: /^https:\/\/.*\.supabase\.co\//,
+            handler: "NetworkOnly",
+          },
           {
             urlPattern: /^https:\/\/.*\.(js|css)$/,
             handler: "NetworkFirst",
             options: {
               cacheName: "app-assets",
               expiration: {
-                maxEntries: 50,
-                maxAgeSeconds: 60 * 60 * 24,
+                maxEntries: 30,
+                maxAgeSeconds: 60 * 60,
               },
             },
           },
