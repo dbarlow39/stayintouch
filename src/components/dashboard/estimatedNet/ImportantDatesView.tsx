@@ -5,8 +5,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PropertyData } from "@/types/estimatedNet";
-import { ArrowLeft, List, Mail, Calendar, FileText, DollarSign, ClipboardList, Settings, Home, Phone, Search, Wrench, Eye, Key, Wallet, MapPin, Loader2, Send, Paperclip, X } from "lucide-react";
-import { EmailClient, EMAIL_CLIENT_OPTIONS, getEmailClientPreference, setEmailClientPreference } from "@/utils/emailClientUtils";
+import { ArrowLeft, List, Mail, Calendar, FileText, Copy, DollarSign, ClipboardList, Settings, Home, Phone, Search, Wrench, Eye, Key, Wallet, MapPin, Loader2, Send, Paperclip, X } from "lucide-react";
+import { EmailClient, EMAIL_CLIENT_OPTIONS, getEmailClientPreference, setEmailClientPreference, openEmailClient } from "@/utils/emailClientUtils";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import logo from "@/assets/logo.jpg";
@@ -64,6 +64,41 @@ const ImportantDatesView = ({ propertyData, propertyId, onBack, onEdit, onNaviga
     };
     fetchAgentProfile();
   }, []);
+
+  const EMAIL_LOGO_WIDTH_PX = 144;
+
+  const resizeImageForEmail = async (imageUrl: string, targetWidth: number): Promise<string> => {
+    return await new Promise((resolve, reject) => {
+      const img = new Image();
+      if (!imageUrl.startsWith('data:') && !imageUrl.startsWith('blob:')) {
+        img.crossOrigin = 'anonymous';
+      }
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const naturalWidth = img.naturalWidth || img.width;
+        const naturalHeight = img.naturalHeight || img.height;
+        if (!naturalWidth || !naturalHeight) {
+          reject(new Error('Invalid logo dimensions'));
+          return;
+        }
+        const scale = targetWidth / naturalWidth;
+        const targetHeight = Math.max(1, Math.round(naturalHeight * scale));
+        canvas.width = targetWidth;
+        canvas.height = targetHeight;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          reject(new Error('Failed to get canvas context'));
+          return;
+        }
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
+        resolve(canvas.toDataURL('image/png'));
+      };
+      img.onerror = () => reject(new Error('Failed to load logo'));
+      img.src = imageUrl;
+    });
+  };
 
   const calculateDate = (baseDate: string, daysToAdd: number): string => {
     let date: Date;
@@ -174,6 +209,95 @@ const ImportantDatesView = ({ propertyData, propertyId, onBack, onEdit, onNaviga
     `;
 
     return html;
+  };
+
+  const handleCopyToClipboard = async () => {
+    const content = document.getElementById('important-dates-content');
+    if (!content) return;
+
+    try {
+      const clonedContent = content.cloneNode(true) as HTMLElement;
+
+      const logoImg = clonedContent.querySelector('img') as HTMLImageElement;
+      if (logoImg) {
+        try {
+          const resizedDataUrl = await resizeImageForEmail(logoImg.src, EMAIL_LOGO_WIDTH_PX);
+          logoImg.src = resizedDataUrl;
+          logoImg.removeAttribute('class');
+          logoImg.setAttribute('width', String(EMAIL_LOGO_WIDTH_PX));
+          logoImg.style.cssText = [
+            `width:${EMAIL_LOGO_WIDTH_PX}px !important`,
+            `max-width:${EMAIL_LOGO_WIDTH_PX}px !important`,
+            `height:auto !important`,
+            `display:block`,
+            `margin:0`,
+          ].join(';');
+        } catch (logoErr) {
+          console.error('Logo resize failed, continuing without resize:', logoErr);
+        }
+      }
+
+      const noPdfElements = clonedContent.querySelectorAll('.print\\:hidden');
+      noPdfElements.forEach(el => el.remove());
+
+      const logoContainer = clonedContent.querySelector('.flex.items-center.gap-3');
+      if (logoContainer) {
+        (logoContainer as HTMLElement).style.cssText = 'display: flex; align-items: center; gap: 12px;';
+        const logoInContainer = logoContainer.querySelector('img');
+        if (logoInContainer) {
+          (logoInContainer as HTMLElement).style.cssText = [
+            `display:block`, `margin:0`, `flex-shrink:0`,
+            `width:${EMAIL_LOGO_WIDTH_PX}px !important`,
+            `max-width:${EMAIL_LOGO_WIDTH_PX}px !important`,
+            `height:auto !important`,
+          ].join(';');
+        }
+        const textContainer = logoContainer.querySelector('div');
+        if (textContainer) {
+          (textContainer as HTMLElement).style.cssText = 'display: flex; flex-direction: column; justify-content: center; margin: 0;';
+          const heading = textContainer.querySelector('h1');
+          if (heading) {
+            (heading as HTMLElement).style.cssText = 'margin: 0; padding: 0; font-size: 30px; font-weight: bold; line-height: 1.2;';
+          }
+          const subtitle = textContainer.querySelector('p');
+          if (subtitle) {
+            (subtitle as HTMLElement).style.cssText = 'margin: 0; padding: 0; font-size: 16px; line-height: 1.2; color: #6b7280;';
+          }
+        }
+      }
+
+      clonedContent.querySelectorAll('p').forEach((p) => {
+        if (!(p as HTMLElement).style.cssText) {
+          (p as HTMLElement).style.cssText = 'margin: 16px 0; line-height: 1.6; color: #374151;';
+        }
+      });
+
+      const htmlContent = clonedContent.innerHTML;
+      const plainText = content.innerText;
+
+      await navigator.clipboard.write([
+        new ClipboardItem({
+          'text/html': new Blob([htmlContent], { type: 'text/html' }),
+          'text/plain': new Blob([plainText], { type: 'text/plain' })
+        })
+      ]);
+
+      toast({
+        title: "Copied to clipboard",
+        description: "The letter with formatted header has been copied. Opening email client...",
+      });
+
+      const sellerEmail = propertyData.sellerEmail || '';
+      const subject = `Important Dates - ${propertyData.streetAddress}`;
+      openEmailClient(sellerEmail, emailClient, subject);
+    } catch (err) {
+      console.error('Copy error:', err);
+      toast({
+        title: "Error",
+        description: "Failed to copy content. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   // Email handlers
@@ -304,11 +428,15 @@ const ImportantDatesView = ({ propertyData, propertyId, onBack, onEdit, onNaviga
 
       {/* Main Content */}
       <div className="flex-1 py-4 px-6 overflow-auto">
-        {/* Action Button - Top Right */}
-        <div className="flex justify-end mb-4 print:hidden">
+        {/* Action Buttons - Top Right */}
+        <div className="flex justify-end gap-2 mb-4 print:hidden">
           <Button onClick={handleOpenEmailPreview} className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white">
             <Mail className="h-4 w-4" />
             Email
+          </Button>
+          <Button onClick={handleCopyToClipboard} variant="outline" className="gap-2">
+            <Copy className="h-4 w-4" />
+            Copy & Email
           </Button>
         </div>
         
