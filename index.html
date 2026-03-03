@@ -28,6 +28,30 @@
   </head>
 
   <body>
+    <script>
+      // Force-clear outdated service workers and caches on every page load.
+      // This runs from index.html which is never SW-cached, so it always executes fresh code.
+      (function() {
+        var SW_VERSION = 2; // Bump this number to force a full cache purge
+        var versionKey = 'sw_version';
+        var stored = parseInt(localStorage.getItem(versionKey) || '0', 10);
+        if (stored < SW_VERSION) {
+          localStorage.setItem(versionKey, String(SW_VERSION));
+          if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then(function(registrations) {
+              registrations.forEach(function(reg) { reg.unregister(); });
+            });
+          }
+          if ('caches' in window) {
+            caches.keys().then(function(names) {
+              names.forEach(function(name) { caches.delete(name); });
+            });
+          }
+          // Reload once to start fresh after clearing
+          if (stored > 0) { location.reload(); }
+        }
+      })();
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
