@@ -683,15 +683,9 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
         if (error) throw error;
         return currentPropertyId;
       } else {
-        const { data, error } = await supabase
-          .from("estimated_net_properties")
-          .insert(propertyData)
-          .select()
-          .single();
-
-        if (error) throw error;
-        setCurrentPropertyId(data.id);
-        return data.id;
+        // Auto-save should NOT create new records — only handleSubmit should insert.
+        // This prevents deleted deals from being re-created by background auto-save.
+        return null;
       }
     } catch (error: any) {
       console.error("Auto-save error:", error);
