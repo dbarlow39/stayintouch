@@ -1857,7 +1857,6 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
                 type="date"
                 value={formData.possession}
                 onChange={(e) => updateField("possession", e.target.value)}
-                required
               />
             </div>
             <div>
