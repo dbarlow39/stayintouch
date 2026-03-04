@@ -18,7 +18,7 @@ interface AudioRecorderProps {
 
 type RecordingStatus = "idle" | "recording" | "uploading" | "transcribing" | "summarizing" | "completed" | "error";
 
-const CHUNK_INTERVAL_MS = 10 * 60 * 1000;
+const CHUNK_INTERVAL_MS = 30 * 1000;
 
 export function AudioRecorder({ inspectionId, userId }: AudioRecorderProps) {
   const [status, setStatus] = useState<RecordingStatus>("idle");
@@ -154,16 +154,28 @@ export function AudioRecorder({ inspectionId, userId }: AudioRecorderProps) {
 
   const uploadChunk = useCallback(async (chunks: Blob[], chunkIndex: number): Promise<string | null> => {
     if (chunks.length === 0) return null;
-    try {
-      setUploadingChunk(true);
-      const audioBlob = new Blob(chunks, { type: MediaRecorder.isTypeSupported("audio/webm") ? "audio/webm" : "audio/mp4" });
-      const fileName = `${userId}/${Date.now()}_chunk_${chunkIndex}.webm`;
-      const { error: uploadError } = await supabase.storage.from("audio-recordings").upload(fileName, audioBlob);
-      if (uploadError) { console.error("Chunk upload error:", uploadError); toast.error(`Failed to upload chunk ${chunkIndex + 1}`); return null; }
-      setUploadedChunks(prev => prev + 1);
-      return fileName;
-    } catch (error) { console.error("Chunk upload error:", error); return null; }
-    finally { setUploadingChunk(false); }
+    const audioBlob = new Blob(chunks, { type: MediaRecorder.isTypeSupported("audio/webm") ? "audio/webm" : "audio/mp4" });
+    const maxRetries = 3;
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      try {
+        setUploadingChunk(true);
+        const fileName = `${userId}/${Date.now()}_chunk_${chunkIndex}.webm`;
+        const { error: uploadError } = await supabase.storage.from("audio-recordings").upload(fileName, audioBlob);
+        if (uploadError) {
+          console.error(`Chunk upload attempt ${attempt + 1} failed:`, uploadError);
+          if (attempt < maxRetries - 1) { await new Promise(r => setTimeout(r, 2000 * (attempt + 1))); continue; }
+          toast.error(`Failed to upload chunk ${chunkIndex + 1} after ${maxRetries} attempts`);
+          return null;
+        }
+        setUploadedChunks(prev => prev + 1);
+        return fileName;
+      } catch (error) {
+        console.error(`Chunk upload attempt ${attempt + 1} error:`, error);
+        if (attempt < maxRetries - 1) { await new Promise(r => setTimeout(r, 2000 * (attempt + 1))); continue; }
+        return null;
+      } finally { setUploadingChunk(false); }
+    }
+    return null;
   }, [userId]);
 
   const createNewRecorder = useCallback(() => {
