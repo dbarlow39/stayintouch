@@ -136,25 +136,25 @@ const LeadsTab = () => {
   };
 
   return (
-    <Tabs defaultValue="leads" className="space-y-6">
+    <Tabs defaultValue="lead-list" className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-lg font-semibold">Seller Lead CRM</h3>
           <p className="text-sm text-muted-foreground">Track seller leads with automated follow-ups</p>
         </div>
         <TabsList>
-          <TabsTrigger value="leads">
+          <TabsTrigger value="lead-list">
             <Users className="w-4 h-4 mr-2" />
             Seller Leads
           </TabsTrigger>
-          <TabsTrigger value="sequences">
+          <TabsTrigger value="lead-sequences">
             <Settings2 className="w-4 h-4 mr-2" />
             Sequences
           </TabsTrigger>
         </TabsList>
       </div>
 
-      <TabsContent value="leads" className="space-y-4">
+      <TabsContent value="lead-list" className="space-y-4">
         <div className="flex justify-end">
           <Dialog open={open} onOpenChange={(isOpen) => { setOpen(isOpen); if (!isOpen) resetForm(); }}>
           <DialogTrigger asChild>
@@ -378,7 +378,7 @@ const LeadsTab = () => {
             </TableHeader>
             <TableBody>
               {leads.map((lead) => (
-                <TableRow key={lead.id} className="cursor-pointer hover:bg-muted/50" onClick={(e) => { console.log("Row clicked, navigating to:", `/seller-lead/${lead.id}`, "event target:", (e.target as HTMLElement).tagName); navigate(`/seller-lead/${lead.id}`); }}>
+                <TableRow key={lead.id} className="cursor-pointer hover:bg-muted/50" onClick={() => navigate(`/seller-lead/${lead.id}`)}>
                   <TableCell className="font-medium">
                     {lead.first_name} {lead.last_name}
                   </TableCell>
@@ -440,7 +440,7 @@ const LeadsTab = () => {
       )}
       </TabsContent>
 
-      <TabsContent value="sequences">
+      <TabsContent value="lead-sequences">
         <SequenceManager />
       </TabsContent>
     </Tabs>
