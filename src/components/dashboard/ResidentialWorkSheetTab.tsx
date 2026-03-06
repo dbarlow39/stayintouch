@@ -107,18 +107,38 @@ const ResidentialWorkSheetTab = ({ lead }: ResidentialWorkSheetTabProps) => {
   }, [user, lead, leadLoaded, currentInspectionId]);
 
   // Auto-save every 10 minutes when in form view
+  // GUARD: Only auto-save if data has more than just property-info (prevents overwriting full data with partial pre-fill)
   useEffect(() => {
     if (!user || view !== "form") return;
     autoSaveRef.current = setInterval(async () => {
       if (!user) return;
+      const data = inspectionDataRef.current;
+      const inspId = currentInspectionIdRef.current;
+      
+      // Don't auto-save partial data (only property-info from lead pre-fill)
+      const sectionCount = Object.keys(data).length;
+      if (sectionCount <= 1 && !inspId) {
+        return; // Skip auto-save for new pre-fills with only 1 section
+      }
+      
       try {
-        const data = inspectionDataRef.current;
-        const inspId = currentInspectionIdRef.current;
-        const basePayload = { user_id: user.id, property_address: data["property-info"]?.address || "Untitled Property", inspection_data: data };
         if (inspId) {
-          await supabase.from("inspections").update(basePayload).eq("id", inspId);
+          // Save history snapshot before overwriting
+          const { data: existing } = await supabase.from("inspections").select("inspection_data, photos, property_address").eq("id", inspId).single();
+          if (existing) {
+            await supabase.from("inspection_history").insert({
+              inspection_id: inspId,
+              user_id: user.id,
+              inspection_data: existing.inspection_data,
+              photos: existing.photos,
+              property_address: existing.property_address,
+            });
+            // Merge: existing DB data + local changes (local wins)
+            const mergedData = { ...(existing.inspection_data as Record<string, any> || {}), ...data };
+            await supabase.from("inspections").update({ user_id: user.id, property_address: mergedData["property-info"]?.address || "Untitled Property", inspection_data: mergedData }).eq("id", inspId);
+          }
         } else {
-          const { data: inserted, error } = await supabase.from("inspections").insert(basePayload).select("id").single();
+          const { data: inserted, error } = await supabase.from("inspections").insert({ user_id: user.id, property_address: data["property-info"]?.address || "Untitled Property", inspection_data: data }).select("id").single();
           if (!error && inserted) { setCurrentInspectionId(inserted.id); }
         }
         toast.success("Auto-saved successfully");
