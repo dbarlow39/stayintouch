@@ -245,13 +245,25 @@ const ResidentialWorkSheetTab = ({ lead }: ResidentialWorkSheetTabProps) => {
     if (!user) return;
     setSaving(true);
     try {
-      const basePayload = { user_id: user.id, property_address: inspectionData["property-info"]?.address || "Untitled Property", inspection_data: inspectionData };
       let inspectionId = currentInspectionId;
       if (inspectionId) {
-        const { error } = await supabase.from("inspections").update(basePayload).eq("id", inspectionId);
-        if (error) throw error;
+        // Save history snapshot before overwriting
+        const { data: existing } = await supabase.from("inspections").select("inspection_data, photos, property_address").eq("id", inspectionId).single();
+        if (existing) {
+          await supabase.from("inspection_history").insert({
+            inspection_id: inspectionId,
+            user_id: user.id,
+            inspection_data: existing.inspection_data,
+            photos: existing.photos,
+            property_address: existing.property_address,
+          });
+          // Merge: existing DB data + local changes (local wins on conflicts)
+          const mergedData = { ...(existing.inspection_data as Record<string, any> || {}), ...inspectionData };
+          const { error } = await supabase.from("inspections").update({ user_id: user.id, property_address: mergedData["property-info"]?.address || "Untitled Property", inspection_data: mergedData }).eq("id", inspectionId);
+          if (error) throw error;
+        }
       } else {
-        const { data, error } = await supabase.from("inspections").insert(basePayload).select("id").single();
+        const { data, error } = await supabase.from("inspections").insert({ user_id: user.id, property_address: inspectionData["property-info"]?.address || "Untitled Property", inspection_data: inspectionData }).select("id").single();
         if (error) throw error;
         inspectionId = data.id;
         setCurrentInspectionId(inspectionId);
