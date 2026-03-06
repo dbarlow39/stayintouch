@@ -2234,6 +2234,24 @@ export type Database = {
         }
         Returns: boolean
       }
+      recover_inspection_data: {
+        Args: { target_id: string }
+        Returns: {
+          created_at: string
+          id: string
+          inspection_data: Json | null
+          photos: Json | null
+          property_address: string
+          updated_at: string
+          user_id: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "inspections"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
     }
     Enums: {
       app_role: "admin" | "agent"
