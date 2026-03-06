@@ -64,6 +64,11 @@ const ResidentialWorkSheetTab = ({ lead }: ResidentialWorkSheetTabProps) => {
   // When opened from a lead, find existing worksheet or pre-fill a new one
   useEffect(() => {
     if (!user || !lead || leadLoaded) return;
+    // If a worksheet is already loaded, don't overwrite it
+    if (currentInspectionId) {
+      setLeadLoaded(true);
+      return;
+    }
 
     const initForLead = async () => {
       const address = lead.address?.trim();
@@ -84,7 +89,7 @@ const ResidentialWorkSheetTab = ({ lead }: ResidentialWorkSheetTabProps) => {
         }
       }
 
-      // No existing worksheet — pre-fill from lead data
+      // No existing worksheet — pre-fill from lead data but DON'T auto-save
       setInspectionData({
         'property-info': {
           name: `${lead.first_name || ''} ${lead.last_name || ''}`.trim(),
@@ -99,7 +104,7 @@ const ResidentialWorkSheetTab = ({ lead }: ResidentialWorkSheetTabProps) => {
     };
 
     initForLead();
-  }, [user, lead, leadLoaded]);
+  }, [user, lead, leadLoaded, currentInspectionId]);
 
   // Auto-save every 10 minutes when in form view
   useEffect(() => {
