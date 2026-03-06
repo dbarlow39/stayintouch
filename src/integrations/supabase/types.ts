@@ -1068,6 +1068,44 @@ export type Database = {
         }
         Relationships: []
       }
+      inspection_history: {
+        Row: {
+          id: string
+          inspection_data: Json | null
+          inspection_id: string
+          photos: Json | null
+          property_address: string | null
+          saved_at: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          inspection_data?: Json | null
+          inspection_id: string
+          photos?: Json | null
+          property_address?: string | null
+          saved_at?: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          inspection_data?: Json | null
+          inspection_id?: string
+          photos?: Json | null
+          property_address?: string | null
+          saved_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inspection_history_inspection_id_fkey"
+            columns: ["inspection_id"]
+            isOneToOne: false
+            referencedRelation: "inspections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       inspections: {
         Row: {
           created_at: string
