@@ -147,6 +147,46 @@ const SellerLeadDetail = () => {
     },
   });
 
+  const convertToClient = async () => {
+    if (!lead || !user) return;
+    setIsConverting(true);
+    try {
+      // Insert into clients table
+      const { data: newClient, error: insertError } = await supabase
+        .from("clients")
+        .insert({
+          agent_id: user.id,
+          first_name: formData.first_name,
+          last_name: formData.last_name,
+          email: formData.email || null,
+          phone: formData.phone || null,
+          street_name: formData.address || null,
+          city: formData.city || null,
+          state: formData.state || null,
+          zip: formData.zip || null,
+          notes: formData.notes || null,
+          status: "A",
+        })
+        .select("id")
+        .single();
+      if (insertError) throw insertError;
+
+      // Delete the lead
+      const { error: deleteError } = await supabase.from("leads").delete().eq("id", id!);
+      if (deleteError) throw deleteError;
+
+      queryClient.invalidateQueries({ queryKey: ["leads"] });
+      queryClient.invalidateQueries({ queryKey: ["clients"] });
+      toast({ title: "Lead converted to client successfully" });
+      navigate(`/dashboard?tab=clients&openClient=${newClient.id}`);
+    } catch (error: any) {
+      toast({ title: "Error converting lead", description: error.message, variant: "destructive" });
+    } finally {
+      setIsConverting(false);
+      setShowConvertDialog(false);
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     updateMutation.mutate();
