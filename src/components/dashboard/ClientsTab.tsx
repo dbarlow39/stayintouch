@@ -114,9 +114,11 @@ interface ClientsTabProps {
 const ClientsTab = ({ onSelectClientForEstimate }: ClientsTabProps) => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [open, setOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
   const [viewingClient, setViewingClient] = useState<Client | null>(null);
+  const openClientId = searchParams.get("openClient");
   
   const [csvMappingOpen, setCsvMappingOpen] = useState(false);
   const [csvHeaders, setCsvHeaders] = useState<string[]>([]);
