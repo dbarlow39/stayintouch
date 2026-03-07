@@ -311,6 +311,7 @@ const ClientsTab = ({ onSelectClientForEstimate }: ClientsTabProps) => {
     }
   }, [openClientId, clients, viewingClient, searchParams, setSearchParams]);
 
+  const filteredClients = clients.filter((client) => {
     if (!searchQuery) return true;
     const q = searchQuery.toLowerCase();
     const fullName = `${client.first_name || ""} ${client.last_name || ""}`.toLowerCase();
