@@ -47,6 +47,8 @@ const SellerLeadDetail = () => {
   const lookupTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
   const [activeTab, setActiveTab] = useState("details");
+  const [showConvertDialog, setShowConvertDialog] = useState(false);
+  const [isConverting, setIsConverting] = useState(false);
 
   const [formData, setFormData] = useState({
     address: "",
