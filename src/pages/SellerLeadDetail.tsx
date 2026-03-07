@@ -300,6 +300,12 @@ const SellerLeadDetail = () => {
                         }
                       />
                     )}
+                    {lead && (
+                      <Button variant="default" size="sm" onClick={() => setShowConvertDialog(true)}>
+                        <UserCheck className="w-4 h-4 mr-1" />
+                        Convert to Client
+                      </Button>
+                    )}
                   </div>
                 </CardHeader>
                 <CardContent>
