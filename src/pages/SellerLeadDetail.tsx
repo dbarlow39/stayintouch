@@ -555,6 +555,31 @@ const SellerLeadDetail = () => {
           </main>
         )}
       </div>
+
+      <AlertDialog open={showConvertDialog} onOpenChange={setShowConvertDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Convert Lead to Client</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will create a new active client from <strong>{formData.first_name} {formData.last_name}</strong> and permanently delete this seller lead. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="text-sm space-y-1 py-2 text-muted-foreground">
+            <p><strong>Name:</strong> {formData.first_name} {formData.last_name}</p>
+            {formData.address && <p><strong>Address:</strong> {formData.address}</p>}
+            {formData.city && <p><strong>City:</strong> {formData.city}, {formData.state} {formData.zip}</p>}
+            {formData.email && <p><strong>Email:</strong> {formData.email}</p>}
+            {formData.phone && <p><strong>Phone:</strong> {formData.phone}</p>}
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isConverting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={convertToClient} disabled={isConverting}>
+              {isConverting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <UserCheck className="w-4 h-4 mr-2" />}
+              Convert to Client
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
