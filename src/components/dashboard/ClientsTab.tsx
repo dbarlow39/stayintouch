@@ -298,7 +298,19 @@ const ClientsTab = ({ onSelectClientForEstimate }: ClientsTabProps) => {
     enabled: !!user,
   });
 
-  const filteredClients = clients.filter((client) => {
+  // Auto-open client detail modal from URL param (e.g. after lead conversion)
+  useEffect(() => {
+    if (openClientId && clients.length > 0 && !viewingClient) {
+      const match = clients.find((c) => c.id === openClientId);
+      if (match) {
+        setViewingClient(match);
+        // Clean up the URL param
+        searchParams.delete("openClient");
+        setSearchParams(searchParams, { replace: true });
+      }
+    }
+  }, [openClientId, clients, viewingClient, searchParams, setSearchParams]);
+
     if (!searchQuery) return true;
     const q = searchQuery.toLowerCase();
     const fullName = `${client.first_name || ""} ${client.last_name || ""}`.toLowerCase();
