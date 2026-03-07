@@ -151,6 +151,11 @@ const SellerLeadDetail = () => {
     if (!lead || !user) return;
     setIsConverting(true);
     try {
+      // Split address into street_number and street_name
+      const addressParts = (formData.address || "").trim().split(/\s+/);
+      const streetNumber = addressParts.length > 1 ? addressParts[0] : null;
+      const streetName = addressParts.length > 1 ? addressParts.slice(1).join(" ") : formData.address || null;
+
       // Insert into clients table
       const { data: newClient, error: insertError } = await supabase
         .from("clients")
@@ -159,8 +164,9 @@ const SellerLeadDetail = () => {
           first_name: formData.first_name,
           last_name: formData.last_name,
           email: formData.email || null,
-          phone: formData.phone || null,
-          street_name: formData.address || null,
+          cell_phone: formData.phone || null,
+          street_number: streetNumber,
+          street_name: streetName,
           city: formData.city || null,
           state: formData.state || null,
           zip: formData.zip || null,
