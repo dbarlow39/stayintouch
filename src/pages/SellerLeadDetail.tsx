@@ -10,7 +10,17 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Save, Trash2, Loader2, Asterisk, Zap, FileText, BarChart3, GitBranch, DollarSign, ClipboardList } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { ArrowLeft, Save, Trash2, Loader2, Asterisk, Zap, FileText, BarChart3, GitBranch, DollarSign, ClipboardList, UserCheck } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import LeadEnrollmentDialog from "@/components/dashboard/LeadEnrollmentDialog";
 import logo from "@/assets/logo.jpg";
@@ -37,6 +47,8 @@ const SellerLeadDetail = () => {
   const lookupTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
   const [activeTab, setActiveTab] = useState("details");
+  const [showConvertDialog, setShowConvertDialog] = useState(false);
+  const [isConverting, setIsConverting] = useState(false);
 
   const [formData, setFormData] = useState({
     address: "",
@@ -134,6 +146,46 @@ const SellerLeadDetail = () => {
       toast({ title: "Error deleting lead", description: error.message, variant: "destructive" });
     },
   });
+
+  const convertToClient = async () => {
+    if (!lead || !user) return;
+    setIsConverting(true);
+    try {
+      // Insert into clients table
+      const { data: newClient, error: insertError } = await supabase
+        .from("clients")
+        .insert({
+          agent_id: user.id,
+          first_name: formData.first_name,
+          last_name: formData.last_name,
+          email: formData.email || null,
+          phone: formData.phone || null,
+          street_name: formData.address || null,
+          city: formData.city || null,
+          state: formData.state || null,
+          zip: formData.zip || null,
+          notes: formData.notes || null,
+          status: "A",
+        })
+        .select("id")
+        .single();
+      if (insertError) throw insertError;
+
+      // Delete the lead
+      const { error: deleteError } = await supabase.from("leads").delete().eq("id", id!);
+      if (deleteError) throw deleteError;
+
+      queryClient.invalidateQueries({ queryKey: ["leads"] });
+      queryClient.invalidateQueries({ queryKey: ["clients"] });
+      toast({ title: "Lead converted to client successfully" });
+      navigate(`/dashboard?tab=clients&openClient=${newClient.id}`);
+    } catch (error: any) {
+      toast({ title: "Error converting lead", description: error.message, variant: "destructive" });
+    } finally {
+      setIsConverting(false);
+      setShowConvertDialog(false);
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -247,6 +299,12 @@ const SellerLeadDetail = () => {
                           </Button>
                         }
                       />
+                    )}
+                    {lead && (
+                      <Button variant="default" size="sm" onClick={() => setShowConvertDialog(true)}>
+                        <UserCheck className="w-4 h-4 mr-1" />
+                        Convert to Client
+                      </Button>
                     )}
                   </div>
                 </CardHeader>
@@ -497,6 +555,31 @@ const SellerLeadDetail = () => {
           </main>
         )}
       </div>
+
+      <AlertDialog open={showConvertDialog} onOpenChange={setShowConvertDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Convert Lead to Client</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will create a new active client from <strong>{formData.first_name} {formData.last_name}</strong> and permanently delete this seller lead. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="text-sm space-y-1 py-2 text-muted-foreground">
+            <p><strong>Name:</strong> {formData.first_name} {formData.last_name}</p>
+            {formData.address && <p><strong>Address:</strong> {formData.address}</p>}
+            {formData.city && <p><strong>City:</strong> {formData.city}, {formData.state} {formData.zip}</p>}
+            {formData.email && <p><strong>Email:</strong> {formData.email}</p>}
+            {formData.phone && <p><strong>Phone:</strong> {formData.phone}</p>}
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isConverting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={convertToClient} disabled={isConverting}>
+              {isConverting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <UserCheck className="w-4 h-4 mr-2" />}
+              Convert to Client
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

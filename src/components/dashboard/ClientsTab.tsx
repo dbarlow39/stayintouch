@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -113,9 +114,11 @@ interface ClientsTabProps {
 const ClientsTab = ({ onSelectClientForEstimate }: ClientsTabProps) => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [open, setOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
   const [viewingClient, setViewingClient] = useState<Client | null>(null);
+  const openClientId = searchParams.get("openClient");
   
   const [csvMappingOpen, setCsvMappingOpen] = useState(false);
   const [csvHeaders, setCsvHeaders] = useState<string[]>([]);
@@ -294,6 +297,19 @@ const ClientsTab = ({ onSelectClientForEstimate }: ClientsTabProps) => {
     },
     enabled: !!user,
   });
+
+  // Auto-open client detail modal from URL param (e.g. after lead conversion)
+  useEffect(() => {
+    if (openClientId && clients.length > 0 && !viewingClient) {
+      const match = clients.find((c) => c.id === openClientId);
+      if (match) {
+        setViewingClient(match);
+        // Clean up the URL param
+        searchParams.delete("openClient");
+        setSearchParams(searchParams, { replace: true });
+      }
+    }
+  }, [openClientId, clients, viewingClient, searchParams, setSearchParams]);
 
   const filteredClients = clients.filter((client) => {
     if (!searchQuery) return true;
