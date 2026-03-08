@@ -715,6 +715,7 @@ const ClientsTab = ({ onSelectClientForEstimate }: ClientsTabProps) => {
               <SelectItem value="E">Expired</SelectItem>
               <SelectItem value="W">Withdrawn</SelectItem>
               <SelectItem value="T">Temp Off Market</SelectItem>
+              <SelectItem value="none">No Status</SelectItem>
             </SelectContent>
           </Select>
           <input
