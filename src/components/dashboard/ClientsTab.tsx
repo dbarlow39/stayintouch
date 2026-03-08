@@ -285,7 +285,9 @@ const ClientsTab = ({ onSelectClientForEstimate }: ClientsTabProps) => {
         .select("*")
         .eq("agent_id", user!.id);
       
-      if (statusFilter !== "all") {
+      if (statusFilter === "none") {
+        query = query.or("status.is.null,status.eq.");
+      } else if (statusFilter !== "all") {
         query = query.ilike("status", statusFilter);
       }
       
@@ -715,6 +717,7 @@ const ClientsTab = ({ onSelectClientForEstimate }: ClientsTabProps) => {
               <SelectItem value="E">Expired</SelectItem>
               <SelectItem value="W">Withdrawn</SelectItem>
               <SelectItem value="T">Temp Off Market</SelectItem>
+              <SelectItem value="none">No Status</SelectItem>
             </SelectContent>
           </Select>
           <input
