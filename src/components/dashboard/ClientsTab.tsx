@@ -1213,6 +1213,7 @@ const ClientsTab = ({ onSelectClientForEstimate }: ClientsTabProps) => {
                     >
                       <option value="" className="bg-white dark:bg-gray-800 text-foreground">—</option>
                       <option value="A" className="bg-white dark:bg-gray-800 text-foreground">A</option>
+                      <option value="S" className="bg-white dark:bg-gray-800 text-foreground">S</option>
                       <option value="C" className="bg-white dark:bg-gray-800 text-foreground">C</option>
                       <option value="E" className="bg-white dark:bg-gray-800 text-foreground">E</option>
                       <option value="W" className="bg-white dark:bg-gray-800 text-foreground">W</option>
