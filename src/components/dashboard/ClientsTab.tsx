@@ -285,7 +285,9 @@ const ClientsTab = ({ onSelectClientForEstimate }: ClientsTabProps) => {
         .select("*")
         .eq("agent_id", user!.id);
       
-      if (statusFilter !== "all") {
+      if (statusFilter === "none") {
+        query = query.or("status.is.null,status.eq.");
+      } else if (statusFilter !== "all") {
         query = query.ilike("status", statusFilter);
       }
       
