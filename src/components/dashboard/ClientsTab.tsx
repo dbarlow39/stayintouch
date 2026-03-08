@@ -800,6 +800,7 @@ const ClientsTab = ({ onSelectClientForEstimate }: ClientsTabProps) => {
                       </SelectTrigger>
                       <SelectContent className="bg-background z-50">
                         <SelectItem value="A">Active (A)</SelectItem>
+                        <SelectItem value="S">Sold (S)</SelectItem>
                         <SelectItem value="C">Closed (C)</SelectItem>
                         <SelectItem value="E">Expired (E)</SelectItem>
                         <SelectItem value="W">Withdrawn (W)</SelectItem>
