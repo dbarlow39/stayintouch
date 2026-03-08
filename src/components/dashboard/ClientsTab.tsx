@@ -710,6 +710,7 @@ const ClientsTab = ({ onSelectClientForEstimate }: ClientsTabProps) => {
             <SelectContent className="bg-background z-50">
               <SelectItem value="all">All Clients</SelectItem>
               <SelectItem value="A">Active</SelectItem>
+              <SelectItem value="S">Sold</SelectItem>
               <SelectItem value="C">Closed</SelectItem>
               <SelectItem value="E">Expired</SelectItem>
               <SelectItem value="W">Withdrawn</SelectItem>
@@ -799,6 +800,7 @@ const ClientsTab = ({ onSelectClientForEstimate }: ClientsTabProps) => {
                       </SelectTrigger>
                       <SelectContent className="bg-background z-50">
                         <SelectItem value="A">Active (A)</SelectItem>
+                        <SelectItem value="S">Sold (S)</SelectItem>
                         <SelectItem value="C">Closed (C)</SelectItem>
                         <SelectItem value="E">Expired (E)</SelectItem>
                         <SelectItem value="W">Withdrawn (W)</SelectItem>
@@ -1211,6 +1213,7 @@ const ClientsTab = ({ onSelectClientForEstimate }: ClientsTabProps) => {
                     >
                       <option value="" className="bg-white dark:bg-gray-800 text-foreground">—</option>
                       <option value="A" className="bg-white dark:bg-gray-800 text-foreground">A</option>
+                      <option value="S" className="bg-white dark:bg-gray-800 text-foreground">S</option>
                       <option value="C" className="bg-white dark:bg-gray-800 text-foreground">C</option>
                       <option value="E" className="bg-white dark:bg-gray-800 text-foreground">E</option>
                       <option value="W" className="bg-white dark:bg-gray-800 text-foreground">W</option>
