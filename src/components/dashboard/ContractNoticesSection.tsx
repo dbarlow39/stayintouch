@@ -95,6 +95,7 @@ const ContractNoticesSection = ({ onNavigateToProperty }: ContractNoticesSection
         .select("id, name, street_address, in_contract, closing_date, inspection_days, loan_app_time_frame, loan_commitment, deposit_collection, deal_status")
         .not("in_contract", "is", null)
         .neq("deal_status", "closed");
+      if (error) throw error;
       return data as PropertyRow[];
     },
     enabled: !!user,
