@@ -710,6 +710,7 @@ const ClientsTab = ({ onSelectClientForEstimate }: ClientsTabProps) => {
             <SelectContent className="bg-background z-50">
               <SelectItem value="all">All Clients</SelectItem>
               <SelectItem value="A">Active</SelectItem>
+              <SelectItem value="S">Sold</SelectItem>
               <SelectItem value="C">Closed</SelectItem>
               <SelectItem value="E">Expired</SelectItem>
               <SelectItem value="W">Withdrawn</SelectItem>
