@@ -148,7 +148,7 @@ serve(async (req) => {
           <!-- Letter Body -->
           <tr>
             <td style="padding: 32px;">
-              <p style="margin: 0 0 24px; line-height: 1.7; color: #374151; font-size: 15px;">${escapedLetterText}</p>
+              <div style="margin: 0 0 24px; line-height: 1.7; color: #374151; font-size: 15px;">${renderedLetterHtml}</div>
 
               ${signatureHtml}
               ${preview_only ? attachmentPreviewHtml : ''}
