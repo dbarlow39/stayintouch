@@ -112,7 +112,7 @@ const OfferLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate 
     lines.push(`Home Warranty: ${formatCurrency(propertyData.homeWarranty)}`);
     lines.push(`Good Faith Deposit: ${formatCurrency(propertyData.deposit)}`);
     lines.push('');
-    lines.push('Agent Information');
+    lines.push('**Agent Information**');
     lines.push(`Buyer Agent: ${propertyData.agentName || 'Not specified'}`);
     lines.push(`Buyer Agent Phone: ${propertyData.agentContact || 'Not specified'}`);
     if (propertyData.agentEmail) {
