@@ -108,7 +108,7 @@ const OfferLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate 
     lines.push(`Buyer's Final Walk Through: ${propertyData.finalWalkThrough || 'Not specified'}`);
     lines.push(`Respond By: ${propertyData.respondToOfferBy || 'Not specified'}`);
     lines.push('');
-    lines.push('Additional Costs');
+    lines.push('**Additional Costs**');
     lines.push(`Home Warranty: ${formatCurrency(propertyData.homeWarranty)}`);
     lines.push(`Good Faith Deposit: ${formatCurrency(propertyData.deposit)}`);
     lines.push('');
