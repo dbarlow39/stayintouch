@@ -85,14 +85,14 @@ const OfferLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate 
   const buildSummaryBlock = () => {
     const lines: string[] = [
       '',
-      '**Summary of Offer**',
+      'Summary of Offer',
       '',
-      '**Financial Summary**',
+      'Financial Summary',
       `Offer Price: ${formatCurrency(propertyData.offerPrice)}`,
       `Buyer Closing Cost: ${formatCurrency(propertyData.closingCost)}`,
       `Estimated Net (after all expenses paid): ${formatCurrency(closingCosts.estimatedNet)}`,
       '',
-      '**Loan Information**',
+      'Loan Information',
       `Type of Loan: ${propertyData.typeOfLoan || 'Not specified'}`,
       `Pre-Approval: ${propertyData.preApprovalDays === 0 ? 'Received' : propertyData.preApprovalDays + ' days'}`,
     ];
@@ -100,7 +100,7 @@ const OfferLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate 
       lines.push(`Appliances: ${propertyData.appliances}`);
     }
     lines.push('');
-    lines.push('**Timeline and Dates**');
+    lines.push('Timeline and Dates');
     lines.push(`Inspection Period: ${calculateInspectionEndDate()}`);
     lines.push(`Remedy Period: ${calculateRemedyEndDate()}`);
     lines.push(`Closing Date: ${formatDate(propertyData.closingDate)}`);
@@ -108,11 +108,11 @@ const OfferLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate 
     lines.push(`Buyer's Final Walk Through: ${propertyData.finalWalkThrough || 'Not specified'}`);
     lines.push(`Respond By: ${propertyData.respondToOfferBy || 'Not specified'}`);
     lines.push('');
-    lines.push('**Additional Costs**');
+    lines.push('Additional Costs');
     lines.push(`Home Warranty: ${formatCurrency(propertyData.homeWarranty)}`);
     lines.push(`Good Faith Deposit: ${formatCurrency(propertyData.deposit)}`);
     lines.push('');
-    lines.push('**Agent Information**');
+    lines.push('Agent Information');
     lines.push(`Buyer Agent: ${propertyData.agentName || 'Not specified'}`);
     lines.push(`Buyer Agent Phone: ${propertyData.agentContact || 'Not specified'}`);
     if (propertyData.agentEmail) {
@@ -120,6 +120,64 @@ const OfferLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate 
     }
     lines.push('');
     return lines.join('\n');
+  };
+
+  const buildSummaryHtml = () => {
+    const sectionStyle = 'margin: 0 0 4px; font-size: 16px; font-weight: 700; color: #1f2937;';
+    const rowStyle = 'display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #e5e7eb;';
+    const labelStyle = 'font-weight: 500; color: #374151;';
+    const valueStyle = 'color: #374151;';
+
+    const row = (label: string, value: string) =>
+      `<tr><td style="padding: 6px 12px 6px 0; border-bottom: 1px solid #e5e7eb; font-weight: 500; color: #374151;">${label}</td><td style="padding: 6px 0; border-bottom: 1px solid #e5e7eb; color: #374151; text-align: right;">${value}</td></tr>`;
+
+    const appliancesRow = (propertyData.appliances && propertyData.appliances.length < 200)
+      ? row('Appliances', propertyData.appliances) : '';
+
+    const agentEmailRow = propertyData.agentEmail
+      ? row('Buyer Agent Email', propertyData.agentEmail) : '';
+
+    return `
+      <div style="margin: 20px 0; padding: 20px; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px;">
+        <p style="margin: 0 0 16px; font-size: 18px; font-weight: 700; color: #1f2937;">Summary of Offer</p>
+
+        <p style="${sectionStyle}">Financial Summary</p>
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 16px;">
+          ${row('Offer Price', formatCurrency(propertyData.offerPrice))}
+          ${row('Buyer Closing Cost', formatCurrency(propertyData.closingCost))}
+          <tr><td style="padding: 8px 12px 8px 0; font-weight: 700; color: #1f2937;">Estimated Net <span style="font-size: 12px; font-weight: 400;">(after all expenses paid)</span></td><td style="padding: 8px 0; font-weight: 700; color: #1f2937; text-align: right;">${formatCurrency(closingCosts.estimatedNet)}</td></tr>
+        </table>
+
+        <p style="${sectionStyle}">Loan Information</p>
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 16px;">
+          ${row('Type of Loan', propertyData.typeOfLoan || 'Not specified')}
+          ${row('Pre-Approval', propertyData.preApprovalDays === 0 ? 'Received' : propertyData.preApprovalDays + ' days')}
+          ${appliancesRow}
+        </table>
+
+        <p style="${sectionStyle}">Timeline & Dates</p>
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 16px;">
+          ${row('Inspection Period', calculateInspectionEndDate())}
+          ${row('Remedy Period', calculateRemedyEndDate())}
+          ${row('Closing Date', formatDate(propertyData.closingDate))}
+          ${row('Possession', formatDate(propertyData.possession))}
+          ${row("Buyer's Final Walk Through", propertyData.finalWalkThrough || 'Not specified')}
+          ${row('Respond By', propertyData.respondToOfferBy || 'Not specified')}
+        </table>
+
+        <p style="${sectionStyle}">Additional Costs</p>
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 16px;">
+          ${row('Home Warranty', formatCurrency(propertyData.homeWarranty))}
+          ${row('Good Faith Deposit', formatCurrency(propertyData.deposit))}
+        </table>
+
+        <p style="${sectionStyle}">Agent Information</p>
+        <table style="width: 100%; border-collapse: collapse;">
+          ${row('Buyer Agent', propertyData.agentName || 'Not specified')}
+          ${row('Buyer Agent Phone', propertyData.agentContact || 'Not specified')}
+          ${agentEmailRow}
+        </table>
+      </div>`;
   };
 
   const defaultLetterText = useMemo(() => {
