@@ -402,10 +402,15 @@ ${agentFirstName}`;
       const textarea = clonedContent.querySelector('textarea');
       if (textarea) {
         const div = document.createElement('div');
-        div.style.cssText = 'white-space: pre-wrap; font-size: 16px; line-height: 1.6;';
-        div.innerHTML = letterText
-          .replace(/\n/g, '<br>')
-          .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+        div.style.cssText = 'font-size: 16px; line-height: 1.6;';
+        // Split letter text around the plain-text summary block and inject HTML version
+        const summaryPlain = buildSummaryBlock().trim();
+        const parts = letterText.split(summaryPlain);
+        if (parts.length === 2) {
+          div.innerHTML = parts[0].replace(/\n/g, '<br>') + buildSummaryHtml() + parts[1].replace(/\n/g, '<br>');
+        } else {
+          div.innerHTML = letterText.replace(/\n/g, '<br>');
+        }
         textarea.parentNode?.replaceChild(div, textarea);
       }
 
