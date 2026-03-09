@@ -307,6 +307,12 @@ const AdResultsPage = () => {
         });
       }
 
+      // Resize ad image for email (25% width)
+      const adPreview = clonedContent.querySelector('[data-ad-preview]');
+      if (adPreview) {
+        (adPreview as HTMLElement).style.cssText = 'max-width: 25%; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden; margin-bottom: 16px;';
+      }
+
       clonedContent.querySelectorAll('p').forEach((p) => {
         if (!(p as HTMLElement).style.cssText) {
           (p as HTMLElement).style.cssText = 'margin: 16px 0; line-height: 1.6; color: #374151;';
@@ -488,7 +494,7 @@ const AdResultsPage = () => {
               {data.full_picture && (
                 <div className="my-6 not-prose">
                   <h3 className="font-semibold text-lg mb-3 text-foreground">Your Ad</h3>
-                  <div className="border rounded-lg overflow-hidden bg-muted/10" style={{ maxWidth: '88%' }}>
+                  <div className="border rounded-lg overflow-hidden bg-muted/10" style={{ maxWidth: '88%' }} data-ad-preview>
                     <img src={data.full_picture} alt="Facebook Ad" className="w-full object-cover" />
                   </div>
                 </div>
