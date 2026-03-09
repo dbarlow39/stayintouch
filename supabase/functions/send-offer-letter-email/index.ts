@@ -17,6 +17,7 @@ interface OfferLetterEmailPayload {
   client_name: string;
   street_address: string;
   letter_text: string;
+  summary_html?: string;
   agent_first_name?: string;
   agent_full_name?: string;
   agent_phone?: string;
