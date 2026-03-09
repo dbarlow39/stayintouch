@@ -85,14 +85,14 @@ const OfferLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate 
   const buildSummaryBlock = () => {
     const lines: string[] = [
       '',
-      'Summary of Offer',
+      '**Summary of Offer**',
       '',
-      'Financial Summary',
+      '**Financial Summary**',
       `Offer Price: ${formatCurrency(propertyData.offerPrice)}`,
       `Buyer Closing Cost: ${formatCurrency(propertyData.closingCost)}`,
       `Estimated Net (after all expenses paid): ${formatCurrency(closingCosts.estimatedNet)}`,
       '',
-      'Loan Information',
+      '**Loan Information**',
       `Type of Loan: ${propertyData.typeOfLoan || 'Not specified'}`,
       `Pre-Approval: ${propertyData.preApprovalDays === 0 ? 'Received' : propertyData.preApprovalDays + ' days'}`,
     ];
@@ -100,7 +100,7 @@ const OfferLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate 
       lines.push(`Appliances: ${propertyData.appliances}`);
     }
     lines.push('');
-    lines.push('Timeline and Dates');
+    lines.push('**Timeline and Dates**');
     lines.push(`Inspection Period: ${calculateInspectionEndDate()}`);
     lines.push(`Remedy Period: ${calculateRemedyEndDate()}`);
     lines.push(`Closing Date: ${formatDate(propertyData.closingDate)}`);
@@ -108,11 +108,11 @@ const OfferLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate 
     lines.push(`Buyer's Final Walk Through: ${propertyData.finalWalkThrough || 'Not specified'}`);
     lines.push(`Respond By: ${propertyData.respondToOfferBy || 'Not specified'}`);
     lines.push('');
-    lines.push('Additional Costs');
+    lines.push('**Additional Costs**');
     lines.push(`Home Warranty: ${formatCurrency(propertyData.homeWarranty)}`);
     lines.push(`Good Faith Deposit: ${formatCurrency(propertyData.deposit)}`);
     lines.push('');
-    lines.push('Agent Information');
+    lines.push('**Agent Information**');
     lines.push(`Buyer Agent: ${propertyData.agentName || 'Not specified'}`);
     lines.push(`Buyer Agent Phone: ${propertyData.agentContact || 'Not specified'}`);
     if (propertyData.agentEmail) {
@@ -345,7 +345,9 @@ ${agentFirstName}`;
       if (textarea) {
         const div = document.createElement('div');
         div.style.cssText = 'white-space: pre-wrap; font-size: 16px; line-height: 1.6;';
-        div.innerHTML = letterText.replace(/\n/g, '<br>');
+        div.innerHTML = letterText
+          .replace(/\n/g, '<br>')
+          .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
         textarea.parentNode?.replaceChild(div, textarea);
       }
 
