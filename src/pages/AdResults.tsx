@@ -484,6 +484,21 @@ const AdResultsPage = () => {
                 );
               })()}
 
+              {/* Ad Creative Preview */}
+              {(data.full_picture || data.message) && (
+                <div className="my-6 not-prose">
+                  <h3 className="font-semibold text-lg mb-3 text-foreground">Your Ad</h3>
+                  <div className="border rounded-lg overflow-hidden bg-muted/10">
+                    {data.full_picture && (
+                      <img src={data.full_picture} alt="Facebook Ad" className="w-full max-h-[400px] object-cover" />
+                    )}
+                    {data.message && (
+                      <p className="p-4 text-sm text-muted-foreground whitespace-pre-line">{data.message}</p>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {/* Audience Breakdown */}
               {data.audience && data.audience.length > 0 && (() => {
                 const ageGroups = ['13-17', '18-24', '25-34', '35-44', '45-54', '55-64', '65+'];
