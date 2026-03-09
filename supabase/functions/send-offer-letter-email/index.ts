@@ -38,7 +38,7 @@ serve(async (req) => {
     const payload: OfferLetterEmailPayload = await req.json();
     const {
       to_email, from_name, reply_to,
-      client_name, street_address, letter_text,
+      client_name, street_address, letter_text, summary_html,
       agent_first_name, agent_full_name, agent_phone, agent_email, agent_bio,
       preview_only, attachments,
     } = payload;
