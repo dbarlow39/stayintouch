@@ -154,8 +154,8 @@ serve(async (req) => {
               <!-- Ad Creative Preview -->
               ${ad_preview_image ? `
               <p style="margin: 0 0 12px; font-size: 16px; font-weight: 600; color: #1f2937;">Your Ad</p>
-              <div style="margin-bottom: 24px; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden;">
-                <img src="${ad_preview_image}" alt="Facebook Ad" style="width: 100%; max-height: 400px; object-fit: cover; display: block;" />
+              <div style="margin-bottom: 24px; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden; max-width: 45%;">
+                <img src="${ad_preview_image}" alt="Facebook Ad" style="width: 100%; display: block;" />
               </div>
               ` : ''}
 

@@ -400,8 +400,8 @@ const AdResultsLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavig
                   {adImage && (
                     <div className="mb-6">
                       <h3 className="font-semibold text-lg mb-3">Your Ad</h3>
-                      <div className="border rounded-lg overflow-hidden bg-muted/10">
-                        <img src={adImage} alt="Facebook Ad" className="w-full max-h-[400px] object-cover" />
+                      <div className="border rounded-lg overflow-hidden bg-muted/10" style={{ maxWidth: '45%' }}>
+                        <img src={adImage} alt="Facebook Ad" className="w-full object-cover" />
                       </div>
                     </div>
                   )}
