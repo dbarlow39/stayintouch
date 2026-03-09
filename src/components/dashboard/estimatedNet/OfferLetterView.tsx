@@ -100,7 +100,7 @@ const OfferLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate 
       lines.push(`Appliances: ${propertyData.appliances}`);
     }
     lines.push('');
-    lines.push('Timeline and Dates');
+    lines.push('**Timeline and Dates**');
     lines.push(`Inspection Period: ${calculateInspectionEndDate()}`);
     lines.push(`Remedy Period: ${calculateRemedyEndDate()}`);
     lines.push(`Closing Date: ${formatDate(propertyData.closingDate)}`);
