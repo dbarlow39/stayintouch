@@ -59,13 +59,52 @@ serve(async (req) => {
       `;
     }
 
-    // Escape HTML in letter text and preserve newlines
-    const escapedLetterText = letter_text
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-      .replace(/\n/g, '<br>');
+    // Split letter text around plain-text summary and inject HTML version
+    let renderedLetterHtml: string;
+    if (summary_html) {
+      // Find the plain-text summary block boundaries (starts with "Summary of Offer", ends before next paragraph)
+      const summaryStartMarker = 'Summary of Offer';
+      const lines = letter_text.split('\n');
+      const summaryStartIdx = lines.findIndex(l => l.trim() === summaryStartMarker);
+      
+      if (summaryStartIdx >= 0) {
+        // Find end of summary block - look for blank line followed by non-summary content
+        // The summary block ends when we hit the next paragraph of the letter
+        let summaryEndIdx = summaryStartIdx + 1;
+        let foundContent = false;
+        for (let i = summaryStartIdx + 1; i < lines.length; i++) {
+          const trimmed = lines[i].trim();
+          // Summary sections: Financial Summary, Loan Information, Timeline, Additional, Agent Information
+          const isSummaryHeader = ['Financial Summary', 'Loan Information', 'Timeline and Dates', 'Additional Costs', 'Agent Information'].includes(trimmed);
+          const isSummaryRow = trimmed.includes(':') && !trimmed.startsWith('We ') && !trimmed.startsWith('Also ');
+          const isEmpty = trimmed === '';
+          
+          if (!isSummaryHeader && !isSummaryRow && !isEmpty && trimmed.length > 0) {
+            summaryEndIdx = i;
+            foundContent = true;
+            break;
+          }
+          summaryEndIdx = i + 1;
+        }
+        
+        const beforeSummary = lines.slice(0, summaryStartIdx).join('\n');
+        const afterSummary = foundContent ? lines.slice(summaryEndIdx).join('\n') : '';
+        
+        const escapeBefore = beforeSummary
+          .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>');
+        const escapeAfter = afterSummary
+          .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>');
+        
+        renderedLetterHtml = escapeBefore + summary_html + escapeAfter;
+      } else {
+        // Fallback: no summary marker found, render as plain escaped text
+        renderedLetterHtml = letter_text
+          .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>');
+      }
+    } else {
+      renderedLetterHtml = letter_text
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>');
+    }
 
     // Build attachment info for preview
     const attachmentCount = attachments?.length || 0;
