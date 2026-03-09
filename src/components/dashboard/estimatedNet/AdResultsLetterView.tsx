@@ -118,6 +118,8 @@ const AdResultsLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavig
             linkClicks: insights.linkClicks || 0,
             videoViews: insights.videoViews || 0,
           });
+          setAdImage(insights.full_picture || null);
+          setAdText(insights.message || null);
         }
       } catch (err) {
         console.error('Error loading ad results:', err);
