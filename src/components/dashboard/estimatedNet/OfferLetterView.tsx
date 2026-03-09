@@ -345,7 +345,9 @@ ${agentFirstName}`;
       if (textarea) {
         const div = document.createElement('div');
         div.style.cssText = 'white-space: pre-wrap; font-size: 16px; line-height: 1.6;';
-        div.innerHTML = letterText.replace(/\n/g, '<br>');
+        div.innerHTML = letterText
+          .replace(/\n/g, '<br>')
+          .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
         textarea.parentNode?.replaceChild(div, textarea);
       }
 
