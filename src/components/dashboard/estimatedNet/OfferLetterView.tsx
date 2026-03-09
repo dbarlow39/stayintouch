@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PropertyData } from "@/types/estimatedNet";
+import { calculateClosingCosts, formatCurrency } from "@/utils/estimatedNetCalculations";
 import { ArrowLeft, List, Mail, Calendar, FileText, Copy, DollarSign, ClipboardList, Settings, Loader2, Send, Paperclip, X } from "lucide-react";
 import { EmailClient, EMAIL_CLIENT_OPTIONS, getEmailClientPreference, setEmailClientPreference, openEmailClient } from "@/utils/emailClientUtils";
 import { useToast } from "@/hooks/use-toast";
@@ -43,11 +44,86 @@ const OfferLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate 
   // Extract first name from seller
   const ownerFirstName = propertyData.name.split(' ')[0];
 
+  const closingCosts = calculateClosingCosts(propertyData);
+
+  const formatDate = (dateString: string) => {
+    if (!dateString) return "Not specified";
+    if (dateString.includes('-') && dateString.length === 10) {
+      const [year, month, day] = dateString.split('-');
+      const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+      return date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+    }
+    return dateString;
+  };
+
+  const calculateInspectionEndDate = () => {
+    if (propertyData.inspectionDays === 0) return "Waived";
+    let baseDate: Date;
+    if (propertyData.inContract && propertyData.inContract.includes('-')) {
+      const [year, month, day] = propertyData.inContract.split('-');
+      baseDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+    } else {
+      baseDate = new Date();
+    }
+    baseDate.setDate(baseDate.getDate() + propertyData.inspectionDays);
+    return baseDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+  };
+
+  const calculateRemedyEndDate = () => {
+    if (propertyData.remedyPeriodDays === 0) return "Waived";
+    let baseDate: Date;
+    if (propertyData.inContract && propertyData.inContract.includes('-')) {
+      const [year, month, day] = propertyData.inContract.split('-');
+      baseDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+    } else {
+      baseDate = new Date();
+    }
+    baseDate.setDate(baseDate.getDate() + propertyData.inspectionDays + propertyData.remedyPeriodDays);
+    return baseDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+  };
+
+  const buildSummaryBlock = () => {
+    const lines: string[] = [
+      '',
+      '--- Summary of Offer ---',
+      '',
+      `Offer Price: ${formatCurrency(propertyData.offerPrice)}`,
+      `Buyer Closing Cost: ${formatCurrency(propertyData.closingCost)}`,
+      `Estimated Net (after all expenses paid): ${formatCurrency(closingCosts.estimatedNet)}`,
+      '',
+      `Type of Loan: ${propertyData.typeOfLoan || 'Not specified'}`,
+      `Pre-Approval: ${propertyData.preApprovalDays === 0 ? 'Received' : propertyData.preApprovalDays + ' days'}`,
+    ];
+    if (propertyData.appliances && propertyData.appliances.length < 200) {
+      lines.push(`Appliances: ${propertyData.appliances}`);
+    }
+    lines.push('');
+    lines.push(`Inspection Period: ${calculateInspectionEndDate()}`);
+    lines.push(`Remedy Period: ${calculateRemedyEndDate()}`);
+    lines.push(`Closing Date: ${formatDate(propertyData.closingDate)}`);
+    lines.push(`Possession: ${formatDate(propertyData.possession)}`);
+    lines.push(`Buyer's Final Walk Through: ${propertyData.finalWalkThrough || 'Not specified'}`);
+    lines.push(`Respond By: ${propertyData.respondToOfferBy || 'Not specified'}`);
+    lines.push('');
+    lines.push(`Home Warranty: ${formatCurrency(propertyData.homeWarranty)}`);
+    lines.push(`Good Faith Deposit: ${formatCurrency(propertyData.deposit)}`);
+    lines.push('');
+    lines.push(`Buyer Agent: ${propertyData.agentName || 'Not specified'}`);
+    lines.push(`Buyer Agent Phone: ${propertyData.agentContact || 'Not specified'}`);
+    if (propertyData.agentEmail) {
+      lines.push(`Buyer Agent Email: ${propertyData.agentEmail}`);
+    }
+    lines.push('---');
+    lines.push('');
+    return lines.join('\n');
+  };
+
   const defaultLetterText = useMemo(() => {
+    const summaryBlock = buildSummaryBlock();
     return `Hey ${ownerFirstName},
 
 We have received an offer for your property. I have attached a summary of the offer to make it easier to understand the important terms, an estimated net sheet showing all of the numbers and the bottom line for you after everything is paid and a copy of the offer itself.
-
+${summaryBlock}
 We can respond in 1 of 3 ways, (1) you can say I'll take it. . . (2) You can decline to respond altogether or (3) you can send over a counter offer with terms acceptable to you. It is my experience the buyer's first offer is not their best offer, sometimes they'll go fishing just to see what you are or are not willing to take. I would say put together a reasonable counter offer and let's see what we can do with this.
 
 Also be sure to check the items listed in Paragraph 5 to make sure you are OK with leaving those items. Otherwise I think everything else looks good to me.
@@ -58,7 +134,7 @@ Take a look and let me know your thoughts.
 
 Thanks
 ${agentFirstName}`;
-  }, [ownerFirstName, propertyData.respondToOfferBy, agentFirstName]);
+  }, [ownerFirstName, propertyData, agentFirstName, closingCosts.estimatedNet]);
 
   const [letterText, setLetterText] = useState<string>("");
   const [hasInitialized, setHasInitialized] = useState(false);
