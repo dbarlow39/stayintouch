@@ -118,7 +118,6 @@ const OfferLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate 
     if (propertyData.agentEmail) {
       lines.push(`Buyer Agent Email: ${propertyData.agentEmail}`);
     }
-    lines.push('');
     return lines.join('\n');
   };
 
