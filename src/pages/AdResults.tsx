@@ -488,7 +488,7 @@ const AdResultsPage = () => {
               {data.full_picture && (
                 <div className="my-6 not-prose">
                   <h3 className="font-semibold text-lg mb-3 text-foreground">Your Ad</h3>
-                  <div className="border rounded-lg overflow-hidden bg-muted/10" style={{ maxWidth: '70%' }}>
+                  <div className="border rounded-lg overflow-hidden bg-muted/10" style={{ maxWidth: '88%' }}>
                     <img src={data.full_picture} alt="Facebook Ad" className="w-full object-cover" />
                   </div>
                 </div>
