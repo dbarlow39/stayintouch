@@ -307,6 +307,12 @@ const AdResultsPage = () => {
         });
       }
 
+      // Resize ad image for email (25% width)
+      const adPreview = clonedContent.querySelector('[data-ad-preview]');
+      if (adPreview) {
+        (adPreview as HTMLElement).style.cssText = 'max-width: 25%; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden; margin-bottom: 16px;';
+      }
+
       clonedContent.querySelectorAll('p').forEach((p) => {
         if (!(p as HTMLElement).style.cssText) {
           (p as HTMLElement).style.cssText = 'margin: 16px 0; line-height: 1.6; color: #374151;';
