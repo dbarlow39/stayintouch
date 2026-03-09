@@ -189,7 +189,7 @@ We can respond in 1 of 3 ways, (1) you can say I'll take it. . . (2) You can dec
 
 Also be sure to check the items listed in Paragraph 5 to make sure you are OK with leaving those items. Otherwise I think everything else looks good to me.
 
-The buyer was asking for a response of some kind before ${propertyData.respondToOfferBy || '[Date not specified]'}.
+The buyer is asking for a response of some kind before ${propertyData.respondToOfferBy || '[Date not specified]'}.
 
 Take a look and let me know your thoughts.
 
