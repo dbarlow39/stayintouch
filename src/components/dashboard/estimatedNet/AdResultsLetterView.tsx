@@ -39,6 +39,8 @@ const AdResultsLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavig
   const [agentPhone, setAgentPhone] = useState("");
   const [agentBio, setAgentBio] = useState("");
   const [metrics, setMetrics] = useState<AdMetrics | null>(null);
+  const [adImage, setAdImage] = useState<string | null>(null);
+  const [adText, setAdText] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [noAds, setNoAds] = useState(false);
 
