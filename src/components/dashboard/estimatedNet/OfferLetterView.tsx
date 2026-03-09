@@ -85,7 +85,7 @@ const OfferLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate 
   const buildSummaryBlock = () => {
     const lines: string[] = [
       '',
-      '--- Summary of Offer ---',
+      'Summary of Offer',
       '',
       `Offer Price: ${formatCurrency(propertyData.offerPrice)}`,
       `Buyer Closing Cost: ${formatCurrency(propertyData.closingCost)}`,
@@ -113,7 +113,6 @@ const OfferLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate 
     if (propertyData.agentEmail) {
       lines.push(`Buyer Agent Email: ${propertyData.agentEmail}`);
     }
-    lines.push('---');
     lines.push('');
     return lines.join('\n');
   };
