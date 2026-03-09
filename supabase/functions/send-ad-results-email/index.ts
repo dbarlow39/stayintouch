@@ -152,11 +152,10 @@ serve(async (req) => {
               ` : ''}
 
               <!-- Ad Creative Preview -->
-              ${ad_preview_image || ad_preview_text ? `
+              ${ad_preview_image ? `
               <p style="margin: 0 0 12px; font-size: 16px; font-weight: 600; color: #1f2937;">Your Ad</p>
               <div style="margin-bottom: 24px; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden;">
-                ${ad_preview_image ? `<img src="${ad_preview_image}" alt="Facebook Ad" style="width: 100%; max-height: 400px; object-fit: cover; display: block;" />` : ''}
-                ${ad_preview_text ? `<p style="padding: 16px; margin: 0; font-size: 14px; color: #6b7280; white-space: pre-line;">${ad_preview_text}</p>` : ''}
+                <img src="${ad_preview_image}" alt="Facebook Ad" style="width: 100%; max-height: 400px; object-fit: cover; display: block;" />
               </div>
               ` : ''}
 

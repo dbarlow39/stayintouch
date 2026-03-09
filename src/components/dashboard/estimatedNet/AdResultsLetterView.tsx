@@ -397,16 +397,11 @@ const AdResultsLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavig
                   </div>
 
                   {/* Ad Creative Preview */}
-                  {(adImage || adText) && (
+                  {adImage && (
                     <div className="mb-6">
                       <h3 className="font-semibold text-lg mb-3">Your Ad</h3>
                       <div className="border rounded-lg overflow-hidden bg-muted/10">
-                        {adImage && (
-                          <img src={adImage} alt="Facebook Ad" className="w-full max-h-[400px] object-cover" />
-                        )}
-                        {adText && (
-                          <p className="p-4 text-sm text-muted-foreground whitespace-pre-line">{adText}</p>
-                        )}
+                        <img src={adImage} alt="Facebook Ad" className="w-full max-h-[400px] object-cover" />
                       </div>
                     </div>
                   )}
