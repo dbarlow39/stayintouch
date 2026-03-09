@@ -85,9 +85,9 @@ const OfferLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate 
   const buildSummaryBlock = () => {
     const lines: string[] = [
       '',
-      'Summary of Offer',
+      '**Summary of Offer**',
       '',
-      'Financial Summary',
+      '**Financial Summary**',
       `Offer Price: ${formatCurrency(propertyData.offerPrice)}`,
       `Buyer Closing Cost: ${formatCurrency(propertyData.closingCost)}`,
       `Estimated Net (after all expenses paid): ${formatCurrency(closingCosts.estimatedNet)}`,
