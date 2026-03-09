@@ -92,7 +92,7 @@ const OfferLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate 
       `Buyer Closing Cost: ${formatCurrency(propertyData.closingCost)}`,
       `Estimated Net (after all expenses paid): ${formatCurrency(closingCosts.estimatedNet)}`,
       '',
-      'Loan Information',
+      '**Loan Information**',
       `Type of Loan: ${propertyData.typeOfLoan || 'Not specified'}`,
       `Pre-Approval: ${propertyData.preApprovalDays === 0 ? 'Received' : propertyData.preApprovalDays + ' days'}`,
     ];
