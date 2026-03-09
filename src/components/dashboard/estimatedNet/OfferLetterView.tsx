@@ -371,6 +371,7 @@ ${agentFirstName}`;
         client_name: propertyData.name || "Client",
         street_address: propertyData.streetAddress,
         letter_text: letterText,
+        summary_html: buildSummaryHtml(),
         agent_first_name: profileData?.first_name || profileData?.full_name?.split(' ')[0] || '',
         agent_full_name: profileData?.full_name || '',
         agent_phone: profileData?.cell_phone || '',
