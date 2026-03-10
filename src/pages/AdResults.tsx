@@ -313,8 +313,8 @@ const AdResultsPage = () => {
         (adPreview as HTMLElement).style.cssText = 'border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden; margin-bottom: 16px; display: inline-block;';
         const adImg = adPreview.querySelector('img') as HTMLImageElement;
         if (adImg) {
-          adImg.style.cssText = 'width: 280px; height: auto; display: block;';
-          adImg.setAttribute('width', '280');
+          adImg.style.cssText = 'width: 1000px; max-width: 100%; height: auto; display: block;';
+          adImg.setAttribute('width', '1000');
         }
       }
 
