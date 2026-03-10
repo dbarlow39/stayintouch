@@ -307,10 +307,15 @@ const AdResultsPage = () => {
         });
       }
 
-      // Resize ad image for email (25% width)
+      // Resize ad image for email — set fixed pixel width on the img itself
       const adPreview = clonedContent.querySelector('[data-ad-preview]');
       if (adPreview) {
-        (adPreview as HTMLElement).style.cssText = 'max-width: 25%; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden; margin-bottom: 16px;';
+        (adPreview as HTMLElement).style.cssText = 'border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden; margin-bottom: 16px; display: inline-block;';
+        const adImg = adPreview.querySelector('img') as HTMLImageElement;
+        if (adImg) {
+          adImg.style.cssText = 'width: 280px; height: auto; display: block;';
+          adImg.setAttribute('width', '280');
+        }
       }
 
       clonedContent.querySelectorAll('p').forEach((p) => {
