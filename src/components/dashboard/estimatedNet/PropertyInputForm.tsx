@@ -1189,7 +1189,7 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
   }, [formData.name, formData.streetAddress, formData.city, formData.zip, editingId, currentPropertyId, linkedClientId]);
 
   // Auto-save contract fields for Seller Leads (when property already exists)
-  const leadAutoSaveRef = useRef<NodeJS.Timeout | null>(null);
+  const leadAutoSaveRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   
   useEffect(() => {
     // Only for seller lead context and only when property already exists
