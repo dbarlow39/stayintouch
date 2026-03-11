@@ -104,6 +104,8 @@ const PriceConditionAdjustment = ({ inspectionData }: PriceConditionAdjustmentPr
                 <span className="text-sm font-semibold">Suggested Price Adjustment</span>
                 <span className={`text-lg font-bold ${condition.color}`}>{condition.adjustment}</span>
               </div>
+
+              <ConditionIndicator conditionLabel={condition.label} />
             </div>
 
             {averageScore > 0 && (
