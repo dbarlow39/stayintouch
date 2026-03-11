@@ -110,7 +110,7 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
   const hydratedKeyRef = useRef<string | null>(null);
   const [preApprovalFocused, setPreApprovalFocused] = useState(false);
   const [preApprovalText, setPreApprovalText] = useState<string>("");
-  const lookupTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const lookupTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Helper function to convert text to title case
   const toTitleCase = (text: string): string => {
