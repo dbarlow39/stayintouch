@@ -1,4 +1,4 @@
-import { Star } from "lucide-react";
+import { Star, X } from "lucide-react";
 import { Label } from "@/components/ui/label";
 
 interface StarRatingProps {
@@ -19,7 +19,7 @@ export const StarRating = ({ value, onChange, label = "Section Rating", readOnly
           <span className="text-xs font-semibold text-muted-foreground">{rounded.toFixed(1)} / 5</span>
         )}
       </div>
-      <div className="flex gap-1">
+      <div className="flex items-center gap-1">
         {[1, 2, 3, 4, 5].map((star) => (
           readOnly ? (
             <div key={star} className="p-0.5">
@@ -48,6 +48,16 @@ export const StarRating = ({ value, onChange, label = "Section Rating", readOnly
             </button>
           )
         ))}
+        {!readOnly && value > 0 && (
+          <button
+            type="button"
+            onClick={() => onChange(0)}
+            className="ml-1 p-1 rounded-full text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors focus:outline-none"
+            title="Clear rating"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        )}
       </div>
     </div>
   );
