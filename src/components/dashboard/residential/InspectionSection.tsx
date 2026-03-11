@@ -30,6 +30,7 @@ interface InspectionSectionProps {
   defaultExpanded?: boolean;
   mapboxApiKey?: string;
   onAddressSelect?: (address: string) => void;
+  averageRating?: number;
 }
 
 export const InspectionSection = ({
