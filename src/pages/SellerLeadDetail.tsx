@@ -96,10 +96,26 @@ const SellerLeadDetail = () => {
     }
   }, [lead]);
 
+  const redirectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   useEffect(() => {
-    if (!authLoading && !user) {
-      navigate("/auth");
+    if (redirectTimerRef.current) {
+      clearTimeout(redirectTimerRef.current);
+      redirectTimerRef.current = null;
     }
+
+    if (!authLoading && !user) {
+      // Delay redirect to give auth token refresh time to complete
+      redirectTimerRef.current = setTimeout(() => {
+        navigate("/auth");
+      }, 2000);
+    }
+
+    return () => {
+      if (redirectTimerRef.current) {
+        clearTimeout(redirectTimerRef.current);
+      }
+    };
   }, [user, authLoading, navigate]);
 
   // Close suggestions on outside click
