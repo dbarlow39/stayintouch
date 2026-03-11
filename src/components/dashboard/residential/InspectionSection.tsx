@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { PhotoUpload } from "./PhotoUpload";
 import { StarRating } from "./StarRating";
+import ConditionIndicator, { getConditionLevel } from "./ConditionIndicator";
 import { MapboxAddressInput } from "./MapboxAddressInput";
 import { HandwritingCanvas } from "./HandwritingCanvas";
 
