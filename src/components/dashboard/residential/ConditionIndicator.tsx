@@ -1,5 +1,14 @@
 import { useMemo } from "react";
 
+export const getConditionLevel = (avg: number) => {
+  if (avg >= 4.5) return { label: "Excellent", adjustment: "+10%", color: "text-green-600 dark:text-green-400" };
+  if (avg >= 3.5) return { label: "Above Average", adjustment: "+5%", color: "text-emerald-600 dark:text-emerald-400" };
+  if (avg >= 2.5) return { label: "Average", adjustment: "0%", color: "text-yellow-600 dark:text-yellow-400" };
+  if (avg >= 1.5) return { label: "Below Average", adjustment: "-5%", color: "text-orange-600 dark:text-orange-400" };
+  if (avg > 0) return { label: "Fair", adjustment: "-10% to -15%", color: "text-destructive" };
+  return { label: "Not Rated", adjustment: "N/A", color: "text-muted-foreground" };
+};
+
 interface ConditionIndicatorProps {
   conditionLabel: string;
 }
