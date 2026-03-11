@@ -35,7 +35,7 @@ interface InspectionSectionProps {
 
 export const InspectionSection = ({
   title, fields, sectionId, onFieldChange, onPhotosChange, photos,
-  defaultExpanded = false, mapboxApiKey = "", onAddressSelect,
+  defaultExpanded = false, mapboxApiKey = "", onAddressSelect, averageRating,
 }: InspectionSectionProps) => {
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
 
