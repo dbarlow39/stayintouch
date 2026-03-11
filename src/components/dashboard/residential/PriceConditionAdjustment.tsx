@@ -89,7 +89,7 @@ const PriceConditionAdjustment = ({ inspectionData }: PriceConditionAdjustmentPr
                 <span className="text-sm font-semibold">{totalStars} / {totalPossible || "—"}</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">Average Score</span>
+                <span className="text-sm font-medium">Average Star Rating</span>
                 <div className="flex items-center gap-2">
                   {renderStars(averageScore)}
                   <span className="text-sm font-semibold">{averageScore > 0 ? averageScore.toFixed(1) : "—"}</span>
