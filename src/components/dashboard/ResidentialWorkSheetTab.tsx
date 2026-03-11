@@ -8,6 +8,7 @@ import { AudioRecorder } from "./residential/AudioRecorder";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { generateInspectionPDF } from "@/utils/inspectionPdfGenerator";
+import PriceConditionAdjustment from "./residential/PriceConditionAdjustment";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
