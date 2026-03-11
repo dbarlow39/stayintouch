@@ -164,7 +164,7 @@ export const InspectionSection = ({
               />
             ) : field.id === 'notes' && sectionId !== 'property-info' ? (
               <StarRating
-                value={Number(fields.find(f => f.id === 'rating')?.value) || 0}
+                value={sectionRating}
                 onChange={(rating) => onFieldChange('rating', rating)}
                 label={`Rate the ${title}`}
               />
