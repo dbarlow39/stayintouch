@@ -3,8 +3,6 @@ import { inspectionSections } from "@/data/inspectionData";
 import { Star, ChevronDown } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import ConditionIndicator from "./ConditionIndicator";
-
 import ConditionIndicator, { getConditionLevel } from "./ConditionIndicator";
 
 interface PriceConditionAdjustmentProps {
