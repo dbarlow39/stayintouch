@@ -399,6 +399,8 @@ const ResidentialWorkSheetTab = ({ lead }: ResidentialWorkSheetTabProps) => {
             )}
           </div>
         ))}
+
+        <PriceConditionAdjustment inspectionData={inspectionData} />
       </div>
 
       <div className="sticky bottom-0 mt-6 flex gap-3 border-t bg-background/95 py-4 backdrop-blur-sm">
