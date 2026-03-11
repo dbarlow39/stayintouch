@@ -1149,7 +1149,7 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
   }, [formData.streetAddress, editingId]);
 
   // Auto-save when Seller & Property fields are populated (for new properties only)
-  const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const autoSaveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   
   useEffect(() => {
     // Only auto-save for new properties (not when editing)
