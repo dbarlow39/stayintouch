@@ -3,6 +3,7 @@ import { inspectionSections } from "@/data/inspectionData";
 import { Star, ChevronDown } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import ConditionIndicator from "./ConditionIndicator";
 
 interface PriceConditionAdjustmentProps {
   inspectionData: Record<string, any>;
@@ -103,6 +104,8 @@ const PriceConditionAdjustment = ({ inspectionData }: PriceConditionAdjustmentPr
                 <span className="text-sm font-semibold">Suggested Price Adjustment</span>
                 <span className={`text-lg font-bold ${condition.color}`}>{condition.adjustment}</span>
               </div>
+
+              <ConditionIndicator conditionLabel={condition.label} />
             </div>
 
             {averageScore > 0 && (
