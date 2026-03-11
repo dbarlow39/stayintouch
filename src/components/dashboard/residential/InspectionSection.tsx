@@ -159,6 +159,7 @@ export const InspectionSection = ({
                 value={averageRating}
                 onChange={() => {}}
                 label="Average Star Rating"
+                readOnly
               />
             ) : field.id === 'notes' && sectionId !== 'property-info' ? (
               <StarRating
