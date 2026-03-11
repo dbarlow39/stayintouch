@@ -379,26 +379,38 @@ const ResidentialWorkSheetTab = ({ lead }: ResidentialWorkSheetTabProps) => {
       </div>
 
       <div className="space-y-4">
-        {inspectionSections.map((section, index) => (
-          <div key={section.id}>
-            <InspectionSection
-              title={section.title}
-              sectionId={section.id}
-              fields={section.fields.map(field => ({ ...field, value: inspectionData[section.id]?.[field.id] }))}
-              onFieldChange={(fieldId, value) => handleFieldChange(section.id, fieldId, value)}
-              onPhotosChange={(newPhotos) => handlePhotosChange(section.id, newPhotos)}
-              photos={photos[section.id] || []}
-              defaultExpanded={index === 0}
-              mapboxApiKey={MAPBOX_API_KEY}
-              onAddressSelect={section.id === 'property-info' ? handleAddressSelect : undefined}
-            />
-            {section.id === 'property-info' && user && (
-              <div className="mt-4">
-                <AudioRecorder inspectionId={currentInspectionId || undefined} userId={user.id} />
-              </div>
-            )}
-          </div>
-        ))}
+        {(() => {
+          // Compute average rating across all rated sections (excluding property-info)
+          const ratedSections = inspectionSections
+            .filter(s => s.id !== 'property-info')
+            .map(s => Number(inspectionData[s.id]?.rating) || 0)
+            .filter(r => r > 0);
+          const avgRating = ratedSections.length > 0
+            ? (ratedSections.reduce((a, b) => a + b, 0) / ratedSections.length)
+            : 0;
+
+          return inspectionSections.map((section, index) => (
+            <div key={section.id}>
+              <InspectionSection
+                title={section.title}
+                sectionId={section.id}
+                fields={section.fields.map(field => ({ ...field, value: inspectionData[section.id]?.[field.id] }))}
+                onFieldChange={(fieldId, value) => handleFieldChange(section.id, fieldId, value)}
+                onPhotosChange={(newPhotos) => handlePhotosChange(section.id, newPhotos)}
+                photos={photos[section.id] || []}
+                defaultExpanded={index === 0}
+                mapboxApiKey={MAPBOX_API_KEY}
+                onAddressSelect={section.id === 'property-info' ? handleAddressSelect : undefined}
+                averageRating={section.id === 'property-info' ? avgRating : undefined}
+              />
+              {section.id === 'property-info' && user && (
+                <div className="mt-4">
+                  <AudioRecorder inspectionId={currentInspectionId || undefined} userId={user.id} />
+                </div>
+              )}
+            </div>
+          ));
+        })()}
 
         <PriceConditionAdjustment inspectionData={inspectionData} />
       </div>

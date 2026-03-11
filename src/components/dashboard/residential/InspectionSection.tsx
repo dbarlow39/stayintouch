@@ -30,11 +30,12 @@ interface InspectionSectionProps {
   defaultExpanded?: boolean;
   mapboxApiKey?: string;
   onAddressSelect?: (address: string) => void;
+  averageRating?: number;
 }
 
 export const InspectionSection = ({
   title, fields, sectionId, onFieldChange, onPhotosChange, photos,
-  defaultExpanded = false, mapboxApiKey = "", onAddressSelect,
+  defaultExpanded = false, mapboxApiKey = "", onAddressSelect, averageRating,
 }: InspectionSectionProps) => {
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
 
@@ -153,13 +154,20 @@ export const InspectionSection = ({
       case 'textarea':
         return (
           <div key={field.id} className="space-y-4">
-            {field.id === 'notes' && (
+            {field.id === 'notes' && sectionId === 'property-info' && averageRating !== undefined ? (
+              <StarRating
+                value={averageRating}
+                onChange={() => {}}
+                label="Average Star Rating"
+                readOnly
+              />
+            ) : field.id === 'notes' && sectionId !== 'property-info' ? (
               <StarRating
                 value={Number(fields.find(f => f.id === 'rating')?.value) || 0}
                 onChange={(rating) => onFieldChange('rating', rating)}
                 label={`Rate the ${title}`}
               />
-            )}
+            ) : null}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label htmlFor={field.id} className="text-sm font-medium text-foreground">{field.label}</Label>
