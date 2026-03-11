@@ -378,7 +378,7 @@ const LeadsTab = () => {
             </TableHeader>
             <TableBody>
               {leads.map((lead) => (
-                <TableRow key={lead.id} className="cursor-pointer hover:bg-muted/50" onClick={(e) => { console.log("ROW CLICKED", lead.id, e.target); navigate(`/seller-lead/${lead.id}`); }}>
+                <TableRow key={lead.id} className="cursor-pointer hover:bg-muted/50" onClick={() => navigate(`/seller-lead/${lead.id}`)}>
                   <TableCell className="font-medium">
                     {lead.first_name} {lead.last_name}
                   </TableCell>
