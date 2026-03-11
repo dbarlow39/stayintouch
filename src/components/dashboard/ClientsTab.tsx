@@ -153,8 +153,8 @@ const ClientsTab = ({ onSelectClientForEstimate }: ClientsTabProps) => {
     zillow_link: "",
     annual_taxes: "",
   });
-  const lookupTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const addressLookupRef = useRef<NodeJS.Timeout | null>(null);
+  const lookupTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const addressLookupRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [lookupAddress, setLookupAddress] = useState("");
   const [isLookingUp, setIsLookingUp] = useState(false);

@@ -106,11 +106,11 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
   const [selectedPropertyId, setSelectedPropertyId] = useState<string>("");
   const [clientSuggestions, setClientSuggestions] = useState<any[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const autocompleteTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const autocompleteTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hydratedKeyRef = useRef<string | null>(null);
   const [preApprovalFocused, setPreApprovalFocused] = useState(false);
   const [preApprovalText, setPreApprovalText] = useState<string>("");
-  const lookupTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const lookupTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Helper function to convert text to title case
   const toTitleCase = (text: string): string => {
@@ -1149,7 +1149,7 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
   }, [formData.streetAddress, editingId]);
 
   // Auto-save when Seller & Property fields are populated (for new properties only)
-  const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const autoSaveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   
   useEffect(() => {
     // Only auto-save for new properties (not when editing)
@@ -1189,7 +1189,7 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
   }, [formData.name, formData.streetAddress, formData.city, formData.zip, editingId, currentPropertyId, linkedClientId]);
 
   // Auto-save contract fields for Seller Leads (when property already exists)
-  const leadAutoSaveRef = useRef<NodeJS.Timeout | null>(null);
+  const leadAutoSaveRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   
   useEffect(() => {
     // Only for seller lead context and only when property already exists
