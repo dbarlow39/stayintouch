@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { inspectionSections } from "@/data/inspectionData";
-import { Star } from "lucide-react";
+import { Star, ChevronDown } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 interface PriceConditionAdjustmentProps {
   inspectionData: Record<string, any>;
@@ -27,7 +29,8 @@ const renderStars = (count: number) => (
 );
 
 const PriceConditionAdjustment = ({ inspectionData }: PriceConditionAdjustmentProps) => {
-  // Collect ratings from all sections (skip property-info as it's informational)
+  const [isOpen, setIsOpen] = useState(false);
+
   const ratedSections = inspectionSections
     .filter((s) => s.id !== "property-info")
     .map((section) => ({
@@ -44,77 +47,83 @@ const PriceConditionAdjustment = ({ inspectionData }: PriceConditionAdjustmentPr
 
   return (
     <Card className="border-2 border-primary/20">
-      <CardHeader className="pb-3">
-        <CardTitle className="text-lg">Price and Condition Adjustment</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {/* Section breakdown */}
-        <div className="space-y-2">
-          <h4 className="text-sm font-medium text-muted-foreground">Section Ratings</h4>
-          <div className="grid gap-2">
-            {ratedSections.map((section) => (
-              <div key={section.id} className="flex items-center justify-between rounded-md border px-3 py-2">
-                <span className="text-sm font-medium">{section.title}</span>
+      <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+        <CollapsibleTrigger asChild>
+          <CardHeader className="pb-3 cursor-pointer select-none hover:bg-muted/50 transition-colors">
+            <CardTitle className="text-lg flex items-center justify-between">
+              <span>Price and Condition Adjustment</span>
+              <ChevronDown className={`h-5 w-5 text-muted-foreground transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`} />
+            </CardTitle>
+          </CardHeader>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <h4 className="text-sm font-medium text-muted-foreground">Section Ratings</h4>
+              <div className="grid gap-2">
+                {ratedSections.map((section) => (
+                  <div key={section.id} className="flex items-center justify-between rounded-md border px-3 py-2">
+                    <span className="text-sm font-medium">{section.title}</span>
+                    <div className="flex items-center gap-2">
+                      {section.rating > 0 ? (
+                        <>
+                          {renderStars(section.rating)}
+                          <span className="text-sm text-muted-foreground w-8 text-right">{section.rating}/5</span>
+                        </>
+                      ) : (
+                        <span className="text-sm text-muted-foreground italic">Not rated</span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="rounded-lg bg-muted/50 p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium">Sections Rated</span>
+                <span className="text-sm font-semibold">{sectionsWithRatings.length} / {ratedSections.length}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium">Total Stars</span>
+                <span className="text-sm font-semibold">{totalStars} / {totalPossible || "—"}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium">Average Score</span>
                 <div className="flex items-center gap-2">
-                  {section.rating > 0 ? (
-                    <>
-                      {renderStars(section.rating)}
-                      <span className="text-sm text-muted-foreground w-8 text-right">{section.rating}/5</span>
-                    </>
-                  ) : (
-                    <span className="text-sm text-muted-foreground italic">Not rated</span>
-                  )}
+                  {renderStars(averageScore)}
+                  <span className="text-sm font-semibold">{averageScore > 0 ? averageScore.toFixed(1) : "—"}</span>
                 </div>
               </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Summary */}
-        <div className="rounded-lg bg-muted/50 p-4 space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium">Sections Rated</span>
-            <span className="text-sm font-semibold">{sectionsWithRatings.length} / {ratedSections.length}</span>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium">Total Stars</span>
-            <span className="text-sm font-semibold">{totalStars} / {totalPossible || "—"}</span>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium">Average Score</span>
-            <div className="flex items-center gap-2">
-              {renderStars(averageScore)}
-              <span className="text-sm font-semibold">{averageScore > 0 ? averageScore.toFixed(1) : "—"}</span>
+              <div className="border-t pt-3 flex items-center justify-between">
+                <span className="text-sm font-semibold">Condition Level</span>
+                <span className={`text-sm font-bold ${condition.color}`}>{condition.label}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-semibold">Suggested Price Adjustment</span>
+                <span className={`text-lg font-bold ${condition.color}`}>{condition.adjustment}</span>
+              </div>
             </div>
-          </div>
-          <div className="border-t pt-3 flex items-center justify-between">
-            <span className="text-sm font-semibold">Condition Level</span>
-            <span className={`text-sm font-bold ${condition.color}`}>{condition.label}</span>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-semibold">Suggested Price Adjustment</span>
-            <span className={`text-lg font-bold ${condition.color}`}>{condition.adjustment}</span>
-          </div>
-        </div>
 
-        {/* Recommendation */}
-        {averageScore > 0 && (
-          <div className="rounded-lg border border-primary/20 bg-primary/5 p-4">
-            <h4 className="text-sm font-semibold mb-1">Recommendation</h4>
-            <p className="text-sm text-muted-foreground">
-              {averageScore >= 4.5
-                ? "This property is in excellent condition. The above-average maintenance and updates support a price premium of approximately 10% above comparable sales."
-                : averageScore >= 3.5
-                ? "This property is in above-average condition. Minor updates and well-maintained systems support a modest price premium of approximately 5% above comparable sales."
-                : averageScore >= 2.5
-                ? "This property is in average condition for its age and area. Pricing should be in line with comparable sales with no significant adjustment needed."
-                : averageScore >= 1.5
-                ? "This property shows some deferred maintenance. A price reduction of approximately 5% below comparable sales is recommended to account for needed repairs and updates."
-                : "This property requires significant repairs and updates. A price reduction of 10–15% below comparable sales is recommended to reflect the current condition and anticipated renovation costs."}
-            </p>
-          </div>
-        )}
-      </CardContent>
+            {averageScore > 0 && (
+              <div className="rounded-lg border border-primary/20 bg-primary/5 p-4">
+                <h4 className="text-sm font-semibold mb-1">Recommendation</h4>
+                <p className="text-sm text-muted-foreground">
+                  {averageScore >= 4.5
+                    ? "This property is in excellent condition. The above-average maintenance and updates support a price premium of approximately 10% above comparable sales."
+                    : averageScore >= 3.5
+                    ? "This property is in above-average condition. Minor updates and well-maintained systems support a modest price premium of approximately 5% above comparable sales."
+                    : averageScore >= 2.5
+                    ? "This property is in average condition for its age and area. Pricing should be in line with comparable sales with no significant adjustment needed."
+                    : averageScore >= 1.5
+                    ? "This property shows some deferred maintenance. A price reduction of approximately 5% below comparable sales is recommended to account for needed repairs and updates."
+                    : "This property requires significant repairs and updates. A price reduction of 10–15% below comparable sales is recommended to reflect the current condition and anticipated renovation costs."}
+                </p>
+              </div>
+            )}
+          </CardContent>
+        </CollapsibleContent>
+      </Collapsible>
     </Card>
   );
 };
