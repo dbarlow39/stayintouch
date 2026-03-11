@@ -402,6 +402,7 @@ const ResidentialWorkSheetTab = ({ lead }: ResidentialWorkSheetTabProps) => {
                 mapboxApiKey={MAPBOX_API_KEY}
                 onAddressSelect={section.id === 'property-info' ? handleAddressSelect : undefined}
                 averageRating={section.id === 'property-info' ? avgRating : undefined}
+                sectionRating={Number(inspectionData[section.id]?.rating) || 0}
               />
               {section.id === 'property-info' && user && (
                 <div className="mt-4">

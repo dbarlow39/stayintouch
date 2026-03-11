@@ -31,11 +31,12 @@ interface InspectionSectionProps {
   mapboxApiKey?: string;
   onAddressSelect?: (address: string) => void;
   averageRating?: number;
+  sectionRating?: number;
 }
 
 export const InspectionSection = ({
   title, fields, sectionId, onFieldChange, onPhotosChange, photos,
-  defaultExpanded = false, mapboxApiKey = "", onAddressSelect, averageRating,
+  defaultExpanded = false, mapboxApiKey = "", onAddressSelect, averageRating, sectionRating = 0,
 }: InspectionSectionProps) => {
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
 
@@ -163,7 +164,7 @@ export const InspectionSection = ({
               />
             ) : field.id === 'notes' && sectionId !== 'property-info' ? (
               <StarRating
-                value={Number(fields.find(f => f.id === 'rating')?.value) || 0}
+                value={sectionRating}
                 onChange={(rating) => onFieldChange('rating', rating)}
                 label={`Rate the ${title}`}
               />
