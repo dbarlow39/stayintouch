@@ -157,12 +157,15 @@ export const InspectionSection = ({
         return (
           <div key={field.id} className="space-y-4">
             {field.id === 'notes' && sectionId === 'property-info' && averageRating !== undefined ? (
-              <StarRating
-                value={averageRating}
-                onChange={() => {}}
-                label="Average Star Rating"
-                readOnly
-              />
+              <>
+                <StarRating
+                  value={averageRating}
+                  onChange={() => {}}
+                  label="Average Star Rating"
+                  readOnly
+                />
+                <ConditionIndicator conditionLabel={getConditionLevel(averageRating).label} />
+              </>
             ) : field.id === 'notes' && sectionId !== 'property-info' ? (
               <StarRating
                 value={sectionRating}
