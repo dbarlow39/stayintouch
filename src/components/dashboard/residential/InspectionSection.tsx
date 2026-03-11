@@ -152,12 +152,20 @@ export const InspectionSection = ({
         );
       case 'textarea':
         return (
-          <div key={field.id} className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label htmlFor={field.id} className="text-sm font-medium text-foreground">{field.label}</Label>
-              <HandwritingCanvas existingText={field.value as string || ''} onTextExtracted={(text) => onFieldChange(field.id, text)} />
+          <div key={field.id} className="space-y-4">
+            {field.id === 'notes' && (
+              <StarRating
+                value={Number(fields.find(f => f.id === 'rating')?.value) || 0}
+                onChange={(rating) => onFieldChange('rating', rating)}
+              />
+            )}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label htmlFor={field.id} className="text-sm font-medium text-foreground">{field.label}</Label>
+                <HandwritingCanvas existingText={field.value as string || ''} onTextExtracted={(text) => onFieldChange(field.id, text)} />
+              </div>
+              <Textarea id={field.id} value={field.value as string} onChange={(e) => onFieldChange(field.id, e.target.value)} rows={field.rows || 3} className="w-full" placeholder="Enter any additional notes, observations, or concerns..." />
             </div>
-            <Textarea id={field.id} value={field.value as string} onChange={(e) => onFieldChange(field.id, e.target.value)} rows={field.rows || 3} className="w-full" placeholder="Enter any additional notes, observations, or concerns..." />
           </div>
         );
       default:
