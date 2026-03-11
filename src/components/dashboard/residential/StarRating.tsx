@@ -1,4 +1,4 @@
-import { Star, X } from "lucide-react";
+import { Star } from "lucide-react";
 import { Label } from "@/components/ui/label";
 
 interface StarRatingProps {
