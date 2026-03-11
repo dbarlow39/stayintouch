@@ -52,10 +52,9 @@ export const StarRating = ({ value, onChange, label = "Section Rating", readOnly
           <button
             type="button"
             onClick={() => onChange(0)}
-            className="ml-1 p-1 rounded-full text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors focus:outline-none"
-            title="Clear rating"
+            className="ml-1 px-2 py-0.5 rounded text-xs font-medium text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors focus:outline-none"
           >
-            <X className="h-4 w-4" />
+            Clear
           </button>
         )}
       </div>
