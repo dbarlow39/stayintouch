@@ -157,6 +157,7 @@ export const InspectionSection = ({
               <StarRating
                 value={Number(fields.find(f => f.id === 'rating')?.value) || 0}
                 onChange={(rating) => onFieldChange('rating', rating)}
+                label={`Rate the ${title}`}
               />
             )}
             <div className="space-y-2">
