@@ -31,11 +31,12 @@ interface InspectionSectionProps {
   mapboxApiKey?: string;
   onAddressSelect?: (address: string) => void;
   averageRating?: number;
+  sectionRating?: number;
 }
 
 export const InspectionSection = ({
   title, fields, sectionId, onFieldChange, onPhotosChange, photos,
-  defaultExpanded = false, mapboxApiKey = "", onAddressSelect, averageRating,
+  defaultExpanded = false, mapboxApiKey = "", onAddressSelect, averageRating, sectionRating = 0,
 }: InspectionSectionProps) => {
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
 
