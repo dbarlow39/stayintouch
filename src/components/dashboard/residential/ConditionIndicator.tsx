@@ -13,115 +13,174 @@ interface ConditionIndicatorProps {
   conditionLabel: string;
 }
 
-const levels = [
-  { label: "Fair", color: "#EF4444", starFill: "#EF4444", starStroke: "#B91C1C" },
-  { label: "Below Average", color: "#F97316", starFill: "#F97316", starStroke: "#C2410C" },
-  { label: "Average", color: "#EAB308", starFill: "#EAB308", starStroke: "#A16207" },
-  { label: "Above Average", color: "#16A34A", starFill: "#16A34A", starStroke: "#15803D" },
-  { label: "Excellent", color: "#84CC16", starFill: "#84CC16", starStroke: "#65A30D" },
+const segments = [
+  { label: "Fair", color: "#EF4444", lightColor: "#FCA5A5" },
+  { label: "Below\nAverage", color: "#F97316", lightColor: "#FDBA74" },
+  { label: "Average", color: "#EAB308", lightColor: "#FDE047" },
+  { label: "Above\nAverage", color: "#16A34A", lightColor: "#86EFAC" },
+  { label: "Excellent", color: "#22C55E", lightColor: "#BBF7D0" },
 ];
 
-const starPath = (cx: number, cy: number, outerR: number, innerR: number) => {
-  const points: string[] = [];
-  for (let i = 0; i < 10; i++) {
-    const angle = (Math.PI / 2) * -1 + (Math.PI / 5) * i;
-    const r = i % 2 === 0 ? outerR : innerR;
-    points.push(`${cx + r * Math.cos(angle)},${cy + r * Math.sin(angle)}`);
-  }
-  return `M${points.join("L")}Z`;
+const labelMap: Record<string, number> = {
+  "Fair": 0,
+  "Below Average": 1,
+  "Average": 2,
+  "Above Average": 3,
+  "Excellent": 4,
 };
 
 const ConditionIndicator = ({ conditionLabel }: ConditionIndicatorProps) => {
   const activeIndex = useMemo(() => {
-    const idx = levels.findIndex((l) => l.label === conditionLabel);
-    return idx >= 0 ? idx : -1;
+    return labelMap[conditionLabel] ?? -1;
   }, [conditionLabel]);
 
-  const starSize = 36;
-  const spacing = 90;
-  const startX = 60;
-  const starY = 55;
-  const svgWidth = startX * 2 + spacing * 4;
-  const svgHeight = 150;
+  // Gauge geometry
+  const cx = 200;
+  const cy = 180;
+  const outerR = 140;
+  const innerR = 80;
+  const startAngle = Math.PI; // left (180°)
+  const totalSweep = Math.PI; // semicircle
+  const segCount = segments.length;
+  const gap = 0.03; // small gap between segments in radians
+
+  // Build arc paths
+  const arcPaths = useMemo(() => {
+    return segments.map((seg, i) => {
+      const segSweep = totalSweep / segCount;
+      const a1 = startAngle + i * segSweep + gap / 2;
+      const a2 = startAngle + (i + 1) * segSweep - gap / 2;
+
+      const outerStart = { x: cx + outerR * Math.cos(a1), y: cy + outerR * Math.sin(a1) };
+      const outerEnd = { x: cx + outerR * Math.cos(a2), y: cy + outerR * Math.sin(a2) };
+      const innerStart = { x: cx + innerR * Math.cos(a2), y: cy + innerR * Math.sin(a2) };
+      const innerEnd = { x: cx + innerR * Math.cos(a1), y: cy + innerR * Math.sin(a1) };
+
+      const path = [
+        `M ${outerStart.x} ${outerStart.y}`,
+        `A ${outerR} ${outerR} 0 0 1 ${outerEnd.x} ${outerEnd.y}`,
+        `L ${innerStart.x} ${innerStart.y}`,
+        `A ${innerR} ${innerR} 0 0 0 ${innerEnd.x} ${innerEnd.y}`,
+        `Z`,
+      ].join(" ");
+
+      // Label position at midpoint of segment
+      const midAngle = (a1 + a2) / 2;
+      const labelR = (outerR + innerR) / 2;
+      const labelX = cx + labelR * Math.cos(midAngle);
+      const labelY = cy + labelR * Math.sin(midAngle);
+
+      return { path, seg, labelX, labelY, midAngle };
+    });
+  }, []);
+
+  // Needle angle: maps activeIndex to angle within the semicircle
+  const needleAngle = useMemo(() => {
+    if (activeIndex < 0) return startAngle + totalSweep / 2; // center default
+    const segSweep = totalSweep / segCount;
+    return startAngle + (activeIndex + 0.5) * segSweep;
+  }, [activeIndex]);
+
+  const needleLength = innerR - 12;
+  const needleTipX = cx + needleLength * Math.cos(needleAngle);
+  const needleTipY = cy + needleLength * Math.sin(needleAngle);
+
+  // Needle base width
+  const baseOffset = 8;
+  const perpAngle = needleAngle + Math.PI / 2;
+  const baseLeft = {
+    x: cx + baseOffset * Math.cos(perpAngle),
+    y: cy + baseOffset * Math.sin(perpAngle),
+  };
+  const baseRight = {
+    x: cx - baseOffset * Math.cos(perpAngle),
+    y: cy - baseOffset * Math.sin(perpAngle),
+  };
 
   return (
-    <div className="w-full flex justify-center">
+    <div className="w-full flex justify-center my-2">
       <svg
-        viewBox={`0 0 ${svgWidth} ${svgHeight}`}
-        className="w-full max-w-md"
+        viewBox="0 0 400 220"
+        className="w-full max-w-xs"
         role="img"
-        aria-label={`Condition rating: ${conditionLabel}`}
+        aria-label={`Condition gauge: ${conditionLabel}`}
       >
-        {/* Stars */}
-        {levels.map((level, i) => {
-          const cx = startX + i * spacing;
+        {/* Segments */}
+        {arcPaths.map(({ path, seg, labelX, labelY }, i) => {
           const isActive = i === activeIndex;
-          const scale = isActive ? 1.2 : 0.85;
-          const opacity = activeIndex === -1 ? 0.5 : isActive ? 1 : 0.4;
-
           return (
-            <g key={level.label}>
-              {/* Glow behind active star */}
-              {isActive && (
-                <circle
-                  cx={cx}
-                  cy={starY}
-                  r={starSize + 4}
-                  fill={level.color}
-                  opacity={0.2}
-                  className="animate-pulse"
-                />
-              )}
+            <g key={i}>
               <path
-                d={starPath(cx, starY, starSize * scale, starSize * scale * 0.4)}
-                fill={level.starFill}
-                stroke={level.starStroke}
-                strokeWidth={isActive ? 2 : 1.5}
-                opacity={opacity}
-                style={{
-                  transition: "all 0.4s ease-in-out",
-                  filter: isActive ? `drop-shadow(0 2px 6px ${level.color}66)` : "none",
-                }}
+                d={path}
+                fill={isActive ? seg.color : seg.lightColor}
+                stroke="white"
+                strokeWidth={1}
+                opacity={activeIndex === -1 ? 0.6 : isActive ? 1 : 0.5}
+                style={{ transition: "all 0.4s ease" }}
               />
-              {/* Label */}
+              {/* Label inside segment */}
               <text
-                x={cx}
-                y={starY + starSize + 18}
+                x={labelX}
+                y={labelY}
                 textAnchor="middle"
-                fontSize="9"
+                dominantBaseline="central"
+                fontSize="10"
                 fontWeight={isActive ? "700" : "500"}
-                fill={isActive ? level.color : "#9CA3AF"}
+                fill={isActive ? "white" : "#555"}
                 style={{ transition: "all 0.3s ease" }}
               >
-                {level.label.includes(" ") ? (
-                  <>
-                    <tspan x={cx} dy="0">{level.label.split(" ")[0]}</tspan>
-                    <tspan x={cx} dy="11">{level.label.split(" ").slice(1).join(" ")}</tspan>
-                  </>
-                ) : (
-                  level.label
-                )}
+                {seg.label.split("\n").map((line, li) => (
+                  <tspan key={li} x={labelX} dy={li === 0 ? "-5" : "12"}>
+                    {line}
+                  </tspan>
+                ))}
               </text>
             </g>
           );
         })}
 
-        {/* Arrow indicator */}
+        {/* Needle */}
         {activeIndex >= 0 && (
-          <g
-            style={{
-              transform: `translateX(${startX + activeIndex * spacing}px)`,
-              transition: "transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)",
-            }}
-          >
+          <g style={{ transition: "all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)" }}>
             <polygon
-              points="0,30 -10,46 -4,46 -4,58 4,58 4,46 10,46"
-              fill="white"
-              stroke="#374151"
-              strokeWidth="2"
-              strokeLinejoin="round"
+              points={`${needleTipX},${needleTipY} ${baseLeft.x},${baseLeft.y} ${baseRight.x},${baseRight.y}`}
+              fill="#374151"
+              stroke="#1F2937"
+              strokeWidth={1}
+              style={{
+                filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.3))",
+              }}
             />
+            {/* Center circle */}
+            <circle cx={cx} cy={cy} r={12} fill="#374151" stroke="#1F2937" strokeWidth={2} />
+            <circle cx={cx} cy={cy} r={6} fill="#6B7280" />
           </g>
+        )}
+
+        {/* Bottom label */}
+        {activeIndex >= 0 && (
+          <text
+            x={cx}
+            y={cy + 30}
+            textAnchor="middle"
+            fontSize="14"
+            fontWeight="700"
+            fill={segments[activeIndex]?.color || "#6B7280"}
+            style={{ transition: "all 0.3s ease" }}
+          >
+            {conditionLabel}
+          </text>
+        )}
+        {activeIndex < 0 && (
+          <text
+            x={cx}
+            y={cy + 30}
+            textAnchor="middle"
+            fontSize="13"
+            fill="#9CA3AF"
+          >
+            Not Rated
+          </text>
         )}
       </svg>
     </div>
