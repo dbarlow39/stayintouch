@@ -130,8 +130,8 @@ const BullseyeGraphic = forwardRef<HTMLDivElement, BullseyeGraphicProps>(
               zIndex: 2,
             }}
           >
-            <div style={{ fontSize: 22, fontWeight: "bold", color: "#1a1a1a" }}>{bullseyePrice}</div>
-            <div style={{ fontSize: 11, fontWeight: "bold", color: "#1a1a1a", letterSpacing: 2 }}>BULLSEYE</div>
+            <div style={{ fontSize: 22, fontWeight: "bold", color: "#FFFFFF" }}>{bullseyePrice}</div>
+            <div style={{ fontSize: 11, fontWeight: "bold", color: "#FFFFFF", letterSpacing: 2 }}>BULLSEYE</div>
           </div>
 
           {/* Lower bracket price label */}
