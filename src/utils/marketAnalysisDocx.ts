@@ -382,7 +382,7 @@ export async function generateMarketAnalysisDocx(
   if (pricing.priceJustification) sections.push(bodyParagraph(pricing.priceJustification));
 
   // SECTION 8: NEXT STEPS
-  sections.push(sectionHeading("SECTION 8: NEXT STEPS"));
+  sections.push(sectionHeading("NEXT STEPS"));
   if (analysis.nextSteps) sections.push(bodyParagraph(analysis.nextSteps));
 
   // SIGNATURE
