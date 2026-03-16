@@ -171,7 +171,7 @@ export async function generateMarketAnalysisDocx(
       borders: noBorder,
       verticalAlign: VerticalAlign.CENTER,
       children: logoBytes
-        ? [new Paragraph({ children: [new ImageRun({ data: logoBytes, transformation: { width: 240, height: 80 }, type: "jpg" })] })]
+        ? [new Paragraph({ children: [new ImageRun({ data: logoBytes, transformation: { width: 252, height: 117 }, type: "jpg" })] })]
         : [new Paragraph({ children: [] })],
     })
   );
