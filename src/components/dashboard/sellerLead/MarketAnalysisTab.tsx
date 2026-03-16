@@ -40,6 +40,8 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
   const [analysis, setAnalysis] = useState<any>(null);
   const [bullseyeImage, setBullseyeImage] = useState<string | null>(null);
   const [zillowImage, setZillowImage] = useState<string | null>(null);
+  const bullseyeRef = useRef<HTMLDivElement>(null);
+  const zillowRef = useRef<HTMLDivElement>(null);
   const [documents, setDocuments] = useState<DocumentSlot[]>([
     { label: "CMA / Property Detail Report", description: "CoreLogic, RPR, or similar report", file: null, required: true },
     { label: "Residential Inspection Worksheet", description: "Room-by-room condition notes", file: null, required: true },
