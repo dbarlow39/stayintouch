@@ -133,15 +133,43 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    // Build multimodal content array
+    // Download files from storage and convert to base64
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
     const userContent: any[] = [{ type: "text", text: USER_PROMPT }];
 
     for (const doc of documents) {
-      if (doc.mimeType && doc.base64) {
+      if (doc.filePath) {
+        console.log(`Downloading ${doc.name} from storage: ${doc.filePath}`);
+        const { data: fileData, error: downloadError } = await supabase.storage
+          .from("market-analysis-docs")
+          .download(doc.filePath);
+
+        if (downloadError) {
+          console.error(`Failed to download ${doc.name}:`, downloadError);
+          continue;
+        }
+
+        // Convert to base64 using chunked approach (avoids stack overflow)
+        const arrayBuffer = await fileData.arrayBuffer();
+        const uint8Array = new Uint8Array(arrayBuffer);
+        let binaryString = "";
+        const chunkSize = 8192;
+        for (let i = 0; i < uint8Array.length; i += chunkSize) {
+          const chunk = uint8Array.subarray(i, i + chunkSize);
+          binaryString += String.fromCharCode(...chunk);
+        }
+        const base64Content = btoa(binaryString);
+        const mimeType = doc.mimeType || fileData.type || "application/pdf";
+
+        console.log(`${doc.name}: ${(arrayBuffer.byteLength / 1024 / 1024).toFixed(2)}MB, mime: ${mimeType}`);
+
         userContent.push({
           type: "image_url",
           image_url: {
-            url: `data:${doc.mimeType};base64,${doc.base64}`
+            url: `data:${mimeType};base64,${base64Content}`
           }
         });
       }
