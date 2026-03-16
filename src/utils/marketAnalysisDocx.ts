@@ -58,7 +58,7 @@ function overviewRow(label: string, value: string): TableRow {
         width: { size: 3200, type: WidthType.DXA },
         shading: { type: ShadingType.CLEAR, fill: LIGHT_SCARLET },
         children: [
-          new Paragraph({ spacing: { before: 40, after: 40 }, children: [new TextRun({ text: label, bold: true, font: "Arial", size: 20 })] }),
+          new Paragraph({ spacing: { before: 80, after: 80 }, children: [new TextRun({ text: label, bold: true, font: "Arial", size: 20 })] }),
         ],
       }),
       new TableCell({
