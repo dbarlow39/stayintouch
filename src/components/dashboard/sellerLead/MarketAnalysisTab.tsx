@@ -290,12 +290,12 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
             <div className="flex flex-col items-center gap-3">
               <Loader2 className="w-8 h-8 animate-spin text-primary" />
               <p className="font-medium">
-                {generating ? "Analyzing documents with AI..." : "Generating graphics..."}
+                {generating ? "Analyzing documents with AI..." : "Capturing graphics..."}
               </p>
               <p className="text-sm text-muted-foreground text-center max-w-md">
                 {generating
                   ? "Extracting property data, comparable sales, and market conditions from your uploaded documents."
-                  : "Creating the Bullseye Pricing Model and Zillow Zestimate graphics."}
+                  : "Rendering the Bullseye Pricing Model and Zillow Zestimate cards."}
               </p>
             </div>
           </CardContent>
