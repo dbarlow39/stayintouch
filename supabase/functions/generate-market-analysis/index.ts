@@ -20,11 +20,13 @@ Analyze all documents thoroughly. Return ONLY a valid JSON object - no preamble,
 
 BULLSEYE PRICING RULES:
 - Buyer search brackets fall at every $25,000 increment
-- Bullseye price = top of the target bracket minus $100 (e.g. $424,900 for the $400K-$425K bracket)
+- Bracket tops: $375K, $400K, $425K, $450K, $475K, $500K, $525K, $550K
+- To find the correct bracket: look at where the MAJORITY of closed comp sold prices fall, and use that bracket. Do not jump to a higher bracket just because one comp sold near a bracket boundary.
+- Bullseye price = top of the correct bracket minus $100 (e.g. $424,900 for the $400K-$425K bracket)
 - NEVER use the lower number within the same bracket as the Bullseye
-- lowerBracketPrice = top of the bracket one step below minus $100
-- upperBracketPrice = top of the bracket one step above minus $100
-- Common bracket tops: $375K, $400K, $425K, $450K, $475K, $500K, $525K, $550K
+- lowerBracketPrice = top of the bracket one step below minus $100 (e.g. $399,900)
+- upperBracketPrice = top of the bracket one step above minus $100 (e.g. $449,900)
+- EXAMPLE: If 3 comps sold at $405K, $416K, $427.5K - the majority are in the $400K-$425K bracket, so Bullseye = $424,900. Do NOT pick the $425K-$450K bracket.
 
 ZESTIMATE FRAMING RULES:
 - If Zestimate is HIGHER than Bullseye: explain that Zillow is counting basement beds/baths inflating the profile, algorithm cannot see upgrades or lot premiums, comp data is more precise

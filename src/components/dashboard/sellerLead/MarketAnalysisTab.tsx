@@ -196,6 +196,15 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
   const pricing = analysis?.pricing;
   const prop = analysis?.property;
 
+  const formatBracketLabel = (low: string, high: string): string => {
+    const fmt = (v: string) => {
+      const n = parseInt(v.replace(/[^0-9]/g, ''));
+      if (!n) return v;
+      return n >= 1000 ? `$${n / 1000}K` : `$${n}`;
+    };
+    return `${fmt(low)}-${fmt(high)}`;
+  };
+
   return (
     <div className="space-y-6">
       <div>

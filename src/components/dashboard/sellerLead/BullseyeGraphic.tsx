@@ -119,7 +119,7 @@ const BullseyeGraphic = forwardRef<HTMLDivElement, BullseyeGraphicProps>(
             </text>
             <text
               x="150"
-              y="168"
+              y="165"
               textAnchor="middle"
               dominantBaseline="middle"
               fill="#FFFFFF"
