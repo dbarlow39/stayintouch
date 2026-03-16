@@ -26,6 +26,7 @@ import LeadEnrollmentDialog from "@/components/dashboard/LeadEnrollmentDialog";
 import logo from "@/assets/logo.jpg";
 import LeadEstimatedNet from "@/components/dashboard/estimatedNet/LeadEstimatedNet";
 import ResidentialWorkSheetTab from "@/components/dashboard/ResidentialWorkSheetTab";
+import MarketAnalysisTab from "@/components/dashboard/sellerLead/MarketAnalysisTab";
 
 const statusColors: Record<string, string> = {
   new: "bg-primary/10 text-primary border-primary/20",
@@ -553,15 +554,8 @@ const SellerLeadDetail = () => {
               </Card>
             )}
 
-            {activeTab === "market-analysis" && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Market Analysis</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-muted-foreground">Market analysis content coming soon.</p>
-                </CardContent>
-              </Card>
+            {activeTab === "market-analysis" && lead && (
+              <MarketAnalysisTab lead={lead} />
             )}
 
             {activeTab === "pipeline" && (
