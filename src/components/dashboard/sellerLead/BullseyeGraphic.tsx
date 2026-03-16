@@ -40,7 +40,7 @@ const BullseyeGraphic = forwardRef<HTMLDivElement, BullseyeGraphicProps>(
         ref={ref}
         style={{
           width: 460,
-          height: 673,
+          minHeight: 673,
           background: "#FFFFFF",
           fontFamily: "Arial, Helvetica, sans-serif",
           padding: "20px",
