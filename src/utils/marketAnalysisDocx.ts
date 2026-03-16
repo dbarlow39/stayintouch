@@ -71,17 +71,16 @@ function overviewRow(label: string, value: string): TableRow {
   });
 }
 
-function tableHeaderRow(columns: string[], columnCount?: number): TableRow {
-  // Single spanning header row with dark scarlet fill
+function tableHeaderRow(columns: string[]): TableRow {
   return new TableRow({
     children: columns.map((col) =>
       new TableCell({
-        shading: { type: ShadingType.CLEAR, fill: LIGHT_SCARLET },
+        shading: { type: ShadingType.CLEAR, fill: "F2F2F2" },
+        margins: { top: 80, bottom: 80, left: 120, right: 120 },
         children: [
           new Paragraph({
-            alignment: AlignmentType.CENTER,
-            spacing: { before: 80, after: 80 },
-            children: [new TextRun({ text: col, bold: true, color: DARK_SCARLET, font: "Arial", size: 20 })],
+            alignment: AlignmentType.LEFT,
+            children: [new TextRun({ text: col, bold: true, color: "1a1a1a", font: "Arial", size: 20 })],
           }),
         ],
       })
@@ -313,13 +312,13 @@ export async function generateMarketAnalysisDocx(
         width: { size: 9360, type: WidthType.DXA },
         columnWidths: [2000, 1840, 1840, 1840, 1840],
         rows: [
-          spanningHeaderRow("Summary Statistics", statsCols.length),
+          spanningHeaderRow("Closed Sales Summary Statistics", statsCols.length),
           tableHeaderRow(statsCols),
           dataRow(["Sold Price", stats.soldLow, stats.soldAvg, stats.soldMedian, stats.soldHigh], false),
-          dataRow(["List Price", stats.listLow, stats.listAvg, "-", stats.listHigh], true),
-          dataRow(["Avg Sq Ft", "-", stats.sqFtAvg, "-", "-"], false),
-          dataRow(["Avg DOM", "-", stats.domAvg, "-", "-"], true),
-          dataRow(["Sold/List Ratio", "-", stats.soldToListRatio, "-", "-"], false),
+          dataRow(["List Price", stats.listLow, stats.listAvg, stats.listMedian || "-", stats.listHigh], true),
+          dataRow(["Above-Grade Sq Ft", stats.sqFtLow || "-", stats.sqFtAvg, stats.sqFtMedian || "-", stats.sqFtHigh || "-"], false),
+          dataRow(["Days on Market", stats.domLow || "-", stats.domAvg, stats.domMedian || "-", stats.domHigh || "-"], true),
+          dataRow(["Sold-to-List Ratio", stats.soldToListLow || "-", stats.soldToListAvg, stats.soldToListMedian || "-", stats.soldToListHigh || "-"], false),
         ],
       })
     );
