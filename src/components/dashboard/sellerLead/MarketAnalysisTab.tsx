@@ -36,6 +36,7 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
   const { toast } = useToast();
   const { user } = useAuth();
   const [generating, setGenerating] = useState(false);
+  const [progressMessage, setProgressMessage] = useState("");
   const [generatingGraphics, setGeneratingGraphics] = useState(false);
   const [analysis, setAnalysis] = useState<any>(null);
   const [bullseyeImage, setBullseyeImage] = useState<string | null>(null);
