@@ -347,8 +347,8 @@ export async function generateMarketAnalysisDocx(
   ];
   sections.push(
     new Table({
-      width: { size: 100, type: WidthType.PERCENTAGE },
-      layout: TableLayoutType.FIXED,
+      width: { size: 9360, type: WidthType.DXA },
+      columnWidths: [3200, 6160],
       rows: communityFields.map(([label, value], i) => overviewRow(label, value || "-", i % 2 === 1)),
     })
   );
