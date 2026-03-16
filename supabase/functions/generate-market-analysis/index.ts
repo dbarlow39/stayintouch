@@ -40,7 +40,9 @@ WRITING RULES:
 - Never invent data - only use figures from the attached documents
 - Features must be specific: brand names, ages, warranties where stated
 - Review all property photos for value factors and incorporate observations into comp comparison bullets and price justification
-- For the features array specifically: cross-reference ALL attached documents - the CMA, the Inspection Worksheet, AND the walk-through summary - to build the most complete and specific feature list possible. Do not rely on any single document alone.`;
+- For the features array specifically: cross-reference ALL attached documents - the CMA, the Inspection Worksheet, AND the walk-through summary - to build the most complete and specific feature list possible. Do not rely on any single document alone.
+- SQUARE FOOTAGE ACCURACY: CMA reports (CoreLogic, RPR) sometimes copy the total building square footage into the "Basement Sq Feet" field incorrectly. Never trust the CMA basement sq ft field if it matches or is close to the above-grade sq ft. Always cross-reference the walk-through summary and inspection worksheet to find the actual finished basement square footage. The finished basement sq ft will always be SMALLER than the above-grade sq ft. If the CMA shows a "Basement Sq Feet" value that equals the above-grade sq ft, it is wrong - ignore it and use the figure from the walk-through or inspection documents instead.
+- TOTAL FINISHED SQ FT: Always calculate totalFinishedSqFt as the above-grade sq ft PLUS the finished basement sq ft. Never use a single number for both.`;
 
 const USER_PROMPT = `FEATURES WRITING RULES - apply these when populating the features array:
 
