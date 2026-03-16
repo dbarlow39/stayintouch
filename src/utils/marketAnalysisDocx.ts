@@ -76,12 +76,12 @@ function tableHeaderRow(columns: string[], columnCount?: number): TableRow {
   return new TableRow({
     children: columns.map((col) =>
       new TableCell({
-        shading: { type: ShadingType.CLEAR, fill: DARK_SCARLET },
+        shading: { type: ShadingType.CLEAR, fill: LIGHT_SCARLET },
         children: [
           new Paragraph({
             alignment: AlignmentType.CENTER,
             spacing: { before: 40, after: 40 },
-            children: [new TextRun({ text: col, bold: true, color: "FFFFFF", font: "Arial", size: 20 })],
+            children: [new TextRun({ text: col, bold: true, color: DARK_SCARLET, font: "Arial", size: 20 })],
           }),
         ],
       })
