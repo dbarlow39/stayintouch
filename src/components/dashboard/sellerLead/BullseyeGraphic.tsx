@@ -44,7 +44,9 @@ const BullseyeGraphic = forwardRef<HTMLDivElement, BullseyeGraphicProps>(
       >
         {/* Header */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
-          <div style={{ fontSize: 18, fontWeight: "bold", color: "#1a1a1a" }}>{address}</div>
+          <div style={{ fontSize: 18, fontWeight: "bold", color: "#1a1a1a" }}>
+            {address.replace(/,\s*(OH|Ohio)\s*\d{5}$/i, "").replace(/,\s*\w+\s*\d{5}$/, "")}
+          </div>
           <img src={logoImg} alt="Sell for 1 Percent" style={{ height: 40, objectFit: "contain" }} />
         </div>
 
