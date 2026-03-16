@@ -322,7 +322,7 @@ export async function generateMarketAnalysisDocx(
   if (community.narrative) sections.push(bodyParagraph(community.narrative));
 
   // SECTION 5: MARKET CONDITIONS
-  sections.push(sectionHeading("SECTION 5: CURRENT MARKET CONDITIONS"));
+  sections.push(sectionHeading("CURRENT MARKET CONDITIONS"));
   if (market.marketNarrative) sections.push(bodyParagraph(market.marketNarrative));
   if (market.onlineValuationCaution) sections.push(bodyParagraph(market.onlineValuationCaution));
 
