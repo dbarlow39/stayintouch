@@ -310,11 +310,56 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
               <BarChart3 className="w-4 h-4" />
               Analysis Preview
             </h4>
-            <Button onClick={handleDownload} variant="default">
-              <Download className="w-4 h-4 mr-2" />
-              Download .docx
-            </Button>
+            <div className="flex gap-2">
+              {!bullseyeImage && !generatingGraphics && (
+                <Button onClick={handleCaptureGraphics} variant="outline" size="sm">
+                  <ImageIcon className="w-4 h-4 mr-2" />
+                  Capture Graphics
+                </Button>
+              )}
+              <Button onClick={handleDownload} variant="default">
+                <Download className="w-4 h-4 mr-2" />
+                Download .docx
+              </Button>
+            </div>
           </div>
+
+          {/* Hidden graphic renderers for html2canvas capture */}
+          {analysis.pricingStrategy && (
+            <div style={{ position: "absolute", left: "-9999px", top: 0 }}>
+              <BullseyeGraphic
+                ref={bullseyeRef}
+                address={analysis.propertyOverview?.address || ""}
+                bullseyePrice={analysis.pricingStrategy.bullseyePrice || ""}
+                lowerBracketPrice={analysis.pricingStrategy.lowerBracketPrice || ""}
+                upperBracketPrice={analysis.pricingStrategy.upperBracketPrice || ""}
+                bullseyeBracket={analysis.pricingStrategy.bullseyeBracket || ""}
+                lowerBracket={analysis.pricingStrategy.lowerBracket || ""}
+                upperBracket={analysis.pricingStrategy.upperBracket || ""}
+                lowerBracketDescription={analysis.pricingStrategy.lowerBracketDescription || ""}
+                bullseyeDescription={analysis.pricingStrategy.bullseyeDescription || ""}
+                upperBracketDescription={analysis.pricingStrategy.upperBracketDescription || ""}
+              />
+            </div>
+          )}
+          {analysis.zillowAnalysis && (
+            <div style={{ position: "absolute", left: "-9999px", top: 0 }}>
+              <ZillowGraphic
+                ref={zillowRef}
+                address={analysis.propertyOverview?.address || ""}
+                zestimate={analysis.zillowAnalysis.zestimate || ""}
+                estimatedSalesRange={analysis.zillowAnalysis.estimatedSalesRange || ""}
+                rentZestimate={analysis.zillowAnalysis.rentZestimate || ""}
+                pricePerSqFt={analysis.zillowAnalysis.pricePerSqFt || ""}
+                bedsBaths={analysis.zillowAnalysis.bedsBathsAsZillowCounts || ""}
+                propertyType={analysis.zillowAnalysis.propertyType || ""}
+                yearBuilt={analysis.zillowAnalysis.yearBuilt || ""}
+                updatedDate={analysis.zillowAnalysis.updatedDate || ""}
+                appreciationNote={analysis.zillowAnalysis.appreciationNote || ""}
+                importantContext={analysis.zillowAnalysis.importantContext || ""}
+              />
+            </div>
+          )}
 
           {/* Property Overview */}
           {analysis.propertyOverview && (
