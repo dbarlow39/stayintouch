@@ -97,14 +97,12 @@ const BullseyeGraphic = forwardRef<HTMLDivElement, BullseyeGraphicProps>(
               height: 280,
             }}
           >
-            {/* Outer ring */}
+            {/* Outer red ring */}
             <circle cx="150" cy="150" r="140" fill="#CC0000" />
-            <circle cx="150" cy="150" r="115" fill="#FFFFFF" />
-            {/* Middle ring */}
-            <circle cx="150" cy="150" r="95" fill="#CC0000" />
-            <circle cx="150" cy="150" r="70" fill="#FFFFFF" />
-            {/* Inner white center circle */}
-            <circle cx="150" cy="150" r="68" fill="#FFFFFF" stroke="#FFFFFF" strokeWidth="2" />
+            {/* White ring */}
+            <circle cx="150" cy="150" r="105" fill="#FFFFFF" />
+            {/* Inner red circle (center) */}
+            <circle cx="150" cy="150" r="65" fill="#CC0000" />
           </svg>
 
           {/* Upper bracket price label */}
@@ -132,8 +130,8 @@ const BullseyeGraphic = forwardRef<HTMLDivElement, BullseyeGraphicProps>(
               zIndex: 2,
             }}
           >
-            <div style={{ fontSize: 22, fontWeight: "bold", color: "#1a1a1a" }}>{bullseyePrice}</div>
-            <div style={{ fontSize: 11, fontWeight: "bold", color: "#1a1a1a", letterSpacing: 2 }}>BULLSEYE</div>
+            <div style={{ fontSize: 22, fontWeight: "bold", color: "#FFFFFF" }}>{bullseyePrice}</div>
+            <div style={{ fontSize: 11, fontWeight: "bold", color: "#FFFFFF", letterSpacing: 2 }}>BULLSEYE</div>
           </div>
 
           {/* Lower bracket price label */}
