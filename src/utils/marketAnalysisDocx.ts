@@ -230,7 +230,7 @@ export async function generateMarketAnalysisDocx(
     ["Subdivision", prop.subdivision],
     ["HOA", prop.hoa],
     ["HOA Amenities", prop.hoaAmenities],
-    ["County Market Value", prop.countyMarketValue],
+    ["County Market Value", prop.countyMarketValue ? `${prop.countyMarketValue} (tax assessed; typically lags market)` : "-"],
     ["Annual Property Tax", prop.annualTax ? `${prop.annualTax} (${prop.taxYear || ""})` : "-"],
     ["Last Sale Price & Date", prop.lastSalePrice ? `${prop.lastSalePrice} (${prop.lastSaleDate || ""})` : "-"],
     ["2-Year Appreciation", prop.appreciation2yr],
