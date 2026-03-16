@@ -39,7 +39,7 @@ function sectionHeading(text: string): Paragraph {
     spacing: { before: 400, after: 200 },
     border: { bottom: { style: BorderStyle.SINGLE, size: 2, color: SCARLET } },
     children: [
-      new TextRun({ text: titleCase, bold: true, color: DARK_SCARLET, font: "Arial", size: 24 }),
+      new TextRun({ text: titleCase, bold: true, color: DARK_SCARLET, font: "Arial", size: 20 }),
     ],
   });
 }
