@@ -122,6 +122,15 @@ async function base64ToUint8Array(dataUrl: string): Promise<Uint8Array> {
   return bytes;
 }
 
+function getImageDimensions(dataUrl: string): Promise<{width: number, height: number}> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => resolve({ width: img.naturalWidth, height: img.naturalHeight });
+    img.onerror = () => resolve({ width: 460, height: 800 });
+    img.src = dataUrl;
+  });
+}
+
 export async function generateMarketAnalysisDocx(
   analysis: any,
   bullseyeImage: string | null,
