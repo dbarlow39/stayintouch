@@ -47,7 +47,7 @@ function sectionHeading(text: string): Paragraph {
 function bodyParagraph(text: string): Paragraph {
   return new Paragraph({
     spacing: { after: 200 },
-    children: [new TextRun({ text: clean(text), font: "Arial", size: 24 })],
+    children: [new TextRun({ text: clean(text), font: "Arial", size: 20 })],
   });
 }
 
