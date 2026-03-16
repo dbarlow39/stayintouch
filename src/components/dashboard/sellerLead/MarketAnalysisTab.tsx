@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -36,6 +36,7 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
   const { toast } = useToast();
   const { user } = useAuth();
   const [generating, setGenerating] = useState(false);
+  const [progressMessage, setProgressMessage] = useState("");
   const [generatingGraphics, setGeneratingGraphics] = useState(false);
   const [analysis, setAnalysis] = useState<any>(null);
   const [bullseyeImage, setBullseyeImage] = useState<string | null>(null);
@@ -90,34 +91,31 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
     return canvas.toDataURL("image/png");
   }, []);
 
+  // Track when analysis is ready so we can auto-capture and download
+  const [pendingAutoDownload, setPendingAutoDownload] = useState(false);
+
   const handleGenerate = async () => {
     setGenerating(true);
+    setProgressMessage("Uploading documents...");
     setAnalysis(null);
     setBullseyeImage(null);
     setZillowImage(null);
 
     try {
-      // Upload files to storage first
       const uploadedDocs = await uploadFilesToStorage(documents);
 
+      setProgressMessage("Analyzing documents with Claude...");
       const { data, error } = await supabase.functions.invoke("generate-market-analysis", {
         body: { documents: uploadedDocs },
       });
 
       if (error) throw error;
-
-      if (data?.error) {
-        throw new Error(data.error);
-      }
-
-      if (!data?.analysis) {
-        throw new Error("No analysis returned from AI");
-      }
+      if (data?.error) throw new Error(data.error);
+      if (!data?.analysis) throw new Error("No analysis returned from AI");
 
       setAnalysis(data.analysis);
-      toast({ title: "Market analysis generated successfully" });
-
-      // Graphics will be rendered by React components, then captured after render
+      setPendingAutoDownload(true);
+      setProgressMessage("Rendering graphics...");
     } catch (err: any) {
       console.error("Market analysis error:", err);
       toast({
@@ -125,45 +123,51 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
         description: err.message || "Please try again",
         variant: "destructive",
       });
-    } finally {
       setGenerating(false);
+      setProgressMessage("");
     }
   };
 
-  // Capture graphics after analysis is set and components have rendered
-  const handleCaptureGraphics = useCallback(async () => {
-    if (!analysis) return;
-    setGeneratingGraphics(true);
-    try {
-      // Small delay to ensure DOM has rendered
-      await new Promise((r) => setTimeout(r, 500));
+  // Once analysis is set and components render, capture graphics and download
+  useEffect(() => {
+    if (!pendingAutoDownload || !analysis) return;
 
-      const promises: Promise<void>[] = [];
+    const captureAndDownload = async () => {
+      try {
+        // Wait for React to render the hidden graphic components
+        await new Promise((r) => setTimeout(r, 800));
 
-      if (bullseyeRef.current) {
-        promises.push(
-          captureGraphic(bullseyeRef.current).then((img) => setBullseyeImage(img))
-        );
+        let capturedBullseye: string | null = null;
+        let capturedZillow: string | null = null;
+
+        if (bullseyeRef.current) {
+          capturedBullseye = await captureGraphic(bullseyeRef.current);
+          setBullseyeImage(capturedBullseye);
+        }
+        if (zillowRef.current) {
+          capturedZillow = await captureGraphic(zillowRef.current);
+          setZillowImage(capturedZillow);
+        }
+
+        setProgressMessage("Building document...");
+        await generateMarketAnalysisDocx(analysis, capturedBullseye, capturedZillow);
+        toast({ title: "Market analysis document downloaded" });
+      } catch (err: any) {
+        console.error("Auto-download error:", err);
+        toast({
+          title: "Error building document",
+          description: err.message || "Analysis is ready - try the Download button.",
+          variant: "destructive",
+        });
+      } finally {
+        setGenerating(false);
+        setProgressMessage("");
+        setPendingAutoDownload(false);
       }
-      if (zillowRef.current) {
-        promises.push(
-          captureGraphic(zillowRef.current).then((img) => setZillowImage(img))
-        );
-      }
+    };
 
-      await Promise.all(promises);
-      toast({ title: "Graphics captured successfully" });
-    } catch (err: any) {
-      console.error("Graphics capture error:", err);
-      toast({
-        title: "Graphics capture failed",
-        description: err.message || "Please try again",
-        variant: "destructive",
-      });
-    } finally {
-      setGeneratingGraphics(false);
-    }
-  }, [analysis, captureGraphic, toast]);
+    captureAndDownload();
+  }, [pendingAutoDownload, analysis, captureGraphic, toast]);
 
   const handleDownload = async () => {
     if (!analysis) return;
@@ -283,20 +287,12 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
         </CardContent>
       </Card>
 
-      {/* Generation Progress */}
-      {(generating || generatingGraphics) && (
+      {generating && (
         <Card className="border-primary/20">
           <CardContent className="py-8">
             <div className="flex flex-col items-center gap-3">
               <Loader2 className="w-8 h-8 animate-spin text-primary" />
-              <p className="font-medium">
-                {generating ? "Analyzing documents with AI..." : "Capturing graphics..."}
-              </p>
-              <p className="text-sm text-muted-foreground text-center max-w-md">
-                {generating
-                  ? "Extracting property data, comparable sales, and market conditions from your uploaded documents."
-                  : "Rendering the Bullseye Pricing Model and Zillow Zestimate cards."}
-              </p>
+              <p className="font-medium">{progressMessage || "Processing..."}</p>
             </div>
           </CardContent>
         </Card>
@@ -311,12 +307,6 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
               Analysis Preview
             </h4>
             <div className="flex gap-2">
-              {!bullseyeImage && !generatingGraphics && (
-                <Button onClick={handleCaptureGraphics} variant="outline" size="sm">
-                  <ImageIcon className="w-4 h-4 mr-2" />
-                  Capture Graphics
-                </Button>
-              )}
               <Button onClick={handleDownload} variant="default">
                 <Download className="w-4 h-4 mr-2" />
                 Download .docx
