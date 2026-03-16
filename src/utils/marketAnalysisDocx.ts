@@ -71,17 +71,16 @@ function overviewRow(label: string, value: string): TableRow {
   });
 }
 
-function tableHeaderRow(columns: string[], columnCount?: number): TableRow {
-  // Single spanning header row with dark scarlet fill
+function tableHeaderRow(columns: string[]): TableRow {
   return new TableRow({
     children: columns.map((col) =>
       new TableCell({
-        shading: { type: ShadingType.CLEAR, fill: LIGHT_SCARLET },
+        shading: { type: ShadingType.CLEAR, fill: "F2F2F2" },
+        margins: { top: 80, bottom: 80, left: 120, right: 120 },
         children: [
           new Paragraph({
-            alignment: AlignmentType.CENTER,
-            spacing: { before: 80, after: 80 },
-            children: [new TextRun({ text: col, bold: true, color: DARK_SCARLET, font: "Arial", size: 20 })],
+            alignment: AlignmentType.LEFT,
+            children: [new TextRun({ text: col, bold: true, color: "1a1a1a", font: "Arial", size: 20 })],
           }),
         ],
       })
