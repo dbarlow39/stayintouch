@@ -13,8 +13,11 @@ import {
   HeadingLevel,
   ShadingType,
   TableLayoutType,
+  TabStopPosition,
+  TabStopType,
 } from "docx";
 import { saveAs } from "file-saver";
+import logoUrl from "@/assets/logo.jpg";
 
 const DARK_SCARLET = "8B0000";
 const SCARLET = "CC0000";
