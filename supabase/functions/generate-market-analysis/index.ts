@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import JSZip from "https://esm.sh/jszip@3.10.1";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -152,26 +153,45 @@ serve(async (req) => {
           continue;
         }
 
-        // Convert to base64 using chunked approach (avoids stack overflow)
         const arrayBuffer = await fileData.arrayBuffer();
-        const uint8Array = new Uint8Array(arrayBuffer);
-        let binaryString = "";
-        const chunkSize = 8192;
-        for (let i = 0; i < uint8Array.length; i += chunkSize) {
-          const chunk = uint8Array.subarray(i, i + chunkSize);
-          binaryString += String.fromCharCode(...chunk);
-        }
-        const base64Content = btoa(binaryString);
         const mimeType = doc.mimeType || fileData.type || "application/pdf";
-
         console.log(`${doc.name}: ${(arrayBuffer.byteLength / 1024 / 1024).toFixed(2)}MB, mime: ${mimeType}`);
 
-        userContent.push({
-          type: "image_url",
-          image_url: {
-            url: `data:${mimeType};base64,${base64Content}`
+        // .docx files: extract text content (Gemini doesn't support docx binary)
+        if (mimeType.includes("wordprocessingml") || doc.name.toLowerCase().endsWith(".docx")) {
+          try {
+            const zip = await JSZip.loadAsync(arrayBuffer);
+            const docXml = await zip.file("word/document.xml")?.async("string");
+            if (docXml) {
+              const textContent = docXml.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+              console.log(`Extracted ${textContent.length} chars from docx: ${doc.name}`);
+              userContent.push({
+                type: "text",
+                text: `[Document: ${doc.name}]\n${textContent}`
+              });
+            }
+          } catch (e) {
+            console.error(`Failed to parse docx ${doc.name}:`, e);
           }
-        });
+        } else {
+          // PDF/image files: send as base64 binary
+          const uint8Array = new Uint8Array(arrayBuffer);
+          let binaryString = "";
+          const chunkSize = 8192;
+          for (let i = 0; i < uint8Array.length; i += chunkSize) {
+            const chunk = uint8Array.subarray(i, i + chunkSize);
+            for (let j = 0; j < chunk.length; j++) {
+              binaryString += String.fromCharCode(chunk[j]);
+            }
+          }
+          const base64Content = btoa(binaryString);
+          userContent.push({
+            type: "image_url",
+            image_url: {
+              url: `data:${mimeType};base64,${base64Content}`
+            }
+          });
+        }
       }
     }
 
