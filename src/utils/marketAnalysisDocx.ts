@@ -188,7 +188,7 @@ export async function generateMarketAnalysisDocx(
         new Paragraph({
           alignment: AlignmentType.RIGHT,
           spacing: { before: 60 },
-          children: [new TextRun({ text: clean(prop.address ? `${prop.address}, ${prop.city}, ${prop.state} ${prop.zip}` : ""), bold: true, color: SCARLET, font: "Arial", size: 24 })],
+          children: [new TextRun({ text: clean(prop.address ? `${prop.address}, ${prop.city}, ${prop.state} ${prop.zip}` : ""), bold: true, color: SCARLET, font: "Arial", size: 20 })],
         }),
         new Paragraph({
           alignment: AlignmentType.RIGHT,
