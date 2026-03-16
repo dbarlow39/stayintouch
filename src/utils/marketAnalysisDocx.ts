@@ -361,6 +361,7 @@ export async function generateMarketAnalysisDocx(
       ],
     })
   );
+  sections.push(new Paragraph({ spacing: { before: 200 }, children: [] }));
   if (narrative.communityParagraph) sections.push(bodyParagraph(narrative.communityParagraph));
 
   // ── 7. MARKET CONDITIONS ──
