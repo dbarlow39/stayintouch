@@ -259,7 +259,10 @@ serve(async (req) => {
     }
 
     const data = await response.json();
-    const rawContent = data.choices?.[0]?.message?.content?.trim() || "";
+    
+    // Anthropic response: content is an array of content blocks
+    const textBlock = data.content?.find((b: any) => b.type === "text");
+    const rawContent = textBlock?.text?.trim() || "";
 
     // Extract JSON from the response (may be wrapped in markdown code blocks)
     let jsonStr = rawContent;
