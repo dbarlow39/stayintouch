@@ -327,6 +327,12 @@ export async function generateMarketAnalysisDocx(
   // Comp comparison bullets
   if (narrative.compComparison?.length > 0) {
     sections.push(new Paragraph({ spacing: { before: 200 }, children: [] }));
+    sections.push(
+      new Paragraph({
+        spacing: { before: 100, after: 100 },
+        children: [new TextRun({ text: "How Your Home Compares to the Closed Comps:", bold: true, font: "Arial", size: 22 })],
+      })
+    );
     for (const bullet of narrative.compComparison) {
       sections.push(
         new Paragraph({
