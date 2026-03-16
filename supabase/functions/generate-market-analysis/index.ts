@@ -39,7 +39,8 @@ WRITING RULES:
 - Address homeowners by FIRST NAMES ONLY (e.g. "Dear John and Jane,") - never use last names in the salutation or intro paragraph
 - Never invent data - only use figures from the attached documents
 - Features must be specific: brand names, ages, warranties where stated
-- Review all property photos for value factors and incorporate observations into comp comparison bullets and price justification`;
+- Review all property photos for value factors and incorporate observations into comp comparison bullets and price justification
+- For the features array specifically: cross-reference ALL attached documents - the CMA, the Inspection Worksheet, AND the walk-through summary - to build the most complete and specific feature list possible. Do not rely on any single document alone.`;
 
 const USER_PROMPT = `Analyze the attached documents and return your analysis as a JSON object matching this exact schema:
 
