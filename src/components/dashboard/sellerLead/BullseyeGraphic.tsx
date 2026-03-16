@@ -111,7 +111,7 @@ const BullseyeGraphic = forwardRef<HTMLDivElement, BullseyeGraphicProps>(
               textAnchor="middle"
               dominantBaseline="middle"
               fill="#FFFFFF"
-              fontSize="28"
+              fontSize="24"
               fontWeight="bold"
               fontFamily="Arial, Helvetica, sans-serif"
             >
