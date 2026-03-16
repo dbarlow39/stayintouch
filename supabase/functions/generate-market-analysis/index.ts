@@ -277,8 +277,12 @@ serve(async (req) => {
     }
 
     const data = await response.json();
+    console.log("Claude usage:", JSON.stringify(data.usage));
+    console.log("Claude stop_reason:", data.stop_reason);
     const textBlock = data.content?.find((b: any) => b.type === "text");
     const rawContent = textBlock?.text?.trim() || "";
+    console.log("Claude response length:", rawContent.length);
+    console.log("Claude response preview:", rawContent.substring(0, 800));
 
     let jsonStr = rawContent;
     const jsonMatch = rawContent.match(/```(?:json)?\s*([\s\S]*?)```/);
@@ -293,6 +297,12 @@ serve(async (req) => {
       console.error("Failed to parse AI response as JSON:", rawContent.substring(0, 500));
       throw new Error("AI returned invalid JSON. Please try again.");
     }
+    
+    // Log key extracted fields to verify data
+    console.log("Extracted address:", analysis.property?.address);
+    console.log("Extracted owner1:", analysis.property?.owner1);
+    console.log("Closed comps count:", analysis.closedComps?.length);
+    console.log("Bullseye price:", analysis.pricing?.bullseyePrice);
 
     return new Response(
       JSON.stringify({ analysis }),
