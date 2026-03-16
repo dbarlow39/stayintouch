@@ -315,12 +315,6 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
               Analysis Preview
             </h4>
             <div className="flex gap-2">
-              {!bullseyeImage && !generatingGraphics && (
-                <Button onClick={handleCaptureGraphics} variant="outline" size="sm">
-                  <ImageIcon className="w-4 h-4 mr-2" />
-                  Capture Graphics
-                </Button>
-              )}
               <Button onClick={handleDownload} variant="default">
                 <Download className="w-4 h-4 mr-2" />
                 Download .docx
