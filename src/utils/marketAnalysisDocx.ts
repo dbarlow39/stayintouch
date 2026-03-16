@@ -304,8 +304,8 @@ export async function generateMarketAnalysisDocx(
     const statsCols = ["Metric", "Low", "Average", "Median", "High"];
     sections.push(
       new Table({
-        width: { size: 100, type: WidthType.PERCENTAGE },
-        layout: TableLayoutType.FIXED,
+        width: { size: 9360, type: WidthType.DXA },
+        columnWidths: [2000, 1840, 1840, 1840, 1840],
         rows: [
           spanningHeaderRow("Summary Statistics", statsCols.length),
           tableHeaderRow(statsCols),
