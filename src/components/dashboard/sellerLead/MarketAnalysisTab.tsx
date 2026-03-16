@@ -287,20 +287,12 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
         </CardContent>
       </Card>
 
-      {/* Generation Progress */}
-      {(generating || generatingGraphics) && (
+      {generating && (
         <Card className="border-primary/20">
           <CardContent className="py-8">
             <div className="flex flex-col items-center gap-3">
               <Loader2 className="w-8 h-8 animate-spin text-primary" />
-              <p className="font-medium">
-                {generating ? "Analyzing documents with AI..." : "Capturing graphics..."}
-              </p>
-              <p className="text-sm text-muted-foreground text-center max-w-md">
-                {generating
-                  ? "Extracting property data, comparable sales, and market conditions from your uploaded documents."
-                  : "Rendering the Bullseye Pricing Model and Zillow Zestimate cards."}
-              </p>
+              <p className="font-medium">{progressMessage || "Processing..."}</p>
             </div>
           </CardContent>
         </Card>
