@@ -354,7 +354,7 @@ export async function generateMarketAnalysisDocx(
   if (zillow.onlineValuationNote) sections.push(bodyParagraph(zillow.onlineValuationNote));
 
   // SECTION 7: PRICING STRATEGY
-  sections.push(sectionHeading("SECTION 7: OUR PRICING STRATEGY - THE BULLSEYE PRICING MODEL"));
+  sections.push(sectionHeading("OUR PRICING STRATEGY - THE BULLSEYE PRICING MODEL"));
 
   if (bullseyeImage) {
     try {
