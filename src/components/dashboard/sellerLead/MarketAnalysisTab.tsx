@@ -81,20 +81,11 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
     setZillowImage(null);
 
     try {
-      const docsPayload = [];
-      for (const doc of documents) {
-        if (doc.file) {
-          const base64 = await fileToBase64(doc.file);
-          docsPayload.push({
-            name: doc.label,
-            mimeType: doc.file.type || "application/pdf",
-            base64,
-          });
-        }
-      }
+      // Upload files to storage first
+      const uploadedDocs = await uploadFilesToStorage(documents);
 
       const { data, error } = await supabase.functions.invoke("generate-market-analysis", {
-        body: { documents: docsPayload },
+        body: { documents: uploadedDocs },
       });
 
       if (error) throw error;
