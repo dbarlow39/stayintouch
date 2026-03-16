@@ -140,7 +140,7 @@ const USER_PROMPT = `Analyze the attached documents and return your analysis as 
     "upperBracketHigh": ""
   },
   "narrative": {
-    "intro": "",
+    "intro": "Thank you for the time you spent with me walking through your home and sharing your goals for this next chapter. It is clear you have taken exceptional pride in maintaining and upgrading your property, and I am confident we can help you accomplish a successful sale. Attached is the market analysis summary based on the latest data for your home. The goal is to give you a clear, data-driven overview so you can make informed decisions about your property's value and your timing in today's market.",
     "taxNote": "",
     "compComparison": [""],
     "communityParagraph": "",
