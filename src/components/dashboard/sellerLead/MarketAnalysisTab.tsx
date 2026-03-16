@@ -316,9 +316,9 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
               />
             </div>
           )}
-          {analysis.zillowAnalysis && (
-            <div style={{ position: "absolute", left: "-9999px", top: 0 }}>
-              <ZillowGraphic
+      {analysis?.zillowAnalysis && (
+        <div style={{ position: "fixed", left: "-9999px", top: 0, zIndex: -1 }}>
+          <ZillowGraphic
                 ref={zillowRef}
                 address={analysis.propertyOverview?.address || ""}
                 zestimate={analysis.zillowAnalysis.zestimate || ""}
