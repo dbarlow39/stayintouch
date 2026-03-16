@@ -137,7 +137,34 @@ export async function generateMarketAnalysisDocx(
 
   const sections: any[] = [];
 
-  // HEADER
+  // Fetch logo image
+  let logoBytes: Uint8Array | null = null;
+  try {
+    const response = await fetch(logoUrl);
+    const blob = await response.blob();
+    const buffer = await blob.arrayBuffer();
+    logoBytes = new Uint8Array(buffer);
+  } catch (e) {
+    console.error("Failed to load logo:", e);
+  }
+
+  // HEADER with logo
+  if (logoBytes) {
+    sections.push(
+      new Paragraph({
+        alignment: AlignmentType.RIGHT,
+        spacing: { after: 100 },
+        children: [
+          new ImageRun({
+            data: logoBytes,
+            transformation: { width: 180, height: 60 },
+            type: "jpg",
+          }),
+        ],
+      })
+    );
+  }
+
   sections.push(
     new Paragraph({
       alignment: AlignmentType.RIGHT,
