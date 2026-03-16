@@ -38,7 +38,7 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
   const [documents, setDocuments] = useState<DocumentSlot[]>([
     { label: "CMA / Property Detail Report", description: "CoreLogic, RPR, or similar report", file: null, required: true },
     { label: "Residential Inspection Worksheet", description: "Room-by-room condition notes", file: null, required: true },
-    { label: "Walk-Through Summary", description: "Seller observations and transcript", file: null, required: false },
+    { label: "Audio of Walk-Through Summary", description: "Seller observations and transcript", file: null, required: false },
     { label: "Zillow PDF Screenshot", description: "Zestimate, range, and property stats", file: null, required: true },
   ]);
 
