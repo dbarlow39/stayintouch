@@ -220,7 +220,19 @@ serve(async (req) => {
           const zip = await JSZip.loadAsync(arrayBuffer);
           const docXml = await zip.file("word/document.xml")?.async("string");
           if (docXml) {
-            const textContent = docXml.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+            // Extract text preserving paragraph breaks for better readability
+            const textContent = docXml
+              .replace(/<\/w:p>/g, "\n")
+              .replace(/<w:br[^>]*\/>/g, "\n")
+              .replace(/<w:tab[^>]*\/>/g, "\t")
+              .replace(/<[^>]+>/g, "")
+              .replace(/&amp;/g, "&")
+              .replace(/&lt;/g, "<")
+              .replace(/&gt;/g, ">")
+              .replace(/&quot;/g, '"')
+              .replace(/&apos;/g, "'")
+              .replace(/\n{3,}/g, "\n\n")
+              .trim();
             console.log(`Extracted ${textContent.length} chars from docx: ${doc.name}`);
             userContent.push({
               type: "text",
