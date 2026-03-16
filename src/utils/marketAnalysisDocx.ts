@@ -64,7 +64,7 @@ function overviewRow(label: string, value: string): TableRow {
       new TableCell({
         width: { size: 6160, type: WidthType.DXA },
         children: [
-          new Paragraph({ spacing: { before: 40, after: 40 }, children: [new TextRun({ text: clean(value), font: "Arial", size: 20 })] }),
+          new Paragraph({ spacing: { before: 80, after: 80 }, children: [new TextRun({ text: clean(value), font: "Arial", size: 20 })] }),
         ],
       }),
     ],
