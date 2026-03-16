@@ -61,7 +61,7 @@ function overviewRow(label: string, value: string, altRow: boolean): TableRow {
         ],
       }),
       new TableCell({
-        width: { size: 6000, type: WidthType.DXA },
+        width: { size: 6160, type: WidthType.DXA },
         shading: altRow ? { type: ShadingType.CLEAR, fill: LIGHT_SCARLET } : undefined,
         children: [
           new Paragraph({ children: [new TextRun({ text: clean(value), font: "Arial", size: 22 })] }),
