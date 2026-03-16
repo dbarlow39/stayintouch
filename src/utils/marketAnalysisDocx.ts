@@ -242,7 +242,10 @@ export async function generateMarketAnalysisDocx(
     new Table({
       width: { size: 9360, type: WidthType.DXA },
       columnWidths: [3200, 6160],
-      rows: overviewFields.map(([label, value], i) => overviewRow(label, value || "-", i % 2 === 1)),
+      rows: [
+        spanningHeaderRow("Subject Property Details", 2),
+        ...overviewFields.map(([label, value]) => overviewRow(label, value || "-")),
+      ],
     })
   );
   if (narrative.taxNote) sections.push(bodyParagraph(narrative.taxNote));
