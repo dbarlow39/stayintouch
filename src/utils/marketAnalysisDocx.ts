@@ -203,7 +203,7 @@ export async function generateMarketAnalysisDocx(
   }
 
   // SECTION 1: PROPERTY OVERVIEW
-  sections.push(sectionHeading("SECTION 1: PROPERTY OVERVIEW"));
+  sections.push(sectionHeading("PROPERTY OVERVIEW"));
 
   const overviewLabels: Record<string, string> = {
     address: "Address",
@@ -247,7 +247,7 @@ export async function generateMarketAnalysisDocx(
 
   // SECTION 2: NOTABLE FEATURES
   if (analysis.notableFeatures?.length > 0) {
-    sections.push(sectionHeading("SECTION 2: NOTABLE PROPERTY FEATURES"));
+    sections.push(sectionHeading("NOTABLE PROPERTY FEATURES"));
     for (const feature of analysis.notableFeatures) {
       sections.push(
         new Paragraph({
@@ -261,7 +261,7 @@ export async function generateMarketAnalysisDocx(
 
   // SECTION 3: COMPARABLE SALES
   if (comps.closedSales?.length > 0) {
-    sections.push(sectionHeading("SECTION 3: RECENT COMPARABLE SALES"));
+    sections.push(sectionHeading("RECENT COMPARABLE SALES"));
     sections.push(bodyParagraph("Closed Sales"));
 
     const closedHeaders = ["Address", "Closed Date", "List Price", "Sold Price", "Beds/Baths", "Sq Ft", "Year Built", "DOM"];
@@ -298,7 +298,7 @@ export async function generateMarketAnalysisDocx(
   }
 
   // SECTION 4: COMMUNITY INSIGHTS
-  sections.push(sectionHeading("SECTION 4: COMMUNITY AND NEIGHBORHOOD INSIGHTS"));
+  sections.push(sectionHeading("COMMUNITY AND NEIGHBORHOOD INSIGHTS"));
   const communityLabels: Record<string, string> = {
     schoolDistrict: "School District",
     familyFriendlyScore: "Family Friendly Score",
@@ -322,12 +322,12 @@ export async function generateMarketAnalysisDocx(
   if (community.narrative) sections.push(bodyParagraph(community.narrative));
 
   // SECTION 5: MARKET CONDITIONS
-  sections.push(sectionHeading("SECTION 5: CURRENT MARKET CONDITIONS"));
+  sections.push(sectionHeading("CURRENT MARKET CONDITIONS"));
   if (market.marketNarrative) sections.push(bodyParagraph(market.marketNarrative));
   if (market.onlineValuationCaution) sections.push(bodyParagraph(market.onlineValuationCaution));
 
   // SECTION 6: ZILLOW
-  sections.push(sectionHeading("SECTION 6: ZILLOW ZESTIMATE - WHAT IT SAYS AND WHAT IT MISSES"));
+  sections.push(sectionHeading("ZILLOW ZESTIMATE - WHAT IT SAYS AND WHAT IT MISSES"));
 
   if (zillowImage) {
     try {
@@ -354,7 +354,7 @@ export async function generateMarketAnalysisDocx(
   if (zillow.onlineValuationNote) sections.push(bodyParagraph(zillow.onlineValuationNote));
 
   // SECTION 7: PRICING STRATEGY
-  sections.push(sectionHeading("SECTION 7: OUR PRICING STRATEGY - THE BULLSEYE PRICING MODEL"));
+  sections.push(sectionHeading("OUR PRICING STRATEGY - THE BULLSEYE PRICING MODEL"));
 
   if (bullseyeImage) {
     try {
@@ -382,7 +382,7 @@ export async function generateMarketAnalysisDocx(
   if (pricing.priceJustification) sections.push(bodyParagraph(pricing.priceJustification));
 
   // SECTION 8: NEXT STEPS
-  sections.push(sectionHeading("SECTION 8: NEXT STEPS"));
+  sections.push(sectionHeading("NEXT STEPS"));
   if (analysis.nextSteps) sections.push(bodyParagraph(analysis.nextSteps));
 
   // SIGNATURE
