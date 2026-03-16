@@ -110,7 +110,7 @@ function dataRow(values: string[], altRow: boolean): TableRow {
   return new TableRow({
     children: values.map((val) =>
       new TableCell({
-        shading: undefined,
+        shading: altRow ? { type: ShadingType.CLEAR, fill: LIGHT_SCARLET } : undefined,
         children: [
           new Paragraph({ spacing: { before: 40, after: 40 }, children: [new TextRun({ text: clean(val), font: "Arial", size: 20 })] }),
         ],
