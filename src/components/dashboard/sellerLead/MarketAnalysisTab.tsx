@@ -79,6 +79,17 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
 
   const uploadedCount = documents.filter((d) => d.file !== null).length;
 
+  // Capture a ref element to base64 PNG using html2canvas
+  const captureGraphic = useCallback(async (element: HTMLDivElement): Promise<string> => {
+    const canvas = await html2canvas(element, {
+      scale: 2,
+      backgroundColor: "#FFFFFF",
+      useCORS: true,
+      logging: false,
+    });
+    return canvas.toDataURL("image/png");
+  }, []);
+
   const handleGenerate = async () => {
     setGenerating(true);
     setAnalysis(null);
@@ -106,64 +117,7 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
       setAnalysis(data.analysis);
       toast({ title: "Market analysis generated successfully" });
 
-      // Now generate graphics
-      setGeneratingGraphics(true);
-      try {
-        const pricing = data.analysis.pricingStrategy;
-        const zillow = data.analysis.zillowAnalysis;
-        const overview = data.analysis.propertyOverview;
-
-        const [bullseyeRes, zillowRes] = await Promise.all([
-          supabase.functions.invoke("generate-market-graphics", {
-            body: {
-              type: "bullseye",
-              data: {
-                address: overview?.address || "",
-                bullseyePrice: pricing?.bullseyePrice || "",
-                lowerBracketPrice: pricing?.lowerBracketPrice || "",
-                upperBracketPrice: pricing?.upperBracketPrice || "",
-                bullseyeBracket: pricing?.bullseyeBracket || "",
-                lowerBracket: pricing?.lowerBracket || "",
-                upperBracket: pricing?.upperBracket || "",
-              },
-            },
-          }),
-          supabase.functions.invoke("generate-market-graphics", {
-            body: {
-              type: "zillow",
-              data: {
-                address: overview?.address || "",
-                zestimate: zillow?.zestimate || "",
-                estimatedSalesRange: zillow?.estimatedSalesRange || "",
-                rentZestimate: zillow?.rentZestimate || "",
-                pricePerSqFt: zillow?.pricePerSqFt || "",
-                bedsBaths: zillow?.bedsBathsAsZillowCounts || "",
-                propertyType: zillow?.propertyType || "",
-                yearBuilt: zillow?.yearBuilt || "",
-                updatedDate: zillow?.updatedDate || "",
-                appreciationNote: zillow?.appreciationNote || "",
-                importantContext: zillow?.importantContext || "",
-              },
-            },
-          }),
-        ]);
-
-        if (bullseyeRes.data?.imageUrl) setBullseyeImage(bullseyeRes.data.imageUrl);
-        if (zillowRes.data?.imageUrl) setZillowImage(zillowRes.data.imageUrl);
-
-        if (bullseyeRes.data?.imageUrl || zillowRes.data?.imageUrl) {
-          toast({ title: "Graphics generated successfully" });
-        }
-      } catch (graphicErr: any) {
-        console.error("Graphics generation error:", graphicErr);
-        toast({
-          title: "Graphics generation failed",
-          description: "Analysis is ready but graphics could not be generated. You can still download the document.",
-          variant: "destructive",
-        });
-      } finally {
-        setGeneratingGraphics(false);
-      }
+      // Graphics will be rendered by React components, then captured after render
     } catch (err: any) {
       console.error("Market analysis error:", err);
       toast({
@@ -175,6 +129,41 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
       setGenerating(false);
     }
   };
+
+  // Capture graphics after analysis is set and components have rendered
+  const handleCaptureGraphics = useCallback(async () => {
+    if (!analysis) return;
+    setGeneratingGraphics(true);
+    try {
+      // Small delay to ensure DOM has rendered
+      await new Promise((r) => setTimeout(r, 500));
+
+      const promises: Promise<void>[] = [];
+
+      if (bullseyeRef.current) {
+        promises.push(
+          captureGraphic(bullseyeRef.current).then((img) => setBullseyeImage(img))
+        );
+      }
+      if (zillowRef.current) {
+        promises.push(
+          captureGraphic(zillowRef.current).then((img) => setZillowImage(img))
+        );
+      }
+
+      await Promise.all(promises);
+      toast({ title: "Graphics captured successfully" });
+    } catch (err: any) {
+      console.error("Graphics capture error:", err);
+      toast({
+        title: "Graphics capture failed",
+        description: err.message || "Please try again",
+        variant: "destructive",
+      });
+    } finally {
+      setGeneratingGraphics(false);
+    }
+  }, [analysis, captureGraphic, toast]);
 
   const handleDownload = async () => {
     if (!analysis) return;
