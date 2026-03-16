@@ -54,7 +54,7 @@ function overviewRow(label: string, value: string, altRow: boolean): TableRow {
   return new TableRow({
     children: [
       new TableCell({
-        width: { size: 3500, type: WidthType.DXA },
+        width: { size: 3200, type: WidthType.DXA },
         shading: { type: ShadingType.CLEAR, fill: GRAY_BG },
         children: [
           new Paragraph({ children: [new TextRun({ text: label, bold: true, font: "Arial", size: 22 })] }),
