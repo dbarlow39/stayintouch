@@ -298,7 +298,7 @@ export async function generateMarketAnalysisDocx(
   }
 
   // SECTION 4: COMMUNITY INSIGHTS
-  sections.push(sectionHeading("SECTION 4: COMMUNITY AND NEIGHBORHOOD INSIGHTS"));
+  sections.push(sectionHeading("COMMUNITY AND NEIGHBORHOOD INSIGHTS"));
   const communityLabels: Record<string, string> = {
     schoolDistrict: "School District",
     familyFriendlyScore: "Family Friendly Score",
