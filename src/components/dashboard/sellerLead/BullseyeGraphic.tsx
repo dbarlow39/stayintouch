@@ -44,7 +44,9 @@ const BullseyeGraphic = forwardRef<HTMLDivElement, BullseyeGraphicProps>(
       >
         {/* Header */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
-          <div style={{ fontSize: 18, fontWeight: "bold", color: "#1a1a1a" }}>{address}</div>
+          <div style={{ fontSize: 18, fontWeight: "bold", color: "#1a1a1a" }}>
+            {address.replace(/,\s*(OH|Ohio)\s*\d{5}$/i, "").replace(/,\s*\w+\s*\d{5}$/, "")}
+          </div>
           <img src={logoImg} alt="Sell for 1 Percent" style={{ height: 40, objectFit: "contain" }} />
         </div>
 
@@ -97,12 +99,11 @@ const BullseyeGraphic = forwardRef<HTMLDivElement, BullseyeGraphicProps>(
           >
             {/* Outer ring */}
             <circle cx="150" cy="150" r="140" fill="#CC0000" />
-            <circle cx="150" cy="150" r="120" fill="#FFFFFF" />
+            <circle cx="150" cy="150" r="115" fill="#FFFFFF" />
             {/* Middle ring */}
-            <circle cx="150" cy="150" r="100" fill="#CC0000" />
-            <circle cx="150" cy="150" r="80" fill="#FFFFFF" />
-            {/* Inner bullseye */}
-            <circle cx="150" cy="150" r="60" fill="#CC0000" />
+            <circle cx="150" cy="150" r="95" fill="#CC0000" />
+            <circle cx="150" cy="150" r="70" fill="#FFFFFF" />
+            {/* Inner circle - WHITE center */}
           </svg>
 
           {/* Upper bracket price label */}
@@ -130,8 +131,8 @@ const BullseyeGraphic = forwardRef<HTMLDivElement, BullseyeGraphicProps>(
               zIndex: 2,
             }}
           >
-            <div style={{ fontSize: 22, fontWeight: "bold", color: "#FFFFFF" }}>{bullseyePrice}</div>
-            <div style={{ fontSize: 11, fontWeight: "bold", color: "#FFFFFF", letterSpacing: 2 }}>BULLSEYE</div>
+            <div style={{ fontSize: 22, fontWeight: "bold", color: "#1a1a1a" }}>{bullseyePrice}</div>
+            <div style={{ fontSize: 11, fontWeight: "bold", color: "#1a1a1a", letterSpacing: 2 }}>BULLSEYE</div>
           </div>
 
           {/* Lower bracket price label */}
