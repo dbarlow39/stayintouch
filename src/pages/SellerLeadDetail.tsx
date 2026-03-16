@@ -26,6 +26,7 @@ import LeadEnrollmentDialog from "@/components/dashboard/LeadEnrollmentDialog";
 import logo from "@/assets/logo.jpg";
 import LeadEstimatedNet from "@/components/dashboard/estimatedNet/LeadEstimatedNet";
 import ResidentialWorkSheetTab from "@/components/dashboard/ResidentialWorkSheetTab";
+import MarketAnalysisTab from "@/components/dashboard/sellerLead/MarketAnalysisTab";
 
 const statusColors: Record<string, string> = {
   new: "bg-primary/10 text-primary border-primary/20",
