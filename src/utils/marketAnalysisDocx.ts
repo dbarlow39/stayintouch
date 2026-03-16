@@ -327,7 +327,7 @@ export async function generateMarketAnalysisDocx(
   if (market.onlineValuationCaution) sections.push(bodyParagraph(market.onlineValuationCaution));
 
   // SECTION 6: ZILLOW
-  sections.push(sectionHeading("SECTION 6: ZILLOW ZESTIMATE - WHAT IT SAYS AND WHAT IT MISSES"));
+  sections.push(sectionHeading("ZILLOW ZESTIMATE - WHAT IT SAYS AND WHAT IT MISSES"));
 
   if (zillowImage) {
     try {
