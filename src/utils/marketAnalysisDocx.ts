@@ -354,7 +354,10 @@ export async function generateMarketAnalysisDocx(
     new Table({
       width: { size: 9360, type: WidthType.DXA },
       columnWidths: [3200, 6160],
-      rows: communityFields.map(([label, value]) => overviewRow(label, value || "-")),
+      rows: [
+        spanningHeaderRow("Neighborhood Snapshot", 2),
+        ...communityFields.map(([label, value]) => overviewRow(label, value || "-")),
+      ],
     })
   );
   if (narrative.communityParagraph) sections.push(bodyParagraph(narrative.communityParagraph));
