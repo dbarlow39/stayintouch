@@ -316,10 +316,10 @@ export async function generateMarketAnalysisDocx(
           spanningHeaderRow("Summary Statistics", statsCols.length),
           tableHeaderRow(statsCols),
           dataRow(["Sold Price", stats.soldLow, stats.soldAvg, stats.soldMedian, stats.soldHigh], false),
-          dataRow(["List Price", stats.listLow, stats.listAvg, "-", stats.listHigh], true),
-          dataRow(["Avg Sq Ft", "-", stats.sqFtAvg, "-", "-"], false),
-          dataRow(["Avg DOM", "-", stats.domAvg, "-", "-"], true),
-          dataRow(["Sold/List Ratio", "-", stats.soldToListRatio, "-", "-"], false),
+          dataRow(["List Price", stats.listLow, stats.listAvg, stats.listMedian || "-", stats.listHigh], true),
+          dataRow(["Above-Grade Sq Ft", stats.sqFtLow || "-", stats.sqFtAvg, stats.sqFtMedian || "-", stats.sqFtHigh || "-"], false),
+          dataRow(["Days on Market", stats.domLow || "-", stats.domAvg, stats.domMedian || "-", stats.domHigh || "-"], true),
+          dataRow(["Sold-to-List Ratio", stats.soldToListLow || "-", stats.soldToListAvg, stats.soldToListMedian || "-", stats.soldToListHigh || "-"], false),
         ],
       })
     );
