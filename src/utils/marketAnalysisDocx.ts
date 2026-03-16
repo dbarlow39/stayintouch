@@ -249,6 +249,7 @@ export async function generateMarketAnalysisDocx(
       ],
     })
   );
+  sections.push(new Paragraph({ spacing: { before: 200 }, children: [] }));
   if (narrative.taxNote) sections.push(bodyParagraph(narrative.taxNote));
 
   // ── 4. NOTABLE FEATURES ──
