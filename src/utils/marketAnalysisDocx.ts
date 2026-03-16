@@ -97,6 +97,7 @@ function spanningHeaderRow(text: string, colSpan: number): TableRow {
         shading: { type: ShadingType.CLEAR, fill: SCARLET },
         children: [
           new Paragraph({
+            spacing: { before: 40, after: 40 },
             children: [new TextRun({ text, bold: true, color: "FFFFFF", font: "Arial", size: 22 })],
           }),
         ],
