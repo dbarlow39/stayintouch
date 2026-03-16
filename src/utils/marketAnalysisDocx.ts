@@ -11,7 +11,7 @@ import {
   BorderStyle,
   ImageRun,
   ShadingType,
-  TableLayoutType,
+  
   VerticalAlign,
 } from "docx";
 import { saveAs } from "file-saver";
@@ -54,14 +54,14 @@ function overviewRow(label: string, value: string, altRow: boolean): TableRow {
   return new TableRow({
     children: [
       new TableCell({
-        width: { size: 3500, type: WidthType.DXA },
+        width: { size: 3200, type: WidthType.DXA },
         shading: { type: ShadingType.CLEAR, fill: GRAY_BG },
         children: [
           new Paragraph({ children: [new TextRun({ text: label, bold: true, font: "Arial", size: 22 })] }),
         ],
       }),
       new TableCell({
-        width: { size: 6000, type: WidthType.DXA },
+        width: { size: 6160, type: WidthType.DXA },
         shading: altRow ? { type: ShadingType.CLEAR, fill: LIGHT_SCARLET } : undefined,
         children: [
           new Paragraph({ children: [new TextRun({ text: clean(value), font: "Arial", size: 22 })] }),
@@ -171,7 +171,7 @@ export async function generateMarketAnalysisDocx(
       borders: noBorder,
       verticalAlign: VerticalAlign.CENTER,
       children: logoBytes
-        ? [new Paragraph({ children: [new ImageRun({ data: logoBytes, transformation: { width: 240, height: 80 }, type: "jpg" })] })]
+        ? [new Paragraph({ children: [new ImageRun({ data: logoBytes, transformation: { width: 252, height: 117 }, type: "jpg" })] })]
         : [new Paragraph({ children: [] })],
     })
   );
@@ -239,8 +239,8 @@ export async function generateMarketAnalysisDocx(
   ];
   sections.push(
     new Table({
-      width: { size: 100, type: WidthType.PERCENTAGE },
-      layout: TableLayoutType.FIXED,
+      width: { size: 9360, type: WidthType.DXA },
+      columnWidths: [3200, 6160],
       rows: overviewFields.map(([label, value], i) => overviewRow(label, value || "-", i % 2 === 1)),
     })
   );
@@ -267,8 +267,8 @@ export async function generateMarketAnalysisDocx(
     const closedCols = ["Address", "Closed", "List Price", "Sold Price", "Beds", "Baths", "Sq Ft", "Year", "DOM"];
     sections.push(
       new Table({
-        width: { size: 100, type: WidthType.PERCENTAGE },
-        layout: TableLayoutType.FIXED,
+        width: { size: 9360, type: WidthType.DXA },
+        columnWidths: [2200, 900, 900, 900, 600, 600, 700, 700, 760],
         rows: [
           spanningHeaderRow("Closed Sales", closedCols.length),
           tableHeaderRow(closedCols),
@@ -285,8 +285,8 @@ export async function generateMarketAnalysisDocx(
     const activeCols = ["Address", "Listed", "List Price", "Beds", "Baths", "Sq Ft", "Year", "DOM"];
     sections.push(
       new Table({
-        width: { size: 100, type: WidthType.PERCENTAGE },
-        layout: TableLayoutType.FIXED,
+        width: { size: 9360, type: WidthType.DXA },
+        columnWidths: [2400, 1000, 1000, 700, 700, 800, 800, 960],
         rows: [
           spanningHeaderRow("Active Listings", activeCols.length),
           tableHeaderRow(activeCols),
@@ -304,8 +304,8 @@ export async function generateMarketAnalysisDocx(
     const statsCols = ["Metric", "Low", "Average", "Median", "High"];
     sections.push(
       new Table({
-        width: { size: 100, type: WidthType.PERCENTAGE },
-        layout: TableLayoutType.FIXED,
+        width: { size: 9360, type: WidthType.DXA },
+        columnWidths: [2000, 1840, 1840, 1840, 1840],
         rows: [
           spanningHeaderRow("Summary Statistics", statsCols.length),
           tableHeaderRow(statsCols),
@@ -347,8 +347,8 @@ export async function generateMarketAnalysisDocx(
   ];
   sections.push(
     new Table({
-      width: { size: 100, type: WidthType.PERCENTAGE },
-      layout: TableLayoutType.FIXED,
+      width: { size: 9360, type: WidthType.DXA },
+      columnWidths: [3200, 6160],
       rows: communityFields.map(([label, value], i) => overviewRow(label, value || "-", i % 2 === 1)),
     })
   );

@@ -53,6 +53,7 @@ const ZillowGraphic = forwardRef<HTMLDivElement, ZillowGraphicProps>(
         ref={ref}
         style={{
           width: 370,
+          minHeight: 536,
           background: "#FFFFFF",
           fontFamily: "Arial, Helvetica, sans-serif",
           border: "1px solid #ddd",

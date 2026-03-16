@@ -129,7 +129,21 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
 
     const captureAndDownload = async () => {
       try {
-        await new Promise((r) => setTimeout(r, 800));
+        await new Promise((r) => setTimeout(r, 300));
+
+        const allImages = document.querySelectorAll('img');
+        await Promise.all(
+          Array.from(allImages).map(img => {
+            if (img.complete) return Promise.resolve();
+            return new Promise(resolve => {
+              img.onload = resolve;
+              img.onerror = resolve;
+              setTimeout(resolve, 2000);
+            });
+          })
+        );
+
+        await new Promise((r) => setTimeout(r, 500));
 
         let capturedBullseye: string | null = null;
         let capturedZillow: string | null = null;
@@ -181,6 +195,15 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
   // Map new schema fields for graphics
   const pricing = analysis?.pricing;
   const prop = analysis?.property;
+
+  const formatBracketLabel = (low: string, high: string): string => {
+    const fmt = (v: string) => {
+      const n = parseInt(v.replace(/[^0-9]/g, ''));
+      if (!n) return v;
+      return n >= 1000 ? `$${n / 1000}K` : `$${n}`;
+    };
+    return `${fmt(low)}-${fmt(high)}`;
+  };
 
   return (
     <div className="space-y-6">
@@ -303,9 +326,9 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
             bullseyePrice={pricing.bullseyePrice || ""}
             lowerBracketPrice={pricing.lowerBracketPrice || ""}
             upperBracketPrice={pricing.upperBracketPrice || ""}
-            bullseyeBracketLabel={pricing.bullseyeBracketLow && pricing.bullseyeBracketHigh ? `$${pricing.bullseyeBracketLow}-$${pricing.bullseyeBracketHigh}` : ""}
-            lowerBracketLabel={pricing.lowerBracketLow && pricing.lowerBracketHigh ? `$${pricing.lowerBracketLow}-$${pricing.lowerBracketHigh}` : ""}
-            upperBracketLabel={pricing.upperBracketLow && pricing.upperBracketHigh ? `$${pricing.upperBracketLow}-$${pricing.upperBracketHigh}` : ""}
+            bullseyeBracketLabel={pricing.bullseyeBracketLow && pricing.bullseyeBracketHigh ? formatBracketLabel(pricing.bullseyeBracketLow, pricing.bullseyeBracketHigh) : ""}
+            lowerBracketLabel={pricing.lowerBracketLow && pricing.lowerBracketHigh ? formatBracketLabel(pricing.lowerBracketLow, pricing.lowerBracketHigh) : ""}
+            upperBracketLabel={pricing.upperBracketLow && pricing.upperBracketHigh ? formatBracketLabel(pricing.upperBracketLow, pricing.upperBracketHigh) : ""}
           />
         </div>
       )}
