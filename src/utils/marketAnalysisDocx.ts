@@ -34,11 +34,12 @@ function clean(text: string | undefined | null): string {
 }
 
 function sectionHeading(text: string): Paragraph {
+  const titleCase = text.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
   return new Paragraph({
     spacing: { before: 400, after: 200 },
     border: { bottom: { style: BorderStyle.SINGLE, size: 2, color: SCARLET } },
     children: [
-      new TextRun({ text, bold: true, color: DARK_SCARLET, font: "Arial", size: 24 }),
+      new TextRun({ text: titleCase, bold: true, color: DARK_SCARLET, font: "Arial", size: 24 }),
     ],
   });
 }
