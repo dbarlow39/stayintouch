@@ -193,7 +193,7 @@ export async function generateMarketAnalysisDocx(
         new Paragraph({
           alignment: AlignmentType.RIGHT,
           spacing: { before: 60 },
-          children: [new TextRun({ text: `Prepared by Dave Barlow | ${new Date().toLocaleDateString()}`, color: "808080", font: "Arial", size: 18 })],
+          children: [new TextRun({ text: `Prepared by Dave Barlow | ${new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`, color: "808080", font: "Arial", size: 18 })],
         }),
       ],
     })
