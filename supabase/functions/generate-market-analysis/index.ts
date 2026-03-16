@@ -134,37 +134,21 @@ serve(async (req) => {
       throw new Error("ANTHROPIC_API_KEY is not configured");
     }
 
-    // Download files from storage and convert to base64
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Load company logo from storage and include as branding reference
     const userContent: any[] = [];
-    try {
-      const { data: logoData, error: logoError } = await supabase.storage
-        .from("market-analysis-docs")
-        .download("branding/logo.jpg");
-      if (!logoError && logoData) {
-        const logoBuffer = await logoData.arrayBuffer();
-        const logoUint8 = new Uint8Array(logoBuffer);
-        let logoBinary = "";
-        for (let i = 0; i < logoUint8.length; i += 8192) {
-          const chunk = logoUint8.subarray(i, i + 8192);
-          for (let j = 0; j < chunk.length; j++) logoBinary += String.fromCharCode(chunk[j]);
-        }
-        const logoBase64 = btoa(logoBinary);
-        userContent.push({ type: "text", text: "[Company Logo - SellFor1Percent REALTORS branding for use in the analysis document]" });
-        userContent.push({ type: "image", source: { type: "base64", media_type: "image/jpeg", data: logoBase64 } });
-        console.log("Company logo loaded for branding");
-      }
-    } catch (e) {
-      console.warn("Could not load company logo:", e);
-    }
 
     for (const doc of documents) {
-      if (doc.filePath) {
-        console.log(`Downloading ${doc.name} from storage: ${doc.filePath}`);
+      if (!doc.filePath) continue;
+
+      const mimeType = doc.mimeType || "application/pdf";
+      console.log(`Processing ${doc.name}: ${mimeType}`);
+
+      // .docx files: must download to extract text (small files)
+      if (mimeType.includes("wordprocessingml") || doc.filePath.endsWith(".docx")) {
+        console.log(`Downloading docx for text extraction: ${doc.name}`);
         const { data: fileData, error: downloadError } = await supabase.storage
           .from("market-analysis-docs")
           .download(doc.filePath);
@@ -174,64 +158,49 @@ serve(async (req) => {
           continue;
         }
 
-        const arrayBuffer = await fileData.arrayBuffer();
-        const mimeType = doc.mimeType || fileData.type || "application/pdf";
-        console.log(`${doc.name}: ${(arrayBuffer.byteLength / 1024 / 1024).toFixed(2)}MB, mime: ${mimeType}`);
+        try {
+          const arrayBuffer = await fileData.arrayBuffer();
+          const zip = await JSZip.loadAsync(arrayBuffer);
+          const docXml = await zip.file("word/document.xml")?.async("string");
+          if (docXml) {
+            const textContent = docXml.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+            console.log(`Extracted ${textContent.length} chars from docx: ${doc.name}`);
+            userContent.push({
+              type: "text",
+              text: `[Document: ${doc.name}]\n${textContent}`
+            });
+          }
+        } catch (e) {
+          console.error(`Failed to parse docx ${doc.name}:`, e);
+        }
+      } else {
+        // PDF and image files: use signed URL to avoid loading into memory
+        const { data: signedUrlData, error: signedUrlError } = await supabase.storage
+          .from("market-analysis-docs")
+          .createSignedUrl(doc.filePath, 600); // 10 min expiry
 
-        // .docx files: extract text content
-        if (mimeType.includes("wordprocessingml") || doc.name.toLowerCase().endsWith(".docx")) {
-          try {
-            const zip = await JSZip.loadAsync(arrayBuffer);
-            const docXml = await zip.file("word/document.xml")?.async("string");
-            if (docXml) {
-              const textContent = docXml.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
-              console.log(`Extracted ${textContent.length} chars from docx: ${doc.name}`);
-              userContent.push({
-                type: "text",
-                text: `[Document: ${doc.name}]\n${textContent}`
-              });
-            }
-          } catch (e) {
-            console.error(`Failed to parse docx ${doc.name}:`, e);
-          }
-        } else if (mimeType.startsWith("image/")) {
-          // Image files: use Anthropic image content block
-          const uint8Array = new Uint8Array(arrayBuffer);
-          let binaryString = "";
-          const chunkSize = 8192;
-          for (let i = 0; i < uint8Array.length; i += chunkSize) {
-            const chunk = uint8Array.subarray(i, i + chunkSize);
-            for (let j = 0; j < chunk.length; j++) {
-              binaryString += String.fromCharCode(chunk[j]);
-            }
-          }
-          const base64Content = btoa(binaryString);
+        if (signedUrlError || !signedUrlData?.signedUrl) {
+          console.error(`Failed to create signed URL for ${doc.name}:`, signedUrlError);
+          continue;
+        }
+
+        console.log(`Created signed URL for ${doc.name}`);
+
+        if (mimeType.startsWith("image/")) {
           userContent.push({
             type: "image",
             source: {
-              type: "base64",
-              media_type: mimeType,
-              data: base64Content
+              type: "url",
+              url: signedUrlData.signedUrl,
             }
           });
         } else {
-          // PDF files: use Anthropic document content block
-          const uint8Array = new Uint8Array(arrayBuffer);
-          let binaryString = "";
-          const chunkSize = 8192;
-          for (let i = 0; i < uint8Array.length; i += chunkSize) {
-            const chunk = uint8Array.subarray(i, i + chunkSize);
-            for (let j = 0; j < chunk.length; j++) {
-              binaryString += String.fromCharCode(chunk[j]);
-            }
-          }
-          const base64Content = btoa(binaryString);
+          // PDF - use document type with URL source
           userContent.push({
             type: "document",
             source: {
-              type: "base64",
-              media_type: "application/pdf",
-              data: base64Content
+              type: "url",
+              url: signedUrlData.signedUrl,
             }
           });
         }
@@ -241,7 +210,7 @@ serve(async (req) => {
     // Add the user prompt text last
     userContent.push({ type: "text", text: USER_PROMPT });
 
-    console.log(`Processing ${documents.length} documents for market analysis via Claude`);
+    console.log(`Sending ${userContent.length} content blocks to Claude for market analysis`);
 
     const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -274,17 +243,16 @@ serve(async (req) => {
         );
       }
       const errorText = await response.text();
-      console.error("AI gateway error:", response.status, errorText);
-      throw new Error(`AI gateway error: ${response.status}`);
+      console.error("Claude API error:", response.status, errorText);
+      throw new Error(`Claude API error: ${response.status} - ${errorText.substring(0, 200)}`);
     }
 
     const data = await response.json();
     
-    // Anthropic response: content is an array of content blocks
     const textBlock = data.content?.find((b: any) => b.type === "text");
     const rawContent = textBlock?.text?.trim() || "";
 
-    // Extract JSON from the response (may be wrapped in markdown code blocks)
+    // Extract JSON from the response
     let jsonStr = rawContent;
     const jsonMatch = rawContent.match(/```(?:json)?\s*([\s\S]*?)```/);
     if (jsonMatch) {
