@@ -312,7 +312,7 @@ export async function generateMarketAnalysisDocx(
         width: { size: 9360, type: WidthType.DXA },
         columnWidths: [2000, 1840, 1840, 1840, 1840],
         rows: [
-          spanningHeaderRow("Summary Statistics", statsCols.length),
+          spanningHeaderRow("Closed Sales Summary Statistics", statsCols.length),
           tableHeaderRow(statsCols),
           dataRow(["Sold Price", stats.soldLow, stats.soldAvg, stats.soldMedian, stats.soldHigh], false),
           dataRow(["List Price", stats.listLow, stats.listAvg, stats.listMedian || "-", stats.listHigh], true),

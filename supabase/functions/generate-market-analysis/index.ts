@@ -147,10 +147,20 @@ IMPORTANT DATA RULES FOR SQUARE FOOTAGE:
     "soldHigh": "",
     "listLow": "",
     "listAvg": "",
+    "listMedian": "",
     "listHigh": "",
+    "sqFtLow": "",
     "sqFtAvg": "",
+    "sqFtMedian": "",
+    "sqFtHigh": "",
+    "domLow": "",
     "domAvg": "",
-    "soldToListRatio": ""
+    "domMedian": "",
+    "domHigh": "",
+    "soldToListLow": "",
+    "soldToListAvg": "",
+    "soldToListMedian": "",
+    "soldToListHigh": ""
   },
   "community": {
     "schoolDistrict": "",
