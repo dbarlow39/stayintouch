@@ -31,6 +31,7 @@ interface MarketAnalysisTabProps {
 
 const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [generating, setGenerating] = useState(false);
   const [generatingGraphics, setGeneratingGraphics] = useState(false);
   const [analysis, setAnalysis] = useState<any>(null);
