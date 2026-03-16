@@ -317,9 +317,9 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
             bullseyePrice={pricing.bullseyePrice || ""}
             lowerBracketPrice={pricing.lowerBracketPrice || ""}
             upperBracketPrice={pricing.upperBracketPrice || ""}
-            bullseyeBracketLabel={pricing.bullseyeBracketLow && pricing.bullseyeBracketHigh ? `$${pricing.bullseyeBracketLow}-$${pricing.bullseyeBracketHigh}` : ""}
-            lowerBracketLabel={pricing.lowerBracketLow && pricing.lowerBracketHigh ? `$${pricing.lowerBracketLow}-$${pricing.lowerBracketHigh}` : ""}
-            upperBracketLabel={pricing.upperBracketLow && pricing.upperBracketHigh ? `$${pricing.upperBracketLow}-$${pricing.upperBracketHigh}` : ""}
+            bullseyeBracketLabel={pricing.bullseyeBracketLow && pricing.bullseyeBracketHigh ? formatBracketLabel(pricing.bullseyeBracketLow, pricing.bullseyeBracketHigh) : ""}
+            lowerBracketLabel={pricing.lowerBracketLow && pricing.lowerBracketHigh ? formatBracketLabel(pricing.lowerBracketLow, pricing.lowerBracketHigh) : ""}
+            upperBracketLabel={pricing.upperBracketLow && pricing.upperBracketHigh ? formatBracketLabel(pricing.upperBracketLow, pricing.upperBracketHigh) : ""}
           />
         </div>
       )}
