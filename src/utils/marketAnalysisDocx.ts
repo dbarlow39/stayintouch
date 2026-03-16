@@ -76,7 +76,7 @@ function tableHeaderRow(columns: string[], columnCount?: number): TableRow {
   return new TableRow({
     children: columns.map((col) =>
       new TableCell({
-        shading: { type: ShadingType.CLEAR, fill: SCARLET },
+        shading: { type: ShadingType.CLEAR, fill: DARK_SCARLET },
         children: [
           new Paragraph({
             alignment: AlignmentType.CENTER,
@@ -94,7 +94,7 @@ function spanningHeaderRow(text: string, colSpan: number): TableRow {
     children: [
       new TableCell({
         columnSpan: colSpan,
-        shading: { type: ShadingType.CLEAR, fill: SCARLET },
+        shading: { type: ShadingType.CLEAR, fill: DARK_SCARLET },
         children: [
           new Paragraph({
             spacing: { before: 40, after: 40 },
@@ -110,7 +110,7 @@ function dataRow(values: string[], altRow: boolean): TableRow {
   return new TableRow({
     children: values.map((val) =>
       new TableCell({
-        shading: altRow ? { type: ShadingType.CLEAR, fill: LIGHT_SCARLET } : undefined,
+        shading: undefined,
         children: [
           new Paragraph({ spacing: { before: 40, after: 40 }, children: [new TextRun({ text: clean(val), font: "Arial", size: 20 })] }),
         ],
