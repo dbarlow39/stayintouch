@@ -1,10 +1,11 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
+import html2canvas from "html2canvas";
 import {
   Upload,
   FileText,
@@ -17,6 +18,8 @@ import {
   Image as ImageIcon,
 } from "lucide-react";
 import { generateMarketAnalysisDocx } from "@/utils/marketAnalysisDocx";
+import BullseyeGraphic from "./BullseyeGraphic";
+import ZillowGraphic from "./ZillowGraphic";
 
 interface DocumentSlot {
   label: string;
@@ -37,6 +40,8 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
   const [analysis, setAnalysis] = useState<any>(null);
   const [bullseyeImage, setBullseyeImage] = useState<string | null>(null);
   const [zillowImage, setZillowImage] = useState<string | null>(null);
+  const bullseyeRef = useRef<HTMLDivElement>(null);
+  const zillowRef = useRef<HTMLDivElement>(null);
   const [documents, setDocuments] = useState<DocumentSlot[]>([
     { label: "CMA / Property Detail Report", description: "CoreLogic, RPR, or similar report", file: null, required: true },
     { label: "Residential Inspection Worksheet", description: "Room-by-room condition notes", file: null, required: true },
@@ -74,6 +79,17 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
 
   const uploadedCount = documents.filter((d) => d.file !== null).length;
 
+  // Capture a ref element to base64 PNG using html2canvas
+  const captureGraphic = useCallback(async (element: HTMLDivElement): Promise<string> => {
+    const canvas = await html2canvas(element, {
+      scale: 2,
+      backgroundColor: "#FFFFFF",
+      useCORS: true,
+      logging: false,
+    });
+    return canvas.toDataURL("image/png");
+  }, []);
+
   const handleGenerate = async () => {
     setGenerating(true);
     setAnalysis(null);
@@ -101,64 +117,7 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
       setAnalysis(data.analysis);
       toast({ title: "Market analysis generated successfully" });
 
-      // Now generate graphics
-      setGeneratingGraphics(true);
-      try {
-        const pricing = data.analysis.pricingStrategy;
-        const zillow = data.analysis.zillowAnalysis;
-        const overview = data.analysis.propertyOverview;
-
-        const [bullseyeRes, zillowRes] = await Promise.all([
-          supabase.functions.invoke("generate-market-graphics", {
-            body: {
-              type: "bullseye",
-              data: {
-                address: overview?.address || "",
-                bullseyePrice: pricing?.bullseyePrice || "",
-                lowerBracketPrice: pricing?.lowerBracketPrice || "",
-                upperBracketPrice: pricing?.upperBracketPrice || "",
-                bullseyeBracket: pricing?.bullseyeBracket || "",
-                lowerBracket: pricing?.lowerBracket || "",
-                upperBracket: pricing?.upperBracket || "",
-              },
-            },
-          }),
-          supabase.functions.invoke("generate-market-graphics", {
-            body: {
-              type: "zillow",
-              data: {
-                address: overview?.address || "",
-                zestimate: zillow?.zestimate || "",
-                estimatedSalesRange: zillow?.estimatedSalesRange || "",
-                rentZestimate: zillow?.rentZestimate || "",
-                pricePerSqFt: zillow?.pricePerSqFt || "",
-                bedsBaths: zillow?.bedsBathsAsZillowCounts || "",
-                propertyType: zillow?.propertyType || "",
-                yearBuilt: zillow?.yearBuilt || "",
-                updatedDate: zillow?.updatedDate || "",
-                appreciationNote: zillow?.appreciationNote || "",
-                importantContext: zillow?.importantContext || "",
-              },
-            },
-          }),
-        ]);
-
-        if (bullseyeRes.data?.imageUrl) setBullseyeImage(bullseyeRes.data.imageUrl);
-        if (zillowRes.data?.imageUrl) setZillowImage(zillowRes.data.imageUrl);
-
-        if (bullseyeRes.data?.imageUrl || zillowRes.data?.imageUrl) {
-          toast({ title: "Graphics generated successfully" });
-        }
-      } catch (graphicErr: any) {
-        console.error("Graphics generation error:", graphicErr);
-        toast({
-          title: "Graphics generation failed",
-          description: "Analysis is ready but graphics could not be generated. You can still download the document.",
-          variant: "destructive",
-        });
-      } finally {
-        setGeneratingGraphics(false);
-      }
+      // Graphics will be rendered by React components, then captured after render
     } catch (err: any) {
       console.error("Market analysis error:", err);
       toast({
@@ -170,6 +129,41 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
       setGenerating(false);
     }
   };
+
+  // Capture graphics after analysis is set and components have rendered
+  const handleCaptureGraphics = useCallback(async () => {
+    if (!analysis) return;
+    setGeneratingGraphics(true);
+    try {
+      // Small delay to ensure DOM has rendered
+      await new Promise((r) => setTimeout(r, 500));
+
+      const promises: Promise<void>[] = [];
+
+      if (bullseyeRef.current) {
+        promises.push(
+          captureGraphic(bullseyeRef.current).then((img) => setBullseyeImage(img))
+        );
+      }
+      if (zillowRef.current) {
+        promises.push(
+          captureGraphic(zillowRef.current).then((img) => setZillowImage(img))
+        );
+      }
+
+      await Promise.all(promises);
+      toast({ title: "Graphics captured successfully" });
+    } catch (err: any) {
+      console.error("Graphics capture error:", err);
+      toast({
+        title: "Graphics capture failed",
+        description: err.message || "Please try again",
+        variant: "destructive",
+      });
+    } finally {
+      setGeneratingGraphics(false);
+    }
+  }, [analysis, captureGraphic, toast]);
 
   const handleDownload = async () => {
     if (!analysis) return;
@@ -296,12 +290,12 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
             <div className="flex flex-col items-center gap-3">
               <Loader2 className="w-8 h-8 animate-spin text-primary" />
               <p className="font-medium">
-                {generating ? "Analyzing documents with AI..." : "Generating graphics..."}
+                {generating ? "Analyzing documents with AI..." : "Capturing graphics..."}
               </p>
               <p className="text-sm text-muted-foreground text-center max-w-md">
                 {generating
                   ? "Extracting property data, comparable sales, and market conditions from your uploaded documents."
-                  : "Creating the Bullseye Pricing Model and Zillow Zestimate graphics."}
+                  : "Rendering the Bullseye Pricing Model and Zillow Zestimate cards."}
               </p>
             </div>
           </CardContent>
@@ -316,11 +310,56 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
               <BarChart3 className="w-4 h-4" />
               Analysis Preview
             </h4>
-            <Button onClick={handleDownload} variant="default">
-              <Download className="w-4 h-4 mr-2" />
-              Download .docx
-            </Button>
+            <div className="flex gap-2">
+              {!bullseyeImage && !generatingGraphics && (
+                <Button onClick={handleCaptureGraphics} variant="outline" size="sm">
+                  <ImageIcon className="w-4 h-4 mr-2" />
+                  Capture Graphics
+                </Button>
+              )}
+              <Button onClick={handleDownload} variant="default">
+                <Download className="w-4 h-4 mr-2" />
+                Download .docx
+              </Button>
+            </div>
           </div>
+
+          {/* Hidden graphic renderers for html2canvas capture */}
+          {analysis.pricingStrategy && (
+            <div style={{ position: "absolute", left: "-9999px", top: 0 }}>
+              <BullseyeGraphic
+                ref={bullseyeRef}
+                address={analysis.propertyOverview?.address || ""}
+                bullseyePrice={analysis.pricingStrategy.bullseyePrice || ""}
+                lowerBracketPrice={analysis.pricingStrategy.lowerBracketPrice || ""}
+                upperBracketPrice={analysis.pricingStrategy.upperBracketPrice || ""}
+                bullseyeBracket={analysis.pricingStrategy.bullseyeBracket || ""}
+                lowerBracket={analysis.pricingStrategy.lowerBracket || ""}
+                upperBracket={analysis.pricingStrategy.upperBracket || ""}
+                lowerBracketDescription={analysis.pricingStrategy.lowerBracketDescription || ""}
+                bullseyeDescription={analysis.pricingStrategy.bullseyeDescription || ""}
+                upperBracketDescription={analysis.pricingStrategy.upperBracketDescription || ""}
+              />
+            </div>
+          )}
+          {analysis.zillowAnalysis && (
+            <div style={{ position: "absolute", left: "-9999px", top: 0 }}>
+              <ZillowGraphic
+                ref={zillowRef}
+                address={analysis.propertyOverview?.address || ""}
+                zestimate={analysis.zillowAnalysis.zestimate || ""}
+                estimatedSalesRange={analysis.zillowAnalysis.estimatedSalesRange || ""}
+                rentZestimate={analysis.zillowAnalysis.rentZestimate || ""}
+                pricePerSqFt={analysis.zillowAnalysis.pricePerSqFt || ""}
+                bedsBaths={analysis.zillowAnalysis.bedsBathsAsZillowCounts || ""}
+                propertyType={analysis.zillowAnalysis.propertyType || ""}
+                yearBuilt={analysis.zillowAnalysis.yearBuilt || ""}
+                updatedDate={analysis.zillowAnalysis.updatedDate || ""}
+                appreciationNote={analysis.zillowAnalysis.appreciationNote || ""}
+                importantContext={analysis.zillowAnalysis.importantContext || ""}
+              />
+            </div>
+          )}
 
           {/* Property Overview */}
           {analysis.propertyOverview && (
