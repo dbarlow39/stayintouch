@@ -76,7 +76,7 @@ function tableHeaderRow(columns: string[], columnCount?: number): TableRow {
   return new TableRow({
     children: columns.map((col) =>
       new TableCell({
-        shading: { type: ShadingType.CLEAR, fill: SCARLET },
+        shading: { type: ShadingType.CLEAR, fill: DARK_SCARLET },
         children: [
           new Paragraph({
             alignment: AlignmentType.CENTER,
