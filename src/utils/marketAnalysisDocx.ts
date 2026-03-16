@@ -11,7 +11,7 @@ import {
   BorderStyle,
   ImageRun,
   ShadingType,
-  TableLayoutType,
+  
   VerticalAlign,
 } from "docx";
 import { saveAs } from "file-saver";
