@@ -129,7 +129,21 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
 
     const captureAndDownload = async () => {
       try {
-        await new Promise((r) => setTimeout(r, 800));
+        await new Promise((r) => setTimeout(r, 300));
+
+        const allImages = document.querySelectorAll('img');
+        await Promise.all(
+          Array.from(allImages).map(img => {
+            if (img.complete) return Promise.resolve();
+            return new Promise(resolve => {
+              img.onload = resolve;
+              img.onerror = resolve;
+              setTimeout(resolve, 2000);
+            });
+          })
+        );
+
+        await new Promise((r) => setTimeout(r, 500));
 
         let capturedBullseye: string | null = null;
         let capturedZillow: string | null = null;
