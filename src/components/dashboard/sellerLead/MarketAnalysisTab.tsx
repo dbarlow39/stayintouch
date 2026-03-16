@@ -335,6 +335,22 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
             </div>
           )}
 
+      {/* Analysis Preview */}
+      {analysis && !generating && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h4 className="font-semibold flex items-center gap-2">
+              <BarChart3 className="w-4 h-4" />
+              Analysis Preview
+            </h4>
+            <div className="flex gap-2">
+              <Button onClick={handleDownload} variant="default">
+                <Download className="w-4 h-4 mr-2" />
+                Download .docx
+              </Button>
+            </div>
+          </div>
+
           {/* Property Overview */}
           {analysis.propertyOverview && (
             <Card>
