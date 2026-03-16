@@ -80,8 +80,8 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
 
   const uploadedCount = documents.filter((d) => d.file !== null).length;
 
-  // Capture a ref element to base64 PNG using html2canvas, returns {dataUrl, width, height}
-  const captureGraphic = useCallback(async (element: HTMLDivElement): Promise<{dataUrl: string, width: number, height: number}> => {
+  // Capture a ref element to base64 PNG using html2canvas
+  const captureGraphic = useCallback(async (element: HTMLDivElement): Promise<string> => {
     const canvas = await html2canvas(element, {
       scale: 2,
       backgroundColor: "#FFFFFF",
@@ -90,7 +90,7 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
       height: element.scrollHeight,
       windowHeight: element.scrollHeight + 100,
     });
-    return { dataUrl: canvas.toDataURL("image/png"), width: canvas.width / 2, height: canvas.height / 2 };
+    return canvas.toDataURL("image/png");
   }, []);
 
   // Track when analysis is ready so we can auto-capture and download
