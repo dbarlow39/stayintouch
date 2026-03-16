@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -75,6 +76,46 @@ STYLE: Match Zillow's actual card design aesthetic. Use Zillow blue (#006AFF) fo
       );
     }
 
+    // Load company logo from storage for bullseye branding
+    let logoBase64: string | null = null;
+    if (type === "bullseye") {
+      try {
+        const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+        const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+        const supabase = createClient(supabaseUrl, supabaseServiceKey);
+        const { data: logoData, error: logoError } = await supabase.storage
+          .from("market-analysis-docs")
+          .download("branding/logo.jpg");
+        if (!logoError && logoData) {
+          const buf = await logoData.arrayBuffer();
+          const u8 = new Uint8Array(buf);
+          let bin = "";
+          for (let i = 0; i < u8.length; i += 8192) {
+            const chunk = u8.subarray(i, i + 8192);
+            for (let j = 0; j < chunk.length; j++) bin += String.fromCharCode(chunk[j]);
+          }
+          logoBase64 = btoa(bin);
+          console.log("Loaded company logo for bullseye graphic");
+        }
+      } catch (e) {
+        console.warn("Could not load logo for graphic:", e);
+      }
+    }
+
+    // Build message content - include logo image if available for bullseye
+    const messageContent: any[] = [];
+    if (type === "bullseye" && logoBase64) {
+      messageContent.push({
+        type: "text",
+        text: "Use this exact company logo in the top section of the bullseye pricing graphic. Place it prominently where the branding should appear:"
+      });
+      messageContent.push({
+        type: "image_url",
+        image_url: { url: `data:image/jpeg;base64,${logoBase64}` }
+      });
+    }
+    messageContent.push({ type: "text", text: prompt });
+
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -84,7 +125,7 @@ STYLE: Match Zillow's actual card design aesthetic. Use Zillow blue (#006AFF) fo
       body: JSON.stringify({
         model: "google/gemini-2.5-flash-image",
         messages: [
-          { role: "user", content: prompt }
+          { role: "user", content: messageContent }
         ],
         modalities: ["image", "text"],
       }),
