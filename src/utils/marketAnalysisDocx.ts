@@ -58,13 +58,13 @@ function overviewRow(label: string, value: string): TableRow {
         width: { size: 3200, type: WidthType.DXA },
         shading: { type: ShadingType.CLEAR, fill: LIGHT_SCARLET },
         children: [
-          new Paragraph({ children: [new TextRun({ text: label, bold: true, font: "Arial", size: 20 })] }),
+          new Paragraph({ spacing: { before: 40, after: 40 }, children: [new TextRun({ text: label, bold: true, font: "Arial", size: 20 })] }),
         ],
       }),
       new TableCell({
         width: { size: 6160, type: WidthType.DXA },
         children: [
-          new Paragraph({ children: [new TextRun({ text: clean(value), font: "Arial", size: 20 })] }),
+          new Paragraph({ spacing: { before: 40, after: 40 }, children: [new TextRun({ text: clean(value), font: "Arial", size: 20 })] }),
         ],
       }),
     ],
@@ -80,6 +80,7 @@ function tableHeaderRow(columns: string[], columnCount?: number): TableRow {
         children: [
           new Paragraph({
             alignment: AlignmentType.CENTER,
+            spacing: { before: 40, after: 40 },
             children: [new TextRun({ text: col, bold: true, color: "FFFFFF", font: "Arial", size: 20 })],
           }),
         ],
@@ -96,6 +97,7 @@ function spanningHeaderRow(text: string, colSpan: number): TableRow {
         shading: { type: ShadingType.CLEAR, fill: SCARLET },
         children: [
           new Paragraph({
+            spacing: { before: 40, after: 40 },
             children: [new TextRun({ text, bold: true, color: "FFFFFF", font: "Arial", size: 22 })],
           }),
         ],
@@ -110,7 +112,7 @@ function dataRow(values: string[], altRow: boolean): TableRow {
       new TableCell({
         shading: altRow ? { type: ShadingType.CLEAR, fill: LIGHT_SCARLET } : undefined,
         children: [
-          new Paragraph({ children: [new TextRun({ text: clean(val), font: "Arial", size: 20 })] }),
+          new Paragraph({ spacing: { before: 40, after: 40 }, children: [new TextRun({ text: clean(val), font: "Arial", size: 20 })] }),
         ],
       })
     ),
