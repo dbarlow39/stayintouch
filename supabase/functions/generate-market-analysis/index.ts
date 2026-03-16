@@ -50,7 +50,8 @@ WRITING RULES:
   4. Reference the 2-year appreciation percentage and the CoreLogic Q1 forward forecast dollar figure
   5. Close with a statement about why Day 1 pricing precision matters given this specific data - tie the slow comps to overpricing risk
   The paragraph must be specific enough that it could only apply to this property in this market. Generic statements like "most properties sell at or above 99% of list price" are not acceptable unless that figure came directly from the comp data.
-- MARKET CONDITIONS LENGTH: The marketConditions paragraph should be 4-6 sentences minimum. It must reference specific addresses, specific DOM numbers, and specific dollar figures from the comps. Never write fewer than 4 sentences for this field.`;
+- MARKET CONDITIONS LENGTH: The marketConditions paragraph should be 4-6 sentences minimum. It must reference specific addresses, specific DOM numbers, and specific dollar figures from the comps. Never write fewer than 4 sentences for this field.
+- TAX NOTE: The taxNote field must follow this exact template, substituting the property's actual county market value: "A note on the county's assessed market value of [county market value]: tax assessments in Ohio typically lag actual market conditions by two to three years and should not be used as a pricing benchmark. The comparable sales data below is a far more accurate reflection of current buyer demand." Do NOT mention the tax amount, effective rate, or any other tax figures. Only reference the county assessed market value.`;
 
 const USER_PROMPT = `FEATURES WRITING RULES - apply these when populating the features array:
 
