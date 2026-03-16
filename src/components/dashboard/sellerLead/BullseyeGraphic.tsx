@@ -103,7 +103,8 @@ const BullseyeGraphic = forwardRef<HTMLDivElement, BullseyeGraphicProps>(
             {/* Middle ring */}
             <circle cx="150" cy="150" r="95" fill="#CC0000" />
             <circle cx="150" cy="150" r="70" fill="#FFFFFF" />
-            {/* Inner circle - WHITE center */}
+            {/* Inner white center circle */}
+            <circle cx="150" cy="150" r="68" fill="#FFFFFF" stroke="#FFFFFF" strokeWidth="2" />
           </svg>
 
           {/* Upper bracket price label */}
