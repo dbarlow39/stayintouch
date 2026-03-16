@@ -554,15 +554,8 @@ const SellerLeadDetail = () => {
               </Card>
             )}
 
-            {activeTab === "market-analysis" && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Market Analysis</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-muted-foreground">Market analysis content coming soon.</p>
-                </CardContent>
-              </Card>
+            {activeTab === "market-analysis" && lead && (
+              <MarketAnalysisTab lead={lead} />
             )}
 
             {activeTab === "pipeline" && (
