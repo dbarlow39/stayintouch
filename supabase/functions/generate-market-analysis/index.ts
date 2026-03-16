@@ -129,9 +129,9 @@ serve(async (req) => {
       );
     }
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY is not configured");
+    const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
+    if (!ANTHROPIC_API_KEY) {
+      throw new Error("ANTHROPIC_API_KEY is not configured");
     }
 
     // Download files from storage and convert to base64
@@ -139,7 +139,8 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const userContent: any[] = [{ type: "text", text: USER_PROMPT }];
+    // Build Anthropic content blocks
+    const userContent: any[] = [];
 
     for (const doc of documents) {
       if (doc.filePath) {
@@ -157,7 +158,7 @@ serve(async (req) => {
         const mimeType = doc.mimeType || fileData.type || "application/pdf";
         console.log(`${doc.name}: ${(arrayBuffer.byteLength / 1024 / 1024).toFixed(2)}MB, mime: ${mimeType}`);
 
-        // .docx files: extract text content (Gemini doesn't support docx binary)
+        // .docx files: extract text content
         if (mimeType.includes("wordprocessingml") || doc.name.toLowerCase().endsWith(".docx")) {
           try {
             const zip = await JSZip.loadAsync(arrayBuffer);
@@ -173,8 +174,8 @@ serve(async (req) => {
           } catch (e) {
             console.error(`Failed to parse docx ${doc.name}:`, e);
           }
-        } else {
-          // PDF/image files: send as base64 binary
+        } else if (mimeType.startsWith("image/")) {
+          // Image files: use Anthropic image content block
           const uint8Array = new Uint8Array(arrayBuffer);
           let binaryString = "";
           const chunkSize = 8192;
@@ -186,27 +187,54 @@ serve(async (req) => {
           }
           const base64Content = btoa(binaryString);
           userContent.push({
-            type: "image_url",
-            image_url: {
-              url: `data:${mimeType};base64,${base64Content}`
+            type: "image",
+            source: {
+              type: "base64",
+              media_type: mimeType,
+              data: base64Content
+            }
+          });
+        } else {
+          // PDF files: use Anthropic document content block
+          const uint8Array = new Uint8Array(arrayBuffer);
+          let binaryString = "";
+          const chunkSize = 8192;
+          for (let i = 0; i < uint8Array.length; i += chunkSize) {
+            const chunk = uint8Array.subarray(i, i + chunkSize);
+            for (let j = 0; j < chunk.length; j++) {
+              binaryString += String.fromCharCode(chunk[j]);
+            }
+          }
+          const base64Content = btoa(binaryString);
+          userContent.push({
+            type: "document",
+            source: {
+              type: "base64",
+              media_type: "application/pdf",
+              data: base64Content
             }
           });
         }
       }
     }
 
-    console.log(`Processing ${documents.length} documents for market analysis`);
+    // Add the user prompt text last
+    userContent.push({ type: "text", text: USER_PROMPT });
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    console.log(`Processing ${documents.length} documents for market analysis via Claude`);
+
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        "x-api-key": ANTHROPIC_API_KEY,
+        "anthropic-version": "2023-06-01",
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-pro",
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 8192,
+        system: SYSTEM_PROMPT,
         messages: [
-          { role: "system", content: SYSTEM_PROMPT },
           { role: "user", content: userContent }
         ],
       }),
