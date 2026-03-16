@@ -99,6 +99,12 @@ Analyze the attached documents and return your analysis as a JSON object matchin
     "zillowAppreciation10yr": "",
     "zillowUpdatedMonth": ""
   },
+
+IMPORTANT DATA RULES FOR SQUARE FOOTAGE:
+- aboveGradeSqFt: the above-ground living area only, from the CMA or auditor record
+- basementSqFt: the FINISHED basement square footage ONLY - this is a separate, smaller number than aboveGradeSqFt. Find it in the walk-through summary or inspection worksheet. If the CMA "Basement Sq Feet" field matches the above-grade sq ft exactly, that field is a data error - ignore it.
+- totalFinishedSqFt: add aboveGradeSqFt + basementSqFt together to get this number
+
   "features": [""],
   "closedComps": [
     {
