@@ -139,8 +139,28 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Build Anthropic content blocks
+    // Load company logo from storage and include as branding reference
     const userContent: any[] = [];
+    try {
+      const { data: logoData, error: logoError } = await supabase.storage
+        .from("market-analysis-docs")
+        .download("branding/logo.jpg");
+      if (!logoError && logoData) {
+        const logoBuffer = await logoData.arrayBuffer();
+        const logoUint8 = new Uint8Array(logoBuffer);
+        let logoBinary = "";
+        for (let i = 0; i < logoUint8.length; i += 8192) {
+          const chunk = logoUint8.subarray(i, i + 8192);
+          for (let j = 0; j < chunk.length; j++) logoBinary += String.fromCharCode(chunk[j]);
+        }
+        const logoBase64 = btoa(logoBinary);
+        userContent.push({ type: "text", text: "[Company Logo - SellFor1Percent REALTORS branding for use in the analysis document]" });
+        userContent.push({ type: "image", source: { type: "base64", media_type: "image/jpeg", data: logoBase64 } });
+        console.log("Company logo loaded for branding");
+      }
+    } catch (e) {
+      console.warn("Could not load company logo:", e);
+    }
 
     for (const doc of documents) {
       if (doc.filePath) {
