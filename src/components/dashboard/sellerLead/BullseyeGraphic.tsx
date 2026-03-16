@@ -102,7 +102,7 @@ const BullseyeGraphic = forwardRef<HTMLDivElement, BullseyeGraphicProps>(
             {/* 3-layer target: outer red, white gap, large center red */}
             <circle cx="150" cy="150" r="145" fill="#CC0000" />
             <circle cx="150" cy="150" r="115" fill="#FFFFFF" />
-            <circle cx="150" cy="150" r="85" fill="#CC0000" />
+            <circle cx="150" cy="150" r="75" fill="#CC0000" />
 
             {/* Center bullseye price - 33% larger than other labels */}
             <text
