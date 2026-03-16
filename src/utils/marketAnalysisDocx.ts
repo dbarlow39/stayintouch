@@ -203,7 +203,7 @@ export async function generateMarketAnalysisDocx(
   }
 
   // SECTION 1: PROPERTY OVERVIEW
-  sections.push(sectionHeading("SECTION 1: PROPERTY OVERVIEW"));
+  sections.push(sectionHeading("PROPERTY OVERVIEW"));
 
   const overviewLabels: Record<string, string> = {
     address: "Address",
