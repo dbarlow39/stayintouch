@@ -267,8 +267,8 @@ export async function generateMarketAnalysisDocx(
     const closedCols = ["Address", "Closed", "List Price", "Sold Price", "Beds", "Baths", "Sq Ft", "Year", "DOM"];
     sections.push(
       new Table({
-        width: { size: 100, type: WidthType.PERCENTAGE },
-        layout: TableLayoutType.FIXED,
+        width: { size: 9360, type: WidthType.DXA },
+        columnWidths: [2200, 900, 900, 900, 600, 600, 700, 700, 760],
         rows: [
           spanningHeaderRow("Closed Sales", closedCols.length),
           tableHeaderRow(closedCols),
