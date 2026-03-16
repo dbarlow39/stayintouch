@@ -261,7 +261,7 @@ export async function generateMarketAnalysisDocx(
 
   // SECTION 3: COMPARABLE SALES
   if (comps.closedSales?.length > 0) {
-    sections.push(sectionHeading("SECTION 3: RECENT COMPARABLE SALES"));
+    sections.push(sectionHeading("RECENT COMPARABLE SALES"));
     sections.push(bodyParagraph("Closed Sales"));
 
     const closedHeaders = ["Address", "Closed Date", "List Price", "Sold Price", "Beds/Baths", "Sq Ft", "Year Built", "DOM"];
