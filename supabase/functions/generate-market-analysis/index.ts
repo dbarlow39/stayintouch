@@ -42,7 +42,21 @@ WRITING RULES:
 - Review all property photos for value factors and incorporate observations into comp comparison bullets and price justification
 - For the features array specifically: cross-reference ALL attached documents - the CMA, the Inspection Worksheet, AND the walk-through summary - to build the most complete and specific feature list possible. Do not rely on any single document alone.`;
 
-const USER_PROMPT = `Analyze the attached documents and return your analysis as a JSON object matching this exact schema:
+const USER_PROMPT = `FEATURES WRITING RULES - apply these when populating the features array:
+
+- Write each bullet as a complete, specific sentence - not a fragment
+- Combine related items into single bullets (e.g. combine all kitchen appliances into one bullet, combine all garage features into one bullet)
+- Always include brand names, ages, and warranty details exactly as stated in the documents (e.g. "Cambria quartz countertops with lifetime warranty", "Jenn-Weld double-hung vinyl clad insulated windows")
+- Always note inclusion/exclusion status where stated (e.g. "refrigerator stays", "washer and dryer do not convey", "blinds stay, curtain rods stay, curtains negotiable")
+- Note finished basement square footage and total finished living area
+- Note roof type, age status, and layer count
+- Note furnace type, AC type, hot water type, and any sump pump
+- Note window brand, style, and insulation
+- Note lot features such as wooded backing, patio, porch, landscaping
+- Aim for 12-15 bullets minimum
+- Never list a feature without its relevant detail - "fireplace" alone is not acceptable; "wood-burning stone fireplace with no gas option" is correct
+
+Analyze the attached documents and return your analysis as a JSON object matching this exact schema:
 
 {
   "property": {
