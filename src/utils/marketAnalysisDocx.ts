@@ -56,7 +56,7 @@ function overviewRow(label: string, value: string): TableRow {
     children: [
       new TableCell({
         width: { size: 3200, type: WidthType.DXA },
-        shading: { type: ShadingType.CLEAR, fill: GRAY_BG },
+        shading: { type: ShadingType.CLEAR, fill: LIGHT_SCARLET },
         children: [
           new Paragraph({ children: [new TextRun({ text: label, bold: true, font: "Arial", size: 20 })] }),
         ],
@@ -193,7 +193,7 @@ export async function generateMarketAnalysisDocx(
         new Paragraph({
           alignment: AlignmentType.RIGHT,
           spacing: { before: 60 },
-          children: [new TextRun({ text: `Prepared by Dave Barlow | ${new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`, color: "808080", font: "Arial", size: 18 })],
+          children: [new TextRun({ text: `Prepared by Dave Barlow | ${new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`, color: DARK_SCARLET, font: "Arial", size: 18 })],
         }),
       ],
     })
