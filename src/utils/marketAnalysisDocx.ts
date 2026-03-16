@@ -247,7 +247,7 @@ export async function generateMarketAnalysisDocx(
 
   // SECTION 2: NOTABLE FEATURES
   if (analysis.notableFeatures?.length > 0) {
-    sections.push(sectionHeading("SECTION 2: NOTABLE PROPERTY FEATURES"));
+    sections.push(sectionHeading("NOTABLE PROPERTY FEATURES"));
     for (const feature of analysis.notableFeatures) {
       sections.push(
         new Paragraph({
