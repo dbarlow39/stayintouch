@@ -51,21 +51,20 @@ function bodyParagraph(text: string): Paragraph {
   });
 }
 
-function overviewRow(label: string, value: string, altRow: boolean): TableRow {
+function overviewRow(label: string, value: string): TableRow {
   return new TableRow({
     children: [
       new TableCell({
         width: { size: 3200, type: WidthType.DXA },
         shading: { type: ShadingType.CLEAR, fill: GRAY_BG },
         children: [
-          new Paragraph({ children: [new TextRun({ text: label, bold: true, font: "Arial", size: 22 })] }),
+          new Paragraph({ children: [new TextRun({ text: label, bold: true, font: "Arial", size: 20 })] }),
         ],
       }),
       new TableCell({
         width: { size: 6160, type: WidthType.DXA },
-        shading: altRow ? { type: ShadingType.CLEAR, fill: LIGHT_SCARLET } : undefined,
         children: [
-          new Paragraph({ children: [new TextRun({ text: clean(value), font: "Arial", size: 22 })] }),
+          new Paragraph({ children: [new TextRun({ text: clean(value), font: "Arial", size: 20 })] }),
         ],
       }),
     ],
@@ -242,7 +241,10 @@ export async function generateMarketAnalysisDocx(
     new Table({
       width: { size: 9360, type: WidthType.DXA },
       columnWidths: [3200, 6160],
-      rows: overviewFields.map(([label, value], i) => overviewRow(label, value || "-", i % 2 === 1)),
+      rows: [
+        spanningHeaderRow("Subject Property Details", 2),
+        ...overviewFields.map(([label, value]) => overviewRow(label, value || "-")),
+      ],
     })
   );
   if (narrative.taxNote) sections.push(bodyParagraph(narrative.taxNote));
@@ -350,7 +352,7 @@ export async function generateMarketAnalysisDocx(
     new Table({
       width: { size: 9360, type: WidthType.DXA },
       columnWidths: [3200, 6160],
-      rows: communityFields.map(([label, value], i) => overviewRow(label, value || "-", i % 2 === 1)),
+      rows: communityFields.map(([label, value]) => overviewRow(label, value || "-")),
     })
   );
   if (narrative.communityParagraph) sections.push(bodyParagraph(narrative.communityParagraph));
