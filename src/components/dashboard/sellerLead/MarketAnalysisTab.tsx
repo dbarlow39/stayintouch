@@ -52,17 +52,20 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
     );
   };
 
-  const fileToBase64 = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        const result = reader.result as string;
-        const base64 = result.split(",")[1];
-        resolve(base64);
-      };
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
+  // Upload files to storage, return file paths
+  const uploadFilesToStorage = async (docs: DocumentSlot[]): Promise<{ name: string; filePath: string; mimeType: string }[]> => {
+    if (!user) throw new Error("Not authenticated");
+    const uploaded: { name: string; filePath: string; mimeType: string }[] = [];
+    for (const doc of docs) {
+      if (doc.file) {
+        const ext = doc.file.name.split(".").pop() || "pdf";
+        const filePath = `${user.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+        const { error } = await supabase.storage.from("market-analysis-docs").upload(filePath, doc.file);
+        if (error) throw new Error(`Failed to upload ${doc.label}: ${error.message}`);
+        uploaded.push({ name: doc.label, filePath, mimeType: doc.file.type || "application/pdf" });
+      }
+    }
+    return uploaded;
   };
 
   const hasRequiredDocs = documents
