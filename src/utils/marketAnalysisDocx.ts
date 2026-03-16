@@ -39,7 +39,7 @@ function sectionHeading(text: string): Paragraph {
     spacing: { before: 400, after: 200 },
     border: { bottom: { style: BorderStyle.SINGLE, size: 2, color: SCARLET } },
     children: [
-      new TextRun({ text: titleCase, bold: true, color: DARK_SCARLET, font: "Arial", size: 24 }),
+      new TextRun({ text: titleCase, bold: true, color: DARK_SCARLET, font: "Arial", size: 20 }),
     ],
   });
 }
@@ -47,7 +47,7 @@ function sectionHeading(text: string): Paragraph {
 function bodyParagraph(text: string): Paragraph {
   return new Paragraph({
     spacing: { after: 200 },
-    children: [new TextRun({ text: clean(text), font: "Arial", size: 24 })],
+    children: [new TextRun({ text: clean(text), font: "Arial", size: 20 })],
   });
 }
 
@@ -188,7 +188,7 @@ export async function generateMarketAnalysisDocx(
         new Paragraph({
           alignment: AlignmentType.RIGHT,
           spacing: { before: 60 },
-          children: [new TextRun({ text: clean(prop.address ? `${prop.address}, ${prop.city}, ${prop.state} ${prop.zip}` : ""), bold: true, color: SCARLET, font: "Arial", size: 24 })],
+          children: [new TextRun({ text: clean(prop.address ? `${prop.address}, ${prop.city}, ${prop.state} ${prop.zip}` : ""), bold: true, color: SCARLET, font: "Arial", size: 20 })],
         }),
         new Paragraph({
           alignment: AlignmentType.RIGHT,
