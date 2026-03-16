@@ -1,10 +1,11 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
+import html2canvas from "html2canvas";
 import {
   Upload,
   FileText,
@@ -17,6 +18,8 @@ import {
   Image as ImageIcon,
 } from "lucide-react";
 import { generateMarketAnalysisDocx } from "@/utils/marketAnalysisDocx";
+import BullseyeGraphic from "./BullseyeGraphic";
+import ZillowGraphic from "./ZillowGraphic";
 
 interface DocumentSlot {
   label: string;
