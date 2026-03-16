@@ -80,6 +80,7 @@ function tableHeaderRow(columns: string[], columnCount?: number): TableRow {
         children: [
           new Paragraph({
             alignment: AlignmentType.CENTER,
+            spacing: { before: 40, after: 40 },
             children: [new TextRun({ text: col, bold: true, color: "FFFFFF", font: "Arial", size: 20 })],
           }),
         ],
