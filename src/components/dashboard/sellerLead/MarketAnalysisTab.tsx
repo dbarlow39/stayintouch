@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
-import html2canvas from "html2canvas";
+import { toPng } from "html-to-image";
 import {
   Upload,
   FileText,
@@ -37,7 +37,6 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
   const { user } = useAuth();
   const [generating, setGenerating] = useState(false);
   const [progressMessage, setProgressMessage] = useState("");
-  const [generatingGraphics, setGeneratingGraphics] = useState(false);
   const [analysis, setAnalysis] = useState<any>(null);
   const [bullseyeImage, setBullseyeImage] = useState<string | null>(null);
   const [zillowImage, setZillowImage] = useState<string | null>(null);
@@ -58,7 +57,6 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
     );
   };
 
-  // Upload files to storage, return file paths
   const uploadFilesToStorage = async (docs: DocumentSlot[]): Promise<{ name: string; filePath: string; mimeType: string }[]> => {
     if (!user) throw new Error("Not authenticated");
     const uploaded: { name: string; filePath: string; mimeType: string }[] = [];
@@ -80,20 +78,15 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
 
   const uploadedCount = documents.filter((d) => d.file !== null).length;
 
-  // Capture a ref element to base64 PNG using html2canvas
+  // Capture a ref element to base64 PNG using html-to-image
   const captureGraphic = useCallback(async (element: HTMLDivElement): Promise<string> => {
-    const canvas = await html2canvas(element, {
-      scale: 2,
+    return await toPng(element, {
+      quality: 1,
+      pixelRatio: 2,
       backgroundColor: "#FFFFFF",
-      useCORS: true,
-      logging: false,
-      height: element.scrollHeight,
-      windowHeight: element.scrollHeight + 100,
     });
-    return canvas.toDataURL("image/png");
   }, []);
 
-  // Track when analysis is ready so we can auto-capture and download
   const [pendingAutoDownload, setPendingAutoDownload] = useState(false);
 
   const handleGenerate = async () => {
@@ -106,7 +99,7 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
     try {
       const uploadedDocs = await uploadFilesToStorage(documents);
 
-      setProgressMessage("Analyzing documents with Claude...");
+      setProgressMessage("Analyzing documents...");
       const { data, error } = await supabase.functions.invoke("generate-market-analysis", {
         body: { documents: uploadedDocs },
       });
@@ -136,7 +129,6 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
 
     const captureAndDownload = async () => {
       try {
-        // Wait for React to render the hidden graphic components
         await new Promise((r) => setTimeout(r, 800));
 
         let capturedBullseye: string | null = null;
@@ -186,6 +178,10 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
     }
   };
 
+  // Map new schema fields for graphics
+  const pricing = analysis?.pricing;
+  const prop = analysis?.property;
+
   return (
     <div className="space-y-6">
       <div>
@@ -212,9 +208,7 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
               <div
                 key={index}
                 className={`relative border-2 border-dashed rounded-lg p-4 text-center transition-colors cursor-pointer hover:border-primary/50 ${
-                  doc.file
-                    ? "border-green-500/50 bg-green-500/5"
-                    : "border-border"
+                  doc.file ? "border-green-500/50 bg-green-500/5" : "border-border"
                 }`}
                 onClick={() => fileInputRefs.current[index]?.click()}
               >
@@ -300,42 +294,40 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
         </Card>
       )}
 
-      {/* Hidden graphic renderers - always render when analysis exists so html2canvas can capture */}
-      {analysis?.pricingStrategy && (
-          <div style={{ position: "fixed", left: "-9999px", top: 0, zIndex: -1, overflow: "visible" }}>
+      {/* Hidden graphic renderers */}
+      {pricing && (
+        <div style={{ position: "absolute", left: "-9999px", top: 0, zIndex: -1, overflow: "visible" }}>
           <BullseyeGraphic
-                ref={bullseyeRef}
-                address={analysis.propertyOverview?.address || ""}
-                bullseyePrice={analysis.pricingStrategy.bullseyePrice || ""}
-                lowerBracketPrice={analysis.pricingStrategy.lowerBracketPrice || ""}
-                upperBracketPrice={analysis.pricingStrategy.upperBracketPrice || ""}
-                bullseyeBracket={analysis.pricingStrategy.bullseyeBracket || ""}
-                lowerBracket={analysis.pricingStrategy.lowerBracket || ""}
-                upperBracket={analysis.pricingStrategy.upperBracket || ""}
-                lowerBracketDescription={analysis.pricingStrategy.lowerBracketDescription || ""}
-                bullseyeDescription={analysis.pricingStrategy.bullseyeDescription || ""}
-                upperBracketDescription={analysis.pricingStrategy.upperBracketDescription || ""}
-              />
-            </div>
-          )}
-      {analysis?.zillowAnalysis && (
-        <div style={{ position: "fixed", left: "-9999px", top: 0, zIndex: -1 }}>
+            ref={bullseyeRef}
+            address={prop?.address ? `${prop.address}, ${prop.city}` : ""}
+            bullseyePrice={pricing.bullseyePrice || ""}
+            lowerBracketPrice={pricing.lowerBracketPrice || ""}
+            upperBracketPrice={pricing.upperBracketPrice || ""}
+            bullseyeBracketLabel={pricing.bullseyeBracketLow && pricing.bullseyeBracketHigh ? `$${pricing.bullseyeBracketLow}-$${pricing.bullseyeBracketHigh}` : ""}
+            lowerBracketLabel={pricing.lowerBracketLow && pricing.lowerBracketHigh ? `$${pricing.lowerBracketLow}-$${pricing.lowerBracketHigh}` : ""}
+            upperBracketLabel={pricing.upperBracketLow && pricing.upperBracketHigh ? `$${pricing.upperBracketLow}-$${pricing.upperBracketHigh}` : ""}
+          />
+        </div>
+      )}
+      {prop?.zestimate && (
+        <div style={{ position: "absolute", left: "-9999px", top: 0, zIndex: -1, overflow: "visible" }}>
           <ZillowGraphic
-                ref={zillowRef}
-                address={analysis.propertyOverview?.address || ""}
-                zestimate={analysis.zillowAnalysis.zestimate || ""}
-                estimatedSalesRange={analysis.zillowAnalysis.estimatedSalesRange || ""}
-                rentZestimate={analysis.zillowAnalysis.rentZestimate || ""}
-                pricePerSqFt={analysis.zillowAnalysis.pricePerSqFt || ""}
-                bedsBaths={analysis.zillowAnalysis.bedsBathsAsZillowCounts || ""}
-                propertyType={analysis.zillowAnalysis.propertyType || ""}
-                yearBuilt={analysis.zillowAnalysis.yearBuilt || ""}
-                updatedDate={analysis.zillowAnalysis.updatedDate || ""}
-                appreciationNote={analysis.zillowAnalysis.appreciationNote || ""}
-                importantContext={analysis.zillowAnalysis.importantContext || ""}
-              />
-            </div>
-          )}
+            ref={zillowRef}
+            address={prop.address ? `${prop.address}, ${prop.city}, ${prop.state} ${prop.zip}` : ""}
+            zestimate={prop.zestimate || ""}
+            zestimateRange={prop.zestimateRange || ""}
+            rentZestimate={prop.zestimateRent || ""}
+            pricePerSqFt={prop.zestimatePsf || ""}
+            zillowBeds={prop.zillowBeds || ""}
+            zillowBaths={prop.zillowBaths || ""}
+            propertyType="Single Family"
+            yearBuilt={prop.yearBuilt || ""}
+            updatedMonth={prop.zillowUpdatedMonth || ""}
+            appreciation10yr={prop.zillowAppreciation10yr || ""}
+            importantContext={analysis?.narrative?.zillowContextNote || ""}
+          />
+        </div>
+      )}
 
       {/* Analysis Preview */}
       {analysis && !generating && (
@@ -354,18 +346,26 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
           </div>
 
           {/* Property Overview */}
-          {analysis.propertyOverview && (
+          {prop && (
             <Card>
               <CardHeader>
                 <CardTitle className="text-sm text-[#8B0000]">Property Overview</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 gap-1 text-sm">
-                  {Object.entries(analysis.propertyOverview).map(([key, value]) => (
-                    <div key={key} className="flex border-b border-border/50 py-1.5">
-                      <span className="w-48 shrink-0 font-medium text-muted-foreground capitalize">
-                        {key.replace(/([A-Z])/g, " $1").trim()}
-                      </span>
+                  {[
+                    ["Address", `${prop.address}, ${prop.city}, ${prop.state} ${prop.zip}`],
+                    ["Owner(s)", [prop.owner1, prop.owner2].filter(Boolean).join(" and ")],
+                    ["Style", prop.style],
+                    ["Beds / Baths", `${prop.bedrooms} / ${prop.baths}`],
+                    ["Above-Grade Sq Ft", prop.aboveGradeSqFt],
+                    ["Basement Sq Ft", prop.basementSqFt],
+                    ["Total Finished Sq Ft", prop.totalFinishedSqFt],
+                    ["Year Built", prop.yearBuilt],
+                    ["Zestimate", prop.zestimate],
+                  ].map(([label, value], i) => (
+                    <div key={i} className="flex border-b border-border/50 py-1.5">
+                      <span className="w-48 shrink-0 font-medium text-muted-foreground">{label}</span>
                       <span>{String(value || "-")}</span>
                     </div>
                   ))}
@@ -375,14 +375,14 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
           )}
 
           {/* Notable Features */}
-          {analysis.notableFeatures?.length > 0 && (
+          {analysis.features?.length > 0 && (
             <Card>
               <CardHeader>
                 <CardTitle className="text-sm text-[#8B0000]">Notable Property Features</CardTitle>
               </CardHeader>
               <CardContent>
                 <ul className="list-disc list-inside space-y-1 text-sm">
-                  {analysis.notableFeatures.map((f: string, i: number) => (
+                  {analysis.features.map((f: string, i: number) => (
                     <li key={i}>{f}</li>
                   ))}
                 </ul>
@@ -391,7 +391,7 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
           )}
 
           {/* Comparable Sales */}
-          {analysis.comparableSales?.closedSales?.length > 0 && (
+          {analysis.closedComps?.length > 0 && (
             <Card>
               <CardHeader>
                 <CardTitle className="text-sm text-[#8B0000]">Recent Comparable Sales</CardTitle>
@@ -404,20 +404,22 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
                       <th className="px-2 py-1.5 text-left">Closed</th>
                       <th className="px-2 py-1.5 text-right">List Price</th>
                       <th className="px-2 py-1.5 text-right">Sold Price</th>
-                      <th className="px-2 py-1.5 text-center">Beds/Baths</th>
+                      <th className="px-2 py-1.5 text-center">Beds</th>
+                      <th className="px-2 py-1.5 text-center">Baths</th>
                       <th className="px-2 py-1.5 text-right">Sq Ft</th>
                       <th className="px-2 py-1.5 text-center">Year</th>
                       <th className="px-2 py-1.5 text-right">DOM</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {analysis.comparableSales.closedSales.map((comp: any, i: number) => (
+                    {analysis.closedComps.map((comp: any, i: number) => (
                       <tr key={i} className={i % 2 === 1 ? "bg-[#FDECEA]" : ""}>
                         <td className="px-2 py-1.5">{comp.address}</td>
                         <td className="px-2 py-1.5">{comp.closedDate}</td>
                         <td className="px-2 py-1.5 text-right">{comp.listPrice}</td>
                         <td className="px-2 py-1.5 text-right">{comp.soldPrice}</td>
-                        <td className="px-2 py-1.5 text-center">{comp.bedsBaths}</td>
+                        <td className="px-2 py-1.5 text-center">{comp.beds}</td>
+                        <td className="px-2 py-1.5 text-center">{comp.baths}</td>
                         <td className="px-2 py-1.5 text-right">{comp.sqFt}</td>
                         <td className="px-2 py-1.5 text-center">{comp.yearBuilt}</td>
                         <td className="px-2 py-1.5 text-right">{comp.dom}</td>
@@ -430,7 +432,7 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
           )}
 
           {/* Pricing Strategy */}
-          {analysis.pricingStrategy && (
+          {pricing && (
             <Card>
               <CardHeader>
                 <CardTitle className="text-sm text-[#8B0000]">
@@ -441,23 +443,20 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
                 <div className="flex items-center justify-center gap-8 py-4">
                   <div className="text-center">
                     <p className="text-xs text-muted-foreground">Lower Bracket</p>
-                    <p className="text-lg font-semibold">{analysis.pricingStrategy.lowerBracketPrice}</p>
-                    <p className="text-xs text-muted-foreground">{analysis.pricingStrategy.lowerBracket}</p>
+                    <p className="text-lg font-semibold">{pricing.lowerBracketPrice}</p>
                   </div>
                   <div className="text-center bg-[#FDECEA] rounded-lg p-4 border-2 border-[#CC0000]">
                     <p className="text-xs font-medium text-[#CC0000]">★ BULLSEYE</p>
-                    <p className="text-2xl font-bold text-[#8B0000]">{analysis.pricingStrategy.bullseyePrice}</p>
-                    <p className="text-xs text-muted-foreground">{analysis.pricingStrategy.bullseyeBracket}</p>
+                    <p className="text-2xl font-bold text-[#8B0000]">{pricing.bullseyePrice}</p>
                   </div>
                   <div className="text-center">
                     <p className="text-xs text-muted-foreground">Upper Bracket</p>
-                    <p className="text-lg font-semibold">{analysis.pricingStrategy.upperBracketPrice}</p>
-                    <p className="text-xs text-muted-foreground">{analysis.pricingStrategy.upperBracket}</p>
+                    <p className="text-lg font-semibold">{pricing.upperBracketPrice}</p>
                   </div>
                 </div>
-                {analysis.pricingStrategy.priceJustification && (
+                {analysis.narrative?.priceJustification && (
                   <p className="text-sm text-muted-foreground">
-                    {analysis.pricingStrategy.priceJustification}
+                    {analysis.narrative.priceJustification}
                   </p>
                 )}
               </CardContent>
@@ -492,27 +491,14 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
             </Card>
           )}
 
-          {/* Zillow Analysis */}
-          {analysis.zillowAnalysis?.wordOnZestimate && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-sm text-[#8B0000]">Zillow Zestimate Analysis</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3 text-sm">
-                <p>{analysis.zillowAnalysis.wordOnZestimate}</p>
-                <p className="text-muted-foreground italic">{analysis.zillowAnalysis.onlineValuationNote}</p>
-              </CardContent>
-            </Card>
-          )}
-
           {/* Next Steps */}
-          {analysis.nextSteps && (
+          {analysis.narrative?.nextSteps && (
             <Card>
               <CardHeader>
                 <CardTitle className="text-sm text-[#8B0000]">Next Steps</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-sm">{analysis.nextSteps}</p>
+                <p className="text-sm">{analysis.narrative.nextSteps}</p>
               </CardContent>
             </Card>
           )}
