@@ -58,13 +58,13 @@ function overviewRow(label: string, value: string): TableRow {
         width: { size: 3200, type: WidthType.DXA },
         shading: { type: ShadingType.CLEAR, fill: LIGHT_SCARLET },
         children: [
-          new Paragraph({ children: [new TextRun({ text: label, bold: true, font: "Arial", size: 20 })] }),
+          new Paragraph({ spacing: { before: 40, after: 40 }, children: [new TextRun({ text: label, bold: true, font: "Arial", size: 20 })] }),
         ],
       }),
       new TableCell({
         width: { size: 6160, type: WidthType.DXA },
         children: [
-          new Paragraph({ children: [new TextRun({ text: clean(value), font: "Arial", size: 20 })] }),
+          new Paragraph({ spacing: { before: 40, after: 40 }, children: [new TextRun({ text: clean(value), font: "Arial", size: 20 })] }),
         ],
       }),
     ],
