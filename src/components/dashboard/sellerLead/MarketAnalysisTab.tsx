@@ -91,34 +91,31 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
     return canvas.toDataURL("image/png");
   }, []);
 
+  // Track when analysis is ready so we can auto-capture and download
+  const [pendingAutoDownload, setPendingAutoDownload] = useState(false);
+
   const handleGenerate = async () => {
     setGenerating(true);
+    setProgressMessage("Uploading documents...");
     setAnalysis(null);
     setBullseyeImage(null);
     setZillowImage(null);
 
     try {
-      // Upload files to storage first
       const uploadedDocs = await uploadFilesToStorage(documents);
 
+      setProgressMessage("Analyzing documents with Claude...");
       const { data, error } = await supabase.functions.invoke("generate-market-analysis", {
         body: { documents: uploadedDocs },
       });
 
       if (error) throw error;
-
-      if (data?.error) {
-        throw new Error(data.error);
-      }
-
-      if (!data?.analysis) {
-        throw new Error("No analysis returned from AI");
-      }
+      if (data?.error) throw new Error(data.error);
+      if (!data?.analysis) throw new Error("No analysis returned from AI");
 
       setAnalysis(data.analysis);
-      toast({ title: "Market analysis generated successfully" });
-
-      // Graphics will be rendered by React components, then captured after render
+      setPendingAutoDownload(true);
+      setProgressMessage("Rendering graphics...");
     } catch (err: any) {
       console.error("Market analysis error:", err);
       toast({
@@ -126,45 +123,51 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
         description: err.message || "Please try again",
         variant: "destructive",
       });
-    } finally {
       setGenerating(false);
+      setProgressMessage("");
     }
   };
 
-  // Capture graphics after analysis is set and components have rendered
-  const handleCaptureGraphics = useCallback(async () => {
-    if (!analysis) return;
-    setGeneratingGraphics(true);
-    try {
-      // Small delay to ensure DOM has rendered
-      await new Promise((r) => setTimeout(r, 500));
+  // Once analysis is set and components render, capture graphics and download
+  useEffect(() => {
+    if (!pendingAutoDownload || !analysis) return;
 
-      const promises: Promise<void>[] = [];
+    const captureAndDownload = async () => {
+      try {
+        // Wait for React to render the hidden graphic components
+        await new Promise((r) => setTimeout(r, 800));
 
-      if (bullseyeRef.current) {
-        promises.push(
-          captureGraphic(bullseyeRef.current).then((img) => setBullseyeImage(img))
-        );
+        let capturedBullseye: string | null = null;
+        let capturedZillow: string | null = null;
+
+        if (bullseyeRef.current) {
+          capturedBullseye = await captureGraphic(bullseyeRef.current);
+          setBullseyeImage(capturedBullseye);
+        }
+        if (zillowRef.current) {
+          capturedZillow = await captureGraphic(zillowRef.current);
+          setZillowImage(capturedZillow);
+        }
+
+        setProgressMessage("Building document...");
+        await generateMarketAnalysisDocx(analysis, capturedBullseye, capturedZillow);
+        toast({ title: "Market analysis document downloaded" });
+      } catch (err: any) {
+        console.error("Auto-download error:", err);
+        toast({
+          title: "Error building document",
+          description: err.message || "Analysis is ready - try the Download button.",
+          variant: "destructive",
+        });
+      } finally {
+        setGenerating(false);
+        setProgressMessage("");
+        setPendingAutoDownload(false);
       }
-      if (zillowRef.current) {
-        promises.push(
-          captureGraphic(zillowRef.current).then((img) => setZillowImage(img))
-        );
-      }
+    };
 
-      await Promise.all(promises);
-      toast({ title: "Graphics captured successfully" });
-    } catch (err: any) {
-      console.error("Graphics capture error:", err);
-      toast({
-        title: "Graphics capture failed",
-        description: err.message || "Please try again",
-        variant: "destructive",
-      });
-    } finally {
-      setGeneratingGraphics(false);
-    }
-  }, [analysis, captureGraphic, toast]);
+    captureAndDownload();
+  }, [pendingAutoDownload, analysis, captureGraphic, toast]);
 
   const handleDownload = async () => {
     if (!analysis) return;
