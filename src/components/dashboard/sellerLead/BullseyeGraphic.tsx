@@ -6,9 +6,9 @@ interface BullseyeGraphicProps {
   bullseyePrice: string;
   lowerBracketPrice: string;
   upperBracketPrice: string;
-  bullseyeBracket: string;
-  lowerBracket: string;
-  upperBracket: string;
+  bullseyeBracketLabel: string;
+  lowerBracketLabel: string;
+  upperBracketLabel: string;
   lowerBracketDescription?: string;
   bullseyeDescription?: string;
   upperBracketDescription?: string;
@@ -21,20 +21,26 @@ const BullseyeGraphic = forwardRef<HTMLDivElement, BullseyeGraphicProps>(
       bullseyePrice,
       lowerBracketPrice,
       upperBracketPrice,
-      bullseyeBracket,
-      lowerBracket,
-      upperBracket,
+      bullseyeBracketLabel,
+      lowerBracketLabel,
+      upperBracketLabel,
       lowerBracketDescription,
       bullseyeDescription,
       upperBracketDescription,
     },
     ref
   ) => {
+    // Strip city/state/zip from address for display
+    const shortAddress = address
+      .replace(/,\s*(OH|Ohio)\s*\d{5}$/i, "")
+      .replace(/,\s*\w+\s*\d{5}$/, "");
+
     return (
       <div
         ref={ref}
         style={{
           width: 460,
+          height: 673,
           background: "#FFFFFF",
           fontFamily: "Arial, Helvetica, sans-serif",
           padding: "20px",
@@ -45,13 +51,13 @@ const BullseyeGraphic = forwardRef<HTMLDivElement, BullseyeGraphicProps>(
         {/* Header */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
           <div style={{ fontSize: 18, fontWeight: "bold", color: "#1a1a1a" }}>
-            {address.replace(/,\s*(OH|Ohio)\s*\d{5}$/i, "").replace(/,\s*\w+\s*\d{5}$/, "")}
+            {shortAddress}
           </div>
           <img src={logoImg} alt="Sell for 1 Percent" style={{ height: 40, objectFit: "contain" }} />
         </div>
 
         {/* Target Chart Area */}
-        <div style={{ position: "relative", width: "100%", height: 320, marginBottom: 10 }}>
+        <div style={{ position: "relative", width: "100%", height: 310, marginBottom: 10 }}>
           {/* Y-axis label */}
           <div
             style={{
@@ -71,82 +77,90 @@ const BullseyeGraphic = forwardRef<HTMLDivElement, BullseyeGraphicProps>(
 
           {/* Y-axis line */}
           <div style={{ position: "absolute", left: 30, top: 10, bottom: 30, width: 2, background: "#333" }} />
-          {/* Y-axis tick top */}
           <div style={{ position: "absolute", left: 22, top: 8, fontSize: 9, color: "#333" }}>$1,000,000</div>
-          {/* Y-axis tick bottom */}
           <div style={{ position: "absolute", left: 30, bottom: 26, fontSize: 9, color: "#333" }}>$1,000</div>
-          {/* Y-axis tick marks */}
           <div style={{ position: "absolute", left: 26, top: 10, width: 8, height: 2, background: "#333" }} />
           <div style={{ position: "absolute", left: 26, bottom: 28, width: 8, height: 2, background: "#333" }} />
 
           {/* X-axis line */}
           <div style={{ position: "absolute", left: 30, bottom: 28, right: 10, height: 2, background: "#333" }} />
-          {/* X-axis label */}
           <div style={{ position: "absolute", bottom: 6, left: "50%", transform: "translateX(-50%)", fontSize: 11, fontWeight: "bold", color: "#333" }}>
             Days on Market
           </div>
 
-          {/* Concentric target rings */}
+          {/* SVG with concentric rings AND text labels inside */}
           <svg
             viewBox="0 0 300 300"
             style={{
               position: "absolute",
-              left: 60,
-              top: 15,
+              left: 55,
+              top: 10,
               width: 280,
               height: 280,
             }}
           >
-            {/* Outer red ring */}
-            <circle cx="150" cy="150" r="140" fill="#CC0000" />
-            {/* White ring */}
-            <circle cx="150" cy="150" r="105" fill="#FFFFFF" />
-            {/* Inner red circle (center) */}
-            <circle cx="150" cy="150" r="65" fill="#CC0000" />
+            {/* 5-layer target: outer red, white gap, middle red, white gap, center red */}
+            <circle cx="150" cy="150" r="145" fill="#CC0000" />
+            <circle cx="150" cy="150" r="120" fill="#FFFFFF" />
+            <circle cx="150" cy="150" r="95" fill="#CC0000" />
+            <circle cx="150" cy="150" r="70" fill="#FFFFFF" />
+            <circle cx="150" cy="150" r="50" fill="#CC0000" />
+
+            {/* Center bullseye price - 33% larger than other labels */}
+            <text
+              x="150"
+              y="145"
+              textAnchor="middle"
+              dominantBaseline="middle"
+              fill="#FFFFFF"
+              fontSize="28"
+              fontWeight="bold"
+              fontFamily="Arial, Helvetica, sans-serif"
+            >
+              {bullseyePrice}
+            </text>
+            <text
+              x="150"
+              y="168"
+              textAnchor="middle"
+              dominantBaseline="middle"
+              fill="#FFFFFF"
+              fontSize="11"
+              fontWeight="bold"
+              fontFamily="Arial, Helvetica, sans-serif"
+              letterSpacing="2"
+            >
+              BULLSEYE
+            </text>
+
+            {/* Upper bracket price - top right on outer ring */}
+            <text
+              x="260"
+              y="55"
+              textAnchor="middle"
+              dominantBaseline="middle"
+              fill="#1a1a1a"
+              fontSize="18"
+              fontWeight="bold"
+              fontFamily="Arial, Helvetica, sans-serif"
+            >
+              {upperBracketPrice}
+            </text>
+
+            {/* Lower bracket price - bottom left on outer ring */}
+            <text
+              x="45"
+              y="240"
+              textAnchor="middle"
+              dominantBaseline="middle"
+              fill="#1a1a1a"
+              fontSize="18"
+              fontWeight="bold"
+              fontFamily="Arial, Helvetica, sans-serif"
+            >
+              {lowerBracketPrice}
+            </text>
           </svg>
-
-          {/* Upper bracket price label */}
-          <div
-            style={{
-              position: "absolute",
-              right: 15,
-              top: 50,
-              fontSize: 16,
-              fontWeight: "bold",
-              color: "#1a1a1a",
-            }}
-          >
-            {upperBracketPrice}
-          </div>
-
-          {/* Center bullseye price */}
-          <div
-            style={{
-              position: "absolute",
-              left: "50%",
-              top: "46%",
-              transform: "translate(-50%, -50%)",
-              textAlign: "center",
-              zIndex: 2,
-            }}
-          >
-            <div style={{ fontSize: 22, fontWeight: "bold", color: "#FFFFFF" }}>{bullseyePrice}</div>
-            <div style={{ fontSize: 11, fontWeight: "bold", color: "#FFFFFF", letterSpacing: 2 }}>BULLSEYE</div>
-          </div>
-
-          {/* Lower bracket price label */}
-          <div
-            style={{
-              position: "absolute",
-              left: 45,
-              top: 190,
-              fontSize: 16,
-              fontWeight: "bold",
-              color: "#1a1a1a",
-            }}
-          >
-            {lowerBracketPrice}
-          </div>
         </div>
 
         {/* Buyer Bracket Strategy Table */}
@@ -197,7 +211,7 @@ const BullseyeGraphic = forwardRef<HTMLDivElement, BullseyeGraphicProps>(
               <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#CC0000", flexShrink: 0 }} />
               <span style={{ fontSize: 11, fontWeight: "bold" }}>{lowerBracketPrice}</span>
             </div>
-            <div style={{ fontSize: 10, color: "#555" }}>{lowerBracket}</div>
+            <div style={{ fontSize: 10, color: "#555" }}>{lowerBracketLabel}</div>
             <div style={{ fontSize: 10, color: "#333", lineHeight: 1.4 }}>
               {lowerBracketDescription || "Maximum buyer pool. Likely to generate multiple offers and bidding competition quickly. Best choice if speed is the priority."}
             </div>
@@ -221,7 +235,7 @@ const BullseyeGraphic = forwardRef<HTMLDivElement, BullseyeGraphicProps>(
                 <div style={{ fontSize: 8, fontWeight: "bold", color: "#CC0000" }}>★ BULLSEYE</div>
               </div>
             </div>
-            <div style={{ fontSize: 10, color: "#555" }}>{bullseyeBracket}</div>
+            <div style={{ fontSize: 10, color: "#555" }}>{bullseyeBracketLabel}</div>
             <div style={{ fontSize: 10, color: "#333", lineHeight: 1.4 }}>
               {bullseyeDescription || "Top of the bracket. Reaches every buyer searching up to the bracket max. Strong Day 1 showings with maximum net result. Best overall strategy."}
             </div>
@@ -240,7 +254,7 @@ const BullseyeGraphic = forwardRef<HTMLDivElement, BullseyeGraphicProps>(
               <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#CC0000", flexShrink: 0 }} />
               <span style={{ fontSize: 11, fontWeight: "bold" }}>{upperBracketPrice}</span>
             </div>
-            <div style={{ fontSize: 10, color: "#555" }}>{upperBracket}</div>
+            <div style={{ fontSize: 10, color: "#555" }}>{upperBracketLabel}</div>
             <div style={{ fontSize: 10, color: "#333", lineHeight: 1.4 }}>
               {upperBracketDescription || "Enters a new, smaller buyer bracket. Fewer showings, longer days on market, and likely a price reduction will be needed. Highest risk of stalling."}
             </div>

@@ -7,111 +7,152 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const SYSTEM_PROMPT = `You are a professional real estate agent with The Barlow Group at SellFor1Percent.com. Your style is professional, friendly, data-driven, and focused on helping homeowners make informed decisions. You use the Bullseye Pricing Model - pricing precisely at the top of the buyer's search bracket to attract maximum buyer interest and achieve the highest net sale price without reductions.
+const SYSTEM_PROMPT = `You are a professional real estate analyst for The Barlow Group at SellFor1Percent.com. You use the Bullseye Pricing Model - always pricing at the TOP of the relevant $25,000 buyer search bracket, never the lower number within the same bracket.
 
-You will receive uploaded documents for a seller market analysis. Extract and analyze all data, then produce a complete structured analysis.
+You will receive up to 4 documents:
 
-BULLSEYE PRICE BRACKET REFERENCE:
-Buyer search brackets occur at every $25,000 increment. To determine the three prices:
-1. Identify which $25K bracket the recommended Bullseye falls in (e.g. $400K-$425K)
-2. Bullseye price = top of that bracket minus $100 (e.g. $424,900)
-3. Lower bracket price = top of the bracket below minus $100 (e.g. $399,900)
-4. Upper bracket price = top of the bracket above minus $100 (e.g. $449,900)
+1. A CMA or Property Detail Report (CoreLogic, RPR, or similar)
+2. A Residential Inspection Worksheet
+3. A Zillow PDF screenshot
+4. A walk-through summary or meeting transcript
 
-Always use the HIGHER bracket price as the Bullseye - never the lower number.
+Analyze all documents thoroughly. Return ONLY a valid JSON object - no preamble, no markdown code fences, no explanation. Raw JSON only.
 
-IMPORTANT RULES:
-- No em dashes anywhere - use a plain hyphen (-) instead
-- Tax assessed value is never used as a pricing benchmark - always note it lags market
-- Zestimate is never used as a pricing input - only as a framing/narrative tool
-- All comp data must come from the attached CMA - never invent or estimate figures`;
+BULLSEYE PRICING RULES:
+- Buyer search brackets fall at every $25,000 increment
+- Bullseye price = top of the target bracket minus $100 (e.g. $424,900 for the $400K-$425K bracket)
+- NEVER use the lower number within the same bracket as the Bullseye
+- lowerBracketPrice = top of the bracket one step below minus $100
+- upperBracketPrice = top of the bracket one step above minus $100
+- Common bracket tops: $375K, $400K, $425K, $450K, $475K, $500K, $525K, $550K
 
-const USER_PROMPT = `Analyze the attached documents and return a JSON response with the following structure. Extract ALL data from the documents - do not invent any figures.
+ZESTIMATE FRAMING RULES:
+- If Zestimate is HIGHER than Bullseye: explain that Zillow is counting basement beds/baths inflating the profile, algorithm cannot see upgrades or lot premiums, comp data is more precise
+- If Zestimate is LOWER than Bullseye: position as hero moment - actual market data supports higher value
+- If Zestimate is CLOSE to Bullseye: use as validation while noting algorithmic limitations
 
-Return valid JSON with this exact structure:
+WRITING RULES:
+- No em dashes - use a plain hyphen (-) instead
+- Professional, warm, data-driven tone
+- Address homeowners by first names extracted from documents
+- Never invent data - only use figures from the attached documents
+- Features must be specific: brand names, ages, warranties where stated
+- Review all property photos for value factors and incorporate observations into comp comparison bullets and price justification`;
+
+const USER_PROMPT = `Analyze the attached documents and return your analysis as a JSON object matching this exact schema:
+
 {
-  "propertyOverview": {
+  "property": {
     "address": "",
-    "owners": "",
+    "city": "",
+    "state": "",
+    "zip": "",
+    "owner1": "",
+    "owner2": "",
     "style": "",
-    "bedroomsBaths": "",
+    "bedrooms": "",
+    "baths": "",
     "aboveGradeSqFt": "",
-    "finishedBasement": "",
-    "lotSize": "",
+    "basementSqFt": "",
+    "totalFinishedSqFt": "",
+    "lotAcres": "",
+    "lotDimensions": "",
     "yearBuilt": "",
+    "builder": "",
     "garage": "",
     "subdivision": "",
     "hoa": "",
+    "hoaAmenities": "",
     "countyMarketValue": "",
-    "annualPropertyTax": "",
-    "lastPurchasePriceDate": "",
-    "twoYearAppreciation": "",
-    "q1PriceForecast": "",
-    "zillowZestimate": ""
+    "annualTax": "",
+    "taxYear": "",
+    "lastSalePrice": "",
+    "lastSaleDate": "",
+    "appreciation2yr": "",
+    "q1Forecast": "",
+    "zestimate": "",
+    "zestimateRange": "",
+    "zestimateRent": "",
+    "zestimatePsf": "",
+    "zillowBeds": "",
+    "zillowBaths": "",
+    "zillowSqFt": "",
+    "zillowAppreciation10yr": "",
+    "zillowUpdatedMonth": ""
   },
-  "notableFeatures": ["feature 1", "feature 2"],
-  "comparableSales": {
-    "closedSales": [{"address":"","closedDate":"","listPrice":"","soldPrice":"","bedsBaths":"","sqFt":"","yearBuilt":"","dom":""}],
-    "activeListings": [{"address":"","listedDate":"","listPrice":"","status":"","bedsBaths":"","sqFt":"","yearBuilt":"","dom":""}],
-    "summaryStats": {
-      "soldPrice": {"low":"","average":"","median":"","high":""},
-      "listPrice": {"low":"","average":"","median":"","high":""},
-      "sqFt": {"low":"","average":"","median":"","high":""},
-      "dom": {"low":"","average":"","median":"","high":""},
-      "soldToListRatio": {"low":"","average":"","median":"","high":""}
-    },
-    "howYourHomeCompares": ""
+  "features": [""],
+  "closedComps": [
+    {
+      "address": "",
+      "closedDate": "",
+      "listPrice": "",
+      "soldPrice": "",
+      "beds": "",
+      "baths": "",
+      "sqFt": "",
+      "yearBuilt": "",
+      "dom": ""
+    }
+  ],
+  "activeComps": [
+    {
+      "address": "",
+      "listedDate": "",
+      "listPrice": "",
+      "beds": "",
+      "baths": "",
+      "sqFt": "",
+      "yearBuilt": "",
+      "dom": ""
+    }
+  ],
+  "compStats": {
+    "soldLow": "",
+    "soldAvg": "",
+    "soldMedian": "",
+    "soldHigh": "",
+    "listLow": "",
+    "listAvg": "",
+    "listHigh": "",
+    "sqFtAvg": "",
+    "domAvg": "",
+    "soldToListRatio": ""
   },
-  "communityInsights": {
+  "community": {
     "schoolDistrict": "",
-    "familyFriendlyScore": "",
-    "crimeRiskScore": "",
-    "walkabilityScore": "",
+    "testRank": "",
+    "familyScore": "",
+    "crimeScore": "",
+    "walkScore": "",
     "floodZone": "",
     "subdivision": "",
-    "hoa": "",
-    "lotNotes": "",
-    "narrative": ""
+    "township": ""
   },
-  "marketConditions": {
-    "marketNarrative": "",
-    "onlineValuationCaution": ""
-  },
-  "zillowAnalysis": {
-    "zestimate": "",
-    "estimatedSalesRange": "",
-    "rentZestimate": "",
-    "pricePerSqFt": "",
-    "bedsBathsAsZillowCounts": "",
-    "propertyType": "",
-    "yearBuilt": "",
-    "updatedDate": "",
-    "appreciationNote": "",
-    "importantContext": "",
-    "wordOnZestimate": "",
-    "onlineValuationNote": "A note on online valuation tools: Zillow's Zestimate and similar automated valuation models rely on algorithm-driven estimates that often lag actual market conditions and cannot account for your home's specific upgrades, custom finishes, or location premium within the subdivision. The data-driven, agent-guided comparable analysis presented here reflects what real buyers are actually paying in your specific market today."
-  },
-  "pricingStrategy": {
+  "pricing": {
     "bullseyePrice": "",
+    "bullseyeBracketLow": "",
+    "bullseyeBracketHigh": "",
     "lowerBracketPrice": "",
+    "lowerBracketLow": "",
+    "lowerBracketHigh": "",
     "upperBracketPrice": "",
-    "bullseyeBracket": "",
-    "lowerBracket": "",
-    "upperBracket": "",
-    "lowerBracketDescription": "",
-    "bullseyeDescription": "",
-    "upperBracketDescription": "",
-    "bullseyeExplanation": "",
+    "upperBracketLow": "",
+    "upperBracketHigh": ""
+  },
+  "narrative": {
+    "intro": "",
+    "taxNote": "",
+    "compComparison": [""],
+    "communityParagraph": "",
+    "marketConditions": "",
+    "zillowWordOn": "",
+    "zillowNoteOn": "",
+    "bullseyeExplain": "",
     "bracketAnalysis": "",
-    "priceJustification": ""
-  },
-  "salutation": {
-    "firstNames": "",
-    "introductionParagraph": ""
-  },
-  "nextSteps": "",
-  "agentName": "Dave Barlow",
-  "preparedDate": ""
+    "priceJustification": "",
+    "nextSteps": "",
+    "zillowContextNote": ""
+  }
 }`;
 
 serve(async (req) => {
@@ -146,7 +187,6 @@ serve(async (req) => {
       const mimeType = doc.mimeType || "application/pdf";
       console.log(`Processing ${doc.name}: ${mimeType}`);
 
-      // .docx files: must download to extract text (small files)
       if (mimeType.includes("wordprocessingml") || doc.filePath.endsWith(".docx")) {
         console.log(`Downloading docx for text extraction: ${doc.name}`);
         const { data: fileData, error: downloadError } = await supabase.storage
@@ -174,10 +214,9 @@ serve(async (req) => {
           console.error(`Failed to parse docx ${doc.name}:`, e);
         }
       } else {
-        // PDF and image files: use signed URL to avoid loading into memory
         const { data: signedUrlData, error: signedUrlError } = await supabase.storage
           .from("market-analysis-docs")
-          .createSignedUrl(doc.filePath, 600); // 10 min expiry
+          .createSignedUrl(doc.filePath, 600);
 
         if (signedUrlError || !signedUrlData?.signedUrl) {
           console.error(`Failed to create signed URL for ${doc.name}:`, signedUrlError);
@@ -189,25 +228,17 @@ serve(async (req) => {
         if (mimeType.startsWith("image/")) {
           userContent.push({
             type: "image",
-            source: {
-              type: "url",
-              url: signedUrlData.signedUrl,
-            }
+            source: { type: "url", url: signedUrlData.signedUrl }
           });
         } else {
-          // PDF - use document type with URL source
           userContent.push({
             type: "document",
-            source: {
-              type: "url",
-              url: signedUrlData.signedUrl,
-            }
+            source: { type: "url", url: signedUrlData.signedUrl }
           });
         }
       }
     }
 
-    // Add the user prompt text last
     userContent.push({ type: "text", text: USER_PROMPT });
 
     console.log(`Sending ${userContent.length} content blocks to Claude for market analysis`);
@@ -223,9 +254,7 @@ serve(async (req) => {
         model: "claude-sonnet-4-20250514",
         max_tokens: 8192,
         system: SYSTEM_PROMPT,
-        messages: [
-          { role: "user", content: userContent }
-        ],
+        messages: [{ role: "user", content: userContent }],
       }),
     });
 
@@ -248,11 +277,9 @@ serve(async (req) => {
     }
 
     const data = await response.json();
-    
     const textBlock = data.content?.find((b: any) => b.type === "text");
     const rawContent = textBlock?.text?.trim() || "";
 
-    // Extract JSON from the response
     let jsonStr = rawContent;
     const jsonMatch = rawContent.match(/```(?:json)?\s*([\s\S]*?)```/);
     if (jsonMatch) {

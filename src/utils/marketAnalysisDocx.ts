@@ -10,11 +10,9 @@ import {
   AlignmentType,
   BorderStyle,
   ImageRun,
-  HeadingLevel,
   ShadingType,
   TableLayoutType,
-  TabStopPosition,
-  TabStopType,
+  VerticalAlign,
 } from "docx";
 import { saveAs } from "file-saver";
 import logoUrl from "@/assets/logo.jpg";
@@ -22,21 +20,25 @@ import logoUrl from "@/assets/logo.jpg";
 const DARK_SCARLET = "8B0000";
 const SCARLET = "CC0000";
 const LIGHT_SCARLET = "FDECEA";
-const DARK_NAVY = "1F3864";
 const GRAY_BG = "F2F2F2";
+
+const noBorder = {
+  top: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+  bottom: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+  left: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+  right: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+};
+
+function clean(text: string | undefined | null): string {
+  return (text || "-").replace(/—/g, "-");
+}
 
 function sectionHeading(text: string): Paragraph {
   return new Paragraph({
     spacing: { before: 400, after: 200 },
     border: { bottom: { style: BorderStyle.SINGLE, size: 2, color: SCARLET } },
     children: [
-      new TextRun({
-        text,
-        bold: true,
-        color: DARK_SCARLET,
-        font: "Arial",
-        size: 24,
-      }),
+      new TextRun({ text, bold: true, color: DARK_SCARLET, font: "Arial", size: 24 }),
     ],
   });
 }
@@ -44,13 +46,7 @@ function sectionHeading(text: string): Paragraph {
 function bodyParagraph(text: string): Paragraph {
   return new Paragraph({
     spacing: { after: 200 },
-    children: [
-      new TextRun({
-        text: text.replace(/—/g, "-"),
-        font: "Arial",
-        size: 24,
-      }),
-    ],
+    children: [new TextRun({ text: clean(text), font: "Arial", size: 24 })],
   });
 }
 
@@ -61,17 +57,46 @@ function overviewRow(label: string, value: string, altRow: boolean): TableRow {
         width: { size: 3500, type: WidthType.DXA },
         shading: { type: ShadingType.CLEAR, fill: GRAY_BG },
         children: [
-          new Paragraph({
-            children: [new TextRun({ text: label, bold: true, font: "Arial", size: 22 })],
-          }),
+          new Paragraph({ children: [new TextRun({ text: label, bold: true, font: "Arial", size: 22 })] }),
         ],
       }),
       new TableCell({
         width: { size: 6000, type: WidthType.DXA },
         shading: altRow ? { type: ShadingType.CLEAR, fill: LIGHT_SCARLET } : undefined,
         children: [
+          new Paragraph({ children: [new TextRun({ text: clean(value), font: "Arial", size: 22 })] }),
+        ],
+      }),
+    ],
+  });
+}
+
+function tableHeaderRow(columns: string[], columnCount?: number): TableRow {
+  // Single spanning header row with dark scarlet fill
+  return new TableRow({
+    children: columns.map((col) =>
+      new TableCell({
+        shading: { type: ShadingType.CLEAR, fill: SCARLET },
+        children: [
           new Paragraph({
-            children: [new TextRun({ text: value || "-", font: "Arial", size: 22 })],
+            alignment: AlignmentType.CENTER,
+            children: [new TextRun({ text: col, bold: true, color: "FFFFFF", font: "Arial", size: 20 })],
+          }),
+        ],
+      })
+    ),
+  });
+}
+
+function spanningHeaderRow(text: string, colSpan: number): TableRow {
+  return new TableRow({
+    children: [
+      new TableCell({
+        columnSpan: colSpan,
+        shading: { type: ShadingType.CLEAR, fill: SCARLET },
+        children: [
+          new Paragraph({
+            children: [new TextRun({ text, bold: true, color: "FFFFFF", font: "Arial", size: 22 })],
           }),
         ],
       }),
@@ -79,35 +104,15 @@ function overviewRow(label: string, value: string, altRow: boolean): TableRow {
   });
 }
 
-function compTableHeaderRow(columns: string[]): TableRow {
+function dataRow(values: string[], altRow: boolean): TableRow {
   return new TableRow({
-    children: columns.map(
-      (col) =>
-        new TableCell({
-          shading: { type: ShadingType.CLEAR, fill: SCARLET },
-          children: [
-            new Paragraph({
-              alignment: AlignmentType.CENTER,
-              children: [new TextRun({ text: col, bold: true, color: "FFFFFF", font: "Arial", size: 20 })],
-            }),
-          ],
-        })
-    ),
-  });
-}
-
-function compDataRow(values: string[], altRow: boolean): TableRow {
-  return new TableRow({
-    children: values.map(
-      (val) =>
-        new TableCell({
-          shading: altRow ? { type: ShadingType.CLEAR, fill: LIGHT_SCARLET } : undefined,
-          children: [
-            new Paragraph({
-              children: [new TextRun({ text: val || "-", font: "Arial", size: 20 })],
-            }),
-          ],
-        })
+    children: values.map((val) =>
+      new TableCell({
+        shading: altRow ? { type: ShadingType.CLEAR, fill: LIGHT_SCARLET } : undefined,
+        children: [
+          new Paragraph({ children: [new TextRun({ text: clean(val), font: "Arial", size: 20 })] }),
+        ],
+      })
     ),
   });
 }
@@ -122,11 +127,11 @@ async function base64ToUint8Array(dataUrl: string): Promise<Uint8Array> {
   return bytes;
 }
 
-function getImageDimensions(dataUrl: string): Promise<{width: number, height: number}> {
+function getImageDimensions(dataUrl: string): Promise<{ width: number; height: number }> {
   return new Promise((resolve) => {
     const img = new Image();
     img.onload = () => resolve({ width: img.naturalWidth, height: img.naturalHeight });
-    img.onerror = () => resolve({ width: 460, height: 800 });
+    img.onerror = () => resolve({ width: 460, height: 673 });
     img.src = dataUrl;
   });
 }
@@ -136,17 +141,18 @@ export async function generateMarketAnalysisDocx(
   bullseyeImage: string | null,
   zillowImage: string | null
 ) {
-  const overview = analysis.propertyOverview || {};
-  const comps = analysis.comparableSales || {};
-  const community = analysis.communityInsights || {};
-  const market = analysis.marketConditions || {};
-  const zillow = analysis.zillowAnalysis || {};
-  const pricing = analysis.pricingStrategy || {};
-  const salutation = analysis.salutation || {};
+  const prop = analysis.property || {};
+  const comps = analysis.closedComps || [];
+  const activeComps = analysis.activeComps || [];
+  const stats = analysis.compStats || {};
+  const community = analysis.community || {};
+  const pricing = analysis.pricing || {};
+  const narrative = analysis.narrative || {};
+  const features = analysis.features || [];
 
   const sections: any[] = [];
 
-  // Fetch logo image
+  // ── LOGO ──
   let logoBytes: Uint8Array | null = null;
   try {
     const response = await fetch(logoUrl);
@@ -157,214 +163,225 @@ export async function generateMarketAnalysisDocx(
     console.error("Failed to load logo:", e);
   }
 
-  // HEADER with logo
-  if (logoBytes) {
-    sections.push(
-      new Paragraph({
-        alignment: AlignmentType.RIGHT,
-        spacing: { after: 100 },
-        children: [
-          new ImageRun({
-            data: logoBytes,
-            transformation: { width: 180, height: 60 },
-            type: "jpg",
-          }),
-        ],
-      })
-    );
-  }
-
-  sections.push(
-    new Paragraph({
-      alignment: AlignmentType.RIGHT,
-      spacing: { after: 100 },
-      children: [
-        new TextRun({ text: "MARKET ANALYSIS SUMMARY", bold: true, color: DARK_SCARLET, font: "Arial", size: 32 }),
-      ],
-    }),
-    new Paragraph({
-      alignment: AlignmentType.RIGHT,
-      spacing: { after: 100 },
-      children: [
-        new TextRun({ text: overview.address || "", bold: true, color: SCARLET, font: "Arial", size: 24 }),
-      ],
-    }),
-    new Paragraph({
-      alignment: AlignmentType.RIGHT,
-      spacing: { after: 200 },
-      children: [
-        new TextRun({ text: `Prepared by ${analysis.agentName || "Dave Barlow"} | ${analysis.preparedDate || new Date().toLocaleDateString()}`, color: "808080", font: "Arial", size: 18 }),
-      ],
-    }),
-    new Paragraph({
-      border: { bottom: { style: BorderStyle.SINGLE, size: 3, color: DARK_NAVY } },
-      spacing: { after: 300 },
-      children: [],
+  // ── 1. HEADER TABLE: logo left, title/address/date right ──
+  const headerCells: TableCell[] = [];
+  headerCells.push(
+    new TableCell({
+      width: { size: 3000, type: WidthType.DXA },
+      borders: noBorder,
+      verticalAlign: VerticalAlign.CENTER,
+      children: logoBytes
+        ? [new Paragraph({ children: [new ImageRun({ data: logoBytes, transformation: { width: 180, height: 60 }, type: "jpg" })] })]
+        : [new Paragraph({ children: [] })],
     })
   );
-
-  // SALUTATION
-  if (salutation.firstNames) {
-    sections.push(
-      bodyParagraph(`Dear ${salutation.firstNames},`),
-      bodyParagraph(salutation.introductionParagraph || "")
-    );
-  }
-
-  // SECTION 1: PROPERTY OVERVIEW
-  sections.push(sectionHeading("PROPERTY OVERVIEW"));
-
-  const overviewLabels: Record<string, string> = {
-    address: "Address",
-    owners: "Owners",
-    style: "Style",
-    bedroomsBaths: "Bedrooms / Baths",
-    aboveGradeSqFt: "Above-Grade Sq Ft",
-    finishedBasement: "Finished Basement",
-    lotSize: "Lot Size",
-    yearBuilt: "Year Built",
-    garage: "Garage",
-    subdivision: "Subdivision",
-    hoa: "HOA",
-    countyMarketValue: "County Market Value",
-    annualPropertyTax: "Annual Property Tax",
-    lastPurchasePriceDate: "Last Purchase Price & Date",
-    twoYearAppreciation: "2-Year Appreciation",
-    q1PriceForecast: "Q1 Price Forecast",
-    zillowZestimate: "Zillow Zestimate",
-  };
-
-  const overviewRows = Object.entries(overviewLabels).map(([key, label], i) =>
-    overviewRow(label, String(overview[key] || "-"), i % 2 === 1)
+  headerCells.push(
+    new TableCell({
+      width: { size: 6500, type: WidthType.DXA },
+      borders: noBorder,
+      verticalAlign: VerticalAlign.CENTER,
+      children: [
+        new Paragraph({
+          alignment: AlignmentType.RIGHT,
+          children: [new TextRun({ text: "MARKET ANALYSIS SUMMARY", bold: true, color: DARK_SCARLET, font: "Arial", size: 32 })],
+        }),
+        new Paragraph({
+          alignment: AlignmentType.RIGHT,
+          spacing: { before: 60 },
+          children: [new TextRun({ text: clean(prop.address ? `${prop.address}, ${prop.city}, ${prop.state} ${prop.zip}` : ""), bold: true, color: SCARLET, font: "Arial", size: 24 })],
+        }),
+        new Paragraph({
+          alignment: AlignmentType.RIGHT,
+          spacing: { before: 60 },
+          children: [new TextRun({ text: `Prepared by Dave Barlow | ${new Date().toLocaleDateString()}`, color: "808080", font: "Arial", size: 18 })],
+        }),
+      ],
+    })
   );
+  sections.push(
+    new Table({
+      width: { size: 100, type: WidthType.PERCENTAGE },
+      rows: [new TableRow({ children: headerCells })],
+    })
+  );
+  sections.push(new Paragraph({ spacing: { after: 200 }, border: { bottom: { style: BorderStyle.SINGLE, size: 3, color: SCARLET } }, children: [] }));
 
+  // ── 2. SALUTATION ──
+  if (prop.owner1) {
+    const names = [prop.owner1, prop.owner2].filter(Boolean).join(" and ");
+    sections.push(bodyParagraph(`Dear ${names},`));
+  }
+  if (narrative.intro) sections.push(bodyParagraph(narrative.intro));
+
+  // ── 3. PROPERTY OVERVIEW ──
+  sections.push(sectionHeading("PROPERTY OVERVIEW"));
+  const overviewFields: [string, string][] = [
+    ["Address", prop.address ? `${prop.address}, ${prop.city}, ${prop.state} ${prop.zip}` : "-"],
+    ["Owner(s)", [prop.owner1, prop.owner2].filter(Boolean).join(" and ") || "-"],
+    ["Style", prop.style],
+    ["Bedrooms / Baths", `${prop.bedrooms || "-"} / ${prop.baths || "-"}`],
+    ["Above-Grade Sq Ft", prop.aboveGradeSqFt],
+    ["Finished Basement Sq Ft", prop.basementSqFt],
+    ["Total Finished Sq Ft", prop.totalFinishedSqFt],
+    ["Lot Size", prop.lotAcres ? `${prop.lotAcres} acres` : prop.lotDimensions || "-"],
+    ["Year Built", prop.yearBuilt],
+    ["Builder", prop.builder],
+    ["Garage", prop.garage],
+    ["Subdivision", prop.subdivision],
+    ["HOA", prop.hoa],
+    ["HOA Amenities", prop.hoaAmenities],
+    ["County Market Value", prop.countyMarketValue],
+    ["Annual Property Tax", prop.annualTax ? `${prop.annualTax} (${prop.taxYear || ""})` : "-"],
+    ["Last Sale Price & Date", prop.lastSalePrice ? `${prop.lastSalePrice} (${prop.lastSaleDate || ""})` : "-"],
+    ["2-Year Appreciation", prop.appreciation2yr],
+    ["Q1 Price Forecast", prop.q1Forecast],
+    ["Zillow Zestimate", prop.zestimate],
+  ];
   sections.push(
     new Table({
       width: { size: 100, type: WidthType.PERCENTAGE },
       layout: TableLayoutType.FIXED,
-      rows: overviewRows,
+      rows: overviewFields.map(([label, value], i) => overviewRow(label, value || "-", i % 2 === 1)),
     })
   );
+  if (narrative.taxNote) sections.push(bodyParagraph(narrative.taxNote));
 
-  if (overview.countyMarketValue) {
-    sections.push(
-      bodyParagraph(
-        `A note on the county's assessed market value of ${overview.countyMarketValue}: tax assessments in Ohio typically lag actual market conditions by two to three years and should not be used as a pricing benchmark. The comparable sales data below is a far more accurate reflection of current buyer demand.`
-      )
-    );
-  }
-
-  // SECTION 2: NOTABLE FEATURES
-  if (analysis.notableFeatures?.length > 0) {
+  // ── 4. NOTABLE FEATURES ──
+  if (features.length > 0) {
     sections.push(sectionHeading("NOTABLE PROPERTY FEATURES"));
-    for (const feature of analysis.notableFeatures) {
+    for (const feature of features) {
       sections.push(
         new Paragraph({
           spacing: { after: 80 },
           bullet: { level: 0 },
-          children: [new TextRun({ text: feature.replace(/—/g, "-"), font: "Arial", size: 22 })],
+          children: [new TextRun({ text: clean(feature), font: "Arial", size: 22 })],
         })
       );
     }
   }
 
-  // SECTION 3: COMPARABLE SALES
-  if (comps.closedSales?.length > 0) {
-    sections.push(sectionHeading("RECENT COMPARABLE SALES"));
-    sections.push(bodyParagraph("Closed Sales"));
+  // ── 5. COMPARABLE SALES ──
+  sections.push(sectionHeading("RECENT COMPARABLE SALES"));
 
-    const closedHeaders = ["Address", "Closed Date", "List Price", "Sold Price", "Beds/Baths", "Sq Ft", "Year Built", "DOM"];
-    const closedRows = comps.closedSales.map((c: any, i: number) =>
-      compDataRow([c.address, c.closedDate, c.listPrice, c.soldPrice, c.bedsBaths, c.sqFt, c.yearBuilt, c.dom], i % 2 === 1)
-    );
-
+  if (comps.length > 0) {
+    const closedCols = ["Address", "Closed", "List Price", "Sold Price", "Beds", "Baths", "Sq Ft", "Year", "DOM"];
     sections.push(
       new Table({
         width: { size: 100, type: WidthType.PERCENTAGE },
         layout: TableLayoutType.FIXED,
-        rows: [compTableHeaderRow(closedHeaders), ...closedRows],
+        rows: [
+          spanningHeaderRow("Closed Sales", closedCols.length),
+          tableHeaderRow(closedCols),
+          ...comps.map((c: any, i: number) =>
+            dataRow([c.address, c.closedDate, c.listPrice, c.soldPrice, c.beds, c.baths, c.sqFt, c.yearBuilt, c.dom], i % 2 === 1)
+          ),
+        ],
       })
     );
   }
 
-  if (comps.activeListings?.length > 0) {
-    sections.push(bodyParagraph("Active Listings"));
-    const activeHeaders = ["Address", "Listed Date", "List Price", "Status", "Beds/Baths", "Sq Ft", "Year Built", "DOM"];
-    const activeRows = comps.activeListings.map((c: any, i: number) =>
-      compDataRow([c.address, c.listedDate, c.listPrice, c.status, c.bedsBaths, c.sqFt, c.yearBuilt, c.dom], i % 2 === 1)
-    );
+  if (activeComps.length > 0) {
+    sections.push(new Paragraph({ spacing: { before: 200 }, children: [] }));
+    const activeCols = ["Address", "Listed", "List Price", "Beds", "Baths", "Sq Ft", "Year", "DOM"];
     sections.push(
       new Table({
         width: { size: 100, type: WidthType.PERCENTAGE },
         layout: TableLayoutType.FIXED,
-        rows: [compTableHeaderRow(activeHeaders), ...activeRows],
+        rows: [
+          spanningHeaderRow("Active Listings", activeCols.length),
+          tableHeaderRow(activeCols),
+          ...activeComps.map((c: any, i: number) =>
+            dataRow([c.address, c.listedDate, c.listPrice, c.beds, c.baths, c.sqFt, c.yearBuilt, c.dom], i % 2 === 1)
+          ),
+        ],
       })
     );
   }
 
-  if (comps.howYourHomeCompares) {
-    sections.push(bodyParagraph(comps.howYourHomeCompares));
+  // Summary stats table
+  if (stats.soldAvg) {
+    sections.push(new Paragraph({ spacing: { before: 200 }, children: [] }));
+    const statsCols = ["Metric", "Low", "Average", "Median", "High"];
+    sections.push(
+      new Table({
+        width: { size: 100, type: WidthType.PERCENTAGE },
+        layout: TableLayoutType.FIXED,
+        rows: [
+          spanningHeaderRow("Summary Statistics", statsCols.length),
+          tableHeaderRow(statsCols),
+          dataRow(["Sold Price", stats.soldLow, stats.soldAvg, stats.soldMedian, stats.soldHigh], false),
+          dataRow(["List Price", stats.listLow, stats.listAvg, "-", stats.listHigh], true),
+          dataRow(["Avg Sq Ft", "-", stats.sqFtAvg, "-", "-"], false),
+          dataRow(["Avg DOM", "-", stats.domAvg, "-", "-"], true),
+          dataRow(["Sold/List Ratio", "-", stats.soldToListRatio, "-", "-"], false),
+        ],
+      })
+    );
   }
 
-  // SECTION 4: COMMUNITY INSIGHTS
+  // Comp comparison bullets
+  if (narrative.compComparison?.length > 0) {
+    sections.push(new Paragraph({ spacing: { before: 200 }, children: [] }));
+    for (const bullet of narrative.compComparison) {
+      sections.push(
+        new Paragraph({
+          spacing: { after: 80 },
+          bullet: { level: 0 },
+          children: [new TextRun({ text: clean(bullet), font: "Arial", size: 22 })],
+        })
+      );
+    }
+  }
+
+  // ── 6. COMMUNITY INSIGHTS ──
   sections.push(sectionHeading("COMMUNITY AND NEIGHBORHOOD INSIGHTS"));
-  const communityLabels: Record<string, string> = {
-    schoolDistrict: "School District",
-    familyFriendlyScore: "Family Friendly Score",
-    crimeRiskScore: "Total Crime Risk Score",
-    walkabilityScore: "Walkability Score",
-    floodZone: "Flood Zone",
-    subdivision: "Subdivision",
-    hoa: "HOA",
-    lotNotes: "Lot Notes",
-  };
-  const communityRows = Object.entries(communityLabels).map(([key, label], i) =>
-    overviewRow(label, String(community[key] || "-"), i % 2 === 1)
-  );
+  const communityFields: [string, string][] = [
+    ["School District", community.schoolDistrict],
+    ["Test Ranking", community.testRank],
+    ["Family Friendly Score", community.familyScore],
+    ["Crime Risk Score", community.crimeScore],
+    ["Walkability Score", community.walkScore],
+    ["Flood Zone", community.floodZone],
+    ["Subdivision", community.subdivision],
+    ["Township", community.township],
+  ];
   sections.push(
     new Table({
       width: { size: 100, type: WidthType.PERCENTAGE },
       layout: TableLayoutType.FIXED,
-      rows: communityRows,
+      rows: communityFields.map(([label, value], i) => overviewRow(label, value || "-", i % 2 === 1)),
     })
   );
-  if (community.narrative) sections.push(bodyParagraph(community.narrative));
+  if (narrative.communityParagraph) sections.push(bodyParagraph(narrative.communityParagraph));
 
-  // SECTION 5: MARKET CONDITIONS
+  // ── 7. MARKET CONDITIONS ──
   sections.push(sectionHeading("CURRENT MARKET CONDITIONS"));
-  if (market.marketNarrative) sections.push(bodyParagraph(market.marketNarrative));
-  if (market.onlineValuationCaution) sections.push(bodyParagraph(market.onlineValuationCaution));
+  if (narrative.marketConditions) sections.push(bodyParagraph(narrative.marketConditions));
 
-  // SECTION 6: ZILLOW
+  // ── 8. ZILLOW ZESTIMATE ──
   sections.push(sectionHeading("ZILLOW ZESTIMATE - WHAT IT SAYS AND WHAT IT MISSES"));
-
   if (zillowImage) {
     try {
       const imgBytes = await base64ToUint8Array(zillowImage);
+      const dims = await getImageDimensions(zillowImage);
+      const docWidth = 370;
+      const docHeight = Math.round(docWidth * (dims.height / dims.width));
       sections.push(
         new Paragraph({
           alignment: AlignmentType.CENTER,
           spacing: { after: 200 },
-          children: [
-            new ImageRun({
-              data: imgBytes,
-              transformation: { width: 370, height: 536 },
-              type: "png",
-            }),
-          ],
+          children: [new ImageRun({ data: imgBytes, transformation: { width: docWidth, height: docHeight }, type: "png" })],
         })
       );
     } catch (e) {
       console.error("Failed to embed Zillow image:", e);
     }
   }
+  if (narrative.zillowWordOn) sections.push(bodyParagraph(narrative.zillowWordOn));
+  if (narrative.zillowNoteOn) sections.push(bodyParagraph(narrative.zillowNoteOn));
 
-  if (zillow.wordOnZestimate) sections.push(bodyParagraph(zillow.wordOnZestimate));
-  if (zillow.onlineValuationNote) sections.push(bodyParagraph(zillow.onlineValuationNote));
-
-  // SECTION 7: PRICING STRATEGY
+  // ── 9. PRICING STRATEGY ──
   sections.push(sectionHeading("OUR PRICING STRATEGY - THE BULLSEYE PRICING MODEL"));
-
   if (bullseyeImage) {
     try {
       const imgBytes = await base64ToUint8Array(bullseyeImage);
@@ -375,37 +392,28 @@ export async function generateMarketAnalysisDocx(
         new Paragraph({
           alignment: AlignmentType.CENTER,
           spacing: { after: 200 },
-          children: [
-            new ImageRun({
-              data: imgBytes,
-              transformation: { width: docWidth, height: docHeight },
-              type: "png",
-            }),
-          ],
+          children: [new ImageRun({ data: imgBytes, transformation: { width: docWidth, height: docHeight }, type: "png" })],
         })
       );
     } catch (e) {
       console.error("Failed to embed Bullseye image:", e);
     }
   }
+  if (narrative.bullseyeExplain) sections.push(bodyParagraph(narrative.bullseyeExplain));
+  if (narrative.bracketAnalysis) sections.push(bodyParagraph(narrative.bracketAnalysis));
+  if (narrative.priceJustification) sections.push(bodyParagraph(narrative.priceJustification));
 
-  if (pricing.bullseyeExplanation) sections.push(bodyParagraph(pricing.bullseyeExplanation));
-  if (pricing.bracketAnalysis) sections.push(bodyParagraph(pricing.bracketAnalysis));
-  if (pricing.priceJustification) sections.push(bodyParagraph(pricing.priceJustification));
-
-  // SECTION 8: NEXT STEPS
+  // ── 10. NEXT STEPS ──
   sections.push(sectionHeading("NEXT STEPS"));
-  if (analysis.nextSteps) sections.push(bodyParagraph(analysis.nextSteps));
+  if (narrative.nextSteps) sections.push(bodyParagraph(narrative.nextSteps));
 
-  // SIGNATURE
+  // ── 11. SIGNATURE BOX ──
+  sections.push(new Paragraph({ spacing: { before: 400 }, children: [] }));
   sections.push(
-    new Paragraph({ spacing: { before: 400 }, children: [] }),
     new Paragraph({
       shading: { type: ShadingType.CLEAR, fill: LIGHT_SCARLET },
       spacing: { after: 40 },
-      children: [
-        new TextRun({ text: analysis.agentName || "Dave Barlow", bold: true, color: DARK_SCARLET, font: "Arial", size: 28 }),
-      ],
+      children: [new TextRun({ text: "Dave Barlow", bold: true, color: DARK_SCARLET, font: "Arial", size: 28 })],
     }),
     new Paragraph({
       shading: { type: ShadingType.CLEAR, fill: LIGHT_SCARLET },
@@ -423,11 +431,13 @@ export async function generateMarketAnalysisDocx(
     })
   );
 
+  // ── BUILD DOCUMENT ──
   const doc = new Document({
     sections: [
       {
         properties: {
           page: {
+            size: { width: 12240, height: 15840 },
             margin: { top: 1440, right: 1440, bottom: 1440, left: 1440 },
           },
         },
@@ -437,6 +447,6 @@ export async function generateMarketAnalysisDocx(
   });
 
   const blob = await Packer.toBlob(doc);
-  const fileName = `Market_Analysis_${(overview.address || "Property").replace(/[^a-zA-Z0-9]/g, "_")}.docx`;
+  const fileName = `Market_Analysis_${clean(prop.address || "Property").replace(/[^a-zA-Z0-9]/g, "_")}.docx`;
   saveAs(blob, fileName);
 }

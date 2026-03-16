@@ -3,14 +3,15 @@ import { forwardRef } from "react";
 interface ZillowGraphicProps {
   address: string;
   zestimate: string;
-  estimatedSalesRange: string;
+  zestimateRange: string;
   rentZestimate: string;
   pricePerSqFt: string;
-  bedsBaths: string;
+  zillowBeds: string;
+  zillowBaths: string;
   propertyType: string;
   yearBuilt: string;
-  updatedDate: string;
-  appreciationNote: string;
+  updatedMonth: string;
+  appreciation10yr: string;
   importantContext: string;
 }
 
@@ -19,20 +20,21 @@ const ZillowGraphic = forwardRef<HTMLDivElement, ZillowGraphicProps>(
     {
       address,
       zestimate,
-      estimatedSalesRange,
+      zestimateRange,
       rentZestimate,
       pricePerSqFt,
-      bedsBaths,
+      zillowBeds,
+      zillowBaths,
       propertyType,
       yearBuilt,
-      updatedDate,
-      appreciationNote,
+      updatedMonth,
+      appreciation10yr,
       importantContext,
     },
     ref
   ) => {
     // Parse range for slider
-    const rangeMatch = estimatedSalesRange?.match(/\$?([\d,]+)K?\s*[-–]\s*\$?([\d,]+)K?/);
+    const rangeMatch = zestimateRange?.match(/\$?([\d,]+)K?\s*[-–]\s*\$?([\d,]+)K?/);
     let rangeLow = "";
     let rangeHigh = "";
     if (rangeMatch) {
@@ -43,6 +45,8 @@ const ZillowGraphic = forwardRef<HTMLDivElement, ZillowGraphicProps>(
       rangeLow = parseLowHigh(rangeMatch[1]);
       rangeHigh = parseLowHigh(rangeMatch[2]);
     }
+
+    const bedsBathsDisplay = `${zillowBeds} bd / ${zillowBaths} ba`;
 
     return (
       <div
@@ -91,7 +95,7 @@ const ZillowGraphic = forwardRef<HTMLDivElement, ZillowGraphicProps>(
 
           {/* Updated / Appreciation */}
           <div style={{ fontSize: 11, color: "#888", marginBottom: 16 }}>
-            Updated {updatedDate} · {appreciationNote}
+            Updated {updatedMonth} · {appreciation10yr}
           </div>
 
           {/* Three info boxes */}
@@ -112,7 +116,7 @@ const ZillowGraphic = forwardRef<HTMLDivElement, ZillowGraphicProps>(
             </div>
             <div style={{ borderLeft: "1px dashed #ddd", paddingLeft: 8 }}>
               <div style={{ fontSize: 9, color: "#888", marginBottom: 2 }}>Est. sales range</div>
-              <div style={{ fontSize: 13, fontWeight: "bold", color: "#1a1a1a" }}>{estimatedSalesRange}</div>
+              <div style={{ fontSize: 13, fontWeight: "bold", color: "#1a1a1a" }}>{zestimateRange}</div>
             </div>
             <div style={{ borderLeft: "1px dashed #ddd", paddingLeft: 8 }}>
               <div style={{ fontSize: 9, color: "#888", marginBottom: 2 }}>Rent Zestimate®</div>
@@ -151,7 +155,7 @@ const ZillowGraphic = forwardRef<HTMLDivElement, ZillowGraphicProps>(
           <div style={{ borderTop: "1px solid #eee" }}>
             {[
               { label: "Price per sq ft", value: pricePerSqFt },
-              { label: "Beds / Baths (Zillow count)", value: bedsBaths },
+              { label: "Beds / Baths (Zillow count)", value: bedsBathsDisplay },
               { label: "Property type", value: propertyType },
               { label: "Year built", value: yearBuilt },
             ].map((row, i) => (
