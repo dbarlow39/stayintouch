@@ -35,11 +35,11 @@ const BullseyeGraphic = forwardRef<HTMLDivElement, BullseyeGraphicProps>(
         ref={ref}
         style={{
           width: 460,
-          minHeight: 673,
           background: "#FFFFFF",
           fontFamily: "Arial, Helvetica, sans-serif",
           padding: "20px",
           boxSizing: "border-box",
+          overflow: "visible",
         }}
       >
         {/* Header */}

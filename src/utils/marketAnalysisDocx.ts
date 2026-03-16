@@ -122,6 +122,15 @@ async function base64ToUint8Array(dataUrl: string): Promise<Uint8Array> {
   return bytes;
 }
 
+function getImageDimensions(dataUrl: string): Promise<{width: number, height: number}> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => resolve({ width: img.naturalWidth, height: img.naturalHeight });
+    img.onerror = () => resolve({ width: 460, height: 800 });
+    img.src = dataUrl;
+  });
+}
+
 export async function generateMarketAnalysisDocx(
   analysis: any,
   bullseyeImage: string | null,
@@ -359,6 +368,9 @@ export async function generateMarketAnalysisDocx(
   if (bullseyeImage) {
     try {
       const imgBytes = await base64ToUint8Array(bullseyeImage);
+      const dims = await getImageDimensions(bullseyeImage);
+      const docWidth = 460;
+      const docHeight = Math.round(docWidth * (dims.height / dims.width));
       sections.push(
         new Paragraph({
           alignment: AlignmentType.CENTER,
@@ -366,7 +378,7 @@ export async function generateMarketAnalysisDocx(
           children: [
             new ImageRun({
               data: imgBytes,
-              transformation: { width: 460, height: 673 },
+              transformation: { width: docWidth, height: docHeight },
               type: "png",
             }),
           ],

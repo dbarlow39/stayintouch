@@ -87,6 +87,8 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
       backgroundColor: "#FFFFFF",
       useCORS: true,
       logging: false,
+      height: element.scrollHeight,
+      windowHeight: element.scrollHeight + 100,
     });
     return canvas.toDataURL("image/png");
   }, []);
@@ -300,7 +302,7 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
 
       {/* Hidden graphic renderers - always render when analysis exists so html2canvas can capture */}
       {analysis?.pricingStrategy && (
-        <div style={{ position: "fixed", left: "-9999px", top: 0, zIndex: -1 }}>
+          <div style={{ position: "fixed", left: "-9999px", top: 0, zIndex: -1, overflow: "visible" }}>
           <BullseyeGraphic
                 ref={bullseyeRef}
                 address={analysis.propertyOverview?.address || ""}
