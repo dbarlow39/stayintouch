@@ -2,7 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 const SYSTEM_PROMPT = `You are a professional real estate agent with The Barlow Group at SellFor1Percent.com. Your style is professional, friendly, data-driven, and focused on helping homeowners make informed decisions. You use the Bullseye Pricing Model - pricing precisely at the top of the buyer's search bracket to attract maximum buyer interest and achieve the highest net sale price without reductions.
