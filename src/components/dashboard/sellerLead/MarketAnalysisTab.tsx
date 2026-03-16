@@ -320,7 +320,7 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
             pricePerSqFt={prop.zestimatePsf || ""}
             zillowBeds={prop.zillowBeds || ""}
             zillowBaths={prop.zillowBaths || ""}
-            propertyType="Single Family"}
+            propertyType="Single Family"
             yearBuilt={prop.yearBuilt || ""}
             updatedMonth={prop.zillowUpdatedMonth || ""}
             appreciation10yr={prop.zillowAppreciation10yr || ""}
