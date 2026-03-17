@@ -259,7 +259,7 @@ export async function generateMarketAnalysisDocx(
         new Paragraph({
           spacing: { after: 80 },
           bullet: { level: 0 },
-          children: [new TextRun({ text: clean(feature), font: "Arial", size: 22 })],
+          children: [new TextRun({ text: clean(feature), font: "Arial", size: 20 })],
         })
       );
     }
