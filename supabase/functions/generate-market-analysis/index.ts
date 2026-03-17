@@ -94,13 +94,17 @@ WRITING RULES:
   4. Explains what the lower bracket price does (drops a bracket, more buyers, faster but gives up value unnecessarily)
   5. Explains what the upper bracket price does (moves into a higher, smaller bracket with fewer buyers, longer DOM, higher risk of price reduction)
   Use the actual bracket dollar figures from the pricing JSON fields. Never write generic bracket descriptions.
-  priceJustification - A paragraph of 4-5 sentences that:
-  1. States the Bullseye price and explains it is the highest price within the bracket that still reaches the full buyer pool
-  2. References the closest sold comparable by address, sold price, date, and explains how it differs from the subject (sq ft, age, build year)
-  3. Explains how the subject property's specific upgrades (name them from the features) justify a premium over that comparable
-  4. Notes how the Bullseye price positions against any active competition by address and list price
-  5. Closes with why this is the sweet spot: attracts the full buyer pool, appraises cleanly, gives buyers confidence to move quickly
-  Never write a generic price justification. Every sentence must reference specific addresses, prices, or features from the documents.`;
+  priceJustification - This paragraph must NEVER repeat the bracket concept - that was already explained in bracketAnalysis. This paragraph is purely a data-driven argument for why the Bullseye price is correct for this specific property. It must be 4-5 sentences and include ALL of the following:
+  Sentence 1: State the Bullseye price and what bracket it sits at the top of, and that it reaches every buyer searching up to that bracket ceiling.
+  Sentence 2: Name the closest sold comparable by street address, sold price, month and year of sale, and the ONE key difference that makes it less comparable than it appears (e.g. newer build year, more above-grade square footage, fewer upgrades). Do not describe the comp generically - name it and price it.
+  Sentence 3: Make the upgrade argument. List 4-6 specific named upgrades from the subject property (Cambria quartz, solid hardwood floors, custom built-ins, epoxy garage floor, wooded backing, finished basement) and state that these features justify a meaningful premium over that comp sale.
+  Sentence 4: Name the active listing competitor by street address and list price. Explain what the subject property offers that gives buyers a reason to prefer it over that active listing.
+  Sentence 5: Close with the sweet spot statement - this price attracts the full buyer pool, is realistic enough to appraise, and gives buyers the confidence to move quickly.
+  RULES:
+  - Every sentence must contain at least one specific address, dollar figure, or named feature from the documents
+  - Never use the phrase "comparable sales data" or "market range" as a substitute for naming actual comps
+  - Never restate the bracket concept - that belongs in bracketAnalysis only
+  - Never write fewer than 4 sentences`;
 
 const USER_PROMPT = `FEATURES WRITING RULES - apply these when populating the features array:
 
