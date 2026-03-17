@@ -428,10 +428,16 @@ export async function generateMarketAnalysisDocx(
   // ── 10. NEXT STEPS ──
   sections.push(sectionHeading("NEXT STEPS"));
   if (narrative.nextSteps) sections.push(bodyParagraph(narrative.nextSteps));
+  sections.push(bodyParagraph("Please take a look at the attached information and let me know your thoughts and questions. I am happy to walk through any of this in detail, discuss timing and preparation steps, or address anything that came up after our walkthrough. My goal is to make this process as smooth and successful as possible for you both, and I look forward to helping you accomplish your next chapter."));
 
   // ── 11. SIGNATURE BOX ──
   sections.push(new Paragraph({ spacing: { before: 400 }, children: [] }));
   sections.push(
+    new Paragraph({
+      shading: { type: ShadingType.CLEAR, fill: LIGHT_SCARLET },
+      spacing: { after: 40 },
+      children: [new TextRun({ text: "Thanks,", font: "Arial", size: 22 })],
+    }),
     new Paragraph({
       shading: { type: ShadingType.CLEAR, fill: LIGHT_SCARLET },
       spacing: { after: 40 },
