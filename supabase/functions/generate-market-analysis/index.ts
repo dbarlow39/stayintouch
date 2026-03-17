@@ -94,17 +94,23 @@ WRITING RULES:
   4. Explains what the lower bracket price does (drops a bracket, more buyers, faster but gives up value unnecessarily)
   5. Explains what the upper bracket price does (moves into a higher, smaller bracket with fewer buyers, longer DOM, higher risk of price reduction)
   Use the actual bracket dollar figures from the pricing JSON fields. Never write generic bracket descriptions.
-  priceJustification - This paragraph must NEVER repeat the bracket concept - that was already explained in bracketAnalysis. This paragraph is purely a data-driven argument for why the Bullseye price is correct for this specific property. It must be 4-5 sentences and include ALL of the following:
-  Sentence 1: State the Bullseye price and what bracket it sits at the top of, and that it reaches every buyer searching up to that bracket ceiling.
-  Sentence 2: Name the closest sold comparable by street address, sold price, month and year of sale, and the ONE key difference that makes it less comparable than it appears (e.g. newer build year, more above-grade square footage, fewer upgrades). Do not describe the comp generically - name it and price it.
-  Sentence 3: Make the upgrade argument. List 4-6 specific named upgrades from the subject property (Cambria quartz, solid hardwood floors, custom built-ins, epoxy garage floor, wooded backing, finished basement) and state that these features justify a meaningful premium over that comp sale.
-  Sentence 4: Name the active listing competitor by street address and list price. Explain what the subject property offers that gives buyers a reason to prefer it over that active listing.
-  Sentence 5: Close with the sweet spot statement - this price attracts the full buyer pool, is realistic enough to appraise, and gives buyers the confidence to move quickly.
+  priceJustification - This paragraph must NEVER repeat the bracket concept - that was already explained in bracketAnalysis. This paragraph is purely a data-driven argument for why the Bullseye price is correct for this specific property. It must be exactly 6 sentences following this structure:
+  Sentence 1: "Our recommended Bullseye price of $[PRICE] is grounded in what the market evidence clearly supports."
+  Sentence 2: "Priced at the top of the $[LOW] to $[HIGH] buyer bracket, it reaches every buyer searching up to $[HIGH] while maximizing your net proceeds within that bracket."
+  Sentence 3: Name the closest sold comparable as "Your closest true comparable, [ADDRESS], a [BEDS]-bedroom, [BATHS]-bath [STYLE] [on your own street if applicable], sold for $[PRICE] in [MONTH YEAR] but was [ONE KEY DIFFERENCE with a specific number, e.g. 'a newer 2020 build with 449 more above-grade square feet']." Include the specific numeric difference - never say "more square footage" without the number.
+  Sentence 4: Make the upgrade argument starting with "Your" (not "Your home's"). List 4-6 specific named upgrades (e.g. Cambria quartz kitchen, solid hardwood floors, custom built-ins, wood-burning fireplace, finished basement, wooded backing) and end with "all justify a meaningful premium over that sale."
+  Sentence 5: Start with "At the same time, $[BULLSEYE PRICE] matches the active $[LIST PRICE] listing at [ADDRESS] for price, but your [2-3 specific advantages] give buyers a clear reason to prefer yours."
+  Sentence 6: "This is the Bullseye: the highest price within the bracket that still attracts the full buyer pool, appraises cleanly, and gives buyers the confidence to move quickly."
   RULES:
+  - Follow the sentence templates above closely - they define the tone and structure
   - Every sentence must contain at least one specific address, dollar figure, or named feature from the documents
+  - Never use "Your home's" - use "Your" directly (e.g. "Your Cambria quartz kitchen" not "Your home's Cambria quartz countertops")
   - Never use the phrase "comparable sales data" or "market range" as a substitute for naming actual comps
+  - Never use "comp sale" - say "that sale" instead
+  - Never use "The active competitor at" - use "At the same time, $X matches the active $Y listing at [address]"
   - Never restate the bracket concept - that belongs in bracketAnalysis only
-  - Never write fewer than 4 sentences`;
+  - The final sentence must always start with "This is the Bullseye:"
+  - Never write fewer than 6 sentences`;
 
 const USER_PROMPT = `FEATURES WRITING RULES - apply these when populating the features array:
 
