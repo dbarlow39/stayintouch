@@ -29,9 +29,31 @@ BULLSEYE PRICING RULES:
 - EXAMPLE: If 3 comps sold at $405K, $416K, $427.5K - the majority are in the $400K-$425K bracket, so Bullseye = $424,900. Do NOT pick the $425K-$450K bracket.
 
 ZESTIMATE FRAMING RULES:
-- If Zestimate is HIGHER than Bullseye: explain that Zillow is counting basement beds/baths inflating the profile, algorithm cannot see upgrades or lot premiums, comp data is more precise
-- If Zestimate is LOWER than Bullseye: position as hero moment - actual market data supports higher value
-- If Zestimate is CLOSE to Bullseye: use as validation while noting algorithmic limitations
+
+SCENARIO A - Zestimate is HIGHER than Bullseye price:
+The zillowWordOn field must be a full paragraph of 4-5 sentences that does all of the following:
+1. Open by acknowledging the Zestimate by its exact dollar amount and saying it is understandable if that number caught their attention
+2. Explain exactly WHY it is higher - Zillow has counted the finished basement bedroom and bathroom, classifying the home as a larger bed/bath count than the above-grade reality. State the inflated bed/bath/sqft profile Zillow is using.
+3. Explain that this is not how buyers, appraisers, or MLS data classify above-grade square footage, and it is not how the market values the home
+4. State that the algorithm cannot see the difference between above-grade living space and finished basement space, and has no knowledge of specific upgrades (name them: the Cambria quartz, the custom built-ins, the wooded backing, etc.)
+5. Close by stating that the actual closed sales in the subdivision - real transactions with real buyers - tell a more precise and reliable story
+Never write a generic sentence like "Zillow provides a useful automated estimate." That is not acceptable. The paragraph must specifically explain the basement bed/bath inflation issue.
+
+SCENARIO B - Zestimate is LOWER than Bullseye price:
+The zillowWordOn field must be a full paragraph of 3-4 sentences that:
+1. Notes the Zestimate by its exact dollar amount
+2. Explains that the actual market data - using real closed comp sales - shows the home supports a higher value
+3. Names specific features and upgrades that Zillow's algorithm cannot account for
+4. Positions this as validation that the Bullseye price is well-supported
+
+SCENARIO C - Zestimate is CLOSE to Bullseye price (within $10,000):
+The zillowWordOn field must be a full paragraph of 3-4 sentences that:
+1. Notes the Zestimate is close to the data-driven Bullseye price
+2. Uses this as validation - when both the algorithm and the comp analysis agree, it gives high confidence
+3. Still notes the algorithmic limitations so the seller understands why agent-guided analysis is superior
+
+FOR ALL SCENARIOS - the zillowNoteOn field must always be exactly this sentence, word for word:
+"A note on online valuation tools: Zillow's Zestimate and similar automated valuation models rely on algorithm-driven estimates that often lag actual market conditions and cannot account for your home's specific upgrades, custom finishes, or location premium within the subdivision. The data-driven, agent-guided comparable analysis presented here reflects what real buyers are actually paying in your specific market today."
 
 WRITING RULES:
 - No em dashes - use a plain hyphen (-) instead
