@@ -396,7 +396,10 @@ export async function generateMarketAnalysisDocx(
   if (narrative.zillowNoteOn) sections.push(bodyParagraph(narrative.zillowNoteOn));
 
   // ── 9. PRICING STRATEGY ──
-  sections.push(sectionHeading("OUR PRICING STRATEGY - THE BULLSEYE PRICING MODEL"));
+  sections.push(sectionHeading("Our Pricing Strategy: The Bullseye Pricing Model"));
+  sections.push(new Paragraph({ spacing: { after: 100 }, children: [] }));
+  if (narrative.bullseyeExplain) sections.push(bodyParagraph(narrative.bullseyeExplain));
+  if (narrative.bracketAnalysis) sections.push(bodyParagraph(narrative.bracketAnalysis));
   if (bullseyeImage) {
     try {
       const imgBytes = await base64ToUint8Array(bullseyeImage);
@@ -406,16 +409,20 @@ export async function generateMarketAnalysisDocx(
       sections.push(
         new Paragraph({
           alignment: AlignmentType.CENTER,
-          spacing: { after: 200 },
-          children: [new ImageRun({ data: imgBytes, transformation: { width: docWidth, height: docHeight }, type: "png" })],
+          spacing: { before: 200, after: 200 },
+          children: [
+            new ImageRun({
+              data: imgBytes,
+              transformation: { width: docWidth, height: docHeight },
+              type: "png",
+            }),
+          ],
         })
       );
     } catch (e) {
-      console.error("Failed to embed Bullseye image:", e);
+      console.error("Failed to embed bullseye image:", e);
     }
   }
-  if (narrative.bullseyeExplain) sections.push(bodyParagraph(narrative.bullseyeExplain));
-  if (narrative.bracketAnalysis) sections.push(bodyParagraph(narrative.bracketAnalysis));
   if (narrative.priceJustification) sections.push(bodyParagraph(narrative.priceJustification));
 
   // ── 10. NEXT STEPS ──

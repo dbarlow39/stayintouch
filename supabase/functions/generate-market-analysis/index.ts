@@ -80,7 +80,27 @@ WRITING RULES:
   Bullet 3 - AGE AND QUALITY: Note the subject's build year relative to the comps. Then explain how specific upgrades (kitchen, floors, custom features, garage) justify competing with or exceeding newer builds. Be specific - name the upgrades.
   Bullet 4 - FASTEST COMP AND CLOSEST MATCH: Name the fastest-selling comp with its DOM and sold price. Then name the most similar comp to the subject (same street, same bed/bath count) with its sold price, build year, and what makes it different from the subject.
   Bullet 5 - ACTIVE COMPETITION: Name the active listing by address with its list price, bed/bath count, sq ft, and build year. Explain what the subject property offers that differentiates it.
-  Each bullet must be 2-3 sentences and reference specific addresses, prices, square footage, and dates from the documents. Never write a generic bullet that could apply to any property.`;
+  Each bullet must be 2-3 sentences and reference specific addresses, prices, square footage, and dates from the documents. Never write a generic bullet that could apply to any property.
+- BULLSEYE NARRATIVE PARAGRAPHS: The three Bullseye narrative fields must be written as follows:
+  bullseyeExplain - A paragraph of 3-4 sentences that:
+  1. Introduces the Bullseye Pricing Model principle: pricing precisely at true market value on Day 1 generates maximum buyer interest, creates conditions for multiple offers, and consistently produces the highest net sale price
+  2. Introduces the Buyer Bracket concept: real estate portals ask buyers to select a price range using dropdown menus at every $25,000 increment, and the price point determines which bracket the home appears in and how many buyers see it
+  3. States that this is what we call Buyer Brackets and that the price point determines which bracket the home appears in and how many buyers see it
+  Never write a generic paragraph. This must explain both the Bullseye concept AND the Buyer Bracket mechanism.
+  bracketAnalysis - A paragraph of 4-5 sentences that:
+  1. Names the three specific dollar brackets relevant to THIS property (e.g. $375,000 to $400,000, $400,000 to $425,000, and $425,000 to $450,000)
+  2. Explains that a home priced at the lower price within the Bullseye bracket and a home priced at the Bullseye price appear in the exact same bracket and are seen by the exact same pool of buyers - so there is no benefit to pricing lower within that bracket
+  3. States that the Bullseye sits at the top of the bracket, capturing every buyer in that range while maximizing net proceeds
+  4. Explains what the lower bracket price does (drops a bracket, more buyers, faster but gives up value unnecessarily)
+  5. Explains what the upper bracket price does (moves into a higher, smaller bracket with fewer buyers, longer DOM, higher risk of price reduction)
+  Use the actual bracket dollar figures from the pricing JSON fields. Never write generic bracket descriptions.
+  priceJustification - A paragraph of 4-5 sentences that:
+  1. States the Bullseye price and explains it is the highest price within the bracket that still reaches the full buyer pool
+  2. References the closest sold comparable by address, sold price, date, and explains how it differs from the subject (sq ft, age, build year)
+  3. Explains how the subject property's specific upgrades (name them from the features) justify a premium over that comparable
+  4. Notes how the Bullseye price positions against any active competition by address and list price
+  5. Closes with why this is the sweet spot: attracts the full buyer pool, appraises cleanly, gives buyers confidence to move quickly
+  Never write a generic price justification. Every sentence must reference specific addresses, prices, or features from the documents.`;
 
 const USER_PROMPT = `FEATURES WRITING RULES - apply these when populating the features array:
 
