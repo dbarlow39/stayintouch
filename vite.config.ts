@@ -17,6 +17,7 @@ export default defineConfig(({ mode }) => ({
       registerType: "autoUpdate",
       includeAssets: ["favicon.ico", "logo.jpg"],
       workbox: {
+        maximumFileSizeToCacheInBytes: 3 * 1024 * 1024, // 3 MB
         navigateFallback: "/index.html",
         navigateFallbackDenylist: [/^\/api/, /^\/rest\/v1/],
         skipWaiting: true,
