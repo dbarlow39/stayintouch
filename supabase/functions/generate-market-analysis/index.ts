@@ -264,7 +264,7 @@ serve(async (req) => {
   }
 
   try {
-    const { documents } = await req.json();
+    const { documents, agentNotes } = await req.json();
 
     if (!documents || !Array.isArray(documents) || documents.length === 0) {
       return new Response(
