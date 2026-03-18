@@ -375,6 +375,46 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
         </CardContent>
       </Card>
 
+      {/* Previously Saved Documents */}
+      {!loadingSaved && savedFiles.filter(f => f.file_type === 'source_doc').length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-green-500" />
+              Saved Documents
+              <Badge variant="secondary" className="ml-auto">
+                {savedFiles.filter(f => f.file_type === 'source_doc').length} files
+              </Badge>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {savedFiles.filter(f => f.file_type === 'source_doc').map((file) => (
+                <div key={file.id} className="flex items-center justify-between py-2 px-3 bg-muted/50 rounded-md">
+                  <div className="flex items-center gap-2">
+                    <FileText className="w-4 h-4 text-muted-foreground" />
+                    <div>
+                      <p className="text-sm font-medium">{file.document_label || file.file_name}</p>
+                      <p className="text-xs text-muted-foreground">{new Date(file.created_at).toLocaleDateString()}</p>
+                    </div>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={async () => {
+                      const { data } = await supabase.storage.from("market-analysis-docs").createSignedUrl(file.file_path, 300);
+                      if (data?.signedUrl) window.open(data.signedUrl, '_blank');
+                    }}
+                  >
+                    <Download className="w-4 h-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {generating && (
         <Card className="border-primary/20">
           <CardContent className="py-8">
