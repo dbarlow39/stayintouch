@@ -42,6 +42,8 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
   const [zillowImage, setZillowImage] = useState<string | null>(null);
   const bullseyeRef = useRef<HTMLDivElement>(null);
   const zillowRef = useRef<HTMLDivElement>(null);
+  const [savedFiles, setSavedFiles] = useState<any[]>([]);
+  const [loadingSaved, setLoadingSaved] = useState(true);
   const [documents, setDocuments] = useState<DocumentSlot[]>([
     { label: "CMA / Property Detail Report", description: "CoreLogic, RPR, or similar report", file: null, required: true },
     { label: "Residential Inspection Worksheet", description: "Room-by-room condition notes", file: null, required: true },
@@ -50,6 +52,29 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
   ]);
 
   const fileInputRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+  // Load previously saved files and analysis for this lead
+  useEffect(() => {
+    if (!user || !lead?.id) { setLoadingSaved(false); return; }
+    (async () => {
+      try {
+        const { data, error } = await supabase
+          .from("market_analysis_files")
+          .select("*")
+          .eq("lead_id", lead.id)
+          .order("created_at", { ascending: false });
+        if (!error && data) {
+          setSavedFiles(data);
+          // Restore the most recent analysis JSON if available
+          const withAnalysis = data.find((f: any) => f.analysis_json);
+          if (withAnalysis?.analysis_json) {
+            setAnalysis(withAnalysis.analysis_json);
+          }
+        }
+      } catch {}
+      setLoadingSaved(false);
+    })();
+  }, [user, lead?.id]);
 
   const handleFileSelect = (index: number, file: File | null) => {
     setDocuments((prev) =>
