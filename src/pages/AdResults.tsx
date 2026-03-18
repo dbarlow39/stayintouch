@@ -136,7 +136,7 @@ const AdResultsPage = () => {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${ANON_KEY}`,
         },
-        body: JSON.stringify({ agent_id: user.id, post_id: postId }),
+        body: JSON.stringify({ agent_id: user.id, post_id: postId, listing_address: listingAddress }),
       });
       const result = await resp.json();
       if (result.error) throw new Error(result.error);
