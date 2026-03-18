@@ -607,30 +607,120 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
 
           <div className="mt-6 flex items-center gap-3">
             <Button
-              onClick={handleGenerate}
-              disabled={!hasRequiredDocs || generating}
+              onClick={handleStartChat}
+              disabled={generating || chatMode}
               className="flex-1"
             >
-              {generating ? (
+              {generating && !chatMode ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Analyzing Documents...
+                  {progressMessage || "Processing..."}
                 </>
               ) : (
                 <>
-                  <Sparkles className="w-4 h-4 mr-2" />
-                  Generate Market Analysis
+                  <MessageCircle className="w-4 h-4 mr-2" />
+                  Review & Generate Analysis
                 </>
               )}
             </Button>
           </div>
-          {!hasRequiredDocs && (
-            <p className="text-xs text-muted-foreground mt-2">
-              Upload all required documents to generate the analysis
-            </p>
-          )}
         </CardContent>
       </Card>
+
+      {/* Chat Q&A Section */}
+      {chatMode && (
+        <Card className="border-primary/30">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <MessageCircle className="w-4 h-4" />
+              AI Document Review
+              <Badge variant="secondary" className="ml-auto">Q&A</Badge>
+            </CardTitle>
+            <p className="text-xs text-muted-foreground">
+              The AI is reviewing your documents and may ask clarifying questions. Answer them to improve the analysis, or skip ahead.
+            </p>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Chat Messages */}
+            <div
+              ref={chatScrollRef}
+              className="max-h-[400px] overflow-y-auto space-y-3 p-3 bg-muted/30 rounded-lg border"
+            >
+              {chatMessages.map((msg, idx) => (
+                <div
+                  key={idx}
+                  className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+                >
+                  <div
+                    className={`max-w-[80%] rounded-lg px-4 py-2.5 text-sm whitespace-pre-wrap ${
+                      msg.role === "user"
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-card border text-card-foreground"
+                    }`}
+                  >
+                    {msg.content}
+                  </div>
+                </div>
+              ))}
+              {chatStreaming && chatMessages[chatMessages.length - 1]?.role !== "assistant" && (
+                <div className="flex justify-start">
+                  <div className="bg-card border rounded-lg px-4 py-2.5 text-sm">
+                    <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Chat Input */}
+            <div className="flex gap-2">
+              <Input
+                ref={chatInputRef}
+                value={chatInput}
+                onChange={(e) => setChatInput(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleSendChatMessage()}
+                placeholder="Type your response..."
+                disabled={chatStreaming || generating}
+                className="flex-1"
+              />
+              <Button
+                onClick={handleSendChatMessage}
+                disabled={!chatInput.trim() || chatStreaming || generating}
+                size="icon"
+              >
+                <Send className="w-4 h-4" />
+              </Button>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex gap-3 pt-2">
+              <Button
+                onClick={handleFinalGenerate}
+                disabled={generating || chatStreaming}
+                className="flex-1"
+              >
+                {generating ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    {progressMessage || "Generating..."}
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-4 h-4 mr-2" />
+                    Generate Final Analysis
+                  </>
+                )}
+              </Button>
+              <Button
+                variant="ghost"
+                onClick={() => { setChatMode(false); setChatMessages([]); }}
+                disabled={generating}
+              >
+                Cancel
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Previously Saved Documents */}
       {!loadingSaved && savedFiles.filter(f => f.file_type === 'source_doc').length > 0 && (
