@@ -53,6 +53,16 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
   const [savedFiles, setSavedFiles] = useState<any[]>([]);
   const [loadingSaved, setLoadingSaved] = useState(true);
   const [aiNotes, setAiNotes] = useState("");
+  
+  // Chat Q&A state
+  type ChatMessage = { role: "user" | "assistant"; content: string };
+  const [chatMode, setChatMode] = useState(false);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [chatInput, setChatInput] = useState("");
+  const [chatStreaming, setChatStreaming] = useState(false);
+  const [uploadedDocsRef, setUploadedDocsRef] = useState<{ name: string; filePath: string; mimeType: string }[]>([]);
+  const chatScrollRef = useRef<HTMLDivElement>(null);
+  const chatInputRef = useRef<HTMLInputElement>(null);
   const [documents, setDocuments] = useState<DocumentSlot[]>([
     { label: "CMA / Property Detail Report", description: "CoreLogic, RPR, or similar report", file: null, required: false },
     { label: "Residential Inspection Worksheet", description: "Room-by-room condition notes", file: null, required: false },
