@@ -1259,6 +1259,53 @@ export type Database = {
         }
         Relationships: []
       }
+      market_analysis_files: {
+        Row: {
+          agent_id: string
+          analysis_json: Json | null
+          created_at: string
+          document_label: string | null
+          file_name: string
+          file_path: string
+          file_type: string
+          id: string
+          lead_id: string
+          mime_type: string | null
+        }
+        Insert: {
+          agent_id: string
+          analysis_json?: Json | null
+          created_at?: string
+          document_label?: string | null
+          file_name: string
+          file_path: string
+          file_type?: string
+          id?: string
+          lead_id: string
+          mime_type?: string | null
+        }
+        Update: {
+          agent_id?: string
+          analysis_json?: Json | null
+          created_at?: string
+          document_label?: string | null
+          file_name?: string
+          file_path?: string
+          file_type?: string
+          id?: string
+          lead_id?: string
+          mime_type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "market_analysis_files_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       master_email_templates: {
         Row: {
           id: string
