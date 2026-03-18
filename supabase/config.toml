@@ -98,3 +98,6 @@ verify_jwt = false
 
 [functions.generate-market-graphics]
 verify_jwt = false
+
+[functions.market-analysis-chat]
+verify_jwt = false
