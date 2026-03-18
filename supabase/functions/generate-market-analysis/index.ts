@@ -264,7 +264,7 @@ serve(async (req) => {
   }
 
   try {
-    const { documents } = await req.json();
+    const { documents, agentNotes } = await req.json();
 
     if (!documents || !Array.isArray(documents) || documents.length === 0) {
       return new Response(
@@ -352,6 +352,13 @@ serve(async (req) => {
           });
         }
       }
+    }
+
+    if (agentNotes && typeof agentNotes === "string" && agentNotes.trim()) {
+      userContent.push({
+        type: "text",
+        text: `[Agent Notes — additional context and instructions from the listing agent]\n${agentNotes.trim()}`
+      });
     }
 
     userContent.push({ type: "text", text: USER_PROMPT });

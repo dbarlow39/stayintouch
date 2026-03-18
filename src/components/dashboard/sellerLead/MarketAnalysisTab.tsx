@@ -6,6 +6,8 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { toPng } from "html-to-image";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import {
   Upload,
   FileText,
@@ -16,6 +18,7 @@ import {
   CheckCircle2,
   BarChart3,
   Image as ImageIcon,
+  StickyNote,
 } from "lucide-react";
 import { generateMarketAnalysisDocx } from "@/utils/marketAnalysisDocx";
 import BullseyeGraphic from "./BullseyeGraphic";
@@ -44,6 +47,7 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
   const zillowRef = useRef<HTMLDivElement>(null);
   const [savedFiles, setSavedFiles] = useState<any[]>([]);
   const [loadingSaved, setLoadingSaved] = useState(true);
+  const [aiNotes, setAiNotes] = useState("");
   const [documents, setDocuments] = useState<DocumentSlot[]>([
     { label: "CMA / Property Detail Report", description: "CoreLogic, RPR, or similar report", file: null, required: false },
     { label: "Residential Inspection Worksheet", description: "Room-by-room condition notes", file: null, required: false },
@@ -126,7 +130,7 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
 
       setProgressMessage("Analyzing documents...");
       const { data, error } = await supabase.functions.invoke("generate-market-analysis", {
-        body: { documents: uploadedDocs },
+        body: { documents: uploadedDocs, agentNotes: aiNotes.trim() || undefined },
       });
 
       if (error) throw error;
@@ -346,6 +350,25 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
                 )}
               </div>
             ))}
+          </div>
+
+          {/* AI Notes */}
+          <div className="mt-6">
+            <Label htmlFor="ai-notes" className="flex items-center gap-2 mb-2">
+              <StickyNote className="w-4 h-4" />
+              Notes for AI
+            </Label>
+            <Textarea
+              id="ai-notes"
+              value={aiNotes}
+              onChange={(e) => setAiNotes(e.target.value)}
+              placeholder="Add any additional context, corrections, or instructions for the AI to consider when generating the analysis..."
+              rows={4}
+              className="resize-y"
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              Optional — these notes will be included as additional context for the analysis.
+            </p>
           </div>
 
           <div className="mt-6 flex items-center gap-3">
