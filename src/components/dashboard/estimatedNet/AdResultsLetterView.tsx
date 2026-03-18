@@ -34,6 +34,7 @@ interface AdMetrics {
 const AdResultsLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate }: AdResultsLetterViewProps) => {
   const { toast } = useToast();
   const [emailClient, setEmailClientState] = useState<EmailClient>(getEmailClientPreference);
+  const { user } = useAuth();
   const [agentEmail, setAgentEmail] = useState("");
   const [agentFirstName, setAgentFirstName] = useState("");
   const [agentFullName, setAgentFullName] = useState("");
