@@ -19,7 +19,12 @@ import {
   BarChart3,
   Image as ImageIcon,
   StickyNote,
+  MessageCircle,
+  Send,
+  ArrowRight,
 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { generateMarketAnalysisDocx } from "@/utils/marketAnalysisDocx";
 import BullseyeGraphic from "./BullseyeGraphic";
 import ZillowGraphic from "./ZillowGraphic";
@@ -48,6 +53,16 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
   const [savedFiles, setSavedFiles] = useState<any[]>([]);
   const [loadingSaved, setLoadingSaved] = useState(true);
   const [aiNotes, setAiNotes] = useState("");
+  
+  // Chat Q&A state
+  type ChatMessage = { role: "user" | "assistant"; content: string };
+  const [chatMode, setChatMode] = useState(false);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [chatInput, setChatInput] = useState("");
+  const [chatStreaming, setChatStreaming] = useState(false);
+  const [uploadedDocsRef, setUploadedDocsRef] = useState<{ name: string; filePath: string; mimeType: string }[]>([]);
+  const chatScrollRef = useRef<HTMLDivElement>(null);
+  const chatInputRef = useRef<HTMLInputElement>(null);
   const [documents, setDocuments] = useState<DocumentSlot[]>([
     { label: "CMA / Property Detail Report", description: "CoreLogic, RPR, or similar report", file: null, required: false },
     { label: "Residential Inspection Worksheet", description: "Room-by-room condition notes", file: null, required: false },
@@ -118,19 +133,163 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
 
   const [pendingAutoDownload, setPendingAutoDownload] = useState(false);
 
-  const handleGenerate = async () => {
+  // Streaming helper for chat
+  const streamChatResponse = async (
+    docs: { name: string; filePath: string; mimeType: string }[] | null,
+    messages: ChatMessage[],
+    notes?: string
+  ) => {
+    setChatStreaming(true);
+    let assistantContent = "";
+
+    try {
+      const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/market-analysis-chat`;
+      const body: any = { messages };
+      if (docs) {
+        body.documents = docs;
+        body.agentNotes = notes || undefined;
+      }
+
+      const resp = await fetch(CHAT_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        },
+        body: JSON.stringify(body),
+      });
+
+      if (!resp.ok || !resp.body) {
+        const errText = await resp.text();
+        throw new Error(errText || "Failed to start chat stream");
+      }
+
+      const reader = resp.body.getReader();
+      const decoder = new TextDecoder();
+      let textBuffer = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        textBuffer += decoder.decode(value, { stream: true });
+
+        let newlineIndex: number;
+        while ((newlineIndex = textBuffer.indexOf("\n")) !== -1) {
+          let line = textBuffer.slice(0, newlineIndex);
+          textBuffer = textBuffer.slice(newlineIndex + 1);
+          if (line.endsWith("\r")) line = line.slice(0, -1);
+          if (line.startsWith(":") || line.trim() === "") continue;
+          if (!line.startsWith("data: ")) continue;
+          const jsonStr = line.slice(6).trim();
+          if (jsonStr === "[DONE]") break;
+          try {
+            const parsed = JSON.parse(jsonStr);
+            const content = parsed.choices?.[0]?.delta?.content as string | undefined;
+            if (content) {
+              assistantContent += content;
+              setChatMessages((prev) => {
+                const last = prev[prev.length - 1];
+                if (last?.role === "assistant") {
+                  return prev.map((m, i) => i === prev.length - 1 ? { ...m, content: assistantContent } : m);
+                }
+                return [...prev, { role: "assistant", content: assistantContent }];
+              });
+            }
+          } catch {
+            textBuffer = line + "\n" + textBuffer;
+            break;
+          }
+        }
+      }
+    } catch (err: any) {
+      console.error("Chat stream error:", err);
+      toast({
+        title: "Chat error",
+        description: err.message || "Failed to get AI response",
+        variant: "destructive",
+      });
+    } finally {
+      setChatStreaming(false);
+    }
+
+    return assistantContent;
+  };
+
+  // Auto-scroll chat
+  useEffect(() => {
+    if (chatScrollRef.current) {
+      chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
+    }
+  }, [chatMessages]);
+
+  // Start chat Q&A flow
+  const handleStartChat = async () => {
     setGenerating(true);
     setProgressMessage("Uploading documents...");
     setAnalysis(null);
     setBullseyeImage(null);
     setZillowImage(null);
+    setChatMessages([]);
 
     try {
       const uploadedDocs = await uploadFilesToStorage(documents);
+      setUploadedDocsRef(uploadedDocs);
+      setProgressMessage("AI is reviewing your documents...");
+      setChatMode(true);
 
-      setProgressMessage("Analyzing documents...");
+      // Start initial AI review
+      await streamChatResponse(uploadedDocs, [], aiNotes.trim());
+      setProgressMessage("");
+      setGenerating(false);
+    } catch (err: any) {
+      console.error("Chat start error:", err);
+      toast({
+        title: "Error starting review",
+        description: err.message || "Please try again",
+        variant: "destructive",
+      });
+      setGenerating(false);
+      setProgressMessage("");
+    }
+  };
+
+  // Send a chat message
+  const handleSendChatMessage = async () => {
+    if (!chatInput.trim() || chatStreaming) return;
+    const userMsg: ChatMessage = { role: "user", content: chatInput.trim() };
+    const updatedMessages = [...chatMessages, userMsg];
+    setChatMessages(updatedMessages);
+    setChatInput("");
+    
+    const response = await streamChatResponse(null, updatedMessages);
+    
+    // Check if AI signaled ready to generate
+    if (response.trim() === "READY_TO_GENERATE") {
+      // Remove the READY_TO_GENERATE message and proceed
+      setChatMessages((prev) => prev.filter((m) => m.content.trim() !== "READY_TO_GENERATE"));
+      handleFinalGenerate();
+    }
+  };
+
+  // Generate final analysis with conversation context
+  const handleFinalGenerate = async () => {
+    setGenerating(true);
+    setProgressMessage("Generating final analysis...");
+
+    try {
+      // Build conversation summary for the analysis
+      const conversationContext = chatMessages
+        .filter((m) => m.content.trim() !== "READY_TO_GENERATE")
+        .map((m) => `${m.role === "user" ? "Agent" : "AI"}: ${m.content}`)
+        .join("\n\n");
+
+      const combinedNotes = [
+        aiNotes.trim(),
+        conversationContext ? `\n\n--- Q&A Conversation ---\n${conversationContext}` : "",
+      ].filter(Boolean).join("");
+
       const { data, error } = await supabase.functions.invoke("generate-market-analysis", {
-        body: { documents: uploadedDocs, agentNotes: aiNotes.trim() || undefined },
+        body: { documents: uploadedDocsRef, agentNotes: combinedNotes || undefined },
       });
 
       if (error) throw error;
@@ -138,11 +297,12 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
       if (!data?.analysis) throw new Error("No analysis returned from AI");
 
       setAnalysis(data.analysis);
+      setChatMode(false);
 
       // Persist source document references and analysis JSON
       if (user && lead?.id) {
         try {
-          const fileRows = uploadedDocs.map((doc) => ({
+          const fileRows = uploadedDocsRef.map((doc) => ({
             lead_id: lead.id,
             agent_id: user.id,
             file_name: doc.name,
@@ -151,7 +311,6 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
             mime_type: doc.mimeType,
             document_label: doc.name,
           }));
-          // Also save a row for the analysis JSON
           fileRows.push({
             lead_id: lead.id,
             agent_id: user.id,
@@ -161,16 +320,13 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
             mime_type: "application/json",
             document_label: "Generated Analysis",
           });
-          // Delete previous files for this lead to avoid duplicates
           await supabase.from("market_analysis_files").delete().eq("lead_id", lead.id);
-          // Insert with analysis_json on the last row
           const rowsToInsert = fileRows.map((row, i) => ({
             ...row,
             analysis_json: i === fileRows.length - 1 ? data.analysis : null,
           }));
           const { error: insertError } = await supabase.from("market_analysis_files").insert(rowsToInsert);
           if (insertError) console.error("Failed to save file references:", insertError);
-          // Refresh saved files
           const { data: refreshed } = await supabase
             .from("market_analysis_files")
             .select("*")
@@ -373,30 +529,120 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
 
           <div className="mt-6 flex items-center gap-3">
             <Button
-              onClick={handleGenerate}
-              disabled={!hasRequiredDocs || generating}
+              onClick={handleStartChat}
+              disabled={generating || chatMode}
               className="flex-1"
             >
-              {generating ? (
+              {generating && !chatMode ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Analyzing Documents...
+                  {progressMessage || "Processing..."}
                 </>
               ) : (
                 <>
-                  <Sparkles className="w-4 h-4 mr-2" />
-                  Generate Market Analysis
+                  <MessageCircle className="w-4 h-4 mr-2" />
+                  Review & Generate Analysis
                 </>
               )}
             </Button>
           </div>
-          {!hasRequiredDocs && (
-            <p className="text-xs text-muted-foreground mt-2">
-              Upload all required documents to generate the analysis
-            </p>
-          )}
         </CardContent>
       </Card>
+
+      {/* Chat Q&A Section */}
+      {chatMode && (
+        <Card className="border-primary/30">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <MessageCircle className="w-4 h-4" />
+              AI Document Review
+              <Badge variant="secondary" className="ml-auto">Q&A</Badge>
+            </CardTitle>
+            <p className="text-xs text-muted-foreground">
+              The AI is reviewing your documents and may ask clarifying questions. Answer them to improve the analysis, or skip ahead.
+            </p>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Chat Messages */}
+            <div
+              ref={chatScrollRef}
+              className="max-h-[400px] overflow-y-auto space-y-3 p-3 bg-muted/30 rounded-lg border"
+            >
+              {chatMessages.map((msg, idx) => (
+                <div
+                  key={idx}
+                  className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+                >
+                  <div
+                    className={`max-w-[80%] rounded-lg px-4 py-2.5 text-sm whitespace-pre-wrap ${
+                      msg.role === "user"
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-card border text-card-foreground"
+                    }`}
+                  >
+                    {msg.content}
+                  </div>
+                </div>
+              ))}
+              {chatStreaming && chatMessages[chatMessages.length - 1]?.role !== "assistant" && (
+                <div className="flex justify-start">
+                  <div className="bg-card border rounded-lg px-4 py-2.5 text-sm">
+                    <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Chat Input */}
+            <div className="flex gap-2">
+              <Input
+                ref={chatInputRef}
+                value={chatInput}
+                onChange={(e) => setChatInput(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleSendChatMessage()}
+                placeholder="Type your response..."
+                disabled={chatStreaming || generating}
+                className="flex-1"
+              />
+              <Button
+                onClick={handleSendChatMessage}
+                disabled={!chatInput.trim() || chatStreaming || generating}
+                size="icon"
+              >
+                <Send className="w-4 h-4" />
+              </Button>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex gap-3 pt-2">
+              <Button
+                onClick={handleFinalGenerate}
+                disabled={generating || chatStreaming}
+                className="flex-1"
+              >
+                {generating ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    {progressMessage || "Generating..."}
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-4 h-4 mr-2" />
+                    Generate Final Analysis
+                  </>
+                )}
+              </Button>
+              <Button
+                variant="ghost"
+                onClick={() => { setChatMode(false); setChatMessages([]); }}
+                disabled={generating}
+              >
+                Cancel
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Previously Saved Documents */}
       {!loadingSaved && savedFiles.filter(f => f.file_type === 'source_doc').length > 0 && (
@@ -438,7 +684,7 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
         </Card>
       )}
 
-      {generating && (
+      {generating && !chatMode && (
         <Card className="border-primary/20">
           <CardContent className="py-8">
             <div className="flex flex-col items-center gap-3">
