@@ -354,6 +354,13 @@ serve(async (req) => {
       }
     }
 
+    if (agentNotes && typeof agentNotes === "string" && agentNotes.trim()) {
+      userContent.push({
+        type: "text",
+        text: `[Agent Notes — additional context and instructions from the listing agent]\n${agentNotes.trim()}`
+      });
+    }
+
     userContent.push({ type: "text", text: USER_PROMPT });
 
     console.log(`Sending ${userContent.length} content blocks to Claude for market analysis`);
