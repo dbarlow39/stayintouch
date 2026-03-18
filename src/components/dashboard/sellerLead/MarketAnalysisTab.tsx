@@ -684,7 +684,7 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
         </Card>
       )}
 
-      {generating && (
+      {generating && !chatMode && (
         <Card className="border-primary/20">
           <CardContent className="py-8">
             <div className="flex flex-col items-center gap-3">
