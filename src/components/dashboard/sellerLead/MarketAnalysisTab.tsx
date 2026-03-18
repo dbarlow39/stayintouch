@@ -133,6 +133,225 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
 
   const [pendingAutoDownload, setPendingAutoDownload] = useState(false);
 
+  // Streaming helper for chat
+  const streamChatResponse = async (
+    docs: { name: string; filePath: string; mimeType: string }[] | null,
+    messages: ChatMessage[],
+    notes?: string
+  ) => {
+    setChatStreaming(true);
+    let assistantContent = "";
+
+    try {
+      const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/market-analysis-chat`;
+      const body: any = { messages };
+      if (docs) {
+        body.documents = docs;
+        body.agentNotes = notes || undefined;
+      }
+
+      const resp = await fetch(CHAT_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        },
+        body: JSON.stringify(body),
+      });
+
+      if (!resp.ok || !resp.body) {
+        const errText = await resp.text();
+        throw new Error(errText || "Failed to start chat stream");
+      }
+
+      const reader = resp.body.getReader();
+      const decoder = new TextDecoder();
+      let textBuffer = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        textBuffer += decoder.decode(value, { stream: true });
+
+        let newlineIndex: number;
+        while ((newlineIndex = textBuffer.indexOf("\n")) !== -1) {
+          let line = textBuffer.slice(0, newlineIndex);
+          textBuffer = textBuffer.slice(newlineIndex + 1);
+          if (line.endsWith("\r")) line = line.slice(0, -1);
+          if (line.startsWith(":") || line.trim() === "") continue;
+          if (!line.startsWith("data: ")) continue;
+          const jsonStr = line.slice(6).trim();
+          if (jsonStr === "[DONE]") break;
+          try {
+            const parsed = JSON.parse(jsonStr);
+            const content = parsed.choices?.[0]?.delta?.content as string | undefined;
+            if (content) {
+              assistantContent += content;
+              setChatMessages((prev) => {
+                const last = prev[prev.length - 1];
+                if (last?.role === "assistant") {
+                  return prev.map((m, i) => i === prev.length - 1 ? { ...m, content: assistantContent } : m);
+                }
+                return [...prev, { role: "assistant", content: assistantContent }];
+              });
+            }
+          } catch {
+            textBuffer = line + "\n" + textBuffer;
+            break;
+          }
+        }
+      }
+    } catch (err: any) {
+      console.error("Chat stream error:", err);
+      toast({
+        title: "Chat error",
+        description: err.message || "Failed to get AI response",
+        variant: "destructive",
+      });
+    } finally {
+      setChatStreaming(false);
+    }
+
+    return assistantContent;
+  };
+
+  // Auto-scroll chat
+  useEffect(() => {
+    if (chatScrollRef.current) {
+      chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
+    }
+  }, [chatMessages]);
+
+  // Start chat Q&A flow
+  const handleStartChat = async () => {
+    setGenerating(true);
+    setProgressMessage("Uploading documents...");
+    setAnalysis(null);
+    setBullseyeImage(null);
+    setZillowImage(null);
+    setChatMessages([]);
+
+    try {
+      const uploadedDocs = await uploadFilesToStorage(documents);
+      setUploadedDocsRef(uploadedDocs);
+      setProgressMessage("AI is reviewing your documents...");
+      setChatMode(true);
+
+      // Start initial AI review
+      await streamChatResponse(uploadedDocs, [], aiNotes.trim());
+      setProgressMessage("");
+      setGenerating(false);
+    } catch (err: any) {
+      console.error("Chat start error:", err);
+      toast({
+        title: "Error starting review",
+        description: err.message || "Please try again",
+        variant: "destructive",
+      });
+      setGenerating(false);
+      setProgressMessage("");
+    }
+  };
+
+  // Send a chat message
+  const handleSendChatMessage = async () => {
+    if (!chatInput.trim() || chatStreaming) return;
+    const userMsg: ChatMessage = { role: "user", content: chatInput.trim() };
+    const updatedMessages = [...chatMessages, userMsg];
+    setChatMessages(updatedMessages);
+    setChatInput("");
+    
+    const response = await streamChatResponse(null, updatedMessages);
+    
+    // Check if AI signaled ready to generate
+    if (response.trim() === "READY_TO_GENERATE") {
+      // Remove the READY_TO_GENERATE message and proceed
+      setChatMessages((prev) => prev.filter((m) => m.content.trim() !== "READY_TO_GENERATE"));
+      handleFinalGenerate();
+    }
+  };
+
+  // Generate final analysis with conversation context
+  const handleFinalGenerate = async () => {
+    setGenerating(true);
+    setProgressMessage("Generating final analysis...");
+
+    try {
+      // Build conversation summary for the analysis
+      const conversationContext = chatMessages
+        .filter((m) => m.content.trim() !== "READY_TO_GENERATE")
+        .map((m) => `${m.role === "user" ? "Agent" : "AI"}: ${m.content}`)
+        .join("\n\n");
+
+      const combinedNotes = [
+        aiNotes.trim(),
+        conversationContext ? `\n\n--- Q&A Conversation ---\n${conversationContext}` : "",
+      ].filter(Boolean).join("");
+
+      const { data, error } = await supabase.functions.invoke("generate-market-analysis", {
+        body: { documents: uploadedDocsRef, agentNotes: combinedNotes || undefined },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      if (!data?.analysis) throw new Error("No analysis returned from AI");
+
+      setAnalysis(data.analysis);
+      setChatMode(false);
+
+      // Persist source document references and analysis JSON
+      if (user && lead?.id) {
+        try {
+          const fileRows = uploadedDocsRef.map((doc) => ({
+            lead_id: lead.id,
+            agent_id: user.id,
+            file_name: doc.name,
+            file_path: doc.filePath,
+            file_type: "source_doc",
+            mime_type: doc.mimeType,
+            document_label: doc.name,
+          }));
+          fileRows.push({
+            lead_id: lead.id,
+            agent_id: user.id,
+            file_name: "Market Analysis Data",
+            file_path: "",
+            file_type: "analysis_json",
+            mime_type: "application/json",
+            document_label: "Generated Analysis",
+          });
+          await supabase.from("market_analysis_files").delete().eq("lead_id", lead.id);
+          const rowsToInsert = fileRows.map((row, i) => ({
+            ...row,
+            analysis_json: i === fileRows.length - 1 ? data.analysis : null,
+          }));
+          const { error: insertError } = await supabase.from("market_analysis_files").insert(rowsToInsert);
+          if (insertError) console.error("Failed to save file references:", insertError);
+          const { data: refreshed } = await supabase
+            .from("market_analysis_files")
+            .select("*")
+            .eq("lead_id", lead.id)
+            .order("created_at", { ascending: false });
+          if (refreshed) setSavedFiles(refreshed);
+        } catch (persistErr) {
+          console.error("Persistence error:", persistErr);
+        }
+      }
+
+      setPendingAutoDownload(true);
+      setProgressMessage("Rendering graphics...");
+    } catch (err: any) {
+      console.error("Market analysis error:", err);
+      toast({
+        title: "Error generating analysis",
+        description: err.message || "Please try again",
+        variant: "destructive",
+      });
+      setGenerating(false);
+      setProgressMessage("");
+    }
+  };
+
   const handleGenerate = async () => {
     setGenerating(true);
     setProgressMessage("Uploading documents...");
