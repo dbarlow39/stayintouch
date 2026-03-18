@@ -134,6 +134,50 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
       if (!data?.analysis) throw new Error("No analysis returned from AI");
 
       setAnalysis(data.analysis);
+
+      // Persist source document references and analysis JSON
+      if (user && lead?.id) {
+        try {
+          const fileRows = uploadedDocs.map((doc) => ({
+            lead_id: lead.id,
+            agent_id: user.id,
+            file_name: doc.name,
+            file_path: doc.filePath,
+            file_type: "source_doc",
+            mime_type: doc.mimeType,
+            document_label: doc.name,
+          }));
+          // Also save a row for the analysis JSON
+          fileRows.push({
+            lead_id: lead.id,
+            agent_id: user.id,
+            file_name: "Market Analysis Data",
+            file_path: "",
+            file_type: "analysis_json",
+            mime_type: "application/json",
+            document_label: "Generated Analysis",
+          });
+          // Delete previous files for this lead to avoid duplicates
+          await supabase.from("market_analysis_files").delete().eq("lead_id", lead.id);
+          // Insert with analysis_json on the last row
+          const rowsToInsert = fileRows.map((row, i) => ({
+            ...row,
+            analysis_json: i === fileRows.length - 1 ? data.analysis : null,
+          }));
+          const { error: insertError } = await supabase.from("market_analysis_files").insert(rowsToInsert);
+          if (insertError) console.error("Failed to save file references:", insertError);
+          // Refresh saved files
+          const { data: refreshed } = await supabase
+            .from("market_analysis_files")
+            .select("*")
+            .eq("lead_id", lead.id)
+            .order("created_at", { ascending: false });
+          if (refreshed) setSavedFiles(refreshed);
+        } catch (persistErr) {
+          console.error("Persistence error:", persistErr);
+        }
+      }
+
       setPendingAutoDownload(true);
       setProgressMessage("Rendering graphics...");
     } catch (err: any) {
