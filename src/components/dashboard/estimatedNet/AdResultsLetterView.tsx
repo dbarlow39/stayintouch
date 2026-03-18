@@ -96,9 +96,9 @@ const AdResultsLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavig
         // Fetch insights from the edge function
         const { data: insights, error } = await supabase.functions.invoke('facebook-ad-insights', {
           body: {
-            postId: post.post_id,
-            campaignId: post.campaign_id,
-            adId: post.ad_id,
+            agent_id: user?.id,
+            post_id: post.post_id,
+            listing_address: post.listing_address,
           }
         });
 
