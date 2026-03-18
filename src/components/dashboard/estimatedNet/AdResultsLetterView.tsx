@@ -81,7 +81,7 @@ const AdResultsLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavig
 
         const { data: adPosts } = await supabase
           .from('facebook_ad_posts')
-          .select('post_id, campaign_id, ad_id')
+          .select('post_id, campaign_id, ad_id, listing_address')
           .ilike('listing_address', flexiblePattern)
           .order('boost_started_at', { ascending: false })
           .limit(1);
