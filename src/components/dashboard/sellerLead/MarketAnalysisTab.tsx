@@ -6,6 +6,8 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { toPng } from "html-to-image";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import {
   Upload,
   FileText,
@@ -16,6 +18,7 @@ import {
   CheckCircle2,
   BarChart3,
   Image as ImageIcon,
+  StickyNote,
 } from "lucide-react";
 import { generateMarketAnalysisDocx } from "@/utils/marketAnalysisDocx";
 import BullseyeGraphic from "./BullseyeGraphic";
