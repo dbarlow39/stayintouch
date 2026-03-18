@@ -19,7 +19,12 @@ import {
   BarChart3,
   Image as ImageIcon,
   StickyNote,
+  MessageCircle,
+  Send,
+  ArrowRight,
 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { generateMarketAnalysisDocx } from "@/utils/marketAnalysisDocx";
 import BullseyeGraphic from "./BullseyeGraphic";
 import ZillowGraphic from "./ZillowGraphic";
