@@ -47,6 +47,7 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
   const zillowRef = useRef<HTMLDivElement>(null);
   const [savedFiles, setSavedFiles] = useState<any[]>([]);
   const [loadingSaved, setLoadingSaved] = useState(true);
+  const [aiNotes, setAiNotes] = useState("");
   const [documents, setDocuments] = useState<DocumentSlot[]>([
     { label: "CMA / Property Detail Report", description: "CoreLogic, RPR, or similar report", file: null, required: false },
     { label: "Residential Inspection Worksheet", description: "Room-by-room condition notes", file: null, required: false },
