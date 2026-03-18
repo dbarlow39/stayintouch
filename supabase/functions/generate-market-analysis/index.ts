@@ -34,7 +34,15 @@ BULLSEYE PRICING RULES:
 - EXAMPLE: If comps cluster around $160K, the bracket is $160K-$170K (using $10K width), Bullseye = $169,900.
 - EXAMPLE: If comps cluster around $750K, the bracket is $750K-$800K (using $50K width), Bullseye = $799,900.
 
-ZESTIMATE FRAMING RULES:
+ZILLOW DOCUMENT RULE:
+If NO Zillow PDF screenshot was provided among the uploaded documents, you MUST:
+- Leave ALL Zillow-related property fields empty strings: zestimate, zestimateRange, zestimateRent, zestimatePsf, zillowBeds, zillowBaths, zillowSqFt, zillowAppreciation10yr, zillowUpdatedMonth
+- Leave the narrative fields zillowWordOn, zillowNoteOn, and zillowContextNote as empty strings
+- Do NOT invent, estimate, or reference any Zillow data anywhere in the analysis
+- Do NOT mention Zillow, Zestimate, or online valuation tools in any narrative field (intro, marketConditions, priceJustification, etc.)
+Only apply the Zestimate Framing Rules below when a Zillow document IS provided.
+
+ZESTIMATE FRAMING RULES (only when Zillow document is provided):
 
 SCENARIO A - Zestimate is HIGHER than Bullseye price:
 The zillowWordOn field must be a full paragraph of 4-5 sentences that does all of the following:
