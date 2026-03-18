@@ -13,7 +13,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { agent_id, post_id } = await req.json();
+    const { agent_id, post_id, listing_address } = await req.json();
 
     if (!agent_id || !post_id) {
       throw new Error("agent_id and post_id are required");
@@ -49,34 +49,87 @@ Deno.serve(async (req) => {
       }
     };
 
-    // Step 1: Get basic post data from published_posts
+    // Resolve the actual working post_id
+    let resolvedPostId = post_id;
     let postData: any = {};
-    if (pageId) {
-      const feedUrl = `https://graph.facebook.com/${API_VERSION}/${pageId}/published_posts?fields=id,created_time,message,full_picture,shares&limit=100&access_token=${pageToken}`;
-      const feedData = await fetchJson(feedUrl);
-      if (!feedData.error && feedData.data) {
-        const matched = feedData.data.find((p: any) => p.id === post_id);
-        if (matched) {
-          postData = matched;
-          debugInfo.push(`Feed found post (${feedData.data.length} scanned)`);
-        } else {
-          debugInfo.push(`Feed: ${feedData.data.length} posts, no match`);
+
+    // Step 1A: Try direct post fetch by ID first (fastest path)
+    const directUrl = `https://graph.facebook.com/${API_VERSION}/${post_id}?fields=id,created_time,message,full_picture,shares&access_token=${pageToken}`;
+    const directData = await fetchJson(directUrl);
+    if (!directData.error && directData.id) {
+      postData = directData;
+      debugInfo.push(`Direct post fetch OK: ${directData.id}`);
+    } else {
+      debugInfo.push(`Direct fetch failed: ${directData.error?.message?.substring(0, 60) || 'no data'}`);
+
+      // Step 1B: Search feed with pagination (up to 3 pages)
+      let found = false;
+      if (pageId) {
+        let feedUrl: string | null = `https://graph.facebook.com/${API_VERSION}/${pageId}/published_posts?fields=id,created_time,message,full_picture,shares&limit=100&access_token=${pageToken}`;
+        for (let page = 0; page < 3 && feedUrl && !found; page++) {
+          const feedData = await fetchJson(feedUrl);
+          if (feedData.error || !feedData.data) {
+            debugInfo.push(`Feed page ${page + 1}: ${feedData.error?.message?.substring(0, 60) || 'no data'}`);
+            break;
+          }
+
+          // Try exact ID match
+          const matched = feedData.data.find((p: any) => p.id === post_id);
+          if (matched) {
+            postData = matched;
+            found = true;
+            debugInfo.push(`Feed ID match on page ${page + 1} (${feedData.data.length} scanned)`);
+            break;
+          }
+
+          // Try address-based fallback match
+          if (listing_address) {
+            // Extract street portion for matching (e.g. "988 S Roys Avenue" from "988 S Roys Avenue, Columbus, OH 43204")
+            const streetPart = listing_address.split(',')[0].trim().toLowerCase();
+            const addressMatch = feedData.data.find((p: any) =>
+              p.message && p.message.toLowerCase().includes(streetPart)
+            );
+            if (addressMatch) {
+              postData = addressMatch;
+              resolvedPostId = addressMatch.id;
+              found = true;
+              debugInfo.push(`Feed address match on page ${page + 1}: "${streetPart}" → ${addressMatch.id}`);
+
+              // Update the stored post_id in facebook_ad_posts so future lookups are instant
+              await supabase
+                .from("facebook_ad_posts")
+                .update({ post_id: addressMatch.id, updated_at: new Date().toISOString() })
+                .eq("post_id", post_id)
+                .eq("agent_id", agent_id);
+              debugInfo.push(`Updated stored post_id from ${post_id} to ${addressMatch.id}`);
+              break;
+            }
+          }
+
+          debugInfo.push(`Feed page ${page + 1}: ${feedData.data.length} posts, no match`);
+          feedUrl = feedData.paging?.next || null;
+          if (feedUrl) {
+            // Small delay to avoid rate limiting
+            await new Promise(r => setTimeout(r, 200));
+          }
         }
-      } else {
-        debugInfo.push(`Feed: ${feedData.error?.message?.substring(0, 60) || 'no data'}`);
       }
     }
 
-    // Step 2: Get post insights - only use metrics that are still valid after Nov 2025 deprecation
+    // Step 2: Get post insights using supported lifetime metrics
     const metrics: Record<string, any> = {};
 
+    // Use lifetime period metrics which are more reliable post-deprecation
+    const lifetimeMetrics = ['post_impressions', 'post_impressions_unique', 'post_engaged_users', 'post_clicks_by_type', 'post_reactions_by_type_total', 'post_activity_by_action_type'];
+    
     const metricGroups = [
       ['post_clicks_by_type'],
       ['post_reactions_by_type_total', 'post_activity_by_action_type'],
+      ['post_impressions', 'post_impressions_unique', 'post_engaged_users'],
     ];
 
     const groupResults = await Promise.allSettled(metricGroups.map(async (group) => {
-      const url = `https://graph.facebook.com/${API_VERSION}/${post_id}/insights?metric=${group.join(',')}&access_token=${pageToken}`;
+      const url = `https://graph.facebook.com/${API_VERSION}/${resolvedPostId}/insights?metric=${group.join(',')}&period=lifetime&access_token=${pageToken}`;
       const data = await fetchJson(url);
       if (data.data?.length > 0) {
         for (const item of data.data) {
@@ -106,7 +159,7 @@ Deno.serve(async (req) => {
     const adInsightsFields = "impressions,reach,clicks,spend,cpc,cpm,actions,cost_per_action_type,unique_actions,unique_clicks,inline_post_engagement,inline_link_clicks";
     const attrWindows = `&action_attribution_windows=${encodeURIComponent('["7d_click","1d_view"]')}`;
 
-    // Helper: fetch campaign date range from Facebook API, returns date param string
+    // Helper: fetch campaign date range from Facebook API
     const getCampaignDateParam = async (campaignId: string, token: string): Promise<string> => {
       try {
         const campaignUrl = `https://graph.facebook.com/${API_VERSION}/${campaignId}?fields=start_time,stop_time&access_token=${token}`;
@@ -123,43 +176,45 @@ Deno.serve(async (req) => {
       return "&date_preset=maximum";
     };
 
-    // Also fetch with 7d_click only for comparison (diagnostic)
-    let altAdInsights: any = null;
-
-    // Approach A: Search ads by effective_object_story_id, then query campaign-level
-    for (const [tokenLabel, token] of [["user", userToken], ["page", pageToken]]) {
+    // Approach A: Search ads by effective_object_story_id (try both original and resolved post_id)
+    const postIdsToTry = resolvedPostId !== post_id ? [resolvedPostId, post_id] : [post_id];
+    
+    for (const tryPostId of postIdsToTry) {
       if (adInsights) break;
-      try {
-        const filterJson = JSON.stringify([{
-          field: "effective_object_story_id",
-          operator: "EQUAL",
-          value: post_id
-        }]);
-        const adsUrl = `https://graph.facebook.com/${API_VERSION}/act_${AD_ACCOUNT_ID}/ads?fields=id,campaign_id,creative{effective_object_story_id}&filtering=${encodeURIComponent(filterJson)}&access_token=${token}`;
-        const adsData = await fetchJson(adsUrl);
-        if (!adsData.error && adsData.data?.length > 0) {
-          const ad = adsData.data[0];
-          foundAdId = ad.id;
-          foundAdToken = token;
-          const campaignId = ad.campaign_id;
-          if (campaignId) {
-            const campaignDateParam = await getCampaignDateParam(campaignId, token);
-            const campaignInsightsUrl = `https://graph.facebook.com/${API_VERSION}/${campaignId}/insights?fields=${adInsightsFields}${campaignDateParam}${attrWindows}&access_token=${token}`;
-            const campaignResp = await fetchJson(campaignInsightsUrl);
-            if (!campaignResp.error && campaignResp.data?.[0]) {
-              adInsights = campaignResp.data[0];
-              debugInfo.push(`Campaign insights via ads filter (${tokenLabel}, campaign ${campaignId})`);
+      for (const [tokenLabel, token] of [["user", userToken], ["page", pageToken]]) {
+        if (adInsights) break;
+        try {
+          const filterJson = JSON.stringify([{
+            field: "effective_object_story_id",
+            operator: "EQUAL",
+            value: tryPostId
+          }]);
+          const adsUrl = `https://graph.facebook.com/${API_VERSION}/act_${AD_ACCOUNT_ID}/ads?fields=id,campaign_id,creative{effective_object_story_id}&filtering=${encodeURIComponent(filterJson)}&access_token=${token}`;
+          const adsData = await fetchJson(adsUrl);
+          if (!adsData.error && adsData.data?.length > 0) {
+            const ad = adsData.data[0];
+            foundAdId = ad.id;
+            foundAdToken = token;
+            const campaignId = ad.campaign_id;
+            if (campaignId) {
+              const campaignDateParam = await getCampaignDateParam(campaignId, token);
+              const campaignInsightsUrl = `https://graph.facebook.com/${API_VERSION}/${campaignId}/insights?fields=${adInsightsFields}${campaignDateParam}${attrWindows}&access_token=${token}`;
+              const campaignResp = await fetchJson(campaignInsightsUrl);
+              if (!campaignResp.error && campaignResp.data?.[0]) {
+                adInsights = campaignResp.data[0];
+                debugInfo.push(`Campaign insights via ads filter (${tokenLabel}, campaign ${campaignId})`);
+              }
             }
+            if (!adInsights) {
+              debugInfo.push(`Ads filter(${tokenLabel}): found ad ${ad.id} but campaign insights failed`);
+            }
+          } else if (adsData.error) {
+            debugInfo.push(`Ads filter(${tokenLabel}): ${adsData.error.message?.substring(0, 60)}`);
+          } else {
+            debugInfo.push(`Ads filter(${tokenLabel}): no matching ads found`);
           }
-          if (!adInsights) {
-            debugInfo.push(`Ads filter(${tokenLabel}): found ad ${ad.id} but campaign insights failed`);
-          }
-        } else if (adsData.error) {
-          debugInfo.push(`Ads filter(${tokenLabel}): ${adsData.error.message?.substring(0, 60)}`);
-        } else {
-          debugInfo.push(`Ads filter(${tokenLabel}): no matching ads found`);
-        }
-      } catch (_e) { /* non-fatal */ }
+        } catch (_e) { /* non-fatal */ }
+      }
     }
 
     // Approach B: Scan recent ads, find campaign, get CAMPAIGN-level insights
@@ -171,9 +226,9 @@ Deno.serve(async (req) => {
           const recentAds = await fetchJson(recentAdsUrl);
           if (!recentAds.error && recentAds.data) {
             const allMatching = recentAds.data.filter((ad: any) => 
-              ad.creative?.effective_object_story_id === post_id
+              postIdsToTry.includes(ad.creative?.effective_object_story_id)
             );
-            debugInfo.push(`Ad scan(${tokenLabel}): ${allMatching.length} matching ads out of ${recentAds.data.length} [${allMatching.map((a:any)=>a.id).join(',')}]`);
+            debugInfo.push(`Ad scan(${tokenLabel}): ${allMatching.length} matching ads out of ${recentAds.data.length}`);
             
             if (allMatching.length > 0) {
               const campaignId = allMatching[0].campaign_id;
@@ -189,8 +244,7 @@ Deno.serve(async (req) => {
                   debugInfo.push(`Campaign-level insights from campaign ${campaignId} (via ad ${allMatching[0].id})`);
                 } else {
                   debugInfo.push(`Campaign insights failed: ${campaignResp.error?.message?.substring(0, 60) || 'no data'}, falling back to ad-level`);
-                  const adDateParam = "&date_preset=maximum";
-                  const adInsightsUrl = `https://graph.facebook.com/${API_VERSION}/${allMatching[0].id}/insights?fields=${adInsightsFields}${adDateParam}${attrWindows}&access_token=${token}`;
+                  const adInsightsUrl = `https://graph.facebook.com/${API_VERSION}/${allMatching[0].id}/insights?fields=${adInsightsFields}&date_preset=maximum${attrWindows}&access_token=${token}`;
                   const insightsResp = await fetchJson(adInsightsUrl);
                   if (!insightsResp.error && insightsResp.data?.[0]) {
                     adInsights = insightsResp.data[0];
@@ -198,8 +252,7 @@ Deno.serve(async (req) => {
                   }
                 }
               } else {
-                const adDateParam = "&date_preset=maximum";
-                const adInsightsUrl = `https://graph.facebook.com/${API_VERSION}/${allMatching[0].id}/insights?fields=${adInsightsFields}${adDateParam}${attrWindows}&access_token=${token}`;
+                const adInsightsUrl = `https://graph.facebook.com/${API_VERSION}/${allMatching[0].id}/insights?fields=${adInsightsFields}&date_preset=maximum${attrWindows}&access_token=${token}`;
                 const insightsResp = await fetchJson(adInsightsUrl);
                 if (!insightsResp.error && insightsResp.data?.[0]) {
                   adInsights = insightsResp.data[0];
@@ -231,7 +284,7 @@ Deno.serve(async (req) => {
     // Approach C: Try promoted_posts edge on the post itself
     if (!adInsights) {
       try {
-        const promoUrl = `https://graph.facebook.com/${API_VERSION}/${post_id}?fields=promotion_status,insights.metric(post_impressions,post_impressions_unique,post_engaged_users).period(lifetime)&access_token=${pageToken}`;
+        const promoUrl = `https://graph.facebook.com/${API_VERSION}/${resolvedPostId}?fields=promotion_status,insights.metric(post_impressions,post_impressions_unique,post_engaged_users).period(lifetime)&access_token=${pageToken}`;
         const promoData = await fetchJson(promoUrl);
         if (!promoData.error && promoData.insights?.data) {
           const promoMetrics: Record<string, number> = {};
@@ -268,12 +321,17 @@ Deno.serve(async (req) => {
     const totalClicks = Object.values(clicksByType).reduce((sum: number, v: any) => sum + (typeof v === 'number' ? v : 0), 0);
     const organicEngagements = totalReactions + comments + shares + (totalClicks > 0 ? totalClicks : 0);
 
+    // Use lifetime post metrics if available
+    const postImpressions = metrics.post_impressions || 0;
+    const postReach = metrics.post_impressions_unique || 0;
+    const postEngaged = metrics.post_engaged_users || 0;
+
     // Determine impressions and reach from best available source
     const promoImpressions = metrics._promo_impressions || 0;
     const promoReach = metrics._promo_reach || 0;
     const promoEngaged = metrics._promo_engaged || 0;
 
-    // Parse ad actions - prefer unique_actions (matches Ads Manager)
+    // Parse ad actions
     let adActions: any[] = [];
     let adUniqueActions: any[] = [];
     let adCostPerAction: any[] = [];
@@ -293,7 +351,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    const finalEngagements = adInsights ? adEngagements : (organicEngagements || promoEngaged);
+    const finalEngagements = adInsights ? adEngagements : (organicEngagements || postEngaged || promoEngaged);
 
     // Step 4: Fetch audience demographics
     let audienceData: any = null;
@@ -317,7 +375,7 @@ Deno.serve(async (req) => {
     }
 
     const result = {
-      post_id,
+      post_id: resolvedPostId,
       created_time: postData.created_time || null,
       message: postData.message || null,
       full_picture: postData.full_picture || null,
@@ -325,13 +383,13 @@ Deno.serve(async (req) => {
       comments,
       shares,
       engagements: finalEngagements,
-      impressions: adInsights ? parseInt(adInsights.impressions || "0") : promoImpressions,
-      reach: adInsights ? parseInt(adInsights.reach || "0") : promoReach,
+      impressions: adInsights ? parseInt(adInsights.impressions || "0") : (postImpressions || promoImpressions),
+      reach: adInsights ? parseInt(adInsights.reach || "0") : (postReach || promoReach),
       clicks: adInsights ? parseInt(adInsights.clicks || "0") : totalClicks,
       click_types: Object.keys(clicksByType).length > 0 ? clicksByType : null,
       activity: activityObj,
       reactions: reactionsObj,
-      engaged_users: promoEngaged,
+      engaged_users: postEngaged || promoEngaged,
       ad_insights: adInsights ? {
         impressions: parseInt(adInsights.impressions || "0"),
         reach: parseInt(adInsights.reach || "0"),

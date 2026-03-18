@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -33,6 +34,7 @@ interface AdMetrics {
 const AdResultsLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate }: AdResultsLetterViewProps) => {
   const { toast } = useToast();
   const [emailClient, setEmailClientState] = useState<EmailClient>(getEmailClientPreference);
+  const { user } = useAuth();
   const [agentEmail, setAgentEmail] = useState("");
   const [agentFirstName, setAgentFirstName] = useState("");
   const [agentFullName, setAgentFullName] = useState("");
@@ -80,7 +82,7 @@ const AdResultsLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavig
 
         const { data: adPosts } = await supabase
           .from('facebook_ad_posts')
-          .select('post_id, campaign_id, ad_id')
+          .select('post_id, campaign_id, ad_id, listing_address')
           .ilike('listing_address', flexiblePattern)
           .order('boost_started_at', { ascending: false })
           .limit(1);
@@ -96,9 +98,9 @@ const AdResultsLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavig
         // Fetch insights from the edge function
         const { data: insights, error } = await supabase.functions.invoke('facebook-ad-insights', {
           body: {
-            postId: post.post_id,
-            campaignId: post.campaign_id,
-            adId: post.ad_id,
+            agent_id: user?.id,
+            post_id: post.post_id,
+            listing_address: post.listing_address,
           }
         });
 
