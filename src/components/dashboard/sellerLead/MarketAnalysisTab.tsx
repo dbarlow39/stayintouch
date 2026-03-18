@@ -42,6 +42,8 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
   const [zillowImage, setZillowImage] = useState<string | null>(null);
   const bullseyeRef = useRef<HTMLDivElement>(null);
   const zillowRef = useRef<HTMLDivElement>(null);
+  const [savedFiles, setSavedFiles] = useState<any[]>([]);
+  const [loadingSaved, setLoadingSaved] = useState(true);
   const [documents, setDocuments] = useState<DocumentSlot[]>([
     { label: "CMA / Property Detail Report", description: "CoreLogic, RPR, or similar report", file: null, required: true },
     { label: "Residential Inspection Worksheet", description: "Room-by-room condition notes", file: null, required: true },
@@ -50,6 +52,29 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
   ]);
 
   const fileInputRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+  // Load previously saved files and analysis for this lead
+  useEffect(() => {
+    if (!user || !lead?.id) { setLoadingSaved(false); return; }
+    (async () => {
+      try {
+        const { data, error } = await supabase
+          .from("market_analysis_files")
+          .select("*")
+          .eq("lead_id", lead.id)
+          .order("created_at", { ascending: false });
+        if (!error && data) {
+          setSavedFiles(data);
+          // Restore the most recent analysis JSON if available
+          const withAnalysis = data.find((f: any) => f.analysis_json);
+          if (withAnalysis?.analysis_json) {
+            setAnalysis(withAnalysis.analysis_json);
+          }
+        }
+      } catch {}
+      setLoadingSaved(false);
+    })();
+  }, [user, lead?.id]);
 
   const handleFileSelect = (index: number, file: File | null) => {
     setDocuments((prev) =>
@@ -109,6 +134,50 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
       if (!data?.analysis) throw new Error("No analysis returned from AI");
 
       setAnalysis(data.analysis);
+
+      // Persist source document references and analysis JSON
+      if (user && lead?.id) {
+        try {
+          const fileRows = uploadedDocs.map((doc) => ({
+            lead_id: lead.id,
+            agent_id: user.id,
+            file_name: doc.name,
+            file_path: doc.filePath,
+            file_type: "source_doc",
+            mime_type: doc.mimeType,
+            document_label: doc.name,
+          }));
+          // Also save a row for the analysis JSON
+          fileRows.push({
+            lead_id: lead.id,
+            agent_id: user.id,
+            file_name: "Market Analysis Data",
+            file_path: "",
+            file_type: "analysis_json",
+            mime_type: "application/json",
+            document_label: "Generated Analysis",
+          });
+          // Delete previous files for this lead to avoid duplicates
+          await supabase.from("market_analysis_files").delete().eq("lead_id", lead.id);
+          // Insert with analysis_json on the last row
+          const rowsToInsert = fileRows.map((row, i) => ({
+            ...row,
+            analysis_json: i === fileRows.length - 1 ? data.analysis : null,
+          }));
+          const { error: insertError } = await supabase.from("market_analysis_files").insert(rowsToInsert);
+          if (insertError) console.error("Failed to save file references:", insertError);
+          // Refresh saved files
+          const { data: refreshed } = await supabase
+            .from("market_analysis_files")
+            .select("*")
+            .eq("lead_id", lead.id)
+            .order("created_at", { ascending: false });
+          if (refreshed) setSavedFiles(refreshed);
+        } catch (persistErr) {
+          console.error("Persistence error:", persistErr);
+        }
+      }
+
       setPendingAutoDownload(true);
       setProgressMessage("Rendering graphics...");
     } catch (err: any) {
@@ -305,6 +374,46 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
           )}
         </CardContent>
       </Card>
+
+      {/* Previously Saved Documents */}
+      {!loadingSaved && savedFiles.filter(f => f.file_type === 'source_doc').length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-green-500" />
+              Saved Documents
+              <Badge variant="secondary" className="ml-auto">
+                {savedFiles.filter(f => f.file_type === 'source_doc').length} files
+              </Badge>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {savedFiles.filter(f => f.file_type === 'source_doc').map((file) => (
+                <div key={file.id} className="flex items-center justify-between py-2 px-3 bg-muted/50 rounded-md">
+                  <div className="flex items-center gap-2">
+                    <FileText className="w-4 h-4 text-muted-foreground" />
+                    <div>
+                      <p className="text-sm font-medium">{file.document_label || file.file_name}</p>
+                      <p className="text-xs text-muted-foreground">{new Date(file.created_at).toLocaleDateString()}</p>
+                    </div>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={async () => {
+                      const { data } = await supabase.storage.from("market-analysis-docs").createSignedUrl(file.file_path, 300);
+                      if (data?.signedUrl) window.open(data.signedUrl, '_blank');
+                    }}
+                  >
+                    <Download className="w-4 h-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {generating && (
         <Card className="border-primary/20">
