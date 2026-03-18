@@ -130,7 +130,7 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
 
       setProgressMessage("Analyzing documents...");
       const { data, error } = await supabase.functions.invoke("generate-market-analysis", {
-        body: { documents: uploadedDocs },
+        body: { documents: uploadedDocs, agentNotes: aiNotes.trim() || undefined },
       });
 
       if (error) throw error;
