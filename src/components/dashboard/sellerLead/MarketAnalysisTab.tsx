@@ -352,6 +352,25 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
             ))}
           </div>
 
+          {/* AI Notes */}
+          <div className="mt-6">
+            <Label htmlFor="ai-notes" className="flex items-center gap-2 mb-2">
+              <StickyNote className="w-4 h-4" />
+              Notes for AI
+            </Label>
+            <Textarea
+              id="ai-notes"
+              value={aiNotes}
+              onChange={(e) => setAiNotes(e.target.value)}
+              placeholder="Add any additional context, corrections, or instructions for the AI to consider when generating the analysis..."
+              rows={4}
+              className="resize-y"
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              Optional — these notes will be included as additional context for the analysis.
+            </p>
+          </div>
+
           <div className="mt-6 flex items-center gap-3">
             <Button
               onClick={handleGenerate}
