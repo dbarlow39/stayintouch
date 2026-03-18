@@ -199,6 +199,16 @@ const ResidentialWorkSheetTab = ({ lead }: ResidentialWorkSheetTabProps) => {
 
   const handleFieldChange = (sectionId: string, fieldId: string, value: any) => {
     setInspectionData(prev => ({ ...prev, [sectionId]: { ...prev[sectionId], [fieldId]: value } }));
+
+    // Sync phone/email back to the lead record
+    if (lead && sectionId === 'property-info' && (fieldId === 'phone' || fieldId === 'email')) {
+      const trimmed = typeof value === 'string' ? value.trim() : value;
+      if (trimmed) {
+        supabase.from('leads').update({ [fieldId]: trimmed }).eq('id', lead.id).then(({ error }) => {
+          if (error) console.error(`Failed to sync ${fieldId} to lead:`, error.message);
+        });
+      }
+    }
   };
 
   const handleAddressSelect = useCallback(async (fullAddress: string) => {
