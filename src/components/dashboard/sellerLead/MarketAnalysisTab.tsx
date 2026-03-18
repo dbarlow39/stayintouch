@@ -45,10 +45,10 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
   const [savedFiles, setSavedFiles] = useState<any[]>([]);
   const [loadingSaved, setLoadingSaved] = useState(true);
   const [documents, setDocuments] = useState<DocumentSlot[]>([
-    { label: "CMA / Property Detail Report", description: "CoreLogic, RPR, or similar report", file: null, required: true },
-    { label: "Residential Inspection Worksheet", description: "Room-by-room condition notes", file: null, required: true },
+    { label: "CMA / Property Detail Report", description: "CoreLogic, RPR, or similar report", file: null, required: false },
+    { label: "Residential Inspection Worksheet", description: "Room-by-room condition notes", file: null, required: false },
     { label: "Summary of Walk-Through", description: "Seller observations and transcript", file: null, required: false },
-    { label: "Zillow PDF Screenshot", description: "Zestimate, range, and property stats", file: null, required: true },
+    { label: "Zillow PDF Screenshot", description: "Zestimate, range, and property stats", file: null, required: false },
   ]);
 
   const fileInputRefs = useRef<(HTMLInputElement | null)[]>([]);
