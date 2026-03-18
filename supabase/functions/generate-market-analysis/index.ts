@@ -27,12 +27,13 @@ BULLSEYE PRICING RULES:
 - To find the correct bracket: look at where the MAJORITY of closed comp sold prices fall, and use that bracket. Do not jump to a higher bracket just because one comp sold near a bracket boundary.
 - Bullseye price = top of the correct bracket minus $100 (e.g. $424,900 for the $400K-$425K bracket)
 - NEVER use the lower number within the same bracket as the Bullseye
-- lowerBracketPrice = top of the bracket one step below minus $100 (e.g. $399,900)
+- lowerBracketPrice = top of the bracket ONE STEP BELOW the bullseye bracket minus $100. This is ALWAYS a DIFFERENT number from the bullseyePrice. If bullseyePrice and lowerBracketPrice are the same number, you have made an error.
 - upperBracketPrice = top of the bracket one step above minus $100 (e.g. $449,900)
 - When the lower/upper bracket crosses a tier boundary, use the bracket width of that tier (e.g. if bullseye is in $200K-$225K, the lower bracket uses $10K width: $190K-$200K)
-- EXAMPLE: If 3 comps sold at $405K, $416K, $427.5K - the majority are in the $400K-$425K bracket, so Bullseye = $424,900. Do NOT pick the $425K-$450K bracket.
-- EXAMPLE: If comps cluster around $160K, the bracket is $160K-$170K (using $10K width), Bullseye = $169,900.
-- EXAMPLE: If comps cluster around $750K, the bracket is $750K-$800K (using $50K width), Bullseye = $799,900.
+- CRITICAL CROSS-TIER EXAMPLE: If bullseye is $1,249,900 (bracket $1M-$1.25M in the $250K tier), the lower bracket crosses into the $500K-$999K tier which uses $50K brackets. So lowerBracketPrice = top of $950K-$1M = $999,900. The upperBracketPrice = $1,499,900 ($1.25M-$1.5M). The three prices must be $999,900 / $1,249,900 / $1,499,900 - NEVER $1,249,900 / $1,249,900 / $1,499,900.
+- EXAMPLE: If 3 comps sold at $405K, $416K, $427.5K - the majority are in the $400K-$425K bracket, so Bullseye = $424,900. lowerBracketPrice = $399,900 ($375K-$400K). upperBracketPrice = $449,900 ($425K-$450K).
+- EXAMPLE: If comps cluster around $160K, the bracket is $160K-$170K (using $10K width), Bullseye = $169,900. lowerBracketPrice = $159,900.
+- EXAMPLE: If comps cluster around $750K, the bracket is $750K-$800K (using $50K width), Bullseye = $799,900. lowerBracketPrice = $749,900.
 
 ZILLOW DOCUMENT RULE:
 If NO Zillow PDF screenshot was provided among the uploaded documents, you MUST:
