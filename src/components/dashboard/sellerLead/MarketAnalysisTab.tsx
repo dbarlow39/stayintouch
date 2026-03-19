@@ -477,7 +477,7 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
               <div
                 key={index}
                 className={`relative border-2 border-dashed rounded-lg p-4 text-center transition-colors cursor-pointer hover:border-primary/50 ${
-                  doc.file ? "border-green-500/50 bg-green-500/5" : "border-border"
+                  doc.file || doc.savedFilePath ? "border-green-500/50 bg-green-500/5" : "border-border"
                 }`}
                 onClick={() => fileInputRefs.current[index]?.click()}
               >
