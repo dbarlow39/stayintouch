@@ -213,15 +213,6 @@ const DocumentUploadSection = ({ propertyId, clientId, onContractParsed }: Docum
     const files = event.target.files;
     if (!files || files.length === 0) return;
 
-    if (!propertyId) {
-      toast({
-        title: "Save property first",
-        description: "Please save the property before uploading documents",
-        variant: "destructive",
-      });
-      return;
-    }
-
     setUploading(true);
     let uploadedFilePath: string | null = null;
     
@@ -232,7 +223,7 @@ const DocumentUploadSection = ({ propertyId, clientId, onContractParsed }: Docum
       for (const file of Array.from(files)) {
         const fileExt = file.name.split(".").pop();
         const fileName = `${Date.now()}-${file.name}`;
-        const filePath = `${user.id}/${propertyId}/${fileName}`;
+        const filePath = `${user.id}/${propertyId || 'unsaved'}/${fileName}`;
 
         // Upload to storage
         const { error: uploadError } = await supabase.storage
@@ -251,7 +242,7 @@ const DocumentUploadSection = ({ propertyId, clientId, onContractParsed }: Docum
           .from("property_documents")
           .insert({
             agent_id: user.id,
-            property_id: propertyId,
+            property_id: propertyId || null,
             client_id: clientId,
             file_name: file.name,
             file_path: filePath,
@@ -405,7 +396,7 @@ const DocumentUploadSection = ({ propertyId, clientId, onContractParsed }: Docum
             type="button"
             variant="outline"
             onClick={handleUploadClick}
-            disabled={isProcessing || !propertyId}
+            disabled={isProcessing}
           >
             {uploading ? (
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -461,11 +452,6 @@ const DocumentUploadSection = ({ propertyId, clientId, onContractParsed }: Docum
         accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.gif,.txt"
       />
 
-      {!propertyId && (
-        <p className="text-sm text-muted-foreground text-center py-4">
-          Save the property first to upload documents
-        </p>
-      )}
 
       {propertyId && loading && (
         <div className="flex justify-center py-4">
