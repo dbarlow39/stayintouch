@@ -419,7 +419,79 @@ serve(async (req) => {
       console.error("Failed to parse AI response as JSON:", rawContent.substring(0, 500));
       throw new Error("AI returned invalid JSON. Please try again.");
     }
-    
+
+    // --- Deterministic Bullseye +/- pricing recalculation ---
+    if (analysis?.pricing?.bullseyePrice) {
+      const parseDollar = (v: string): number => {
+        if (!v) return 0;
+        return parseFloat(String(v).replace(/[$,]/g, "")) || 0;
+      };
+
+      const bullseye = parseDollar(analysis.pricing.bullseyePrice);
+
+      if (bullseye > 0) {
+        // Percentage tiers for plus-up / plus-down
+        const getAdjustmentPct = (price: number): number => {
+          if (price < 100000) return 0.10;
+          if (price < 200000) return 0.125;
+          if (price < 300000) return 0.125;
+          if (price < 400000) return 0.125;
+          if (price < 500000) return 0.10;
+          if (price < 600000) return 0.10;
+          if (price < 700000) return 0.10;
+          if (price < 800000) return 0.10;
+          if (price < 900000) return 0.10;
+          if (price < 1000000) return 0.10;
+          return 0.25; // $1M+
+        };
+
+        // Bracket width tiers for rounding
+        const getBracketWidth = (price: number): number => {
+          if (price < 200000) return 10000;
+          if (price < 500000) return 25000;
+          if (price < 1000000) return 50000;
+          return 250000;
+        };
+
+        // Round to nearest bracket top, then subtract $100
+        const roundToBracketPrice = (rawPrice: number): { price: number; low: number; high: number } => {
+          const width = getBracketWidth(rawPrice);
+          const bracketTop = Math.round(rawPrice / width) * width;
+          return {
+            price: bracketTop - 100,
+            low: bracketTop - width,
+            high: bracketTop,
+          };
+        };
+
+        const pct = getAdjustmentPct(bullseye);
+        const upperRaw = bullseye * (1 + pct);
+        const lowerRaw = bullseye * (1 - pct);
+
+        const upper = roundToBracketPrice(upperRaw);
+        const lower = roundToBracketPrice(lowerRaw);
+
+        // Also recalculate the bullseye bracket labels
+        const bWidth = getBracketWidth(bullseye);
+        const bTop = Math.ceil(bullseye / bWidth) * bWidth;
+        const bLow = bTop - bWidth;
+
+        const fmt = (n: number) => `$${n.toLocaleString("en-US")}`;
+
+        analysis.pricing.upperBracketPrice = fmt(upper.price);
+        analysis.pricing.upperBracketLow = fmt(upper.low);
+        analysis.pricing.upperBracketHigh = fmt(upper.high);
+        analysis.pricing.lowerBracketPrice = fmt(lower.price);
+        analysis.pricing.lowerBracketLow = fmt(lower.low);
+        analysis.pricing.lowerBracketHigh = fmt(lower.high);
+        analysis.pricing.bullseyeBracketLow = fmt(bLow);
+        analysis.pricing.bullseyeBracketHigh = fmt(bTop);
+
+        console.log(`Bullseye recalc: ${fmt(bullseye)} ±${(pct * 100)}% → Lower: ${fmt(lower.price)}, Upper: ${fmt(upper.price)}`);
+      }
+    }
+    // --- End pricing recalculation ---
+
     // Log key extracted fields to verify data
     console.log("Extracted address:", analysis.property?.address);
     console.log("Extracted owner1:", analysis.property?.owner1);
