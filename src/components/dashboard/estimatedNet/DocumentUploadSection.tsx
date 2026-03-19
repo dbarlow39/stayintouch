@@ -223,7 +223,7 @@ const DocumentUploadSection = ({ propertyId, clientId, onContractParsed }: Docum
       for (const file of Array.from(files)) {
         const fileExt = file.name.split(".").pop();
         const fileName = `${Date.now()}-${file.name}`;
-        const filePath = `${user.id}/${propertyId}/${fileName}`;
+        const filePath = `${user.id}/${propertyId || 'unsaved'}/${fileName}`;
 
         // Upload to storage
         const { error: uploadError } = await supabase.storage
