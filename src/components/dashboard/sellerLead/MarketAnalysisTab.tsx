@@ -34,6 +34,8 @@ interface DocumentSlot {
   description: string;
   file: File | null;
   required: boolean;
+  savedFilePath?: string;
+  savedFileName?: string;
 }
 
 interface MarketAnalysisTabProps {
@@ -89,6 +91,17 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
           if (withAnalysis?.analysis_json) {
             setAnalysis(withAnalysis.analysis_json);
           }
+          // Map saved source docs back to upload slots
+          const sourceDocs = data.filter((f: any) => f.file_type === "source_doc" && f.document_label);
+          setDocuments((prev) =>
+            prev.map((slot) => {
+              const saved = sourceDocs.find((f: any) => f.document_label === slot.label);
+              if (saved) {
+                return { ...slot, savedFilePath: saved.file_path, savedFileName: saved.file_name };
+              }
+              return slot;
+            })
+          );
         }
       } catch {}
       setLoadingSaved(false);
@@ -106,11 +119,15 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
     const uploaded: { name: string; filePath: string; mimeType: string }[] = [];
     for (const doc of docs) {
       if (doc.file) {
+        // New file selected — upload it
         const ext = doc.file.name.split(".").pop() || "pdf";
         const filePath = `${user.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
         const { error } = await supabase.storage.from("market-analysis-docs").upload(filePath, doc.file);
         if (error) throw new Error(`Failed to upload ${doc.label}: ${error.message}`);
         uploaded.push({ name: doc.label, filePath, mimeType: doc.file.type || "application/pdf" });
+      } else if (doc.savedFilePath) {
+        // Already saved — reuse existing path without re-uploading
+        uploaded.push({ name: doc.label, filePath: doc.savedFilePath, mimeType: "application/pdf" });
       }
     }
     return uploaded;
@@ -120,7 +137,7 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
     .filter((d) => d.required)
     .every((d) => d.file !== null);
 
-  const uploadedCount = documents.filter((d) => d.file !== null).length;
+  const uploadedCount = documents.filter((d) => d.file !== null || d.savedFilePath).length;
 
   // Capture a ref element to base64 PNG using html-to-image
   const captureGraphic = useCallback(async (element: HTMLDivElement): Promise<string> => {
@@ -460,7 +477,7 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
               <div
                 key={index}
                 className={`relative border-2 border-dashed rounded-lg p-4 text-center transition-colors cursor-pointer hover:border-primary/50 ${
-                  doc.file ? "border-green-500/50 bg-green-500/5" : "border-border"
+                  doc.file || doc.savedFilePath ? "border-green-500/50 bg-green-500/5" : "border-border"
                 }`}
                 onClick={() => fileInputRefs.current[index]?.click()}
               >
@@ -487,6 +504,27 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
                       onClick={(e) => {
                         e.stopPropagation();
                         handleFileSelect(index, null);
+                      }}
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </div>
+                ) : doc.savedFilePath ? (
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-5 h-5 text-green-500 shrink-0" />
+                    <div className="flex-1 text-left min-w-0">
+                      <p className="text-sm font-medium truncate">{doc.savedFileName || doc.label}</p>
+                      <p className="text-xs text-muted-foreground">Previously uploaded • click to replace</p>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="shrink-0"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setDocuments((prev) =>
+                          prev.map((d, i) => i === index ? { ...d, savedFilePath: undefined, savedFileName: undefined } : d)
+                        );
                       }}
                     >
                       <X className="w-4 h-4" />
