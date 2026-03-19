@@ -180,45 +180,55 @@ const ClosingCostsView = ({ propertyData, propertyId, onBack, onEdit, onNavigate
   };
 
   const handleDownloadPDF = async () => {
-    const html2canvas = (await import('html2canvas')).default;
-    const { jsPDF } = await import('jspdf');
-    
-    const element = document.getElementById('closing-costs-content');
-    if (!element) return;
-    
-    const canvas = await html2canvas(element, {
-      scale: 2,
-      useCORS: true,
-      logging: false,
-    });
-    
-    const imgData = canvas.toDataURL('image/png');
-    const pdf = new jsPDF('p', 'mm', 'a4');
+    try {
+      const html2canvasModule = await import('html2canvas');
+      const html2canvas = html2canvasModule.default || html2canvasModule;
+      const { jsPDF } = await import('jspdf');
+      
+      const element = document.getElementById('closing-costs-content');
+      if (!element) {
+        console.error('PDF: closing-costs-content element not found');
+        toast({ title: "PDF Error", description: "Content element not found", variant: "destructive" });
+        return;
+      }
+      
+      const canvas = await html2canvas(element, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        allowTaint: true,
+        backgroundColor: '#ffffff',
+      });
+      
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF('p', 'mm', 'a4');
 
-    const pageWidth = pdf.internal.pageSize.getWidth();
-    const pageHeight = pdf.internal.pageSize.getHeight();
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const margin = 10;
+      const maxWidth = pageWidth - margin * 2;
+      const imgWidth = maxWidth;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
 
-    const marginLeft = 10;
-    const marginRight = 10;
-    const marginTop = 10;
-    const marginBottom = 16;
+      // Handle multi-page
+      let heightLeft = imgHeight;
+      let position = margin;
 
-    const maxWidth = pageWidth - marginLeft - marginRight;
-    const maxHeight = pageHeight - marginTop - marginBottom;
+      pdf.addImage(imgData, 'PNG', margin, position, imgWidth, imgHeight);
+      heightLeft -= (pageHeight - margin * 2);
 
-    let imgWidth = maxWidth;
-    let imgHeight = (canvas.height * imgWidth) / canvas.width;
+      while (heightLeft > 0) {
+        position = -(pageHeight - margin * 2) * (Math.ceil((imgHeight - heightLeft) / (pageHeight - margin * 2))) + margin;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', margin, position, imgWidth, imgHeight);
+        heightLeft -= (pageHeight - margin * 2);
+      }
 
-    if (imgHeight > maxHeight) {
-      imgHeight = maxHeight;
-      imgWidth = (canvas.width * imgHeight) / canvas.height;
+      pdf.save(`Estimated Net - ${propertyData.streetAddress || 'Report'}.pdf`);
+    } catch (error: any) {
+      console.error('PDF generation error:', error);
+      toast({ title: "PDF Download Failed", description: error.message || "Could not generate PDF", variant: "destructive" });
     }
-
-    const x = marginLeft + (maxWidth - imgWidth) / 2;
-    const y = marginTop;
-
-    pdf.addImage(imgData, 'PNG', x, y, imgWidth, imgHeight);
-    pdf.save(`Estimated Net - ${propertyData.streetAddress}.pdf`);
   };
 
   const handleCopyToClipboard = async () => {
