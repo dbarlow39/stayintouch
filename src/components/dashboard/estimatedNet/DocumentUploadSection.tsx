@@ -213,15 +213,6 @@ const DocumentUploadSection = ({ propertyId, clientId, onContractParsed }: Docum
     const files = event.target.files;
     if (!files || files.length === 0) return;
 
-    if (!propertyId) {
-      toast({
-        title: "Save property first",
-        description: "Please save the property before uploading documents",
-        variant: "destructive",
-      });
-      return;
-    }
-
     setUploading(true);
     let uploadedFilePath: string | null = null;
     
