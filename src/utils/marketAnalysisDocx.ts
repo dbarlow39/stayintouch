@@ -373,27 +373,30 @@ export async function generateMarketAnalysisDocx(
   sections.push(sectionHeading("CURRENT MARKET CONDITIONS"));
   if (narrative.marketConditions) sections.push(bodyParagraph(narrative.marketConditions));
 
-  // ── 8. ZILLOW ZESTIMATE ──
-  sections.push(sectionHeading("ZILLOW ZESTIMATE - WHAT IT SAYS AND WHAT IT MISSES"));
-  if (zillowImage) {
-    try {
-      const imgBytes = await base64ToUint8Array(zillowImage);
-      const dims = await getImageDimensions(zillowImage);
-      const docWidth = 370;
-      const docHeight = Math.round(docWidth * (dims.height / dims.width));
-      sections.push(
-        new Paragraph({
-          alignment: AlignmentType.CENTER,
-          spacing: { after: 200 },
-          children: [new ImageRun({ data: imgBytes, transformation: { width: docWidth, height: docHeight }, type: "png" })],
-        })
-      );
-    } catch (e) {
-      console.error("Failed to embed Zillow image:", e);
+  // ── 8. ZILLOW ZESTIMATE (only if Zillow data exists) ──
+  const hasZillowData = prop.zestimate || zillowImage || narrative.zillowWordOn;
+  if (hasZillowData) {
+    sections.push(sectionHeading("ZILLOW ZESTIMATE - WHAT IT SAYS AND WHAT IT MISSES"));
+    if (zillowImage) {
+      try {
+        const imgBytes = await base64ToUint8Array(zillowImage);
+        const dims = await getImageDimensions(zillowImage);
+        const docWidth = 370;
+        const docHeight = Math.round(docWidth * (dims.height / dims.width));
+        sections.push(
+          new Paragraph({
+            alignment: AlignmentType.CENTER,
+            spacing: { after: 200 },
+            children: [new ImageRun({ data: imgBytes, transformation: { width: docWidth, height: docHeight }, type: "png" })],
+          })
+        );
+      } catch (e) {
+        console.error("Failed to embed Zillow image:", e);
+      }
     }
+    if (narrative.zillowWordOn) sections.push(bodyParagraph(narrative.zillowWordOn));
+    if (narrative.zillowNoteOn) sections.push(bodyParagraph(narrative.zillowNoteOn));
   }
-  if (narrative.zillowWordOn) sections.push(bodyParagraph(narrative.zillowWordOn));
-  if (narrative.zillowNoteOn) sections.push(bodyParagraph(narrative.zillowNoteOn));
 
   // ── 9. PRICING STRATEGY ──
   sections.push(sectionHeading("Our Pricing Strategy: The Bullseye Pricing Model"));
