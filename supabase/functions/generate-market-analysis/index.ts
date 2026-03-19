@@ -7,7 +7,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const SYSTEM_PROMPT = `You are a professional real estate analyst for The Barlow Group at SellFor1Percent.com. You use the Bullseye Pricing Model - always pricing at the TOP of the relevant buyer search bracket, never the lower number within the same bracket.
+const SYSTEM_PROMPT = `You are a professional real estate analyst for The Barlow Group at SellFor1Percent.com. You use the Bullseye Pricing Model - always pricing at the TOP of the relevant $25,000 buyer search bracket, never the lower number within the same bracket.
 
 You will receive up to 4 documents:
 
@@ -19,31 +19,16 @@ You will receive up to 4 documents:
 Analyze all documents thoroughly. Return ONLY a valid JSON object - no preamble, no markdown code fences, no explanation. Raw JSON only.
 
 BULLSEYE PRICING RULES:
-- Buyer search brackets use a TIERED system where bracket width increases with price:
-  * $100K–$199K range: $10,000 brackets (e.g. $100K-$110K, $110K-$120K, ... $190K-$200K)
-  * $200K–$499K range: $25,000 brackets (e.g. $200K-$225K, $225K-$250K, ... $475K-$500K)
-  * $500K–$999K range: $50,000 brackets (e.g. $500K-$550K, $550K-$600K, ... $950K-$1M)
-  * $1,000K+ range: $250,000 brackets (e.g. $1M-$1.25M, $1.25M-$1.5M, ...)
+- Buyer search brackets fall at every $25,000 increment
+- Bracket tops: $375K, $400K, $425K, $450K, $475K, $500K, $525K, $550K
 - To find the correct bracket: look at where the MAJORITY of closed comp sold prices fall, and use that bracket. Do not jump to a higher bracket just because one comp sold near a bracket boundary.
 - Bullseye price = top of the correct bracket minus $100 (e.g. $424,900 for the $400K-$425K bracket)
 - NEVER use the lower number within the same bracket as the Bullseye
-- lowerBracketPrice = top of the bracket ONE STEP BELOW the bullseye bracket minus $100. This is ALWAYS a DIFFERENT number from the bullseyePrice. If bullseyePrice and lowerBracketPrice are the same number, you have made an error.
+- lowerBracketPrice = top of the bracket one step below minus $100 (e.g. $399,900)
 - upperBracketPrice = top of the bracket one step above minus $100 (e.g. $449,900)
-- When the lower/upper bracket crosses a tier boundary, use the bracket width of that tier (e.g. if bullseye is in $200K-$225K, the lower bracket uses $10K width: $190K-$200K)
-- CRITICAL CROSS-TIER EXAMPLE: If bullseye is $1,249,900 (bracket $1M-$1.25M in the $250K tier), the lower bracket crosses into the $500K-$999K tier which uses $50K brackets. So lowerBracketPrice = top of $950K-$1M = $999,900. The upperBracketPrice = $1,499,900 ($1.25M-$1.5M). The three prices must be $999,900 / $1,249,900 / $1,499,900 - NEVER $1,249,900 / $1,249,900 / $1,499,900.
-- EXAMPLE: If 3 comps sold at $405K, $416K, $427.5K - the majority are in the $400K-$425K bracket, so Bullseye = $424,900. lowerBracketPrice = $399,900 ($375K-$400K). upperBracketPrice = $449,900 ($425K-$450K).
-- EXAMPLE: If comps cluster around $160K, the bracket is $160K-$170K (using $10K width), Bullseye = $169,900. lowerBracketPrice = $159,900.
-- EXAMPLE: If comps cluster around $750K, the bracket is $750K-$800K (using $50K width), Bullseye = $799,900. lowerBracketPrice = $749,900.
+- EXAMPLE: If 3 comps sold at $405K, $416K, $427.5K - the majority are in the $400K-$425K bracket, so Bullseye = $424,900. Do NOT pick the $425K-$450K bracket.
 
-ZILLOW DOCUMENT RULE:
-If NO Zillow PDF screenshot was provided among the uploaded documents, you MUST:
-- Leave ALL Zillow-related property fields empty strings: zestimate, zestimateRange, zestimateRent, zestimatePsf, zillowBeds, zillowBaths, zillowSqFt, zillowAppreciation10yr, zillowUpdatedMonth
-- Leave the narrative fields zillowWordOn, zillowNoteOn, and zillowContextNote as empty strings
-- Do NOT invent, estimate, or reference any Zillow data anywhere in the analysis
-- Do NOT mention Zillow, Zestimate, or online valuation tools in any narrative field (intro, marketConditions, priceJustification, etc.)
-Only apply the Zestimate Framing Rules below when a Zillow document IS provided.
-
-ZESTIMATE FRAMING RULES (only when Zillow document is provided):
+ZESTIMATE FRAMING RULES:
 
 SCENARIO A - Zestimate is HIGHER than Bullseye price:
 The zillowWordOn field must be a full paragraph of 4-5 sentences that does all of the following:
@@ -439,61 +424,7 @@ serve(async (req) => {
     console.log("Extracted address:", analysis.property?.address);
     console.log("Extracted owner1:", analysis.property?.owner1);
     console.log("Closed comps count:", analysis.closedComps?.length);
-    console.log("AI bullseye price (before correction):", analysis.pricing?.bullseyePrice);
-    console.log("AI lower price (before correction):", analysis.pricing?.lowerBracketPrice);
-
-    // ── DETERMINISTIC BRACKET PRICING ──
-    // The LLM picks the correct bracket based on comps, but we recalculate
-    // the three prices deterministically to prevent math errors.
-    if (analysis.pricing?.bullseyePrice) {
-      const bPrice = parseInt(String(analysis.pricing.bullseyePrice).replace(/[^0-9]/g, ''));
-      if (bPrice > 0) {
-        // Tiered bracket widths
-        const getTierWidth = (p: number): number => {
-          if (p >= 1_000_000) return 250_000;
-          if (p >= 500_000) return 50_000;
-          if (p >= 200_000) return 25_000;
-          return 10_000;
-        };
-
-        // Bullseye price implies the bracket high = bPrice + 100
-        const bracketHigh = bPrice + 100;
-        const bullseyeWidth = getTierWidth(bPrice);
-        const bracketLow = Math.floor(bracketHigh / bullseyeWidth) * bullseyeWidth;
-
-        // Lower bracket: one step below
-        const lowerHigh = bracketLow;
-        const lowerWidth = getTierWidth(lowerHigh - 1);
-        const lowerLow = lowerHigh - lowerWidth;
-
-        // Upper bracket: one step above
-        const upperLow = bracketHigh > bracketLow ? bracketLow + bullseyeWidth : bracketHigh;
-        const upperWidth = getTierWidth(upperLow);
-        const upperHigh = upperLow + upperWidth;
-
-        const fmt = (n: number) => `$${n.toLocaleString('en-US')}`;
-        const fmtK = (n: number) => {
-          if (n >= 1_000_000) {
-            const m = n / 1_000_000;
-            return `$${m % 1 === 0 ? m.toFixed(0) : m.toFixed(2).replace(/0+$/, '')}M`;
-          }
-          const k = n / 1_000;
-          return `$${k % 1 === 0 ? k.toFixed(0) : k.toFixed(1).replace(/\.0$/, '')}K`;
-        };
-
-        analysis.pricing.bullseyePrice = fmt(bracketLow + bullseyeWidth - 100);
-        analysis.pricing.bullseyeBracketLow = fmtK(bracketLow);
-        analysis.pricing.bullseyeBracketHigh = fmtK(bracketLow + bullseyeWidth);
-        analysis.pricing.lowerBracketPrice = fmt(lowerHigh - 100);
-        analysis.pricing.lowerBracketLow = fmtK(Math.max(0, lowerLow));
-        analysis.pricing.lowerBracketHigh = fmtK(lowerHigh);
-        analysis.pricing.upperBracketPrice = fmt(upperLow + upperWidth - 100);
-        analysis.pricing.upperBracketLow = fmtK(upperLow);
-        analysis.pricing.upperBracketHigh = fmtK(upperHigh);
-
-        console.log("Corrected pricing:", JSON.stringify(analysis.pricing));
-      }
-    }
+    console.log("Bullseye price:", analysis.pricing?.bullseyePrice);
 
     return new Response(
       JSON.stringify({ analysis }),
