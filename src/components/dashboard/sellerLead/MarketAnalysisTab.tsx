@@ -375,8 +375,7 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
 
     const captureAndDownload = async () => {
       try {
-        // Allow extra time for off-screen graphics to fully render (SVGs, fonts, images)
-        await new Promise((r) => setTimeout(r, 800));
+        await new Promise((r) => setTimeout(r, 300));
 
         const allImages = document.querySelectorAll('img');
         await Promise.all(
@@ -390,38 +389,18 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
           })
         );
 
-        await new Promise((r) => setTimeout(r, 800));
+        await new Promise((r) => setTimeout(r, 500));
 
         let capturedBullseye: string | null = null;
         let capturedZillow: string | null = null;
 
         if (bullseyeRef.current) {
-          try {
-            // Retry up to 3 times for bullseye capture
-            for (let attempt = 0; attempt < 3; attempt++) {
-              try {
-                capturedBullseye = await captureGraphic(bullseyeRef.current);
-                if (capturedBullseye) break;
-              } catch (captureErr) {
-                console.warn(`Bullseye capture attempt ${attempt + 1} failed:`, captureErr);
-                await new Promise((r) => setTimeout(r, 500));
-              }
-            }
-            if (capturedBullseye) setBullseyeImage(capturedBullseye);
-            else console.error("Bullseye capture returned null after retries");
-          } catch (e) {
-            console.error("Bullseye graphic capture failed:", e);
-          }
-        } else {
-          console.warn("bullseyeRef.current is null — graphic not rendered");
+          capturedBullseye = await captureGraphic(bullseyeRef.current);
+          setBullseyeImage(capturedBullseye);
         }
         if (zillowRef.current) {
-          try {
-            capturedZillow = await captureGraphic(zillowRef.current);
-            if (capturedZillow) setZillowImage(capturedZillow);
-          } catch (e) {
-            console.error("Zillow graphic capture failed:", e);
-          }
+          capturedZillow = await captureGraphic(zillowRef.current);
+          setZillowImage(capturedZillow);
         }
 
         setProgressMessage("Building document...");
