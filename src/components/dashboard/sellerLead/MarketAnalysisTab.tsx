@@ -91,6 +91,17 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
           if (withAnalysis?.analysis_json) {
             setAnalysis(withAnalysis.analysis_json);
           }
+          // Map saved source docs back to upload slots
+          const sourceDocs = data.filter((f: any) => f.file_type === "source_doc" && f.document_label);
+          setDocuments((prev) =>
+            prev.map((slot) => {
+              const saved = sourceDocs.find((f: any) => f.document_label === slot.label);
+              if (saved) {
+                return { ...slot, savedFilePath: saved.file_path, savedFileName: saved.file_name };
+              }
+              return slot;
+            })
+          );
         }
       } catch {}
       setLoadingSaved(false);
