@@ -373,9 +373,9 @@ export async function generateMarketAnalysisDocx(
   sections.push(sectionHeading("CURRENT MARKET CONDITIONS"));
   if (narrative.marketConditions) sections.push(bodyParagraph(narrative.marketConditions));
 
-  // ── 8. ZILLOW ZESTIMATE ──
-  sections.push(sectionHeading("ZILLOW ZESTIMATE - WHAT IT SAYS AND WHAT IT MISSES"));
+  // ── 8. ZILLOW ZESTIMATE (only if Zillow document was uploaded) ──
   if (zillowImage) {
+    sections.push(sectionHeading("ZILLOW ZESTIMATE - WHAT IT SAYS AND WHAT IT MISSES"));
     try {
       const imgBytes = await base64ToUint8Array(zillowImage);
       const dims = await getImageDimensions(zillowImage);
@@ -391,9 +391,9 @@ export async function generateMarketAnalysisDocx(
     } catch (e) {
       console.error("Failed to embed Zillow image:", e);
     }
+    if (narrative.zillowWordOn) sections.push(bodyParagraph(narrative.zillowWordOn));
+    if (narrative.zillowNoteOn) sections.push(bodyParagraph(narrative.zillowNoteOn));
   }
-  if (narrative.zillowWordOn) sections.push(bodyParagraph(narrative.zillowWordOn));
-  if (narrative.zillowNoteOn) sections.push(bodyParagraph(narrative.zillowNoteOn));
 
   // ── 9. PRICING STRATEGY ──
   sections.push(sectionHeading("Our Pricing Strategy: The Bullseye Pricing Model"));
