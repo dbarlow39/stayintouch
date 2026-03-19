@@ -21,7 +21,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { ArrowLeft, Save, Trash2, Loader2, Asterisk, Zap, FileText, BarChart3, GitBranch, DollarSign, ClipboardList, UserCheck } from "lucide-react";
+import { ArrowLeft, Save, Trash2, Loader2, Asterisk, Zap, FileText, BarChart3, GitBranch, DollarSign, ClipboardList, UserCheck, Mail } from "lucide-react";
+import PhoneCallTextLink from "@/components/PhoneCallTextLink";
+import { openEmailClient } from "@/utils/emailClientUtils";
 import { useToast } from "@/hooks/use-toast";
 import LeadEnrollmentDialog from "@/components/dashboard/LeadEnrollmentDialog";
 import logo from "@/assets/logo.jpg";
@@ -461,7 +463,19 @@ const SellerLeadDetail = () => {
 
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <Label htmlFor="email">Email</Label>
+                        <Label htmlFor="email" className="flex items-center gap-1">
+                          Email
+                          {formData.email && (
+                            <button
+                              type="button"
+                              onClick={() => openEmailClient(formData.email.split(",")[0].trim())}
+                              className="inline-flex items-center justify-center h-5 w-5 rounded-md text-primary hover:bg-accent transition-colors"
+                              title="Send email"
+                            >
+                              <Mail className="h-3.5 w-3.5" />
+                            </button>
+                          )}
+                        </Label>
                         <Input
                           id="email"
                            type="text"
@@ -471,7 +485,12 @@ const SellerLeadDetail = () => {
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="phone">Phone</Label>
+                        <Label htmlFor="phone" className="flex items-center gap-1">
+                          Phone
+                          {formData.phone && (
+                            <PhoneCallTextLink phone={formData.phone} inline />
+                          )}
+                        </Label>
                         <Input
                           id="phone"
                           value={formData.phone}
