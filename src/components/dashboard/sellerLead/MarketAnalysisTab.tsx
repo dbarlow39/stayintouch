@@ -34,6 +34,8 @@ interface DocumentSlot {
   description: string;
   file: File | null;
   required: boolean;
+  savedFilePath?: string;
+  savedFileName?: string;
 }
 
 interface MarketAnalysisTabProps {
