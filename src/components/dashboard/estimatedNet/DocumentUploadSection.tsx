@@ -242,7 +242,7 @@ const DocumentUploadSection = ({ propertyId, clientId, onContractParsed }: Docum
           .from("property_documents")
           .insert({
             agent_id: user.id,
-            property_id: propertyId,
+            property_id: propertyId || null,
             client_id: clientId,
             file_name: file.name,
             file_path: filePath,
