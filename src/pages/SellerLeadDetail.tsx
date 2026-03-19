@@ -463,39 +463,43 @@ const SellerLeadDetail = () => {
 
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <Label htmlFor="email" className="flex items-center gap-1">
-                          Email
+                        <Label htmlFor="email">Email</Label>
+                        <div className="relative">
+                          <Input
+                            id="email"
+                            type="text"
+                            placeholder="email@example.com, email2@example.com"
+                            value={formData.email}
+                            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                            className="pr-10"
+                          />
                           {formData.email && (
                             <button
                               type="button"
                               onClick={() => openEmailClient(formData.email.split(",")[0].trim())}
-                              className="inline-flex items-center justify-center h-5 w-5 rounded-md text-primary hover:bg-accent transition-colors"
+                              className="absolute right-2 top-1/2 -translate-y-1/2 inline-flex items-center justify-center h-6 w-6 rounded-md text-primary hover:bg-accent transition-colors"
                               title="Send email"
                             >
                               <Mail className="h-3.5 w-3.5" />
                             </button>
                           )}
-                        </Label>
-                        <Input
-                          id="email"
-                           type="text"
-                           placeholder="email@example.com, email2@example.com"
-                           value={formData.email}
-                           onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                        />
+                        </div>
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="phone" className="flex items-center gap-1">
-                          Phone
+                        <Label htmlFor="phone">Phone</Label>
+                        <div className="relative">
+                          <Input
+                            id="phone"
+                            value={formData.phone}
+                            onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                            className="pr-16"
+                          />
                           {formData.phone && (
-                            <PhoneCallTextLink phone={formData.phone} inline />
+                            <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                              <PhoneCallTextLink phone={formData.phone} inline />
+                            </div>
                           )}
-                        </Label>
-                        <Input
-                          id="phone"
-                          value={formData.phone}
-                          onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                        />
+                        </div>
                       </div>
                     </div>
 
