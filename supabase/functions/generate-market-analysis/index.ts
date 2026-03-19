@@ -439,7 +439,61 @@ serve(async (req) => {
     console.log("Extracted address:", analysis.property?.address);
     console.log("Extracted owner1:", analysis.property?.owner1);
     console.log("Closed comps count:", analysis.closedComps?.length);
-    console.log("Bullseye price:", analysis.pricing?.bullseyePrice);
+    console.log("AI bullseye price (before correction):", analysis.pricing?.bullseyePrice);
+    console.log("AI lower price (before correction):", analysis.pricing?.lowerBracketPrice);
+
+    // ── DETERMINISTIC BRACKET PRICING ──
+    // The LLM picks the correct bracket based on comps, but we recalculate
+    // the three prices deterministically to prevent math errors.
+    if (analysis.pricing?.bullseyePrice) {
+      const bPrice = parseInt(String(analysis.pricing.bullseyePrice).replace(/[^0-9]/g, ''));
+      if (bPrice > 0) {
+        // Tiered bracket widths
+        const getTierWidth = (p: number): number => {
+          if (p >= 1_000_000) return 250_000;
+          if (p >= 500_000) return 50_000;
+          if (p >= 200_000) return 25_000;
+          return 10_000;
+        };
+
+        // Bullseye price implies the bracket high = bPrice + 100
+        const bracketHigh = bPrice + 100;
+        const bullseyeWidth = getTierWidth(bPrice);
+        const bracketLow = Math.floor(bracketHigh / bullseyeWidth) * bullseyeWidth;
+
+        // Lower bracket: one step below
+        const lowerHigh = bracketLow;
+        const lowerWidth = getTierWidth(lowerHigh - 1);
+        const lowerLow = lowerHigh - lowerWidth;
+
+        // Upper bracket: one step above
+        const upperLow = bracketHigh > bracketLow ? bracketLow + bullseyeWidth : bracketHigh;
+        const upperWidth = getTierWidth(upperLow);
+        const upperHigh = upperLow + upperWidth;
+
+        const fmt = (n: number) => `$${n.toLocaleString('en-US')}`;
+        const fmtK = (n: number) => {
+          if (n >= 1_000_000) {
+            const m = n / 1_000_000;
+            return `$${m % 1 === 0 ? m.toFixed(0) : m.toFixed(2).replace(/0+$/, '')}M`;
+          }
+          const k = n / 1_000;
+          return `$${k % 1 === 0 ? k.toFixed(0) : k.toFixed(1).replace(/\.0$/, '')}K`;
+        };
+
+        analysis.pricing.bullseyePrice = fmt(bracketLow + bullseyeWidth - 100);
+        analysis.pricing.bullseyeBracketLow = fmtK(bracketLow);
+        analysis.pricing.bullseyeBracketHigh = fmtK(bracketLow + bullseyeWidth);
+        analysis.pricing.lowerBracketPrice = fmt(lowerHigh - 100);
+        analysis.pricing.lowerBracketLow = fmtK(Math.max(0, lowerLow));
+        analysis.pricing.lowerBracketHigh = fmtK(lowerHigh);
+        analysis.pricing.upperBracketPrice = fmt(upperLow + upperWidth - 100);
+        analysis.pricing.upperBracketLow = fmtK(upperLow);
+        analysis.pricing.upperBracketHigh = fmtK(upperHigh);
+
+        console.log("Corrected pricing:", JSON.stringify(analysis.pricing));
+      }
+    }
 
     return new Response(
       JSON.stringify({ analysis }),
