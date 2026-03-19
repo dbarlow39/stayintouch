@@ -491,6 +491,28 @@ serve(async (req) => {
     }
     // --- End pricing recalculation ---
 
+    // --- Strip Zillow narratives if no Zillow document was provided ---
+    const hasZillowDoc = documents.some((d: any) =>
+      d.name && /zillow/i.test(d.name)
+    );
+    if (!hasZillowDoc && analysis?.narrative) {
+      analysis.narrative.zillowWordOn = "";
+      analysis.narrative.zillowNoteOn = "";
+      analysis.narrative.zillowContextNote = "";
+      console.log("No Zillow document provided — cleared Zillow narrative fields");
+    }
+    if (!hasZillowDoc && analysis?.property) {
+      analysis.property.zestimate = "";
+      analysis.property.zestimateRange = "";
+      analysis.property.zestimateRent = "";
+      analysis.property.zestimatePsf = "";
+      analysis.property.zillowBeds = "";
+      analysis.property.zillowBaths = "";
+      analysis.property.zillowSqFt = "";
+      analysis.property.zillowAppreciation10yr = "";
+      analysis.property.zillowUpdatedMonth = "";
+    }
+
     // Log key extracted fields to verify data
     console.log("Extracted address:", analysis.property?.address);
     console.log("Extracted owner1:", analysis.property?.owner1);
