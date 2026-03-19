@@ -396,7 +396,7 @@ const DocumentUploadSection = ({ propertyId, clientId, onContractParsed }: Docum
             type="button"
             variant="outline"
             onClick={handleUploadClick}
-            disabled={isProcessing || !propertyId}
+            disabled={isProcessing}
           >
             {uploading ? (
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
