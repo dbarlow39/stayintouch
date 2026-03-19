@@ -452,11 +452,6 @@ const DocumentUploadSection = ({ propertyId, clientId, onContractParsed }: Docum
         accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.gif,.txt"
       />
 
-      {!propertyId && (
-        <p className="text-sm text-muted-foreground text-center py-4">
-          Save the property first to upload documents
-        </p>
-      )}
 
       {propertyId && loading && (
         <div className="flex justify-center py-4">
