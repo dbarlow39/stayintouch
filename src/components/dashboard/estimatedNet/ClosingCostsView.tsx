@@ -181,8 +181,7 @@ const ClosingCostsView = ({ propertyData, propertyId, onBack, onEdit, onNavigate
 
   const handleDownloadPDF = async () => {
     try {
-      const html2canvasModule = await import('html2canvas');
-      const html2canvas = html2canvasModule.default || html2canvasModule;
+      const html2canvas = (await import('html2canvas')).default;
       const { jsPDF } = await import('jspdf');
       
       const element = document.getElementById('closing-costs-content');
