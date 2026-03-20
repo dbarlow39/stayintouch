@@ -43,43 +43,42 @@ serve(async (req) => {
     let result;
     let warning: string | undefined;
 
-    if (link) {
-      // Link share post — creates a clickable card on Facebook with OG metadata
-      // Force a re-scrape of the OG endpoint before posting to reduce stale/low-quality previews
-      let scrapedSuccessfully = false;
-      try {
-        const scrapeResp = await fetch(
-          `https://graph.facebook.com/?id=${encodeURIComponent(link)}&scrape=true&access_token=${page_access_token}`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-          }
-        );
-        scrapedSuccessfully = scrapeResp.ok;
-        if (scrapedSuccessfully) {
-          console.log("[facebook-post] Pre-scrape successful for link:", link);
-        } else {
-          console.warn("[facebook-post] Pre-scrape returned non-OK status:", scrapeResp.status);
-        }
-      } catch (scrapeErr) {
-        console.error("[facebook-post] Pre-scrape failed:", scrapeErr);
-      }
+    if (link && photo_url) {
+      // Link + photo post — upload photo unpublished, then attach to feed post with link
+      const photoUploadResp = await fetch(`https://graph.facebook.com/v21.0/${page_id}/photos`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          url: photo_url,
+          published: false,
+          access_token: page_access_token,
+        }),
+      });
+      const photoUploadData = await photoUploadResp.json();
+      console.log("[facebook-post] Photo upload response:", JSON.stringify(photoUploadData));
 
-      if (!scrapedSuccessfully) {
-        warning = "Post published but the preview image may take a moment to appear. You can refresh it from Facebook.";
-      }
-
-      // Post the link with OG metadata
-      const body: any = {
+      const feedBody: any = {
         message,
         link,
         access_token: page_access_token,
       };
 
+      if (photoUploadData.id) {
+        feedBody.attached_media = [{ media_fbid: photoUploadData.id }];
+      }
+
       const postResp = await fetch(`https://graph.facebook.com/v21.0/${page_id}/feed`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
+        body: JSON.stringify(feedBody),
+      });
+      result = await postResp.json();
+    } else if (link) {
+      // Link-only post
+      const postResp = await fetch(`https://graph.facebook.com/v21.0/${page_id}/feed`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message, link, access_token: page_access_token }),
       });
       result = await postResp.json();
     } else if (photo_url) {
@@ -87,11 +86,7 @@ serve(async (req) => {
       const postResp = await fetch(`https://graph.facebook.com/v21.0/${page_id}/photos`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          url: photo_url,
-          message,
-          access_token: page_access_token,
-        }),
+        body: JSON.stringify({ url: photo_url, message, access_token: page_access_token }),
       });
       result = await postResp.json();
     } else {
@@ -99,10 +94,7 @@ serve(async (req) => {
       const postResp = await fetch(`https://graph.facebook.com/v21.0/${page_id}/feed`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          message,
-          access_token: page_access_token,
-        }),
+        body: JSON.stringify({ message, access_token: page_access_token }),
       });
       result = await postResp.json();
     }
