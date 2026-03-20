@@ -217,7 +217,7 @@ const WeeklyUpdateTab = () => {
   });
   
   const [articleText, setArticleText] = useState('');
-  const [isSummarizing, setIsSummarizing] = useState(false);
+  
   
   const [selectedClients, setSelectedClients] = useState<Set<string>>(new Set());
   const [generatedEmails, setGeneratedEmails] = useState<Map<string, GeneratedEmail>>(new Map());
