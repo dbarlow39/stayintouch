@@ -49,7 +49,7 @@ serve(async (req) => {
       let scrapedSuccessfully = false;
       try {
         const scrapeResp = await fetch(
-          `https://graph.facebook.com/?id=${encodeURIComponent(link)}&scrape=true`,
+          `https://graph.facebook.com/?id=${encodeURIComponent(link)}&scrape=true&access_token=${page_access_token}`,
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
