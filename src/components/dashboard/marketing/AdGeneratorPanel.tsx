@@ -240,6 +240,7 @@ const AdGeneratorPanel = ({ listing, autoGenerate = false }: AdGeneratorPanelPro
           agent_id: user.id,
           message,
           link: ogUrlWithImage,
+          photo_url: fbPublicUrl,
           instagram_image_url: igPublicUrl,
         }),
       });
