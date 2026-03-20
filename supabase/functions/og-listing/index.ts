@@ -103,6 +103,8 @@ Deno.serve(async (req) => {
    <meta property="og:description" content="${esc(ogDescription)}" />
    <meta property="og:image" content="${esc(ogImage)}" />
    <meta property="og:image:secure_url" content="${esc(ogImage)}" />
+   <meta property="og:image:width" content="2400" />
+   <meta property="og:image:height" content="1260" />
    <meta property="og:url" content="${esc(ogUrl)}" />
    <meta property="og:type" content="website" />
    <meta property="og:site_name" content="Sellfor1Percent.com" />
