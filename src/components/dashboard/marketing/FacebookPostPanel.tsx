@@ -178,7 +178,6 @@ const FacebookPostPanel = ({ listing }: FacebookPostPanelProps) => {
       const body: any = {
         agent_id: user!.id,
         message: message.trim(),
-        link: `${SUPABASE_URL}/functions/v1/og-listing?id=${listing.id}&v=${Date.now()}`,
       };
       if (listing.photos?.length > 0) {
         body.photo_url = listing.photos[0];

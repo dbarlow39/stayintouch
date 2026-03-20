@@ -127,7 +127,6 @@ serve(async (req) => {
 
     // Step 3: Create Ad using the existing post
     console.log("[boost] Creating ad from post:", post_id);
-    const numericPostId = post_id.includes("_") ? post_id.split("_").pop() : post_id;
     const adResp = await fetch(`${apiBase}/act_${AD_ACCOUNT_ID}/ads`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -135,7 +134,7 @@ serve(async (req) => {
         name: `Boost Ad - ${post_id}`,
         adset_id: adSetId,
         creative: {
-          object_story_id: `${page_id}_${numericPostId}`,
+          object_story_id: `${page_id}_${post_id.split("_").pop()}`,
         },
         status: "PAUSED",
         access_token: access_token,
