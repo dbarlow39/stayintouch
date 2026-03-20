@@ -1111,7 +1111,7 @@ const WeeklyUpdateTab = () => {
               📰 Paste Real Estate Article (optional)
             </Label>
             <p className="text-xs text-muted-foreground">
-              Paste an article and we'll summarize it into a paragraph for your email
+              Paste an article and it will be added as the opening paragraphs of your email
             </p>
             <Textarea
               id="article_text"
@@ -1124,33 +1124,16 @@ const WeeklyUpdateTab = () => {
               <Button
                 variant="outline"
                 size="sm"
-                disabled={isSummarizing || !articleText.trim()}
-                onClick={async () => {
-                  setIsSummarizing(true);
-                  try {
-                    const { data, error } = await supabase.functions.invoke('summarize-article', {
-                      body: { article: articleText },
-                    });
-                    if (error) throw error;
-                    
-                    setMarketData(prev => ({ ...prev, article_summary: data.summary }));
-                    setHasUserEdited(true);
-                    setArticleText('');
-                    toast({ title: "Article summarized", description: "Summary added to your market data" });
-                  } catch (err) {
-                    console.error('Error summarizing article:', err);
-                    toast({ title: "Error summarizing article", description: err instanceof Error ? err.message : "Unknown error", variant: "destructive" });
-                  } finally {
-                    setIsSummarizing(false);
-                  }
+                disabled={!articleText.trim()}
+                onClick={() => {
+                  setMarketData(prev => ({ ...prev, article_summary: articleText.trim() }));
+                  setHasUserEdited(true);
+                  setArticleText('');
+                  toast({ title: "Article added", description: "Article will appear as the opening paragraphs of your email" });
                 }}
               >
-                {isSummarizing ? (
-                  <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                ) : (
-                  <FileText className="w-4 h-4 mr-2" />
-                )}
-                Summarize Article
+                <FileText className="w-4 h-4 mr-2" />
+                Add to Email
               </Button>
               {marketData.article_summary && (
                 <Button
@@ -1160,18 +1143,17 @@ const WeeklyUpdateTab = () => {
                     const nextMarketData = { ...marketData, article_summary: undefined };
                     setMarketData(nextMarketData);
                     setHasUserEdited(true);
-                    // Save immediately so navigating away doesn't bring the old summary back
                     saveMarketData.mutate(nextMarketData);
                   }}
                 >
-                  Clear Summary
+                  Clear Article
                 </Button>
               )}
             </div>
             {marketData.article_summary && (
               <div className="p-3 bg-muted/50 rounded-md border">
-                <p className="text-sm font-medium mb-1">📝 Article Summary:</p>
-                <p className="text-sm text-muted-foreground">{marketData.article_summary}</p>
+                <p className="text-sm font-medium mb-1">📰 Article Added:</p>
+                <p className="text-sm text-muted-foreground whitespace-pre-line">{marketData.article_summary}</p>
               </div>
             )}
           </div>
