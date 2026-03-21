@@ -50,9 +50,8 @@ serve(async (req) => {
     }
 
     // Check file size - edge functions have ~256MB memory limit
-    // A 10MB PDF becomes ~13-14MB base64, and we make multiple API calls
-    // Limit to 8MB to be safe with memory overhead
-    const MAX_FILE_SIZE = 8 * 1024 * 1024; // 8MB
+    // Large PDFs become bigger as base64, but Gemini handles up to 20MB inline
+    const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20MB
     const arrayBuffer = await fileData.arrayBuffer();
     const fileSizeMB = (arrayBuffer.byteLength / (1024 * 1024)).toFixed(2);
     console.log(`File size: ${fileSizeMB}MB`);
@@ -60,7 +59,7 @@ serve(async (req) => {
     if (arrayBuffer.byteLength > MAX_FILE_SIZE) {
       console.error(`File too large: ${fileSizeMB}MB exceeds ${MAX_FILE_SIZE / (1024 * 1024)}MB limit`);
       return new Response(JSON.stringify({ 
-        error: `File too large (${fileSizeMB}MB). Please upload a PDF under 8MB. Tip: Split multi-page contracts or reduce scan quality.` 
+        error: `File too large (${fileSizeMB}MB). Please upload a PDF under 20MB. Tip: Split multi-page contracts or reduce scan quality.` 
       }), {
         status: 413,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
