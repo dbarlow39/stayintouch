@@ -26,6 +26,8 @@ Things you might ask about:
 
 Keep your questions focused and practical. Ask 2-4 questions at a time, not overwhelming lists. Be conversational and professional.
 
+IMPORTANT: Do NOT suggest pricing, price ranges, or bracket recommendations during this Q&A phase. Your job here is ONLY to gather information. Pricing analysis happens in the final generation step.
+
 When the agent says they're ready to generate or have answered enough questions, respond with exactly: "READY_TO_GENERATE" (nothing else). This signals the system to proceed with the full analysis.
 
 If the agent provides additional notes or context, acknowledge it and ask follow-up questions if needed.`;
@@ -38,23 +40,22 @@ serve(async (req) => {
   try {
     const { messages, documents, agentNotes } = await req.json();
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY is not configured");
+    const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
+    if (!ANTHROPIC_API_KEY) {
+      throw new Error("ANTHROPIC_API_KEY is not configured");
     }
 
-    // Build the initial context from documents (only for the first message)
-    const chatMessages: any[] = [
-      { role: "system", content: SYSTEM_PROMPT },
-    ];
+    // Build Anthropic messages array
+    const anthropicMessages: any[] = [];
 
-    // If documents are provided (first call), build document context
+    // If documents are provided (first call), build document context as first user message
     if (documents && Array.isArray(documents) && documents.length > 0) {
       const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
       const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
       const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-      let docSummary = "I've uploaded the following documents for review:\n\n";
+      const userContent: any[] = [];
+      userContent.push({ type: "text", text: "I've uploaded the following documents for review:\n" });
 
       for (const doc of documents) {
         if (!doc.filePath) continue;
@@ -68,7 +69,7 @@ serve(async (req) => {
 
           if (downloadError) {
             console.error(`Failed to download ${doc.name}:`, downloadError);
-            docSummary += `- ${doc.name}: (failed to read)\n`;
+            userContent.push({ type: "text", text: `- ${doc.name}: (failed to read)\n` });
             continue;
           }
 
@@ -89,58 +90,86 @@ serve(async (req) => {
                 .replace(/&apos;/g, "'")
                 .replace(/\n{3,}/g, "\n\n")
                 .trim();
-              docSummary += `--- ${doc.name} ---\n${textContent}\n\n`;
+              userContent.push({
+                type: "text",
+                text: `[Document: ${doc.name}]\n${textContent}\n`,
+              });
             }
           } catch (e) {
             console.error(`Failed to parse docx ${doc.name}:`, e);
-            docSummary += `- ${doc.name}: (failed to parse)\n`;
+            userContent.push({ type: "text", text: `- ${doc.name}: (failed to parse)\n` });
           }
         } else {
-          // For PDFs and images, create signed URL and mention it
-          const { data: signedUrlData } = await supabase.storage
+          // PDFs and images - use signed URLs so Claude can read them
+          const { data: signedUrlData, error: signedUrlError } = await supabase.storage
             .from("market-analysis-docs")
             .createSignedUrl(doc.filePath, 600);
 
-          if (signedUrlData?.signedUrl) {
-            // For text-based models, we describe the document
-            docSummary += `- ${doc.name}: [${mimeType} document uploaded]\n`;
+          if (signedUrlError || !signedUrlData?.signedUrl) {
+            console.error(`Failed to create signed URL for ${doc.name}:`, signedUrlError);
+            continue;
+          }
+
+          if (mimeType.startsWith("image/")) {
+            userContent.push({
+              type: "image",
+              source: { type: "url", url: signedUrlData.signedUrl },
+            });
+          } else {
+            userContent.push({
+              type: "document",
+              source: { type: "url", url: signedUrlData.signedUrl },
+            });
           }
         }
       }
 
       if (agentNotes && agentNotes.trim()) {
-        docSummary += `\n--- Agent Notes ---\n${agentNotes.trim()}\n`;
+        userContent.push({
+          type: "text",
+          text: `\n--- Agent Notes ---\n${agentNotes.trim()}\n`,
+        });
       }
 
-      // Add the document context as the first user message
-      chatMessages.push({ role: "user", content: docSummary });
+      anthropicMessages.push({ role: "user", content: userContent });
     }
 
     // Add conversation history
     if (messages && Array.isArray(messages)) {
-      chatMessages.push(...messages.filter((_: any, i: number) => {
-        // If we added document context, skip the first user message from history (it's the doc context)
-        if (documents && documents.length > 0 && i === 0) return false;
-        return true;
-      }));
+      for (const msg of messages) {
+        // Skip the first user message if we already added document context
+        if (documents && documents.length > 0 && anthropicMessages.length === 1 && msg.role === "user" && anthropicMessages[0]?.role === "user") {
+          // Merge this message content into the existing user message
+          const existing = anthropicMessages[0].content;
+          if (Array.isArray(existing)) {
+            existing.push({ type: "text", text: msg.content });
+          }
+          continue;
+        }
+        anthropicMessages.push({ role: msg.role, content: msg.content });
+      }
     }
 
-    // If no conversation messages beyond documents, this is the initial call
-    if (!messages || messages.length === 0) {
-      // The doc summary is already added as user message
+    // Ensure messages alternate user/assistant (Anthropic requirement)
+    // If we have no messages, the document context serves as the first user message
+    if (anthropicMessages.length === 0) {
+      throw new Error("No messages or documents provided");
     }
 
-    console.log(`Sending ${chatMessages.length} messages to Lovable AI for market analysis chat`);
+    console.log(`Sending ${anthropicMessages.length} messages to Claude for market analysis chat`);
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        "x-api-key": ANTHROPIC_API_KEY,
+        "anthropic-version": "2023-06-01",
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
-        messages: chatMessages,
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 4096,
+        system: SYSTEM_PROMPT,
+        messages: anthropicMessages,
         stream: true,
       }),
     });
@@ -152,21 +181,49 @@ serve(async (req) => {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      if (response.status === 402) {
-        return new Response(JSON.stringify({ error: "Payment required, please add funds." }), {
-          status: 402,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
       const t = await response.text();
-      console.error("AI gateway error:", response.status, t);
-      return new Response(JSON.stringify({ error: "AI gateway error" }), {
+      console.error("Claude API error:", response.status, t);
+      return new Response(JSON.stringify({ error: "Claude API error" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    return new Response(response.body, {
+    // Transform Anthropic SSE stream to OpenAI-compatible SSE format
+    const transformStream = new TransformStream({
+      transform(chunk, controller) {
+        const text = new TextDecoder().decode(chunk);
+        const lines = text.split("\n");
+
+        for (const line of lines) {
+          if (!line.startsWith("data: ")) continue;
+          const jsonStr = line.slice(6).trim();
+          if (!jsonStr) continue;
+
+          try {
+            const event = JSON.parse(jsonStr);
+
+            if (event.type === "content_block_delta" && event.delta?.type === "text_delta") {
+              // Convert to OpenAI format
+              const openAiChunk = {
+                choices: [{ delta: { content: event.delta.text } }],
+              };
+              controller.enqueue(
+                new TextEncoder().encode(`data: ${JSON.stringify(openAiChunk)}\n\n`)
+              );
+            } else if (event.type === "message_stop") {
+              controller.enqueue(new TextEncoder().encode("data: [DONE]\n\n"));
+            }
+          } catch {
+            // Skip unparseable lines
+          }
+        }
+      },
+    });
+
+    const transformedBody = response.body!.pipeThrough(transformStream);
+
+    return new Response(transformedBody, {
       headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
     });
   } catch (e) {
