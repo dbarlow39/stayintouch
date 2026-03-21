@@ -463,13 +463,13 @@ const DocumentUploadSection = ({ propertyId, clientId, onContractParsed }: Docum
       />
 
 
-      {propertyId && loading && (
+      {(propertyId || clientId) && loading && (
         <div className="flex justify-center py-4">
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
         </div>
       )}
 
-      {propertyId && !loading && documents.length === 0 && (
+      {(propertyId || clientId) && !loading && documents.length === 0 && (
         <p className="text-sm text-muted-foreground text-center py-4">
           No documents uploaded yet
         </p>
