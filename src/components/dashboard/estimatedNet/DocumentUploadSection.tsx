@@ -93,28 +93,38 @@ const DocumentUploadSection = ({ propertyId, clientId, onContractParsed }: Docum
   const [showTypeDialog, setShowTypeDialog] = useState(false);
   const [selectedDocType, setSelectedDocType] = useState<string>("purchase_contract");
 
-  // Fetch documents when propertyId changes
+  // Fetch documents when propertyId or clientId changes
   useEffect(() => {
-    if (propertyId) {
-      fetchDocuments();
-    } else {
-      setDocuments([]);
-    }
-  }, [propertyId]);
+    fetchDocuments();
+  }, [propertyId, clientId]);
 
   const fetchDocuments = async () => {
-    if (!propertyId) return;
-    
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from("property_documents")
-        .select("*")
-        .eq("property_id", propertyId)
-        .order("uploaded_at", { ascending: false });
+      if (propertyId) {
+        // Fetch documents linked to this property
+        const { data, error } = await supabase
+          .from("property_documents")
+          .select("*")
+          .eq("property_id", propertyId)
+          .order("uploaded_at", { ascending: false });
 
-      if (error) throw error;
-      setDocuments((data as PropertyDocument[]) || []);
+        if (error) throw error;
+        setDocuments((data as PropertyDocument[]) || []);
+      } else if (clientId) {
+        // For unsaved deals, fetch orphaned documents by client_id where property_id is null
+        const { data, error } = await supabase
+          .from("property_documents")
+          .select("*")
+          .eq("client_id", clientId)
+          .is("property_id", null)
+          .order("uploaded_at", { ascending: false });
+
+        if (error) throw error;
+        setDocuments((data as PropertyDocument[]) || []);
+      } else {
+        setDocuments([]);
+      }
     } catch (error) {
       console.error("Error fetching documents:", error);
     } finally {
@@ -453,13 +463,13 @@ const DocumentUploadSection = ({ propertyId, clientId, onContractParsed }: Docum
       />
 
 
-      {propertyId && loading && (
+      {(propertyId || clientId) && loading && (
         <div className="flex justify-center py-4">
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
         </div>
       )}
 
-      {propertyId && !loading && documents.length === 0 && (
+      {(propertyId || clientId) && !loading && documents.length === 0 && (
         <p className="text-sm text-muted-foreground text-center py-4">
           No documents uploaded yet
         </p>

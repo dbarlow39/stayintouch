@@ -785,6 +785,15 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
         if (error) throw error;
         savedId = data.id;
         setCurrentPropertyId(savedId);
+
+        // Link any orphaned documents (uploaded before the deal was saved) to this new property
+        if (linkedClientId) {
+          await supabase
+            .from("property_documents")
+            .update({ property_id: savedId } as any)
+            .eq("client_id", linkedClientId)
+            .is("property_id", null);
+        }
       }
 
       const updatedFormData = {
