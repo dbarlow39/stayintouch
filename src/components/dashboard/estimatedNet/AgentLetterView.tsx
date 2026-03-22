@@ -313,6 +313,28 @@ const AgentLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate 
     },
   ];
 
+  console.log('[AgentLetterView] Rendering with propertyData:', JSON.stringify({
+    closingDate: propertyData.closingDate,
+    possession: propertyData.possession,
+    inContract: propertyData.inContract,
+    loanCommitment: propertyData.loanCommitment,
+    inspectionDays: propertyData.inspectionDays,
+    remedyPeriodDays: propertyData.remedyPeriodDays,
+    depositCollection: propertyData.depositCollection,
+    finalWalkThrough: propertyData.finalWalkThrough,
+    agentName: propertyData.agentName,
+    streetAddress: propertyData.streetAddress,
+  }));
+
+  try {
+    console.log('[AgentLetterView] titleCommitmentDue:', titleCommitmentDue);
+    console.log('[AgentLetterView] loanCommitmentDue:', loanCommitmentDue);
+    console.log('[AgentLetterView] inspectionDue:', inspectionDue);
+    console.log('[AgentLetterView] remedyDue:', remedyDue);
+  } catch (e) {
+    console.error('[AgentLetterView] Date calculation error:', e);
+  }
+
   return (
     <div className="flex w-full min-h-[600px]">
       {/* Left Sidebar Navigation */}
