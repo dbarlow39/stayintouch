@@ -279,20 +279,28 @@ const ResidentialWorkSheetTab = ({ lead }: ResidentialWorkSheetTabProps) => {
           });
           // Merge: existing DB data + local changes (local wins on conflicts)
           const mergedData = { ...(existing.inspection_data as Record<string, any> || {}), ...inspectionData };
-          const { error } = await supabase.from("inspections").update({ user_id: user.id, property_address: mergedData["property-info"]?.address || "Untitled Property", inspection_data: mergedData }).eq("id", inspectionId);
+          // Upload any base64 photos to storage
+          const hasBase64 = Object.values(photos).some(arr => arr.some(p => p.startsWith("data:")));
+          let photosToSave = photos;
+          if (hasBase64) {
+            photosToSave = await uploadNewPhotos(photos, user.id);
+            setPhotos(photosToSave);
+          }
+          const { error } = await supabase.from("inspections").update({ user_id: user.id, property_address: mergedData["property-info"]?.address || "Untitled Property", inspection_data: mergedData, photos: photosToSave }).eq("id", inspectionId);
           if (error) throw error;
         }
       } else {
-        const { data, error } = await supabase.from("inspections").insert({ user_id: user.id, property_address: inspectionData["property-info"]?.address || "Untitled Property", inspection_data: inspectionData }).select("id").single();
+        // Upload any base64 photos for new inspections too
+        const hasBase64 = Object.values(photos).some(arr => arr.some(p => p.startsWith("data:")));
+        let photosToSave = photos;
+        if (hasBase64) {
+          photosToSave = await uploadNewPhotos(photos, user.id);
+          setPhotos(photosToSave);
+        }
+        const { data, error } = await supabase.from("inspections").insert({ user_id: user.id, property_address: inspectionData["property-info"]?.address || "Untitled Property", inspection_data: inspectionData, photos: photosToSave }).select("id").single();
         if (error) throw error;
         inspectionId = data.id;
         setCurrentInspectionId(inspectionId);
-      }
-      const hasNewPhotos = Object.values(photos).some(arr => arr.some(p => p.startsWith("data:")));
-      if (hasNewPhotos) {
-        const processedPhotos = await uploadNewPhotos(photos, user.id);
-        setPhotos(processedPhotos);
-        await supabase.from("inspections").update({ photos: processedPhotos }).eq("id", inspectionId);
       }
       toast.success("Work sheet saved successfully!");
     } catch (error: any) {
