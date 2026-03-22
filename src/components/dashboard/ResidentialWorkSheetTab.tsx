@@ -114,6 +114,7 @@ const ResidentialWorkSheetTab = ({ lead }: ResidentialWorkSheetTabProps) => {
     autoSaveRef.current = setInterval(async () => {
       if (!user) return;
       const data = inspectionDataRef.current;
+      const currentPhotos = photosRef.current;
       const inspId = currentInspectionIdRef.current;
       
       // Don't auto-save partial data (only property-info from lead pre-fill)
@@ -123,6 +124,14 @@ const ResidentialWorkSheetTab = ({ lead }: ResidentialWorkSheetTabProps) => {
       }
       
       try {
+        // Upload any base64 photos to storage before saving
+        const hasBase64 = Object.values(currentPhotos).some(arr => arr.some(p => p.startsWith("data:")));
+        let photosToSave = currentPhotos;
+        if (hasBase64) {
+          photosToSave = await uploadNewPhotos(currentPhotos, user.id);
+          setPhotos(photosToSave);
+        }
+
         if (inspId) {
           // Save history snapshot before overwriting
           const { data: existing } = await supabase.from("inspections").select("inspection_data, photos, property_address").eq("id", inspId).single();
@@ -136,10 +145,10 @@ const ResidentialWorkSheetTab = ({ lead }: ResidentialWorkSheetTabProps) => {
             });
             // Merge: existing DB data + local changes (local wins)
             const mergedData = { ...(existing.inspection_data as Record<string, any> || {}), ...data };
-            await supabase.from("inspections").update({ user_id: user.id, property_address: mergedData["property-info"]?.address || "Untitled Property", inspection_data: mergedData }).eq("id", inspId);
+            await supabase.from("inspections").update({ user_id: user.id, property_address: mergedData["property-info"]?.address || "Untitled Property", inspection_data: mergedData, photos: photosToSave }).eq("id", inspId);
           }
         } else {
-          const { data: inserted, error } = await supabase.from("inspections").insert({ user_id: user.id, property_address: data["property-info"]?.address || "Untitled Property", inspection_data: data }).select("id").single();
+          const { data: inserted, error } = await supabase.from("inspections").insert({ user_id: user.id, property_address: data["property-info"]?.address || "Untitled Property", inspection_data: data, photos: photosToSave }).select("id").single();
           if (!error && inserted) { setCurrentInspectionId(inserted.id); }
         }
         toast.success("Auto-saved successfully");
