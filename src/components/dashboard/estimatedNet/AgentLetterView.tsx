@@ -52,15 +52,49 @@ const AgentLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate 
     setEmailClientPreference(client);
   };
 
-  // Helper function to parse date string as local date to avoid timezone shifts
-  const parseLocalDate = (dateString: string): Date => {
-    const [year, month, day] = dateString.split('-');
-    return new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+  // Safe date formatting that won't crash on invalid values
+  const safeFormatDate = (dateString: string | null | undefined, fmt: string = "MM/dd/yyyy"): string => {
+    if (!dateString) return "";
+    try {
+      const [year, month, day] = dateString.split('-');
+      if (!year || !month || !day) return dateString;
+      const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+      if (isNaN(date.getTime())) return dateString;
+      return format(date, fmt);
+    } catch {
+      return dateString;
+    }
+  };
+
+  // Extract numeric days from text like "See 1.1 calendar days" or "30 calendar days"
+  const extractDays = (value: string | null | undefined): number | null => {
+    if (!value) return null;
+    const match = value.match(/(\d+)/);
+    return match ? parseInt(match[1]) : null;
+  };
+
+  // Safe date math helper
+  const safeDateAdd = (dateString: string, addDays: number): string => {
+    try {
+      const [year, month, day] = dateString.split('-');
+      if (!year || !month || !day) return "";
+      const base = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+      if (isNaN(base.getTime())) return "";
+      return format(new Date(base.getTime() + addDays * 24 * 60 * 60 * 1000), "MM/dd/yyyy");
+    } catch { return ""; }
   };
 
   // Calculate 15 days prior to closing date
   const titleCommitmentDue = propertyData.closingDate 
-    ? format(subDays(parseLocalDate(propertyData.closingDate), 15), "MM/dd/yyyy")
+    ? (() => {
+        try {
+          const [year, month, day] = propertyData.closingDate.split('-');
+          if (!year || !month || !day) return "";
+          const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+          if (isNaN(date.getTime())) return "";
+          return format(subDays(date, 15), "MM/dd/yyyy");
+        } catch { return ""; }
+      })()
     : "";
 
   // Pre-approval due in days
@@ -71,20 +105,21 @@ const AgentLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate 
     : "";
 
   // Calculate loan commitment due date (in contract date + loan commitment days)
-  const loanCommitmentDue = propertyData.inContract && propertyData.loanCommitment
-    ? format(new Date(parseLocalDate(propertyData.inContract).getTime() + parseInt(propertyData.loanCommitment) * 24 * 60 * 60 * 1000), "MM/dd/yyyy")
+  const loanDays = extractDays(propertyData.loanCommitment);
+  const loanCommitmentDue = propertyData.inContract && loanDays
+    ? safeDateAdd(propertyData.inContract, loanDays)
     : "";
 
   // Calculate home inspection due date
   const inspectionDue = propertyData.inContract && propertyData.inspectionDays
-    ? format(new Date(parseLocalDate(propertyData.inContract).getTime() + propertyData.inspectionDays * 24 * 60 * 60 * 1000), "MM/dd/yyyy")
+    ? safeDateAdd(propertyData.inContract, propertyData.inspectionDays)
     : "";
 
   // Calculate remedy period due date
   const remedyDue = propertyData.remedyPeriodDays === 0
     ? "Buyer Waived"
     : propertyData.inContract && propertyData.inspectionDays && propertyData.remedyPeriodDays
-    ? format(new Date(parseLocalDate(propertyData.inContract).getTime() + (propertyData.inspectionDays + propertyData.remedyPeriodDays) * 24 * 60 * 60 * 1000), "MM/dd/yyyy")
+    ? safeDateAdd(propertyData.inContract, propertyData.inspectionDays + propertyData.remedyPeriodDays)
     : "";
 
   // Deposit due date
@@ -313,28 +348,6 @@ const AgentLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate 
     },
   ];
 
-  console.log('[AgentLetterView] Rendering with propertyData:', JSON.stringify({
-    closingDate: propertyData.closingDate,
-    possession: propertyData.possession,
-    inContract: propertyData.inContract,
-    loanCommitment: propertyData.loanCommitment,
-    inspectionDays: propertyData.inspectionDays,
-    remedyPeriodDays: propertyData.remedyPeriodDays,
-    depositCollection: propertyData.depositCollection,
-    finalWalkThrough: propertyData.finalWalkThrough,
-    agentName: propertyData.agentName,
-    streetAddress: propertyData.streetAddress,
-  }));
-
-  try {
-    console.log('[AgentLetterView] titleCommitmentDue:', titleCommitmentDue);
-    console.log('[AgentLetterView] loanCommitmentDue:', loanCommitmentDue);
-    console.log('[AgentLetterView] inspectionDue:', inspectionDue);
-    console.log('[AgentLetterView] remedyDue:', remedyDue);
-  } catch (e) {
-    console.error('[AgentLetterView] Date calculation error:', e);
-  }
-
   return (
     <div className="flex w-full min-h-[600px]">
       {/* Left Sidebar Navigation */}
@@ -416,11 +429,11 @@ const AgentLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate 
                   <tbody className="space-y-2">
                     <tr className="border-b">
                       <td className="py-2 font-medium">Closing date:</td>
-                      <td className="py-2 text-right">{propertyData.closingDate ? format(parseLocalDate(propertyData.closingDate), "MM/dd/yyyy") : ""}</td>
+                      <td className="py-2 text-right">{safeFormatDate(propertyData.closingDate)}</td>
                     </tr>
                     <tr className="border-b">
                       <td className="py-2 font-medium">Possession Date:</td>
-                      <td className="py-2 text-right">{propertyData.possession ? format(parseLocalDate(propertyData.possession), "MM/dd/yyyy") : ""}</td>
+                      <td className="py-2 text-right">{safeFormatDate(propertyData.possession)}</td>
                     </tr>
                     <tr className="border-b">
                       <td className="py-2 font-medium">Pre-approval Due:</td>
