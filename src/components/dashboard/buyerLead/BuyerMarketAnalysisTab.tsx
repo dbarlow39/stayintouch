@@ -28,7 +28,6 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { generateMarketAnalysisDocx } from "@/utils/marketAnalysisDocx";
 import { openEmailClient } from "@/utils/emailClientUtils";
-import BullseyeGraphic from "@/components/dashboard/sellerLead/BullseyeGraphic";
 import ZillowGraphic from "@/components/dashboard/sellerLead/ZillowGraphic";
 
 interface DocumentSlot {
@@ -50,9 +49,7 @@ const BuyerMarketAnalysisTab = ({ lead }: BuyerMarketAnalysisTabProps) => {
   const [generating, setGenerating] = useState(false);
   const [progressMessage, setProgressMessage] = useState("");
   const [analysis, setAnalysis] = useState<any>(null);
-  const [bullseyeImage, setBullseyeImage] = useState<string | null>(null);
   const [zillowImage, setZillowImage] = useState<string | null>(null);
-  const bullseyeRef = useRef<HTMLDivElement>(null);
   const zillowRef = useRef<HTMLDivElement>(null);
   const [savedFiles, setSavedFiles] = useState<any[]>([]);
   const [loadingSaved, setLoadingSaved] = useState(true);
@@ -238,7 +235,6 @@ const BuyerMarketAnalysisTab = ({ lead }: BuyerMarketAnalysisTabProps) => {
     setGenerating(true);
     setProgressMessage("Uploading documents...");
     setAnalysis(null);
-    setBullseyeImage(null);
     setZillowImage(null);
     setChatMessages([]);
 
@@ -389,20 +385,15 @@ const BuyerMarketAnalysisTab = ({ lead }: BuyerMarketAnalysisTabProps) => {
 
         await new Promise((r) => setTimeout(r, 500));
 
-        let capturedBullseye: string | null = null;
         let capturedZillow: string | null = null;
 
-        if (bullseyeRef.current) {
-          capturedBullseye = await captureGraphic(bullseyeRef.current);
-          setBullseyeImage(capturedBullseye);
-        }
         if (zillowRef.current) {
           capturedZillow = await captureGraphic(zillowRef.current);
           setZillowImage(capturedZillow);
         }
 
         setProgressMessage("Building document...");
-        await generateMarketAnalysisDocx(analysis, capturedBullseye, capturedZillow);
+        await generateMarketAnalysisDocx(analysis, null, capturedZillow);
         toast({ title: "Market analysis document downloaded" });
       } catch (err: any) {
         console.error("Auto-download error:", err);
@@ -424,7 +415,7 @@ const BuyerMarketAnalysisTab = ({ lead }: BuyerMarketAnalysisTabProps) => {
   const handleDownload = async () => {
     if (!analysis) return;
     try {
-      await generateMarketAnalysisDocx(analysis, bullseyeImage, zillowImage);
+      await generateMarketAnalysisDocx(analysis, null, zillowImage);
       toast({ title: "Document downloaded successfully" });
     } catch (err: any) {
       console.error("DOCX generation error:", err);
