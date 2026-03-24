@@ -155,7 +155,7 @@ const BuyerMarketAnalysisTab = ({ lead }: BuyerMarketAnalysisTabProps) => {
     let assistantContent = "";
 
     try {
-      const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/market-analysis-chat`;
+      const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/buyer-market-analysis-chat`;
       const body: any = { messages };
       if (docs) {
         body.documents = docs;
@@ -300,7 +300,7 @@ const BuyerMarketAnalysisTab = ({ lead }: BuyerMarketAnalysisTabProps) => {
         if (firstName) buyerNames.push(firstName);
       }
 
-      const { data, error } = await supabase.functions.invoke("generate-market-analysis", {
+      const { data, error } = await supabase.functions.invoke("generate-buyer-market-analysis", {
         body: {
           documents: uploadedDocsRef,
           agentNotes: combinedNotes || undefined,
