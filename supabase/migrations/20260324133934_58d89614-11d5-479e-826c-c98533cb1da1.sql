@@ -1,0 +1,1 @@
+ALTER TABLE public.leads ADD COLUMN IF NOT EXISTS lead_type text NOT NULL DEFAULT 'seller';
