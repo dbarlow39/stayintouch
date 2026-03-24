@@ -434,6 +434,80 @@ const BuyerMarketAnalysisTab = ({ lead }: BuyerMarketAnalysisTabProps) => {
     }
   };
 
+  const [emailing, setEmailing] = useState(false);
+
+  const handleEmailAnalysis = async () => {
+    if (!analysis || !user) return;
+
+    // Gather buyer emails
+    const emails: string[] = [];
+    if (lead?.email) {
+      lead.email.split(",").forEach((e: string) => {
+        const trimmed = e.trim();
+        if (trimmed) emails.push(trimmed);
+      });
+    }
+    const prefs = (lead?.preferences as any) || {};
+    if (prefs.buyer2_email) {
+      prefs.buyer2_email.split(",").forEach((e: string) => {
+        const trimmed = e.trim();
+        if (trimmed) emails.push(trimmed);
+      });
+    }
+
+    if (emails.length === 0) {
+      toast({
+        title: "No email addresses",
+        description: "Please add email addresses to the buyer lead before sending.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setEmailing(true);
+    try {
+      // Get agent profile
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("full_name, first_name, cell_phone, preferred_email, email, bio")
+        .eq("id", user.id)
+        .single();
+
+      const buyerNames = [lead?.first_name, prefs.buyer2_first_name || prefs.second_buyer_name?.split(" ")[0]]
+        .filter(Boolean)
+        .join(" and ");
+
+      const { data, error } = await supabase.functions.invoke("send-market-analysis-email", {
+        body: {
+          to_emails: emails,
+          from_name: profile?.full_name || "Agent",
+          reply_to: profile?.preferred_email || profile?.email || user.email,
+          buyer_names: buyerNames || lead?.first_name || "there",
+          analysis,
+          agent_first_name: profile?.first_name || profile?.full_name?.split(" ")[0],
+          agent_full_name: profile?.full_name,
+          agent_phone: profile?.cell_phone,
+          agent_email: profile?.preferred_email || profile?.email,
+          agent_bio: profile?.bio,
+        },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      toast({ title: `Market analysis emailed to ${emails.join(", ")}` });
+    } catch (err: any) {
+      console.error("Email error:", err);
+      toast({
+        title: "Error sending email",
+        description: err.message || "Please try again",
+        variant: "destructive",
+      });
+    } finally {
+      setEmailing(false);
+    }
+  };
+
   const pricing = analysis?.pricing;
   const prop = analysis?.property;
 
