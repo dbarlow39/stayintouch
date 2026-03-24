@@ -67,6 +67,7 @@ const BuyerMarketAnalysisTab = ({ lead }: BuyerMarketAnalysisTabProps) => {
   const chatInputRef = useRef<HTMLInputElement>(null);
   const [documents, setDocuments] = useState<DocumentSlot[]>([
     { label: "Reallist Report", description: "Reallist property report", file: null, required: false },
+    { label: "Subject Property MLS Sheet", description: "MLS listing sheet for the subject property", file: null, required: false },
     { label: "CMA / Property Detail Report", description: "CoreLogic, RPR, or similar report", file: null, required: false },
   ]);
 
