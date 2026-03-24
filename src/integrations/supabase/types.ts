@@ -1194,6 +1194,7 @@ export type Database = {
           first_name: string
           id: string
           last_name: string
+          lead_type: string
           notes: string | null
           phone: string | null
           preferences: Json | null
@@ -1212,6 +1213,7 @@ export type Database = {
           first_name: string
           id?: string
           last_name: string
+          lead_type?: string
           notes?: string | null
           phone?: string | null
           preferences?: Json | null
@@ -1230,6 +1232,7 @@ export type Database = {
           first_name?: string
           id?: string
           last_name?: string
+          lead_type?: string
           notes?: string | null
           phone?: string | null
           preferences?: Json | null
