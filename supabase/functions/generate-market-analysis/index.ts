@@ -263,7 +263,7 @@ serve(async (req) => {
   }
 
   try {
-    const { documents, agentNotes } = await req.json();
+    const { documents, agentNotes, buyerNames } = await req.json();
 
     if (!documents || !Array.isArray(documents) || documents.length === 0) {
       return new Response(

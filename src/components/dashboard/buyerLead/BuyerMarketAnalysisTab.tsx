@@ -290,8 +290,20 @@ const BuyerMarketAnalysisTab = ({ lead }: BuyerMarketAnalysisTabProps) => {
         conversationContext ? `\n\n--- Q&A Conversation ---\n${conversationContext}` : "",
       ].filter(Boolean).join("");
 
+      const buyerNames: string[] = [];
+      if (lead?.first_name) buyerNames.push(lead.first_name);
+      const secondBuyerName = (lead?.preferences as any)?.second_buyer_name;
+      if (secondBuyerName) {
+        const firstName = secondBuyerName.split(" ")[0];
+        if (firstName) buyerNames.push(firstName);
+      }
+
       const { data, error } = await supabase.functions.invoke("generate-market-analysis", {
-        body: { documents: uploadedDocsRef, agentNotes: combinedNotes || undefined },
+        body: {
+          documents: uploadedDocsRef,
+          agentNotes: combinedNotes || undefined,
+          buyerNames: buyerNames.length > 0 ? buyerNames : undefined,
+        },
       });
 
       if (error) throw error;
