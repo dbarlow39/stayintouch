@@ -434,7 +434,7 @@ const BuyerMarketAnalysisTab = ({ lead }: BuyerMarketAnalysisTabProps) => {
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-lg font-semibold mb-1">Market Analysis</h3>
+        <h3 className="text-lg font-semibold mb-1">Buyer Market Analysis</h3>
         <p className="text-sm text-muted-foreground">
           Upload property documents to generate a professional Buyer Market Analysis
         </p>
