@@ -737,6 +737,7 @@ const BuyerMarketAnalysisTab = ({ lead }: BuyerMarketAnalysisTabProps) => {
             lowerBracketLabel={pricing.lowerBracketLow && pricing.lowerBracketHigh ? formatBracketLabel(pricing.lowerBracketLow, pricing.lowerBracketHigh) : ""}
             upperBracketLabel={pricing.upperBracketLow && pricing.upperBracketHigh ? formatBracketLabel(pricing.upperBracketLow, pricing.upperBracketHigh) : ""}
             lowerBracketDescription="This would be the dream come true price which would mean you are getting one heck of a deal. This does not happen very often."
+            bullseyeDescription="This is the ideal purchase price for this property which means if you can purchase this property at or near this suggested price you are buying near the right price based on this model."
           />
         </div>
       )}
