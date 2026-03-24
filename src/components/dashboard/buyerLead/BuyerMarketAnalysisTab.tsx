@@ -850,6 +850,10 @@ const BuyerMarketAnalysisTab = ({ lead }: BuyerMarketAnalysisTabProps) => {
                 <Download className="w-4 h-4 mr-2" />
                 Download .docx
               </Button>
+              <Button onClick={handleEmailAnalysis} variant="outline" disabled={emailing}>
+                {emailing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Mail className="w-4 h-4 mr-2" />}
+                {emailing ? "Sending..." : "Copy and Email"}
+              </Button>
             </div>
           </div>
 
