@@ -505,7 +505,7 @@ const BuyerMarketAnalysisTab = ({ lead }: BuyerMarketAnalysisTabProps) => {
       const prop = analysis?.property;
       const subject = encodeURIComponent(`Buyer Market Analysis - ${prop?.address || "Property Analysis"}`);
       const to = emails.length > 0 ? emails.join(",") : "";
-      window.open(`mailto:${to}?subject=${subject}`, "_blank");
+      window.location.href = `mailto:${to}?subject=${subject}`;
     } catch (err: any) {
       console.error("Copy error:", err);
       toast({
