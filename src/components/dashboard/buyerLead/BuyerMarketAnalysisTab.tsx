@@ -439,47 +439,25 @@ const BuyerMarketAnalysisTab = ({ lead }: BuyerMarketAnalysisTabProps) => {
   const handleEmailAnalysis = async () => {
     if (!analysis || !user) return;
 
-    // Gather buyer emails
-    const emails: string[] = [];
-    if (lead?.email) {
-      lead.email.split(",").forEach((e: string) => {
-        const trimmed = e.trim();
-        if (trimmed) emails.push(trimmed);
-      });
-    }
-    const prefs = (lead?.preferences as any) || {};
-    if (prefs.buyer2_email) {
-      prefs.buyer2_email.split(",").forEach((e: string) => {
-        const trimmed = e.trim();
-        if (trimmed) emails.push(trimmed);
-      });
-    }
-
-    if (emails.length === 0) {
-      toast({
-        title: "No email addresses",
-        description: "Please add email addresses to the buyer lead before sending.",
-        variant: "destructive",
-      });
-      return;
-    }
-
     setEmailing(true);
     try {
-      // Get agent profile
+      // Get agent profile for the preview HTML
       const { data: profile } = await supabase
         .from("profiles")
         .select("full_name, first_name, cell_phone, preferred_email, email, bio")
         .eq("id", user.id)
         .single();
 
+      const prefs = (lead?.preferences as any) || {};
       const buyerNames = [lead?.first_name, prefs.buyer2_first_name || prefs.second_buyer_name?.split(" ")[0]]
         .filter(Boolean)
         .join(" and ");
 
+      // Request preview HTML only (not sending)
       const { data, error } = await supabase.functions.invoke("send-market-analysis-email", {
         body: {
-          to_emails: emails,
+          preview_only: true,
+          to_emails: [],
           from_name: profile?.full_name || "Agent",
           reply_to: profile?.preferred_email || profile?.email || user.email,
           buyer_names: buyerNames || lead?.first_name || "there",
@@ -495,11 +473,43 @@ const BuyerMarketAnalysisTab = ({ lead }: BuyerMarketAnalysisTabProps) => {
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
 
-      toast({ title: `Market analysis emailed to ${emails.join(", ")}` });
+      // Copy HTML to clipboard
+      if (data?.html) {
+        const blob = new Blob([data.html], { type: "text/html" });
+        const plainBlob = new Blob([data.html], { type: "text/plain" });
+        await navigator.clipboard.write([
+          new ClipboardItem({
+            "text/html": blob,
+            "text/plain": plainBlob,
+          }),
+        ]);
+      }
+
+      toast({ title: "Analysis copied to clipboard — opening email client..." });
+
+      // Gather buyer emails for the mailto link
+      const emails: string[] = [];
+      if (lead?.email) {
+        lead.email.split(",").forEach((e: string) => {
+          const trimmed = e.trim();
+          if (trimmed) emails.push(trimmed);
+        });
+      }
+      if (prefs.buyer2_email) {
+        prefs.buyer2_email.split(",").forEach((e: string) => {
+          const trimmed = e.trim();
+          if (trimmed) emails.push(trimmed);
+        });
+      }
+
+      const prop = analysis?.property;
+      const subject = encodeURIComponent(`Buyer Market Analysis - ${prop?.address || "Property Analysis"}`);
+      const to = emails.length > 0 ? emails.join(",") : "";
+      window.open(`mailto:${to}?subject=${subject}`, "_blank");
     } catch (err: any) {
-      console.error("Email error:", err);
+      console.error("Copy error:", err);
       toast({
-        title: "Error sending email",
+        title: "Error copying analysis",
         description: err.message || "Please try again",
         variant: "destructive",
       });
