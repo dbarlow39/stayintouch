@@ -27,6 +27,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { generateMarketAnalysisDocx } from "@/utils/marketAnalysisDocx";
+import { openEmailClient } from "@/utils/emailClientUtils";
 import BullseyeGraphic from "@/components/dashboard/sellerLead/BullseyeGraphic";
 import ZillowGraphic from "@/components/dashboard/sellerLead/ZillowGraphic";
 
@@ -503,9 +504,9 @@ const BuyerMarketAnalysisTab = ({ lead }: BuyerMarketAnalysisTabProps) => {
       }
 
       const prop = analysis?.property;
-      const subject = encodeURIComponent(`Buyer Market Analysis - ${prop?.address || "Property Analysis"}`);
+      const subject = `Buyer Market Analysis - ${prop?.address || "Property Analysis"}`;
       const to = emails.length > 0 ? emails.join(",") : "";
-      window.location.href = `mailto:${to}?subject=${subject}`;
+      openEmailClient(to, undefined, subject);
     } catch (err: any) {
       console.error("Copy error:", err);
       toast({
