@@ -435,7 +435,6 @@ const BuyerMarketAnalysisTab = ({ lead }: BuyerMarketAnalysisTabProps) => {
     }
   };
 
-  const [emailing, setEmailing] = useState(false);
 
   const handleEmailAnalysis = async () => {
     if (!analysis || !user) return;
