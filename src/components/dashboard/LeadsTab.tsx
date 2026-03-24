@@ -69,6 +69,7 @@ const LeadsTab = () => {
       const { data, error } = await supabase
         .from("leads")
         .select("*")
+        .eq("lead_type", "seller")
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data as Lead[];
