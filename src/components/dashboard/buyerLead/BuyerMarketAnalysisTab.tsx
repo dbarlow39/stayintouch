@@ -802,23 +802,6 @@ const BuyerMarketAnalysisTab = ({ lead }: BuyerMarketAnalysisTabProps) => {
       )}
 
       {/* Hidden graphic renderers */}
-      {pricing && (
-        <div style={{ position: "absolute", left: "-9999px", top: 0, zIndex: -1, overflow: "visible" }}>
-          <BullseyeGraphic
-            ref={bullseyeRef}
-            address={prop?.address ? `${prop.address}, ${prop.city}` : ""}
-            bullseyePrice={pricing.bullseyePrice || ""}
-            lowerBracketPrice={pricing.lowerBracketPrice || ""}
-            upperBracketPrice={pricing.upperBracketPrice || ""}
-            bullseyeBracketLabel={pricing.bullseyeBracketLow && pricing.bullseyeBracketHigh ? formatBracketLabel(pricing.bullseyeBracketLow, pricing.bullseyeBracketHigh) : ""}
-            lowerBracketLabel={pricing.lowerBracketLow && pricing.lowerBracketHigh ? formatBracketLabel(pricing.lowerBracketLow, pricing.lowerBracketHigh) : ""}
-            upperBracketLabel={pricing.upperBracketLow && pricing.upperBracketHigh ? formatBracketLabel(pricing.upperBracketLow, pricing.upperBracketHigh) : ""}
-            lowerBracketDescription="This would be the dream come true price which would mean you are getting one heck of a deal. This does not happen very often."
-            bullseyeDescription="This is the ideal purchase price for this property which means if you can purchase this property at or near this suggested price you are buying near the right price based on this model."
-            upperBracketDescription="This bracket represents the high end of the price bracket, which in today's market might be where the really good homes are priced at or near. This price is at the top of the market value and for nice clean, updated homes may represent the correct purchase price."
-          />
-        </div>
-      )}
       {prop?.zestimate && (
         <div style={{ position: "absolute", left: "-9999px", top: 0, zIndex: -1, overflow: "visible" }}>
           <ZillowGraphic
@@ -945,27 +928,24 @@ const BuyerMarketAnalysisTab = ({ lead }: BuyerMarketAnalysisTabProps) => {
             </Card>
           )}
 
-          {/* Pricing Strategy */}
+          {/* Buyer's Purchase Range */}
           {pricing && (
             <Card>
               <CardHeader>
                 <CardTitle className="text-sm text-[#8B0000]">
-                  Bullseye Pricing Strategy
+                  Buyer's Purchase Range
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="flex items-center justify-center gap-8 py-4">
+                <div className="flex items-center justify-center gap-12 py-4">
                   <div className="text-center">
-                    <p className="text-xs text-muted-foreground">Lower Bracket</p>
-                    <p className="text-lg font-semibold">{pricing.lowerBracketPrice}</p>
+                    <p className="text-xs text-muted-foreground font-medium">Low</p>
+                    <p className="text-2xl font-bold text-[#8B0000]">{pricing.lowPrice}</p>
                   </div>
-                  <div className="text-center bg-[#FDECEA] rounded-lg p-4 border-2 border-[#CC0000]">
-                    <p className="text-xs font-medium text-[#CC0000]">★ BULLSEYE</p>
-                    <p className="text-2xl font-bold text-[#8B0000]">{pricing.bullseyePrice}</p>
-                  </div>
+                  <div className="text-3xl text-muted-foreground font-light">—</div>
                   <div className="text-center">
-                    <p className="text-xs text-muted-foreground">Upper Bracket</p>
-                    <p className="text-lg font-semibold">{pricing.upperBracketPrice}</p>
+                    <p className="text-xs text-muted-foreground font-medium">High</p>
+                    <p className="text-2xl font-bold text-[#8B0000]">{pricing.highPrice}</p>
                   </div>
                 </div>
                 {analysis.narrative?.priceJustification && (
@@ -978,7 +958,7 @@ const BuyerMarketAnalysisTab = ({ lead }: BuyerMarketAnalysisTabProps) => {
           )}
 
           {/* Graphics Preview */}
-          {(bullseyeImage || zillowImage) && (
+          {zillowImage && (
             <Card>
               <CardHeader>
                 <CardTitle className="text-sm flex items-center gap-2">
@@ -987,19 +967,9 @@ const BuyerMarketAnalysisTab = ({ lead }: BuyerMarketAnalysisTabProps) => {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {bullseyeImage && (
-                    <div>
-                      <p className="text-xs font-medium mb-2">Bullseye Pricing Model</p>
-                      <img src={bullseyeImage} alt="Bullseye Pricing Model" className="w-full rounded border" />
-                    </div>
-                  )}
-                  {zillowImage && (
-                    <div>
-                      <p className="text-xs font-medium mb-2">Zillow Zestimate Card</p>
-                      <img src={zillowImage} alt="Zillow Zestimate" className="w-full rounded border" />
-                    </div>
-                  )}
+                <div>
+                  <p className="text-xs font-medium mb-2">Zillow Zestimate Card</p>
+                  <img src={zillowImage} alt="Zillow Zestimate" className="w-full max-w-md rounded border" />
                 </div>
               </CardContent>
             </Card>
