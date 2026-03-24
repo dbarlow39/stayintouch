@@ -54,6 +54,10 @@ const BuyerLeadDetail = () => {
     status: "new",
     source: "",
     notes: "",
+    buyer2_first_name: "",
+    buyer2_last_name: "",
+    buyer2_email: "",
+    buyer2_phone: "",
   });
 
   const { data: lead, isLoading } = useQuery({
@@ -72,6 +76,7 @@ const BuyerLeadDetail = () => {
 
   useEffect(() => {
     if (lead) {
+      const prefs = (lead.preferences as any) || {};
       setFormData({
         first_name: lead.first_name || "",
         last_name: lead.last_name || "",
@@ -80,6 +85,10 @@ const BuyerLeadDetail = () => {
         status: lead.status || "new",
         source: lead.source || "",
         notes: lead.notes || "",
+        buyer2_first_name: prefs.buyer2_first_name || "",
+        buyer2_last_name: prefs.buyer2_last_name || "",
+        buyer2_email: prefs.buyer2_email || "",
+        buyer2_phone: prefs.buyer2_phone || "",
       });
     }
   }, [lead]);
@@ -105,9 +114,18 @@ const BuyerLeadDetail = () => {
 
   const updateMutation = useMutation({
     mutationFn: async () => {
+      const { buyer2_first_name, buyer2_last_name, buyer2_email, buyer2_phone, ...rest } = formData;
+      const existingPrefs = (lead?.preferences as any) || {};
       const updateData = {
-        ...formData,
+        ...rest,
         status: formData.status as "new" | "contacted" | "qualified" | "unqualified" | "nurturing",
+        preferences: {
+          ...existingPrefs,
+          buyer2_first_name,
+          buyer2_last_name,
+          buyer2_email,
+          buyer2_phone,
+        },
       };
       const { error } = await supabase.from("leads").update(updateData).eq("id", id!);
       if (error) throw error;
@@ -344,6 +362,70 @@ const BuyerLeadDetail = () => {
                             <PhoneCallTextLink phone={formData.phone} inline>{""}</PhoneCallTextLink>
                           </div>
                         )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Second Buyer */}
+                  <div className="border-t border-border pt-4 mt-2">
+                    <p className="text-sm font-semibold text-muted-foreground mb-3">Second Buyer (optional)</p>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="buyer2_first_name">First Name</Label>
+                        <Input
+                          id="buyer2_first_name"
+                          value={formData.buyer2_first_name}
+                          onChange={(e) => setFormData({ ...formData, buyer2_first_name: e.target.value })}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="buyer2_last_name">Last Name</Label>
+                        <Input
+                          id="buyer2_last_name"
+                          value={formData.buyer2_last_name}
+                          onChange={(e) => setFormData({ ...formData, buyer2_last_name: e.target.value })}
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4 mt-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="buyer2_email">Email</Label>
+                        <div className="relative">
+                          <Input
+                            id="buyer2_email"
+                            type="text"
+                            placeholder="email@example.com"
+                            value={formData.buyer2_email}
+                            onChange={(e) => setFormData({ ...formData, buyer2_email: e.target.value })}
+                            className="pr-10"
+                          />
+                          {formData.buyer2_email && (
+                            <button
+                              type="button"
+                              onClick={() => openEmailClient(formData.buyer2_email.split(",")[0].trim())}
+                              className="absolute right-2 top-1/2 -translate-y-1/2 inline-flex items-center justify-center h-6 w-6 rounded-md text-primary hover:bg-accent transition-colors"
+                              title="Send email"
+                            >
+                              <Mail className="h-3.5 w-3.5" />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="buyer2_phone">Phone</Label>
+                        <div className="relative">
+                          <Input
+                            id="buyer2_phone"
+                            value={formData.buyer2_phone}
+                            onChange={(e) => setFormData({ ...formData, buyer2_phone: e.target.value })}
+                            className="pr-16"
+                          />
+                          {formData.buyer2_phone && (
+                            <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                              <PhoneCallTextLink phone={formData.buyer2_phone} inline>{""}</PhoneCallTextLink>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
