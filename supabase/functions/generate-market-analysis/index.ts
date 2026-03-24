@@ -360,6 +360,14 @@ serve(async (req) => {
       });
     }
 
+    if (buyerNames && Array.isArray(buyerNames) && buyerNames.length > 0) {
+      const namesStr = buyerNames.join(" and ");
+      userContent.push({
+        type: "text",
+        text: `IMPORTANT OVERRIDE: This analysis is being prepared for BUYER clients, not the current property owners. Address the analysis to "${namesStr}" as the buyers. Use "Dear ${namesStr}," as the salutation. Replace any references to "homeowners" or "sellers" with buyer-appropriate language. The owner1/owner2 fields in the JSON should be set to the buyer names: ${buyerNames.map((n: string, i: number) => `owner${i + 1}: "${n}"`).join(", ")}. The intro paragraph should thank them for their interest in the property and reference that this analysis will help them make an informed purchasing decision.`
+      });
+    }
+
     userContent.push({ type: "text", text: USER_PROMPT });
 
     console.log(`Sending ${userContent.length} content blocks to Claude for market analysis`);
