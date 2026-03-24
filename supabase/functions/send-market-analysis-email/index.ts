@@ -180,8 +180,30 @@ serve(async (req) => {
           </tr>
           ` : ''}
 
-          <!-- Bullseye Pricing -->
-          ${pricing ? `
+          <!-- Pricing Section -->
+          ${pricing ? (pricing.lowPrice ? `
+          <tr>
+            <td style="padding: 0 32px 24px;">
+              <p style="margin: 0 0 12px; font-size: 15px; font-weight: 700; color: #8B0000;">Buyer's Purchase Range</p>
+              ${narrative?.purchaseRangeExplain ? `<p style="margin: 0 0 16px; line-height: 1.6; color: #374151; font-size: 14px;">${narrative.purchaseRangeExplain}</p>` : ''}
+              ${narrative?.bracketAnalysis ? `<p style="margin: 0 0 16px; line-height: 1.6; color: #374151; font-size: 14px;">${narrative.bracketAnalysis}</p>` : ''}
+              <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 16px;">
+                <tr>
+                  <td style="text-align: center; padding: 12px; vertical-align: top; background-color: #FDECEA; border: 2px solid #CC0000; border-radius: 8px;">
+                    <p style="margin: 0; font-size: 11px; font-weight: 600; color: #CC0000;">LOW</p>
+                    <p style="margin: 4px 0 0; font-size: 24px; font-weight: 700; color: #8B0000;">${pricing.lowPrice || ''}</p>
+                  </td>
+                  <td style="width: 24px;"></td>
+                  <td style="text-align: center; padding: 12px; vertical-align: top; background-color: #FDECEA; border: 2px solid #CC0000; border-radius: 8px;">
+                    <p style="margin: 0; font-size: 11px; font-weight: 600; color: #CC0000;">HIGH</p>
+                    <p style="margin: 4px 0 0; font-size: 24px; font-weight: 700; color: #8B0000;">${pricing.highPrice || ''}</p>
+                  </td>
+                </tr>
+              </table>
+              ${narrative?.priceJustification ? `<p style="margin: 0 0 16px; line-height: 1.6; color: #374151; font-size: 14px;">${narrative.priceJustification}</p>` : ''}
+            </td>
+          </tr>
+          ` : `
           <tr>
             <td style="padding: 0 32px 24px;">
               <p style="margin: 0 0 12px; font-size: 15px; font-weight: 700; color: #8B0000;">Bullseye Pricing Strategy</p>
@@ -206,7 +228,7 @@ serve(async (req) => {
               ${narrative?.priceJustification ? `<p style="margin: 0 0 16px; line-height: 1.6; color: #374151; font-size: 14px;">${narrative.priceJustification}</p>` : ''}
             </td>
           </tr>
-          ` : ''}
+          `) : ''}
 
           <!-- Next Steps -->
           ${narrative?.nextSteps ? `
