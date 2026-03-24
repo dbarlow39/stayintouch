@@ -23,7 +23,7 @@ export const getEmailLink = (email: string, client?: EmailClient, subject?: stri
   const emailClient = client || getEmailClientPreference();
   const encodedEmail = encodeURIComponent(email);
   const encodedSubject = subject ? encodeURIComponent(subject) : '';
-  
+
   switch (emailClient) {
     case 'gmail':
       return `https://mail.google.com/mail/?view=cm&to=${encodedEmail}${encodedSubject ? `&su=${encodedSubject}` : ''}`;
@@ -38,6 +38,13 @@ export const getEmailLink = (email: string, client?: EmailClient, subject?: stri
 };
 
 export const openEmailClient = (email: string, client?: EmailClient, subject?: string): void => {
-  const link = getEmailLink(email, client, subject);
-  window.open(link, '_blank');
+  const emailClient = client || getEmailClientPreference();
+  const link = getEmailLink(email, emailClient, subject);
+
+  if (emailClient === 'default') {
+    window.location.href = link;
+    return;
+  }
+
+  window.open(link, '_blank', 'noopener,noreferrer');
 };
