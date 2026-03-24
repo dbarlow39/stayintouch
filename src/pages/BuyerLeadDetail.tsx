@@ -141,10 +141,6 @@ const BuyerLeadDetail = () => {
     if (!lead || !user) return;
     setIsConverting(true);
     try {
-      const addressParts = (formData.address || "").trim().split(/\s+/);
-      const streetNumber = addressParts.length > 1 ? addressParts[0] : null;
-      const streetName = addressParts.length > 1 ? addressParts.slice(1).join(" ") : formData.address || null;
-
       const { data: newClient, error: insertError } = await supabase
         .from("clients")
         .insert({
@@ -153,11 +149,6 @@ const BuyerLeadDetail = () => {
           last_name: formData.last_name,
           email: formData.email || null,
           cell_phone: formData.phone || null,
-          street_number: streetNumber,
-          street_name: streetName,
-          city: formData.city || null,
-          state: formData.state || null,
-          zip: formData.zip || null,
           notes: formData.notes || null,
           status: "A",
         })
@@ -449,8 +440,6 @@ const BuyerLeadDetail = () => {
           </AlertDialogHeader>
           <div className="text-sm space-y-1 py-2 text-muted-foreground">
             <p><strong>Name:</strong> {formData.first_name} {formData.last_name}</p>
-            {formData.address && <p><strong>Address:</strong> {formData.address}</p>}
-            {formData.city && <p><strong>City:</strong> {formData.city}, {formData.state} {formData.zip}</p>}
             {formData.email && <p><strong>Email:</strong> {formData.email}</p>}
             {formData.phone && <p><strong>Phone:</strong> {formData.phone}</p>}
           </div>
