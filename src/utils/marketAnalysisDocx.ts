@@ -396,34 +396,55 @@ export async function generateMarketAnalysisDocx(
   }
 
   // ── 9. PRICING STRATEGY ──
-  sections.push(sectionHeading("Our Pricing Strategy: The Bullseye Pricing Model"));
-  sections.push(new Paragraph({ spacing: { after: 100 }, children: [] }));
-  if (narrative.bullseyeExplain) sections.push(bodyParagraph(narrative.bullseyeExplain));
-  if (narrative.bracketAnalysis) sections.push(bodyParagraph(narrative.bracketAnalysis));
-  if (bullseyeImage) {
-    try {
-      const imgBytes = await base64ToUint8Array(bullseyeImage);
-      const dims = await getImageDimensions(bullseyeImage);
-      const docWidth = 460;
-      const docHeight = Math.round(docWidth * (dims.height / dims.width));
+  const isBuyerAnalysis = !!(pricing as any)?.lowPrice;
+  if (isBuyerAnalysis) {
+    sections.push(sectionHeading("Buyer's Purchase Range"));
+    sections.push(new Paragraph({ spacing: { after: 100 }, children: [] }));
+    if ((pricing as any).lowPrice || (pricing as any).highPrice) {
       sections.push(
         new Paragraph({
-          alignment: AlignmentType.CENTER,
-          spacing: { before: 200, after: 200 },
+          spacing: { after: 200 },
           children: [
-            new ImageRun({
-              data: imgBytes,
-              transformation: { width: docWidth, height: docHeight },
-              type: "png",
-            }),
+            new TextRun({ text: "Low: ", bold: true, size: 22, font: "Arial" }),
+            new TextRun({ text: `${(pricing as any).lowPrice}`, size: 22, font: "Arial" }),
+            new TextRun({ text: "     High: ", bold: true, size: 22, font: "Arial" }),
+            new TextRun({ text: `${(pricing as any).highPrice}`, size: 22, font: "Arial" }),
           ],
         })
       );
-    } catch (e) {
-      console.error("Failed to embed bullseye image:", e);
     }
+    if (narrative.purchaseRangeExplain) sections.push(bodyParagraph(narrative.purchaseRangeExplain));
+    if (narrative.priceJustification) sections.push(bodyParagraph(narrative.priceJustification));
+  } else {
+    sections.push(sectionHeading("Our Pricing Strategy: The Bullseye Pricing Model"));
+    sections.push(new Paragraph({ spacing: { after: 100 }, children: [] }));
+    if (narrative.bullseyeExplain) sections.push(bodyParagraph(narrative.bullseyeExplain));
+    if (narrative.bracketAnalysis) sections.push(bodyParagraph(narrative.bracketAnalysis));
+    if (bullseyeImage) {
+      try {
+        const imgBytes = await base64ToUint8Array(bullseyeImage);
+        const dims = await getImageDimensions(bullseyeImage);
+        const docWidth = 460;
+        const docHeight = Math.round(docWidth * (dims.height / dims.width));
+        sections.push(
+          new Paragraph({
+            alignment: AlignmentType.CENTER,
+            spacing: { before: 200, after: 200 },
+            children: [
+              new ImageRun({
+                data: imgBytes,
+                transformation: { width: docWidth, height: docHeight },
+                type: "png",
+              }),
+            ],
+          })
+        );
+      } catch (e) {
+        console.error("Failed to embed bullseye image:", e);
+      }
+    }
+    if (narrative.priceJustification) sections.push(bodyParagraph(narrative.priceJustification));
   }
-  if (narrative.priceJustification) sections.push(bodyParagraph(narrative.priceJustification));
 
   // ── 10. NEXT STEPS ──
   sections.push(sectionHeading("NEXT STEPS"));
