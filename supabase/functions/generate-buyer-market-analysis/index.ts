@@ -10,39 +10,37 @@ const corsHeaders = {
 
 const BUYER_SYSTEM_PROMPT = `You are a professional real estate analyst for The Barlow Group at SellFor1Percent.com. You are preparing a Buyer Market Analysis to help buyers understand whether a property they are interested in is fairly priced.
 
-You use the Bullseye Pricing Model to determine the true market value of the subject property based on comparable sales data. The goal is to protect the buyer from overpaying.
+You determine a Buyer's Purchase Range - a Low price and a High price - based on comparable sales data. The goal is to protect the buyer from overpaying.
 
-BULLSEYE PRICING RULES:
-- Buyer search brackets fall at every $25,000 increment
-- Bracket tops: $375K, $400K, $425K, $450K, $475K, $500K, $525K, $550K
-- To find the correct bracket: look at where the MAJORITY of closed comp sold prices fall, and use that bracket. Do not jump to a higher bracket just because one comp sold near a bracket boundary.
-- Bullseye price = top of the correct bracket minus $100 (e.g. $424,900 for the $400K-$425K bracket)
-- NEVER use the lower number within the same bracket as the Bullseye
-- EXAMPLE: If 3 comps sold at $405K, $416K, $427.5K - the majority are in the $400K-$425K bracket, so Bullseye = $424,900. Do NOT pick the $425K-$450K bracket.
-- lowerBracketPrice and upperBracketPrice will be calculated automatically by the system — you may leave them as empty strings or provide rough values, they will be overridden.
+BUYER'S PURCHASE RANGE RULES:
+- Analyze all closed comp sold prices to determine the realistic purchase range
+- lowPrice: the low end of what the buyer should expect to pay, derived from the lowest relevant comp sales adjusted for differences. Round to the nearest $1,000 minus $100 (e.g. $399,900, $424,900)
+- highPrice: the high end of what the buyer should expect to pay, derived from the highest relevant comp sales adjusted for differences. Round to the nearest $1,000 minus $100 (e.g. $449,900, $474,900)
+- The range should reflect where the property's true market value falls based on comps
+- A narrower range indicates stronger comp alignment; a wider range means more variability in the market data
 
 ZESTIMATE FRAMING RULES (BUYER PERSPECTIVE):
 
-SCENARIO A - Zestimate is HIGHER than Bullseye price:
+SCENARIO A - Zestimate is HIGHER than the high end of the purchase range:
 The zillowWordOn field must be a full paragraph of 4-5 sentences that:
 1. Notes the Zestimate by its exact dollar amount and acknowledges the buyer may have seen it
-2. Explains WHY it is higher — Zillow may have counted finished basement bedrooms/bathrooms, inflating the bed/bath/sqft profile beyond the above-grade reality
+2. Explains WHY it is higher - Zillow may have counted finished basement bedrooms/bathrooms, inflating the bed/bath/sqft profile beyond the above-grade reality
 3. Explains that this inflated profile is not how buyers, appraisers, or MLS data classify above-grade square footage
 4. States that the algorithm cannot see the difference between above-grade and basement space, and cannot account for the actual condition or needed updates
-5. Closes by stating that the actual closed sales — real transactions — tell a more accurate story and support a lower true market value, which is good news for the buyer
+5. Closes by stating that the actual closed sales - real transactions - tell a more accurate story and support a lower true market value, which is good news for the buyer
 
-SCENARIO B - Zestimate is LOWER than Bullseye price:
+SCENARIO B - Zestimate is LOWER than the low end of the purchase range:
 The zillowWordOn field must be a full paragraph of 3-4 sentences that:
 1. Notes the Zestimate by its exact dollar amount
 2. Explains that the actual comp data supports a higher value than Zillow suggests
 3. Names specific features and upgrades that justify the higher value
-4. Notes that while the buyer should expect to pay more than the Zestimate, the Bullseye price still represents fair market value
+4. Notes that while the buyer should expect to pay more than the Zestimate, the purchase range still represents fair market value
 
-SCENARIO C - Zestimate is CLOSE to Bullseye price (within $10,000):
+SCENARIO C - Zestimate is within the purchase range:
 The zillowWordOn field must be a full paragraph of 3-4 sentences that:
-1. Notes the Zestimate is close to the data-driven Bullseye price
-2. Uses this as validation — when both the algorithm and the comp analysis agree, it gives high confidence in the value
-3. Notes that this gives the buyer confidence the asking price (if near Bullseye) is fair
+1. Notes the Zestimate falls within the data-driven purchase range
+2. Uses this as validation - when both the algorithm and the comp analysis agree, it gives high confidence in the value
+3. Notes that this gives the buyer confidence the asking price (if within range) is fair
 
 FOR ALL SCENARIOS - the zillowNoteOn field must always be exactly this sentence, word for word:
 "A note on online valuation tools: Zillow's Zestimate and similar automated valuation models rely on algorithm-driven estimates that often lag actual market conditions and cannot account for specific upgrades, custom finishes, or location premium within the subdivision. The data-driven, agent-guided comparable analysis presented here reflects what real buyers are actually paying in your specific market today."
@@ -66,15 +64,14 @@ WRITING RULES:
 - TAX NOTE: The taxNote field must follow this template: "A note on the county's assessed market value of [county market value]: tax assessments in Ohio typically lag actual market conditions by two to three years and should not be used as a pricing benchmark. The comparable sales data below is a far more accurate reflection of current buyer demand."
 - COMP COMPARISON BULLETS (BUYER PERSPECTIVE): Each bullet must help the buyer understand how the subject property compares to what else has sold or is available. Written to help the buyer evaluate the property's value:
   Bullet 1 - RELEVANCE: What makes the comps valid benchmarks for this property
-  Bullet 2 - SQUARE FOOTAGE: How the subject's size compares — is the buyer getting more or less space for the money?
+  Bullet 2 - SQUARE FOOTAGE: How the subject's size compares - is the buyer getting more or less space for the money?
   Bullet 3 - AGE AND CONDITION: How old is the property vs comps? What updates does it have or need?
-  Bullet 4 - BEST DEALS AND CLOSEST MATCH: Name the lowest-priced comp and the most similar comp — what did buyers pay for comparable homes?
+  Bullet 4 - BEST DEALS AND CLOSEST MATCH: Name the lowest-priced comp and the most similar comp - what did buyers pay for comparable homes?
   Bullet 5 - ACTIVE ALTERNATIVES: What else can the buyer look at? How does this property stack up?
   Each bullet must be 2-3 sentences with specific addresses, prices, and details.
-- BULLSEYE NARRATIVE PARAGRAPHS (BUYER PERSPECTIVE):
-  bullseyeExplain - MUST be exactly: "When we price a home to be listed for sale we use the same technique as we are using here. We looks at the comps, make adjustments because no 2 homes are exactly the same and then we generate a Bullseye Pricing Model. Our model is built on the principle that pricing precisely at true market value will ensure you don't overpay for the property. We use recently sold comparables as listed in the MLS, the same that an appraiser would do. We then add or subtract value depending on what the comps has to offer or not and then we come up with a suggested value of the subject home (the one you are interested in)."
-  bracketAnalysis - MUST be exactly: "We then look at the Buyer Brackets to try and understand where the subject house best fits. We have a low range where if you could buy in that range would mean you are getting one heck of a deal, the Bullseye range which means if you are able to buy in that range you are paying about what the real market value should be. Finally, the upper end range which means you are still getting a decent deal but would appear to be paying a premium for the property. There is absolutely nothing wrong with paying a premium, especially if the home checks most of your criteria boxes. Our goal here is to make sure you are not overpaying for a property just because a seller has set a price that may be too high for the market."
-  priceJustification - MUST follow this structure: "Our recommended Bullseye purchase price range of [middle price range] to [upper price range] is grounded in what the market evidence clearly supports. The low end price of [lower price range] would mean you are getting one heck of a deal which doesn't happen much in this market. The middle price range would still mean a good deal for you but probably means the house needs updating and the upper price range is still within tolerance but the home should be in really good shape without many updates needed. [Continue to add and illustrate the reasoning for the pricing brackets using specific comparable sales data, addresses, and property details from the documents to justify each price range.]"
+- PURCHASE RANGE NARRATIVE PARAGRAPHS (BUYER PERSPECTIVE):
+  purchaseRangeExplain - MUST be exactly: "When we price a home to be listed for sale we use the same technique as we are using here. We look at the comps, make adjustments because no 2 homes are exactly the same and then we generate a Buyer's Purchase Range. Our model is built on the principle that pricing precisely at true market value will ensure you don't overpay for the property. We use recently sold comparables as listed in the MLS, the same that an appraiser would do. We then add or subtract value depending on what the comps have to offer or not and then we come up with a suggested purchase range for the subject home (the one you are interested in)."
+  priceJustification - MUST follow this structure: "Our recommended purchase range of [lowPrice] to [highPrice] is grounded in what the market evidence clearly supports. At the low end, [lowPrice] would represent a strong value for the buyer, likely reflecting a property that needs some updates or a motivated seller. At the high end, [highPrice] represents the upper boundary - the home should be in excellent condition with desirable updates to justify this price. [Continue to add and illustrate the reasoning for the price range using specific comparable sales data, addresses, and property details from the documents.]"
   nextSteps - MUST be exactly: "Take a look at this information and the attached analysis and let me know your thoughts and questions. I am happy to walk through any of this in detail with you and to put together a winning purchase offer for you."`;
 
 const BUYER_USER_PROMPT = `FEATURES WRITING RULES - apply these when populating the features array:
@@ -197,15 +194,8 @@ IMPORTANT DATA RULES FOR SQUARE FOOTAGE:
     "township": ""
   },
   "pricing": {
-    "bullseyePrice": "",
-    "bullseyeBracketLow": "",
-    "bullseyeBracketHigh": "",
-    "lowerBracketPrice": "",
-    "lowerBracketLow": "",
-    "lowerBracketHigh": "",
-    "upperBracketPrice": "",
-    "upperBracketLow": "",
-    "upperBracketHigh": ""
+    "lowPrice": "",
+    "highPrice": ""
   },
   "narrative": {
     "intro": "",
@@ -215,8 +205,7 @@ IMPORTANT DATA RULES FOR SQUARE FOOTAGE:
     "marketConditions": "",
     "zillowWordOn": "",
     "zillowNoteOn": "",
-    "bullseyeExplain": "",
-    "bracketAnalysis": "",
+    "purchaseRangeExplain": "",
     "priceJustification": "",
     "nextSteps": "",
     "zillowContextNote": ""
@@ -393,77 +382,26 @@ serve(async (req) => {
       throw new Error("AI returned invalid JSON. Please try again.");
     }
 
-    // --- Deterministic Bullseye +/- pricing recalculation ---
-    if (analysis?.pricing?.bullseyePrice) {
+    // --- Clean up pricing: ensure lowPrice and highPrice are formatted ---
+    if (analysis?.pricing) {
       const parseDollar = (v: string): number => {
         if (!v) return 0;
         return parseFloat(String(v).replace(/[$,]/g, "")) || 0;
       };
+      const fmt = (n: number) => `$${n.toLocaleString("en-US")}`;
 
-      const bullseye = parseDollar(analysis.pricing.bullseyePrice);
+      const low = parseDollar(analysis.pricing.lowPrice);
+      const high = parseDollar(analysis.pricing.highPrice);
 
-      if (bullseye > 0) {
-        const getAdjustmentPct = (price: number): number => {
-          if (price < 100000) return 0.10;
-          if (price < 200000) return 0.125;
-          if (price < 300000) return 0.125;
-          if (price < 400000) return 0.125;
-          if (price < 500000) return 0.10;
-          if (price < 600000) return 0.10;
-          if (price < 700000) return 0.10;
-          if (price < 800000) return 0.10;
-          if (price < 900000) return 0.10;
-          if (price < 1000000) return 0.10;
-          return 0.25;
-        };
+      if (low > 0) analysis.pricing.lowPrice = fmt(low);
+      if (high > 0) analysis.pricing.highPrice = fmt(high);
 
-        const getBracketWidth = (price: number): number => {
-          if (price < 200000) return 10000;
-          if (price < 500000) return 25000;
-          if (price < 1000000) return 50000;
-          return 250000;
-        };
-
-        const roundToBracketPrice = (rawPrice: number): { price: number; low: number; high: number } => {
-          const width = getBracketWidth(rawPrice);
-          const bracketTop = Math.round(rawPrice / width) * width;
-          return {
-            price: bracketTop - 100,
-            low: bracketTop - width,
-            high: bracketTop,
-          };
-        };
-
-        const pct = getAdjustmentPct(bullseye);
-        const upperRaw = bullseye * (1 + pct);
-        const lowerRaw = bullseye * (1 - pct);
-
-        const upper = roundToBracketPrice(upperRaw);
-        const lower = roundToBracketPrice(lowerRaw);
-
-        const bWidth = getBracketWidth(bullseye);
-        const bTop = Math.ceil(bullseye / bWidth) * bWidth;
-        const bLow = bTop - bWidth;
-
-        const fmt = (n: number) => `$${n.toLocaleString("en-US")}`;
-
-        analysis.pricing.upperBracketPrice = fmt(upper.price);
-        analysis.pricing.upperBracketLow = fmt(upper.low);
-        analysis.pricing.upperBracketHigh = fmt(upper.high);
-        analysis.pricing.lowerBracketPrice = fmt(lower.price);
-        analysis.pricing.lowerBracketLow = fmt(lower.low);
-        analysis.pricing.lowerBracketHigh = fmt(lower.high);
-        analysis.pricing.bullseyeBracketLow = fmt(bLow);
-        analysis.pricing.bullseyeBracketHigh = fmt(bTop);
-
-        console.log(`Bullseye recalc: ${fmt(bullseye)} ±${(pct * 100)}% → Lower: ${fmt(lower.price)}, Upper: ${fmt(upper.price)}`);
-      }
+      console.log(`Purchase Range: ${analysis.pricing.lowPrice} - ${analysis.pricing.highPrice}`);
     }
 
     console.log("Extracted address:", analysis.property?.address);
     console.log("Extracted owner1:", analysis.property?.owner1);
     console.log("Closed comps count:", analysis.closedComps?.length);
-    console.log("Bullseye price:", analysis.pricing?.bullseyePrice);
 
     return new Response(
       JSON.stringify({ analysis }),
