@@ -47,12 +47,8 @@ const BuyerLeadDetail = () => {
   const [isConverting, setIsConverting] = useState(false);
 
   const [formData, setFormData] = useState({
-    address: "",
     first_name: "",
     last_name: "",
-    city: "",
-    state: "OH",
-    zip: "",
     email: "",
     phone: "",
     status: "new",
@@ -77,12 +73,8 @@ const BuyerLeadDetail = () => {
   useEffect(() => {
     if (lead) {
       setFormData({
-        address: (lead as any).address || "",
         first_name: lead.first_name || "",
         last_name: lead.last_name || "",
-        city: (lead as any).city || "",
-        state: (lead as any).state || "OH",
-        zip: (lead as any).zip || "",
         email: lead.email || "",
         phone: lead.phone || "",
         status: lead.status || "new",
@@ -298,16 +290,6 @@ const BuyerLeadDetail = () => {
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleSubmit} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="address">Address</Label>
-                    <Input
-                      id="address"
-                      placeholder="Current address (optional)"
-                      value={formData.address}
-                      onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                    />
-                  </div>
-
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="first_name" className="flex items-center gap-1">
@@ -329,33 +311,6 @@ const BuyerLeadDetail = () => {
                         value={formData.last_name}
                         onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
                         required
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-3 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="city">City</Label>
-                      <Input
-                        id="city"
-                        value={formData.city}
-                        onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="state">State</Label>
-                      <Input
-                        id="state"
-                        value={formData.state}
-                        onChange={(e) => setFormData({ ...formData, state: e.target.value })}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="zip">Zip</Label>
-                      <Input
-                        id="zip"
-                        value={formData.zip}
-                        onChange={(e) => setFormData({ ...formData, zip: e.target.value })}
                       />
                     </div>
                   </div>
