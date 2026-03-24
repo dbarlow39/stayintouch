@@ -56,6 +56,7 @@ const BuyerMarketAnalysisTab = ({ lead }: BuyerMarketAnalysisTabProps) => {
   const [savedFiles, setSavedFiles] = useState<any[]>([]);
   const [loadingSaved, setLoadingSaved] = useState(true);
   const [aiNotes, setAiNotes] = useState("");
+  const [emailing, setEmailing] = useState(false);
   
   // Chat Q&A state
   type ChatMessage = { role: "user" | "assistant"; content: string };
