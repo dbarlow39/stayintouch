@@ -395,7 +395,7 @@ const BuyerLeadDetail = () => {
                         />
                         {formData.phone && (
                           <div className="absolute right-2 top-1/2 -translate-y-1/2">
-                            <PhoneCallTextLink phone={formData.phone} inline />
+                            <PhoneCallTextLink phone={formData.phone} inline>{""}</PhoneCallTextLink>
                           </div>
                         )}
                       </div>
