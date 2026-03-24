@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { UserPlus, Trash2, Phone, Mail, Asterisk } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth";
+import { useNavigate } from "react-router-dom";
 
 interface BuyerLead {
   id: string;
@@ -41,6 +42,7 @@ const BuyersTab = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [formData, setFormData] = useState({
     first_name: "",
@@ -297,7 +299,7 @@ const BuyersTab = () => {
             </TableHeader>
             <TableBody>
               {leads.map((lead) => (
-                <TableRow key={lead.id}>
+                <TableRow key={lead.id} className="cursor-pointer hover:bg-muted/50" onClick={() => navigate(`/buyer-lead/${lead.id}`)}>
                   <TableCell className="font-medium">
                     {lead.first_name} {lead.last_name}
                   </TableCell>
