@@ -38,12 +38,13 @@ export function AudioRecorder({ inspectionId, userId }: AudioRecorderProps) {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const chunkTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const uploadedPathsRef = useRef<string[]>([]);
   const chunkIndexRef = useRef(0);
   const streamRef = useRef<MediaStream | null>(null);
   const isRecordingRef = useRef(false);
   const finalChunkResolveRef = useRef<(() => void) | null>(null);
+  const lastChunkSaveRef = useRef<number>(0);
+  const isSavingChunkRef = useRef(false);
 
   useEffect(() => {
     loadFailedRecordings();
