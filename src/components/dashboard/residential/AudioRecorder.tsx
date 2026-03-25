@@ -51,7 +51,6 @@ export function AudioRecorder({ inspectionId, userId }: AudioRecorderProps) {
     loadCompletedTranscription();
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
-      if (chunkTimerRef.current) clearInterval(chunkTimerRef.current);
     };
   }, [userId, inspectionId]);
 
