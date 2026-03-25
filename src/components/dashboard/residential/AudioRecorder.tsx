@@ -38,12 +38,12 @@ export function AudioRecorder({ inspectionId, userId }: AudioRecorderProps) {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const chunkIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const uploadedPathsRef = useRef<string[]>([]);
   const chunkIndexRef = useRef(0);
   const streamRef = useRef<MediaStream | null>(null);
   const isRecordingRef = useRef(false);
   const finalChunkResolveRef = useRef<(() => void) | null>(null);
-  const lastChunkSaveRef = useRef<number>(0);
   const isSavingChunkRef = useRef(false);
 
   useEffect(() => {
@@ -51,6 +51,7 @@ export function AudioRecorder({ inspectionId, userId }: AudioRecorderProps) {
     loadCompletedTranscription();
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
+      if (chunkIntervalRef.current) clearInterval(chunkIntervalRef.current);
     };
   }, [userId, inspectionId]);
 
@@ -99,6 +100,7 @@ export function AudioRecorder({ inspectionId, userId }: AudioRecorderProps) {
       const { data: transcribeData, error: transcribeError } = await supabase.functions.invoke("transcribe-audio", { body: { audioFilePaths: paths, transcriptionId: recording.id } });
       if (transcribeError) throw new Error(`Transcription failed: ${transcribeError.message}`);
       setTranscription(transcribeData.transcription);
+      setCurrentTranscriptionId(recording.id);
       toast.success("Transcription complete!");
       setStatus("summarizing");
       toast.info("Generating summary...");
@@ -154,12 +156,14 @@ export function AudioRecorder({ inspectionId, userId }: AudioRecorderProps) {
 
   const uploadChunk = useCallback(async (chunks: Blob[], chunkIndex: number): Promise<string | null> => {
     if (chunks.length === 0) return null;
-    const audioBlob = new Blob(chunks, { type: MediaRecorder.isTypeSupported("audio/webm") ? "audio/webm" : "audio/mp4" });
+    const mimeType = MediaRecorder.isTypeSupported("audio/webm") ? "audio/webm" : "audio/mp4";
+    const audioBlob = new Blob(chunks, { type: mimeType });
+    const ext = mimeType === "audio/mp4" ? "mp4" : "webm";
     const maxRetries = 3;
     for (let attempt = 0; attempt < maxRetries; attempt++) {
       try {
         setUploadingChunk(true);
-        const fileName = `${userId}/${Date.now()}_chunk_${chunkIndex}.webm`;
+        const fileName = `${userId}/${Date.now()}_chunk_${chunkIndex}.${ext}`;
         const { error: uploadError } = await supabase.storage.from("audio-recordings").upload(fileName, audioBlob);
         if (uploadError) {
           console.error(`Chunk upload attempt ${attempt + 1} failed:`, uploadError);
@@ -181,78 +185,93 @@ export function AudioRecorder({ inspectionId, userId }: AudioRecorderProps) {
   const createNewRecorder = useCallback(() => {
     if (!streamRef.current || !isRecordingRef.current) return;
     const stream = streamRef.current;
-    const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus") ? "audio/webm;codecs=opus" : MediaRecorder.isTypeSupported("audio/webm") ? "audio/webm" : "audio/mp4";
+    const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
+      ? "audio/webm;codecs=opus"
+      : MediaRecorder.isTypeSupported("audio/webm")
+        ? "audio/webm"
+        : "audio/mp4";
     const newRecorder = new MediaRecorder(stream, { mimeType, audioBitsPerSecond: 64000 });
     chunksRef.current = [];
+
     newRecorder.ondataavailable = (event) => {
       if (event.data.size > 0) chunksRef.current.push(event.data);
-      // Check if it's time to save a chunk (every CHUNK_INTERVAL_MS)
-      // This fires every 1s from start(1000) and works even in background tabs
-      if (isRecordingRef.current && !isSavingChunkRef.current) {
-        const elapsed = Date.now() - lastChunkSaveRef.current;
-        if (elapsed >= CHUNK_INTERVAL_MS) {
-          isSavingChunkRef.current = true;
-          if (mediaRecorderRef.current?.state === "recording") {
-            mediaRecorderRef.current.stop();
-          }
-        }
-      }
     };
+
     newRecorder.onstop = async () => {
       const currentChunks = [...chunksRef.current];
       const currentIndex = chunkIndexRef.current;
       chunkIndexRef.current += 1;
+      isSavingChunkRef.current = true;
+
       if (currentChunks.length > 0) {
         const uploadedPath = await uploadChunk(currentChunks, currentIndex);
         if (uploadedPath) uploadedPathsRef.current.push(uploadedPath);
       }
+
       isSavingChunkRef.current = false;
-      lastChunkSaveRef.current = Date.now();
+
       if (!isRecordingRef.current && finalChunkResolveRef.current) {
         finalChunkResolveRef.current();
         finalChunkResolveRef.current = null;
+        return;
       }
+
       if (isRecordingRef.current) createNewRecorder();
     };
+
     mediaRecorderRef.current = newRecorder;
-    lastChunkSaveRef.current = lastChunkSaveRef.current || Date.now();
     newRecorder.start(1000);
   }, [uploadChunk]);
 
-  const saveCurrentChunk = useCallback(() => {
-    if (!isRecordingRef.current || !mediaRecorderRef.current) return;
-    if (mediaRecorderRef.current.state === "recording") mediaRecorderRef.current.stop();
-  }, []);
-
   const startRecording = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, sampleRate: 44100 } });
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: { echoCancellation: true, noiseSuppression: true, sampleRate: 44100 }
+      });
       streamRef.current = stream;
       isRecordingRef.current = true;
-      uploadedPathsRef.current = []; chunkIndexRef.current = 0; setUploadedChunks(0); chunksRef.current = [];
-      lastChunkSaveRef.current = Date.now(); isSavingChunkRef.current = false;
+      uploadedPathsRef.current = [];
+      chunkIndexRef.current = 0;
+      setUploadedChunks(0);
+      chunksRef.current = [];
+      isSavingChunkRef.current = false;
+
       createNewRecorder();
-      setStatus("recording"); setRecordingTime(0);
+
+      setStatus("recording");
+      setRecordingTime(0);
       timerRef.current = setInterval(() => setRecordingTime(prev => prev + 1), 1000);
+
+      chunkIntervalRef.current = setInterval(() => {
+        if (!isRecordingRef.current || isSavingChunkRef.current) return;
+        const recorder = mediaRecorderRef.current;
+        if (recorder && recorder.state === "recording") {
+          recorder.stop();
+        }
+      }, CHUNK_INTERVAL_MS);
+
       toast.success("Recording started");
-    } catch (error) { console.error("Failed to start recording:", error); toast.error("Failed to access microphone. Please check permissions."); }
+    } catch (error) {
+      console.error("Failed to start recording:", error);
+      toast.error("Failed to access microphone. Please check permissions.");
+    }
   };
 
   const stopRecording = async () => {
     if (mediaRecorderRef.current && status === "recording") {
       if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
+      if (chunkIntervalRef.current) { clearInterval(chunkIntervalRef.current); chunkIntervalRef.current = null; }
+
       isRecordingRef.current = false;
-      
-      // Wait for the final chunk to finish uploading
+
       const finalChunkPromise = new Promise<void>(resolve => {
         finalChunkResolveRef.current = resolve;
       });
-      
+
       if (mediaRecorderRef.current.state === "recording") mediaRecorderRef.current.stop();
-      
-      // Wait for onstop handler to finish uploading the final chunk
+
       await finalChunkPromise;
-      
+
       if (streamRef.current) streamRef.current.getTracks().forEach(track => track.stop());
       await processRecording();
     }
@@ -262,7 +281,7 @@ export function AudioRecorder({ inspectionId, userId }: AudioRecorderProps) {
     try {
       setStatus("uploading");
       toast.info("Processing audio...");
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise(resolve => setTimeout(resolve, 500));
       const allPaths = [...uploadedPathsRef.current];
       if (allPaths.length === 0) throw new Error("No audio was recorded");
       setAudioFilePaths(allPaths);
@@ -270,25 +289,54 @@ export function AudioRecorder({ inspectionId, userId }: AudioRecorderProps) {
 
       const { data: transcriptionRecord, error: dbError } = await supabase
         .from("audio_transcriptions")
-        .insert({ user_id: userId, inspection_id: inspectionId || null, audio_file_path: allPaths.join(","), duration_seconds: recordingTime, status: "pending" })
+        .insert({
+          user_id: userId,
+          inspection_id: inspectionId || null,
+          audio_file_path: allPaths.join(","),
+          duration_seconds: recordingTime,
+          status: "pending"
+        })
         .select().single();
       if (dbError) throw new Error(`Database error: ${dbError.message}`);
+      setCurrentTranscriptionId(transcriptionRecord.id);
 
       setStatus("transcribing");
       toast.info(`Transcribing ${allPaths.length} audio segment(s)...`);
-      const { data: transcribeData, error: transcribeError } = await supabase.functions.invoke("transcribe-audio", { body: { audioFilePaths: allPaths, transcriptionId: transcriptionRecord.id } });
+
+      const { data: transcribeData, error: transcribeError } = await supabase.functions.invoke("transcribe-audio", {
+        body: { audioFilePaths: allPaths, transcriptionId: transcriptionRecord.id }
+      });
       if (transcribeError) throw new Error(`Transcription failed: ${transcribeError.message}`);
+      if (!transcribeData?.transcription) throw new Error("No transcription returned from server");
+
       setTranscription(transcribeData.transcription);
       toast.success("Transcription complete!");
 
       setStatus("summarizing");
       toast.info("Generating summary...");
       try {
-        const { data: summaryData, error: summaryError } = await supabase.functions.invoke("summarize-transcription", { body: { transcriptionId: transcriptionRecord.id, transcription: transcribeData.transcription } });
-        if (summaryError) { console.error("Summarization failed:", summaryError); toast.error("Summary generation failed. You can retry from the transcription view."); setStatus("completed"); return; }
-        setSummary(summaryData.summary); setStatus("completed"); toast.success("Summary generated!");
-      } catch (sumError) { console.error("Summary error:", sumError); toast.error("Summary generation failed, but transcription is saved."); setStatus("completed"); }
-    } catch (error) { console.error("Processing error:", error); setStatus("error"); toast.error(error instanceof Error ? error.message : "Processing failed"); }
+        const { data: summaryData, error: summaryError } = await supabase.functions.invoke("summarize-transcription", {
+          body: { transcriptionId: transcriptionRecord.id, transcription: transcribeData.transcription }
+        });
+        if (summaryError) {
+          console.error("Summarization failed:", summaryError);
+          toast.error("Summary generation failed. You can retry from the transcription view.");
+          setStatus("completed");
+          return;
+        }
+        setSummary(summaryData.summary);
+        setStatus("completed");
+        toast.success("Summary generated!");
+      } catch (sumError) {
+        console.error("Summary error:", sumError);
+        toast.error("Summary generation failed, but transcription is saved.");
+        setStatus("completed");
+      }
+    } catch (error) {
+      console.error("Processing error:", error);
+      setStatus("error");
+      toast.error(error instanceof Error ? error.message : "Processing failed");
+    }
   };
 
   const retrySummary = async () => {
@@ -296,15 +344,21 @@ export function AudioRecorder({ inspectionId, userId }: AudioRecorderProps) {
     setRetryingSummary(true);
     try {
       toast.info("Retrying summary generation...");
-      const { data, error } = await supabase.functions.invoke("summarize-transcription", { body: { transcriptionId: currentTranscriptionId, transcription } });
+      const { data, error } = await supabase.functions.invoke("summarize-transcription", {
+        body: { transcriptionId: currentTranscriptionId, transcription }
+      });
       if (error) throw error;
-      if (data?.summary) { setSummary(data.summary); toast.success("Summary generated!"); } else throw new Error("No summary returned");
-    } catch (err) { console.error("Retry summary error:", err); toast.error("Summary generation failed."); }
-    finally { setRetryingSummary(false); }
+      if (data?.summary) { setSummary(data.summary); toast.success("Summary generated!"); }
+      else throw new Error("No summary returned");
+    } catch (err) {
+      console.error("Retry summary error:", err);
+      toast.error("Summary generation failed.");
+    } finally { setRetryingSummary(false); }
   };
 
   const resetRecorder = () => {
-    setStatus("idle"); setRecordingTime(0); setTranscription(null); setSummary(null); setAudioFilePaths([]); setUploadedChunks(0);
+    setStatus("idle"); setRecordingTime(0); setTranscription(null); setSummary(null);
+    setAudioFilePaths([]); setUploadedChunks(0);
     chunksRef.current = []; uploadedPathsRef.current = []; chunkIndexRef.current = 0;
   };
 
@@ -322,41 +376,79 @@ export function AudioRecorder({ inspectionId, userId }: AudioRecorderProps) {
 
   return (
     <Card className="w-full">
-      <CardHeader><CardTitle className="flex items-center gap-2"><FileAudio className="h-5 w-5" />Audio Recorder</CardTitle></CardHeader>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <FileAudio className="h-5 w-5" />
+          Audio Recorder
+        </CardTitle>
+      </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex flex-col items-center gap-4">
           <div className="text-4xl font-mono font-bold text-primary">{formatTime(recordingTime)}</div>
           <div className="text-sm text-muted-foreground flex items-center gap-2">
             {getStatusMessage()}
-            {status === "recording" && uploadedChunks > 0 && <span className="flex items-center gap-1 text-green-600"><Upload className="h-3 w-3" />{uploadedChunks} saved</span>}
-            {status === "recording" && uploadingChunk && <span className="flex items-center gap-1 text-blue-600"><Loader2 className="h-3 w-3 animate-spin" />Saving...</span>}
+            {status === "recording" && uploadedChunks > 0 && (
+              <span className="flex items-center gap-1 text-green-600">
+                <Upload className="h-3 w-3" />{uploadedChunks} saved
+              </span>
+            )}
+            {status === "recording" && uploadingChunk && (
+              <span className="flex items-center gap-1 text-blue-600">
+                <Loader2 className="h-3 w-3 animate-spin" />Saving...
+              </span>
+            )}
           </div>
           <div className="flex gap-2 flex-wrap justify-center">
             {status === "idle" && (
               <>
-                <Button onClick={startRecording} size="lg" className="gap-2"><Mic className="h-5 w-5" />Start Recording</Button>
-                {audioFilePaths.length > 0 && <Button onClick={downloadAudio} variant="secondary" size="lg" className="gap-2"><Download className="h-5 w-5" />Download Audio</Button>}
+                <Button onClick={startRecording} size="lg" className="gap-2">
+                  <Mic className="h-5 w-5" />Start Recording
+                </Button>
+                {audioFilePaths.length > 0 && (
+                  <Button onClick={downloadAudio} variant="secondary" size="lg" className="gap-2">
+                    <Download className="h-5 w-5" />Download Audio
+                  </Button>
+                )}
               </>
             )}
-            {status === "recording" && <Button onClick={stopRecording} variant="destructive" size="lg" className="gap-2"><Square className="h-5 w-5" />Stop Recording</Button>}
-            {(status === "uploading" || status === "transcribing" || status === "summarizing") && <Button disabled size="lg" className="gap-2"><Loader2 className="h-5 w-5 animate-spin" />Processing...</Button>}
+            {status === "recording" && (
+              <Button onClick={stopRecording} variant="destructive" size="lg" className="gap-2">
+                <Square className="h-5 w-5" />Stop Recording
+              </Button>
+            )}
+            {(status === "uploading" || status === "transcribing" || status === "summarizing") && (
+              <Button disabled size="lg" className="gap-2">
+                <Loader2 className="h-5 w-5 animate-spin" />Processing...
+              </Button>
+            )}
             {(status === "completed" || status === "error") && (
               <>
-                <Button onClick={resetRecorder} variant="outline" size="lg" className="gap-2"><Mic className="h-5 w-5" />New Recording</Button>
-                {audioFilePaths.length > 0 && <Button onClick={downloadAudio} variant="secondary" size="lg" className="gap-2"><Download className="h-5 w-5" />Download Audio</Button>}
+                <Button onClick={resetRecorder} variant="outline" size="lg" className="gap-2">
+                  <Mic className="h-5 w-5" />New Recording
+                </Button>
+                {audioFilePaths.length > 0 && (
+                  <Button onClick={downloadAudio} variant="secondary" size="lg" className="gap-2">
+                    <Download className="h-5 w-5" />Download Audio
+                  </Button>
+                )}
               </>
             )}
           </div>
-          {status === "recording" && <p className="text-xs text-muted-foreground text-center">Auto-saves every 10 minutes • No time limit</p>}
+          {status === "recording" && (
+            <p className="text-xs text-muted-foreground text-center">Auto-saves every 30 seconds - No time limit</p>
+          )}
           {failedRecordings.length > 0 && status === "idle" && (
             <div className="w-full pt-4 border-t">
-              <h4 className="text-sm font-medium mb-2 flex items-center gap-2"><RotateCcw className="h-4 w-4" />Retry Failed Transcriptions</h4>
+              <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
+                <RotateCcw className="h-4 w-4" />Retry Failed Transcriptions
+              </h4>
               <div className="space-y-2">
                 {failedRecordings.map((recording) => (
                   <div key={recording.id} className="flex items-center justify-between bg-muted p-2 rounded-md">
                     <span className="text-xs text-muted-foreground">{new Date(recording.created_at).toLocaleString()}</span>
                     <Button size="sm" variant="outline" onClick={() => retryTranscription(recording)} disabled={retryingId !== null} className="gap-1">
-                      {retryingId === recording.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <RotateCcw className="h-3 w-3" />}Retry
+                      {retryingId === recording.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <RotateCcw className="h-3 w-3" />}
+                      Retry
                     </Button>
                   </div>
                 ))}
@@ -367,9 +459,12 @@ export function AudioRecorder({ inspectionId, userId }: AudioRecorderProps) {
         {summary && (
           <div className="space-y-2 pt-4 border-t">
             <div className="flex items-center justify-between">
-              <h4 className="font-medium flex items-center gap-2"><Sparkles className="h-4 w-4" />AI Summary</h4>
+              <h4 className="font-medium flex items-center gap-2">
+                <Sparkles className="h-4 w-4" />AI Summary
+              </h4>
               <Button variant="ghost" size="sm" className="gap-1 h-8" onClick={() => copyToClipboard(summary, "summary")}>
-                {copiedSummary ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}{copiedSummary ? "Copied!" : "Copy"}
+                {copiedSummary ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                {copiedSummary ? "Copied!" : "Copy"}
               </Button>
             </div>
             <div className="bg-muted p-3 rounded-md max-h-64 overflow-y-auto text-sm whitespace-pre-wrap">
@@ -389,32 +484,55 @@ export function AudioRecorder({ inspectionId, userId }: AudioRecorderProps) {
         {transcription && (
           <div className="space-y-2 pt-4 border-t">
             <div className="flex items-center justify-between">
-              <h4 className="font-medium flex items-center gap-2"><FileText className="h-4 w-4" />Transcription</h4>
+              <h4 className="font-medium flex items-center gap-2">
+                <FileText className="h-4 w-4" />Transcription
+              </h4>
               <div className="flex items-center gap-1">
-                {transcription.includes("[Chunk") || transcription.includes("[Segment") ? (
-                  <Button variant="outline" size="sm" className="gap-1 h-8" disabled={status === "transcribing" || status === "summarizing"} onClick={async () => {
-                    if (!currentTranscriptionId || audioFilePaths.length === 0) { toast.error("No transcription record found to retry."); return; }
-                    try {
-                      setStatus("transcribing");
-                      toast.info("Re-transcribing audio...");
-                      const { data, error } = await supabase.functions.invoke("transcribe-audio", { body: { audioFilePaths, transcriptionId: currentTranscriptionId } });
-                      if (error) throw error;
-                      setTranscription(data.transcription);
-                      toast.success("Transcription complete!");
-                      setStatus("summarizing");
-                      toast.info("Regenerating summary...");
-                      const { data: sumData, error: sumError } = await supabase.functions.invoke("summarize-transcription", { body: { transcriptionId: currentTranscriptionId, transcription: data.transcription } });
-                      if (sumError) { console.error("Summary error:", sumError); toast.error("Summary failed, but transcription is saved."); setStatus("completed"); return; }
-                      setSummary(sumData.summary);
-                      setStatus("completed");
-                      toast.success("Summary generated!");
-                    } catch (err) { console.error("Re-transcribe error:", err); setStatus("error"); toast.error(err instanceof Error ? err.message : "Re-transcription failed"); }
-                  }}>
-                    {status === "transcribing" ? <Loader2 className="h-3 w-3 animate-spin" /> : <RotateCcw className="h-3 w-3" />}Re-transcribe
+                {(transcription.includes("[Chunk") || transcription.includes("[Segment")) ? (
+                  <Button variant="outline" size="sm" className="gap-1 h-8"
+                    disabled={status === "transcribing" || status === "summarizing"}
+                    onClick={async () => {
+                      if (!currentTranscriptionId || audioFilePaths.length === 0) {
+                        toast.error("No transcription record found to retry.");
+                        return;
+                      }
+                      try {
+                        setStatus("transcribing");
+                        toast.info("Re-transcribing audio...");
+                        const { data, error } = await supabase.functions.invoke("transcribe-audio", {
+                          body: { audioFilePaths, transcriptionId: currentTranscriptionId }
+                        });
+                        if (error) throw error;
+                        if (!data?.transcription) throw new Error("No transcription returned");
+                        setTranscription(data.transcription);
+                        toast.success("Transcription complete!");
+                        setStatus("summarizing");
+                        toast.info("Regenerating summary...");
+                        const { data: sumData, error: sumError } = await supabase.functions.invoke("summarize-transcription", {
+                          body: { transcriptionId: currentTranscriptionId, transcription: data.transcription }
+                        });
+                        if (sumError) {
+                          console.error("Summary error:", sumError);
+                          toast.error("Summary failed, but transcription is saved.");
+                          setStatus("completed");
+                          return;
+                        }
+                        setSummary(sumData.summary);
+                        setStatus("completed");
+                        toast.success("Summary generated!");
+                      } catch (err) {
+                        console.error("Re-transcribe error:", err);
+                        setStatus("error");
+                        toast.error(err instanceof Error ? err.message : "Re-transcription failed");
+                      }
+                    }}>
+                    {status === "transcribing" ? <Loader2 className="h-3 w-3 animate-spin" /> : <RotateCcw className="h-3 w-3" />}
+                    Re-transcribe
                   </Button>
                 ) : null}
                 <Button variant="ghost" size="sm" className="gap-1 h-8" onClick={() => copyToClipboard(transcription, "transcription")}>
-                  {copiedTranscription ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}{copiedTranscription ? "Copied!" : "Copy"}
+                  {copiedTranscription ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                  {copiedTranscription ? "Copied!" : "Copy"}
                 </Button>
               </div>
             </div>
