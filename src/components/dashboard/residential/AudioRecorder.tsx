@@ -182,16 +182,9 @@ export function AudioRecorder({ inspectionId, userId }: AudioRecorderProps) {
       }
 
       setStatus("transcribing");
-      toast.info(`Transcribing ${paths.length} segment(s)...`);
-
-      const { data: transcribeData, error: transcribeError } = await supabase.functions.invoke(
-        "transcribe-audio",
-        { body: { audioFilePaths: paths, transcriptionId: recording.id } }
-      );
-      if (transcribeError) throw new Error(`Transcription failed: ${transcribeError.message}`);
-      if (!transcribeData?.transcription) throw new Error("No transcription returned from server");
-
-      setTranscription(transcribeData.transcription);
+      // Call the edge function once per chunk — avoids WORKER_LIMIT
+      const combined = await transcribeOneAtATime(paths, recording.id);
+      setTranscription(combined);
       setCurrentTranscriptionId(recording.id);
       toast.success("Transcription complete!");
 
