@@ -376,9 +376,33 @@ export function AudioRecorder({ inspectionId, userId }: AudioRecorderProps) {
           <div className="space-y-2 pt-4 border-t">
             <div className="flex items-center justify-between">
               <h4 className="font-medium flex items-center gap-2"><FileText className="h-4 w-4" />Transcription</h4>
-              <Button variant="ghost" size="sm" className="gap-1 h-8" onClick={() => copyToClipboard(transcription, "transcription")}>
-                {copiedTranscription ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}{copiedTranscription ? "Copied!" : "Copy"}
-              </Button>
+              <div className="flex items-center gap-1">
+                {transcription.includes("[Chunk") || transcription.includes("[Segment") ? (
+                  <Button variant="outline" size="sm" className="gap-1 h-8" disabled={status === "transcribing" || status === "summarizing"} onClick={async () => {
+                    if (!currentTranscriptionId || audioFilePaths.length === 0) { toast.error("No transcription record found to retry."); return; }
+                    try {
+                      setStatus("transcribing");
+                      toast.info("Re-transcribing audio...");
+                      const { data, error } = await supabase.functions.invoke("transcribe-audio", { body: { audioFilePaths, transcriptionId: currentTranscriptionId } });
+                      if (error) throw error;
+                      setTranscription(data.transcription);
+                      toast.success("Transcription complete!");
+                      setStatus("summarizing");
+                      toast.info("Regenerating summary...");
+                      const { data: sumData, error: sumError } = await supabase.functions.invoke("summarize-transcription", { body: { transcriptionId: currentTranscriptionId, transcription: data.transcription } });
+                      if (sumError) { console.error("Summary error:", sumError); toast.error("Summary failed, but transcription is saved."); setStatus("completed"); return; }
+                      setSummary(sumData.summary);
+                      setStatus("completed");
+                      toast.success("Summary generated!");
+                    } catch (err) { console.error("Re-transcribe error:", err); setStatus("error"); toast.error(err instanceof Error ? err.message : "Re-transcription failed"); }
+                  }}>
+                    {status === "transcribing" ? <Loader2 className="h-3 w-3 animate-spin" /> : <RotateCcw className="h-3 w-3" />}Re-transcribe
+                  </Button>
+                ) : null}
+                <Button variant="ghost" size="sm" className="gap-1 h-8" onClick={() => copyToClipboard(transcription, "transcription")}>
+                  {copiedTranscription ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}{copiedTranscription ? "Copied!" : "Copy"}
+                </Button>
+              </div>
             </div>
             <div className="bg-muted p-3 rounded-md max-h-48 overflow-y-auto text-sm">
               <p className="font-bold mb-2">Property Inspection Transcription</p>
