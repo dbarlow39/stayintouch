@@ -38,19 +38,19 @@ export function AudioRecorder({ inspectionId, userId }: AudioRecorderProps) {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const chunkTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const uploadedPathsRef = useRef<string[]>([]);
   const chunkIndexRef = useRef(0);
   const streamRef = useRef<MediaStream | null>(null);
   const isRecordingRef = useRef(false);
   const finalChunkResolveRef = useRef<(() => void) | null>(null);
+  const lastChunkSaveRef = useRef<number>(0);
+  const isSavingChunkRef = useRef(false);
 
   useEffect(() => {
     loadFailedRecordings();
     loadCompletedTranscription();
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
-      if (chunkTimerRef.current) clearInterval(chunkTimerRef.current);
     };
   }, [userId, inspectionId]);
 
@@ -184,7 +184,20 @@ export function AudioRecorder({ inspectionId, userId }: AudioRecorderProps) {
     const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus") ? "audio/webm;codecs=opus" : MediaRecorder.isTypeSupported("audio/webm") ? "audio/webm" : "audio/mp4";
     const newRecorder = new MediaRecorder(stream, { mimeType, audioBitsPerSecond: 64000 });
     chunksRef.current = [];
-    newRecorder.ondataavailable = (event) => { if (event.data.size > 0) chunksRef.current.push(event.data); };
+    newRecorder.ondataavailable = (event) => {
+      if (event.data.size > 0) chunksRef.current.push(event.data);
+      // Check if it's time to save a chunk (every CHUNK_INTERVAL_MS)
+      // This fires every 1s from start(1000) and works even in background tabs
+      if (isRecordingRef.current && !isSavingChunkRef.current) {
+        const elapsed = Date.now() - lastChunkSaveRef.current;
+        if (elapsed >= CHUNK_INTERVAL_MS) {
+          isSavingChunkRef.current = true;
+          if (mediaRecorderRef.current?.state === "recording") {
+            mediaRecorderRef.current.stop();
+          }
+        }
+      }
+    };
     newRecorder.onstop = async () => {
       const currentChunks = [...chunksRef.current];
       const currentIndex = chunkIndexRef.current;
@@ -193,7 +206,8 @@ export function AudioRecorder({ inspectionId, userId }: AudioRecorderProps) {
         const uploadedPath = await uploadChunk(currentChunks, currentIndex);
         if (uploadedPath) uploadedPathsRef.current.push(uploadedPath);
       }
-      // Signal that the final chunk is done if we're stopping
+      isSavingChunkRef.current = false;
+      lastChunkSaveRef.current = Date.now();
       if (!isRecordingRef.current && finalChunkResolveRef.current) {
         finalChunkResolveRef.current();
         finalChunkResolveRef.current = null;
@@ -201,6 +215,7 @@ export function AudioRecorder({ inspectionId, userId }: AudioRecorderProps) {
       if (isRecordingRef.current) createNewRecorder();
     };
     mediaRecorderRef.current = newRecorder;
+    lastChunkSaveRef.current = lastChunkSaveRef.current || Date.now();
     newRecorder.start(1000);
   }, [uploadChunk]);
 
@@ -215,10 +230,10 @@ export function AudioRecorder({ inspectionId, userId }: AudioRecorderProps) {
       streamRef.current = stream;
       isRecordingRef.current = true;
       uploadedPathsRef.current = []; chunkIndexRef.current = 0; setUploadedChunks(0); chunksRef.current = [];
+      lastChunkSaveRef.current = Date.now(); isSavingChunkRef.current = false;
       createNewRecorder();
       setStatus("recording"); setRecordingTime(0);
       timerRef.current = setInterval(() => setRecordingTime(prev => prev + 1), 1000);
-      chunkTimerRef.current = setInterval(() => saveCurrentChunk(), CHUNK_INTERVAL_MS);
       toast.success("Recording started");
     } catch (error) { console.error("Failed to start recording:", error); toast.error("Failed to access microphone. Please check permissions."); }
   };
@@ -226,7 +241,6 @@ export function AudioRecorder({ inspectionId, userId }: AudioRecorderProps) {
   const stopRecording = async () => {
     if (mediaRecorderRef.current && status === "recording") {
       if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
-      if (chunkTimerRef.current) { clearInterval(chunkTimerRef.current); chunkTimerRef.current = null; }
       isRecordingRef.current = false;
       
       // Wait for the final chunk to finish uploading
