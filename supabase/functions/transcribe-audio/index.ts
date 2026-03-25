@@ -6,9 +6,9 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const MAX_FILE_SIZE = 24 * 1024 * 1024;
+const MAX_FILE_SIZE = 25 * 1024 * 1024; // OpenAI's 25MB limit
 
-async function transcribeChunk(audioData: Blob, OPENAI_API_KEY: string): Promise<string> {
+async function transcribeAudio(audioData: Blob, OPENAI_API_KEY: string): Promise<string> {
   const formData = new FormData();
   formData.append("file", audioData, "audio.webm");
   formData.append("model", "whisper-1");
@@ -17,8 +17,9 @@ async function transcribeChunk(audioData: Blob, OPENAI_API_KEY: string): Promise
   if (!whisperResponse.ok) {
     if (whisperResponse.status === 429) throw new Error("OpenAI rate limit exceeded.");
     if (whisperResponse.status === 401) throw new Error("Invalid OpenAI API key.");
-    if (whisperResponse.status === 413) throw new Error("Audio file too large.");
-    throw new Error(`Whisper API error: ${whisperResponse.status}`);
+    if (whisperResponse.status === 413) throw new Error("Audio file too large for Whisper API.");
+    const errorText = await whisperResponse.text();
+    throw new Error(`Whisper API error ${whisperResponse.status}: ${errorText}`);
   }
   const result = await whisperResponse.json();
   return result.text;
@@ -27,18 +28,10 @@ async function transcribeChunk(audioData: Blob, OPENAI_API_KEY: string): Promise
 async function transcribeFile(supabase: any, audioFilePath: string, OPENAI_API_KEY: string): Promise<string> {
   const { data: audioData, error: downloadError } = await supabase.storage.from("audio-recordings").download(audioFilePath);
   if (downloadError) throw new Error(`Failed to download audio: ${downloadError.message}`);
-  if (audioData.size <= MAX_FILE_SIZE) return await transcribeChunk(audioData, OPENAI_API_KEY);
-  const arrayBuffer = await audioData.arrayBuffer();
-  const totalBytes = arrayBuffer.byteLength;
-  const numChunks = Math.ceil(totalBytes / MAX_FILE_SIZE);
-  const chunkSize = Math.ceil(totalBytes / numChunks);
-  const transcriptions: string[] = [];
-  for (let i = 0; i < numChunks; i++) {
-    const start = i * chunkSize; const end = Math.min(start + chunkSize, totalBytes);
-    const chunkBlob = new Blob([arrayBuffer.slice(start, end)], { type: audioData.type });
-    try { transcriptions.push(await transcribeChunk(chunkBlob, OPENAI_API_KEY)); } catch { transcriptions.push(`[Chunk ${i + 1} failed]`); }
+  if (audioData.size > MAX_FILE_SIZE) {
+    throw new Error(`Audio file is ${(audioData.size / 1024 / 1024).toFixed(1)}MB, exceeds 25MB limit. Please use shorter recordings.`);
   }
-  return transcriptions.join(" ");
+  return await transcribeAudio(audioData, OPENAI_API_KEY);
 }
 
 serve(async (req) => {
