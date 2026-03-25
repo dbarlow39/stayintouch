@@ -230,10 +230,10 @@ export function AudioRecorder({ inspectionId, userId }: AudioRecorderProps) {
       streamRef.current = stream;
       isRecordingRef.current = true;
       uploadedPathsRef.current = []; chunkIndexRef.current = 0; setUploadedChunks(0); chunksRef.current = [];
+      lastChunkSaveRef.current = Date.now(); isSavingChunkRef.current = false;
       createNewRecorder();
       setStatus("recording"); setRecordingTime(0);
       timerRef.current = setInterval(() => setRecordingTime(prev => prev + 1), 1000);
-      chunkTimerRef.current = setInterval(() => saveCurrentChunk(), CHUNK_INTERVAL_MS);
       toast.success("Recording started");
     } catch (error) { console.error("Failed to start recording:", error); toast.error("Failed to access microphone. Please check permissions."); }
   };
