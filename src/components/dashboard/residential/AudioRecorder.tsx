@@ -18,6 +18,7 @@ interface AudioRecorderProps {
 
 type RecordingStatus = "idle" | "recording" | "uploading" | "transcribing" | "summarizing" | "completed" | "error";
 
+// How often to cut a new chunk and upload it (30 seconds)
 const CHUNK_INTERVAL_MS = 30 * 1000;
 
 export function AudioRecorder({ inspectionId, userId }: AudioRecorderProps) {
@@ -90,21 +91,91 @@ export function AudioRecorder({ inspectionId, userId }: AudioRecorderProps) {
     if (!error && data) setFailedRecordings(data);
   };
 
+  // Browser-side re-chunker for files too large for the edge function to load into memory.
+  // Downloads the oversized file, slices it into RECHUNK_SIZE blobs, re-uploads each one,
+  // updates the DB record with the new paths, then returns those paths for transcription.
+  const RECHUNK_SIZE = 20 * 1024 * 1024; // 20 MB — safely under Whisper's 25 MB limit
+
+  const rechunkFile = async (filePath: string, transcriptionId: string): Promise<string[]> => {
+    toast.info("File too large for direct transcription — downloading to split into chunks...");
+
+    const { data: audioBlob, error: downloadError } = await supabase.storage
+      .from("audio-recordings")
+      .download(filePath);
+    if (downloadError) throw new Error(`Failed to download audio for re-chunking: ${downloadError.message}`);
+
+    const totalChunks = Math.ceil(audioBlob.size / RECHUNK_SIZE);
+    toast.info(`Splitting into ${totalChunks} chunks and uploading...`);
+
+    const newPaths: string[] = [];
+    for (let i = 0; i < totalChunks; i++) {
+      const start = i * RECHUNK_SIZE;
+      const end = Math.min(start + RECHUNK_SIZE, audioBlob.size);
+      const chunkBlob = audioBlob.slice(start, end, "audio/webm");
+      const chunkName = `${userId}/${Date.now()}_rechunk_${i}.webm`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("audio-recordings")
+        .upload(chunkName, chunkBlob);
+      if (uploadError) throw new Error(`Failed to upload chunk ${i + 1}: ${uploadError.message}`);
+
+      newPaths.push(chunkName);
+      toast.info(`Uploaded chunk ${i + 1} of ${totalChunks}...`);
+    }
+
+    // Update the DB record so the new paths are stored permanently
+    await supabase
+      .from("audio_transcriptions")
+      .update({ audio_file_path: newPaths.join(","), status: "pending" })
+      .eq("id", transcriptionId);
+
+    return newPaths;
+  };
+
+  const OVERSIZE_THRESHOLD = 24 * 1024 * 1024; // same as edge function limit
+
   const retryTranscription = async (recording: FailedRecording) => {
     try {
       setRetryingId(recording.id);
-      setStatus("transcribing");
+      setStatus("uploading");
       setAudioFilePaths([recording.audio_file_path]);
-      toast.info("Retrying transcription...");
-      const paths = recording.audio_file_path.includes(",") ? recording.audio_file_path.split(",").map(p => p.trim()) : [recording.audio_file_path];
-      const { data: transcribeData, error: transcribeError } = await supabase.functions.invoke("transcribe-audio", { body: { audioFilePaths: paths, transcriptionId: recording.id } });
+
+      let paths = recording.audio_file_path.includes(",")
+        ? recording.audio_file_path.split(",").map(p => p.trim())
+        : [recording.audio_file_path];
+
+      // Check if any single path is an oversized file that would hit the edge function
+      // WORKER_LIMIT. If so, re-chunk it in the browser first before sending to Whisper.
+      if (paths.length === 1) {
+        const { data: headData } = await supabase.storage
+          .from("audio-recordings")
+          .download(paths[0]);
+        if (headData && headData.size > OVERSIZE_THRESHOLD) {
+          paths = await rechunkFile(paths[0], recording.id);
+          setAudioFilePaths(paths);
+        }
+      }
+
+      setStatus("transcribing");
+      toast.info(`Transcribing ${paths.length} segment(s)...`);
+
+      const { data: transcribeData, error: transcribeError } = await supabase.functions.invoke(
+        "transcribe-audio",
+        { body: { audioFilePaths: paths, transcriptionId: recording.id } }
+      );
       if (transcribeError) throw new Error(`Transcription failed: ${transcribeError.message}`);
+      if (!transcribeData?.transcription) throw new Error("No transcription returned from server");
+
       setTranscription(transcribeData.transcription);
       setCurrentTranscriptionId(recording.id);
       toast.success("Transcription complete!");
+
       setStatus("summarizing");
       toast.info("Generating summary...");
-      const { data: summaryData, error: summaryError } = await supabase.functions.invoke("summarize-transcription", { body: { transcriptionId: recording.id } });
+      const { data: summaryData, error: summaryError } = await supabase.functions.invoke(
+        "summarize-transcription",
+        { body: { transcriptionId: recording.id } }
+      );
       if (summaryError) throw new Error(`Summarization failed: ${summaryError.message}`);
       setSummary(summaryData.summary);
       setStatus("completed");
@@ -376,79 +447,41 @@ export function AudioRecorder({ inspectionId, userId }: AudioRecorderProps) {
 
   return (
     <Card className="w-full">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <FileAudio className="h-5 w-5" />
-          Audio Recorder
-        </CardTitle>
-      </CardHeader>
+      <CardHeader><CardTitle className="flex items-center gap-2"><FileAudio className="h-5 w-5" />Audio Recorder</CardTitle></CardHeader>
       <CardContent className="space-y-4">
         <div className="flex flex-col items-center gap-4">
           <div className="text-4xl font-mono font-bold text-primary">{formatTime(recordingTime)}</div>
           <div className="text-sm text-muted-foreground flex items-center gap-2">
             {getStatusMessage()}
-            {status === "recording" && uploadedChunks > 0 && (
-              <span className="flex items-center gap-1 text-green-600">
-                <Upload className="h-3 w-3" />{uploadedChunks} saved
-              </span>
-            )}
-            {status === "recording" && uploadingChunk && (
-              <span className="flex items-center gap-1 text-blue-600">
-                <Loader2 className="h-3 w-3 animate-spin" />Saving...
-              </span>
-            )}
+            {status === "recording" && uploadedChunks > 0 && <span className="flex items-center gap-1 text-green-600"><Upload className="h-3 w-3" />{uploadedChunks} saved</span>}
+            {status === "recording" && uploadingChunk && <span className="flex items-center gap-1 text-blue-600"><Loader2 className="h-3 w-3 animate-spin" />Saving...</span>}
           </div>
           <div className="flex gap-2 flex-wrap justify-center">
             {status === "idle" && (
               <>
-                <Button onClick={startRecording} size="lg" className="gap-2">
-                  <Mic className="h-5 w-5" />Start Recording
-                </Button>
-                {audioFilePaths.length > 0 && (
-                  <Button onClick={downloadAudio} variant="secondary" size="lg" className="gap-2">
-                    <Download className="h-5 w-5" />Download Audio
-                  </Button>
-                )}
+                <Button onClick={startRecording} size="lg" className="gap-2"><Mic className="h-5 w-5" />Start Recording</Button>
+                {audioFilePaths.length > 0 && <Button onClick={downloadAudio} variant="secondary" size="lg" className="gap-2"><Download className="h-5 w-5" />Download Audio</Button>}
               </>
             )}
-            {status === "recording" && (
-              <Button onClick={stopRecording} variant="destructive" size="lg" className="gap-2">
-                <Square className="h-5 w-5" />Stop Recording
-              </Button>
-            )}
-            {(status === "uploading" || status === "transcribing" || status === "summarizing") && (
-              <Button disabled size="lg" className="gap-2">
-                <Loader2 className="h-5 w-5 animate-spin" />Processing...
-              </Button>
-            )}
+            {status === "recording" && <Button onClick={stopRecording} variant="destructive" size="lg" className="gap-2"><Square className="h-5 w-5" />Stop Recording</Button>}
+            {(status === "uploading" || status === "transcribing" || status === "summarizing") && <Button disabled size="lg" className="gap-2"><Loader2 className="h-5 w-5 animate-spin" />Processing...</Button>}
             {(status === "completed" || status === "error") && (
               <>
-                <Button onClick={resetRecorder} variant="outline" size="lg" className="gap-2">
-                  <Mic className="h-5 w-5" />New Recording
-                </Button>
-                {audioFilePaths.length > 0 && (
-                  <Button onClick={downloadAudio} variant="secondary" size="lg" className="gap-2">
-                    <Download className="h-5 w-5" />Download Audio
-                  </Button>
-                )}
+                <Button onClick={resetRecorder} variant="outline" size="lg" className="gap-2"><Mic className="h-5 w-5" />New Recording</Button>
+                {audioFilePaths.length > 0 && <Button onClick={downloadAudio} variant="secondary" size="lg" className="gap-2"><Download className="h-5 w-5" />Download Audio</Button>}
               </>
             )}
           </div>
-          {status === "recording" && (
-            <p className="text-xs text-muted-foreground text-center">Auto-saves every 30 seconds - No time limit</p>
-          )}
+          {status === "recording" && <p className="text-xs text-muted-foreground text-center">Auto-saves every 30 seconds - No time limit</p>}
           {failedRecordings.length > 0 && status === "idle" && (
             <div className="w-full pt-4 border-t">
-              <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
-                <RotateCcw className="h-4 w-4" />Retry Failed Transcriptions
-              </h4>
+              <h4 className="text-sm font-medium mb-2 flex items-center gap-2"><RotateCcw className="h-4 w-4" />Retry Failed Transcriptions</h4>
               <div className="space-y-2">
                 {failedRecordings.map((recording) => (
                   <div key={recording.id} className="flex items-center justify-between bg-muted p-2 rounded-md">
                     <span className="text-xs text-muted-foreground">{new Date(recording.created_at).toLocaleString()}</span>
                     <Button size="sm" variant="outline" onClick={() => retryTranscription(recording)} disabled={retryingId !== null} className="gap-1">
-                      {retryingId === recording.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <RotateCcw className="h-3 w-3" />}
-                      Retry
+                      {retryingId === recording.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <RotateCcw className="h-3 w-3" />}Retry
                     </Button>
                   </div>
                 ))}
@@ -459,12 +492,9 @@ export function AudioRecorder({ inspectionId, userId }: AudioRecorderProps) {
         {summary && (
           <div className="space-y-2 pt-4 border-t">
             <div className="flex items-center justify-between">
-              <h4 className="font-medium flex items-center gap-2">
-                <Sparkles className="h-4 w-4" />AI Summary
-              </h4>
+              <h4 className="font-medium flex items-center gap-2"><Sparkles className="h-4 w-4" />AI Summary</h4>
               <Button variant="ghost" size="sm" className="gap-1 h-8" onClick={() => copyToClipboard(summary, "summary")}>
-                {copiedSummary ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
-                {copiedSummary ? "Copied!" : "Copy"}
+                {copiedSummary ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}{copiedSummary ? "Copied!" : "Copy"}
               </Button>
             </div>
             <div className="bg-muted p-3 rounded-md max-h-64 overflow-y-auto text-sm whitespace-pre-wrap">
@@ -484,55 +514,33 @@ export function AudioRecorder({ inspectionId, userId }: AudioRecorderProps) {
         {transcription && (
           <div className="space-y-2 pt-4 border-t">
             <div className="flex items-center justify-between">
-              <h4 className="font-medium flex items-center gap-2">
-                <FileText className="h-4 w-4" />Transcription
-              </h4>
+              <h4 className="font-medium flex items-center gap-2"><FileText className="h-4 w-4" />Transcription</h4>
               <div className="flex items-center gap-1">
                 {(transcription.includes("[Chunk") || transcription.includes("[Segment")) ? (
-                  <Button variant="outline" size="sm" className="gap-1 h-8"
-                    disabled={status === "transcribing" || status === "summarizing"}
-                    onClick={async () => {
-                      if (!currentTranscriptionId || audioFilePaths.length === 0) {
-                        toast.error("No transcription record found to retry.");
-                        return;
-                      }
-                      try {
-                        setStatus("transcribing");
-                        toast.info("Re-transcribing audio...");
-                        const { data, error } = await supabase.functions.invoke("transcribe-audio", {
-                          body: { audioFilePaths, transcriptionId: currentTranscriptionId }
-                        });
-                        if (error) throw error;
-                        if (!data?.transcription) throw new Error("No transcription returned");
-                        setTranscription(data.transcription);
-                        toast.success("Transcription complete!");
-                        setStatus("summarizing");
-                        toast.info("Regenerating summary...");
-                        const { data: sumData, error: sumError } = await supabase.functions.invoke("summarize-transcription", {
-                          body: { transcriptionId: currentTranscriptionId, transcription: data.transcription }
-                        });
-                        if (sumError) {
-                          console.error("Summary error:", sumError);
-                          toast.error("Summary failed, but transcription is saved.");
-                          setStatus("completed");
-                          return;
-                        }
-                        setSummary(sumData.summary);
-                        setStatus("completed");
-                        toast.success("Summary generated!");
-                      } catch (err) {
-                        console.error("Re-transcribe error:", err);
-                        setStatus("error");
-                        toast.error(err instanceof Error ? err.message : "Re-transcription failed");
-                      }
-                    }}>
-                    {status === "transcribing" ? <Loader2 className="h-3 w-3 animate-spin" /> : <RotateCcw className="h-3 w-3" />}
-                    Re-transcribe
+                  <Button variant="outline" size="sm" className="gap-1 h-8" disabled={status === "transcribing" || status === "summarizing"} onClick={async () => {
+                    if (!currentTranscriptionId || audioFilePaths.length === 0) { toast.error("No transcription record found to retry."); return; }
+                    try {
+                      setStatus("transcribing");
+                      toast.info("Re-transcribing audio...");
+                      const { data, error } = await supabase.functions.invoke("transcribe-audio", { body: { audioFilePaths, transcriptionId: currentTranscriptionId } });
+                      if (error) throw error;
+                      if (!data?.transcription) throw new Error("No transcription returned");
+                      setTranscription(data.transcription);
+                      toast.success("Transcription complete!");
+                      setStatus("summarizing");
+                      toast.info("Regenerating summary...");
+                      const { data: sumData, error: sumError } = await supabase.functions.invoke("summarize-transcription", { body: { transcriptionId: currentTranscriptionId, transcription: data.transcription } });
+                      if (sumError) { console.error("Summary error:", sumError); toast.error("Summary failed, but transcription is saved."); setStatus("completed"); return; }
+                      setSummary(sumData.summary);
+                      setStatus("completed");
+                      toast.success("Summary generated!");
+                    } catch (err) { console.error("Re-transcribe error:", err); setStatus("error"); toast.error(err instanceof Error ? err.message : "Re-transcription failed"); }
+                  }}>
+                    {status === "transcribing" ? <Loader2 className="h-3 w-3 animate-spin" /> : <RotateCcw className="h-3 w-3" />}Re-transcribe
                   </Button>
                 ) : null}
                 <Button variant="ghost" size="sm" className="gap-1 h-8" onClick={() => copyToClipboard(transcription, "transcription")}>
-                  {copiedTranscription ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
-                  {copiedTranscription ? "Copied!" : "Copy"}
+                  {copiedTranscription ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}{copiedTranscription ? "Copied!" : "Copy"}
                 </Button>
               </div>
             </div>
