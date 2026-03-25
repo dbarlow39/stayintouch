@@ -241,7 +241,6 @@ export function AudioRecorder({ inspectionId, userId }: AudioRecorderProps) {
   const stopRecording = async () => {
     if (mediaRecorderRef.current && status === "recording") {
       if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
-      if (chunkTimerRef.current) { clearInterval(chunkTimerRef.current); chunkTimerRef.current = null; }
       isRecordingRef.current = false;
       
       // Wait for the final chunk to finish uploading
