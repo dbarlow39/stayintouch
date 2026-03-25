@@ -6,9 +6,8 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const MAX_FILE_SIZE = 24 * 1024 * 1024; // Stay under OpenAI's 25MB limit with margin
+const MAX_FILE_SIZE = 24 * 1024 * 1024;
 
-// Find all cluster offsets (WebM Cluster element ID: 0x1F43B675)
 function findClusterOffsets(buffer: Uint8Array): number[] {
   const offsets: number[] = [];
   for (let i = 0; i < buffer.length - 4; i++) {
@@ -19,7 +18,6 @@ function findClusterOffsets(buffer: Uint8Array): number[] {
   return offsets;
 }
 
-// Find the first cluster offset (= end of WebM header)
 function findWebmHeaderEnd(buffer: Uint8Array): number {
   for (let i = 0; i < buffer.length - 4; i++) {
     if (buffer[i] === 0x1F && buffer[i + 1] === 0x43 && buffer[i + 2] === 0xB6 && buffer[i + 3] === 0x75) {
@@ -27,6 +25,32 @@ function findWebmHeaderEnd(buffer: Uint8Array): number {
     }
   }
   return -1;
+}
+
+function computeChunkRanges(
+  headerLength: number,
+  clusterOffsets: number[],
+  bufferLength: number
+): Array<{ start: number; end: number }> {
+  const ranges: Array<{ start: number; end: number }> = [];
+  let currentStart = 0;
+
+  for (let i = 1; i <= clusterOffsets.length; i++) {
+    const nextOffset = i < clusterOffsets.length ? clusterOffsets[i] : bufferLength;
+    const chunkDataSize = nextOffset - clusterOffsets[currentStart];
+    const totalSize = headerLength + chunkDataSize;
+
+    if (totalSize > MAX_FILE_SIZE && i > currentStart + 1) {
+      ranges.push({ start: clusterOffsets[currentStart], end: clusterOffsets[i - 1] });
+      currentStart = i - 1;
+    }
+
+    if (i === clusterOffsets.length) {
+      ranges.push({ start: clusterOffsets[currentStart], end: bufferLength });
+    }
+  }
+
+  return ranges;
 }
 
 async function transcribeAudio(audioData: Blob, OPENAI_API_KEY: string): Promise<string> {
@@ -50,34 +74,6 @@ async function transcribeAudio(audioData: Blob, OPENAI_API_KEY: string): Promise
   return result.text;
 }
 
-// Compute chunk boundary ranges without allocating chunk data
-function computeChunkRanges(
-  headerLength: number,
-  clusterOffsets: number[],
-  bufferLength: number
-): Array<{ start: number; end: number }> {
-  const ranges: Array<{ start: number; end: number }> = [];
-  let currentStart = 0; // index into clusterOffsets
-
-  for (let i = 1; i <= clusterOffsets.length; i++) {
-    const nextOffset = i < clusterOffsets.length ? clusterOffsets[i] : bufferLength;
-    const chunkDataSize = nextOffset - clusterOffsets[currentStart];
-    const totalSize = headerLength + chunkDataSize;
-
-    if (totalSize > MAX_FILE_SIZE && i > currentStart + 1) {
-      // Cut before this cluster
-      ranges.push({ start: clusterOffsets[currentStart], end: clusterOffsets[i - 1] });
-      currentStart = i - 1;
-    }
-
-    if (i === clusterOffsets.length) {
-      ranges.push({ start: clusterOffsets[currentStart], end: bufferLength });
-    }
-  }
-
-  return ranges;
-}
-
 async function transcribeFile(supabase: any, audioFilePath: string, OPENAI_API_KEY: string): Promise<string> {
   const { data: audioData, error: downloadError } = await supabase.storage
     .from("audio-recordings")
@@ -91,14 +87,13 @@ async function transcribeFile(supabase: any, audioFilePath: string, OPENAI_API_K
     return await transcribeAudio(audioData, OPENAI_API_KEY);
   }
 
-  // File too large — split at WebM cluster boundaries, one chunk at a time
   console.log(`File exceeds ${MAX_FILE_SIZE / 1024 / 1024}MB, splitting at cluster boundaries...`);
   const arrayBuffer = await audioData.arrayBuffer();
   const buffer = new Uint8Array(arrayBuffer);
 
   const headerEnd = findWebmHeaderEnd(buffer);
   if (headerEnd === -1) {
-    console.log("No WebM clusters found, cannot split. Attempting as-is...");
+    console.log("No WebM clusters found, attempting as-is...");
     return await transcribeAudio(audioData, OPENAI_API_KEY);
   }
 
@@ -110,11 +105,9 @@ async function transcribeFile(supabase: any, audioFilePath: string, OPENAI_API_K
     return await transcribeAudio(audioData, OPENAI_API_KEY);
   }
 
-  // Compute ranges without allocating chunk data
   const ranges = computeChunkRanges(header.length, clusterOffsets, buffer.length);
   console.log(`Will process ${ranges.length} chunks: ${ranges.map(r => ((header.length + r.end - r.start) / 1024 / 1024).toFixed(1) + "MB").join(", ")}`);
 
-  // Process chunks SEQUENTIALLY to minimize peak memory
   const transcriptions: string[] = [];
   for (let i = 0; i < ranges.length; i++) {
     const range = ranges[i];
@@ -122,7 +115,6 @@ async function transcribeFile(supabase: any, audioFilePath: string, OPENAI_API_K
     console.log(`Transcribing chunk ${i + 1}/${ranges.length} (${((header.length + chunkDataSize) / 1024 / 1024).toFixed(1)}MB)`);
 
     try {
-      // Create chunk: header + cluster data (only one chunk in memory at a time)
       const fullChunk = new Uint8Array(header.length + chunkDataSize);
       fullChunk.set(header, 0);
       fullChunk.set(buffer.subarray(range.start, range.end), header.length);
@@ -140,28 +132,17 @@ async function transcribeFile(supabase: any, audioFilePath: string, OPENAI_API_K
   return transcriptions.join(" ");
 }
 
-serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+async function processTranscription(
+  audioFilePaths: string[],
+  transcriptionId: string,
+  OPENAI_API_KEY: string
+) {
+  const supabase = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+  );
+
   try {
-    const body = await req.json();
-    let audioFilePaths: string[];
-    if (body.audioFilePaths && Array.isArray(body.audioFilePaths))
-      audioFilePaths = body.audioFilePaths;
-    else if (body.audioFilePath)
-      audioFilePaths = body.audioFilePath.includes(",")
-        ? body.audioFilePath.split(",")
-        : [body.audioFilePath];
-    else throw new Error("No audio file paths provided");
-
-    const { transcriptionId } = body;
-    const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
-    if (!OPENAI_API_KEY) throw new Error("OPENAI_API_KEY is not configured");
-
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-    );
-
     await supabase
       .from("audio_transcriptions")
       .update({ status: "processing" })
@@ -169,7 +150,6 @@ serve(async (req) => {
 
     console.log(`Processing ${audioFilePaths.length} audio segments`);
 
-    // Process segments SEQUENTIALLY to avoid memory spikes
     const transcriptions: string[] = [];
     for (let i = 0; i < audioFilePaths.length; i++) {
       const filePath = audioFilePaths[i].trim();
@@ -191,10 +171,43 @@ serve(async (req) => {
       .from("audio_transcriptions")
       .update({ transcription, status: "transcribed" })
       .eq("id", transcriptionId);
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : "Unknown error";
+    console.error(`Background transcription failed: ${msg}`);
+    await supabase
+      .from("audio_transcriptions")
+      .update({ status: "error", transcription: `Transcription failed: ${msg}` })
+      .eq("id", transcriptionId);
+  }
+}
 
-    return new Response(JSON.stringify({ success: true, transcription }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  try {
+    const body = await req.json();
+    let audioFilePaths: string[];
+    if (body.audioFilePaths && Array.isArray(body.audioFilePaths))
+      audioFilePaths = body.audioFilePaths;
+    else if (body.audioFilePath)
+      audioFilePaths = body.audioFilePath.includes(",")
+        ? body.audioFilePath.split(",")
+        : [body.audioFilePath];
+    else throw new Error("No audio file paths provided");
+
+    const { transcriptionId } = body;
+    const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
+    if (!OPENAI_API_KEY) throw new Error("OPENAI_API_KEY is not configured");
+
+    // Return immediately — do all heavy work in the background
+    // @ts-ignore EdgeRuntime is available in Supabase Edge Functions
+    EdgeRuntime.waitUntil(
+      processTranscription(audioFilePaths, transcriptionId, OPENAI_API_KEY)
+    );
+
+    return new Response(
+      JSON.stringify({ success: true, message: "Transcription started in background" }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
   } catch (error) {
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
