@@ -132,7 +132,32 @@ export function AudioRecorder({ inspectionId, userId }: AudioRecorderProps) {
     return newPaths;
   };
 
-  const OVERSIZE_THRESHOLD = 24 * 1024 * 1024; // same as edge function limit
+  // Calls the edge function once per path and assembles the results in the browser.
+  // This keeps each function invocation's memory footprint to a single small file.
+  const transcribeOneAtATime = async (
+    paths: string[],
+    transcriptionId: string
+  ): Promise<string> => {
+    const results: string[] = [];
+    for (let i = 0; i < paths.length; i++) {
+      toast.info(`Transcribing segment ${i + 1} of ${paths.length}...`);
+      const { data, error } = await supabase.functions.invoke("transcribe-audio", {
+        body: { audioFilePaths: [paths[i]], transcriptionId }
+      });
+      if (error) throw new Error(`Segment ${i + 1} transcription failed: ${error.message}`);
+      if (!data?.transcription) throw new Error(`No transcription returned for segment ${i + 1}`);
+      results.push(data.transcription);
+    }
+    const combined = results.join(" ");
+    // Write the assembled transcription back to the DB
+    await supabase
+      .from("audio_transcriptions")
+      .update({ transcription: combined, status: "transcribed" })
+      .eq("id", transcriptionId);
+    return combined;
+  };
+
+  const OVERSIZE_THRESHOLD = 24 * 1024 * 1024;
 
   const retryTranscription = async (recording: FailedRecording) => {
     try {
@@ -157,16 +182,9 @@ export function AudioRecorder({ inspectionId, userId }: AudioRecorderProps) {
       }
 
       setStatus("transcribing");
-      toast.info(`Transcribing ${paths.length} segment(s)...`);
-
-      const { data: transcribeData, error: transcribeError } = await supabase.functions.invoke(
-        "transcribe-audio",
-        { body: { audioFilePaths: paths, transcriptionId: recording.id } }
-      );
-      if (transcribeError) throw new Error(`Transcription failed: ${transcribeError.message}`);
-      if (!transcribeData?.transcription) throw new Error("No transcription returned from server");
-
-      setTranscription(transcribeData.transcription);
+      // Call the edge function once per chunk — avoids WORKER_LIMIT
+      const combined = await transcribeOneAtATime(paths, recording.id);
+      setTranscription(combined);
       setCurrentTranscriptionId(recording.id);
       toast.success("Transcription complete!");
 
