@@ -46,9 +46,18 @@ serve(async (req) => {
     const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
     if (!OPENAI_API_KEY) throw new Error("OPENAI_API_KEY is not configured");
     const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
-    await supabase.from("audio_transcriptions").update({ status: "processing" }).eq("id", transcriptionId);
-    const results = await Promise.allSettled(audioFilePaths.map((filePath) => transcribeFile(supabase, filePath.trim(), OPENAI_API_KEY)));
-    const transcription = results.map((result, i) => result.status === "fulfilled" ? result.value : `[Segment ${i + 1} failed]`).join(" ");
+    console.log(`Processing ${audioFilePaths.length} audio segments`);
+    const results = await Promise.allSettled(audioFilePaths.map((filePath, i) => {
+      console.log(`Transcribing segment ${i + 1}: ${filePath.trim()}`);
+      return transcribeFile(supabase, filePath.trim(), OPENAI_API_KEY);
+    }));
+    const transcription = results.map((result, i) => {
+      if (result.status === "fulfilled") return result.value;
+      const reason = result.reason instanceof Error ? result.reason.message : String(result.reason);
+      console.error(`Segment ${i + 1} failed: ${reason}`);
+      return `[Segment ${i + 1} failed: ${reason}]`;
+    }).join(" ");
+    console.log(`Transcription complete. Total segments: ${results.length}, failed: ${results.filter(r => r.status === "rejected").length}`);
     await supabase.from("audio_transcriptions").update({ transcription, status: "transcribed" }).eq("id", transcriptionId);
     return new Response(JSON.stringify({ success: true, transcription }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (error) {
