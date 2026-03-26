@@ -91,98 +91,73 @@ export function AudioRecorder({ inspectionId, userId }: AudioRecorderProps) {
     if (!error && data) setFailedRecordings(data);
   };
 
-  // Browser-side re-chunker for files too large for the edge function to load into memory.
-  // Downloads the oversized file, slices it into RECHUNK_SIZE blobs, re-uploads each one,
-  // updates the DB record with the new paths, then returns those paths for transcription.
-  const RECHUNK_SIZE = 20 * 1024 * 1024; // 20 MB — safely under Whisper's 25 MB limit
+  // Maximum blob size to send to Whisper in one request.
+  // The browser downloads each stored path, splits any blob that exceeds this
+  // threshold into sub-chunks on the spot, and binary-POSTs each piece directly
+  // to the edge function. The edge function never downloads from storage in this
+  // path, so WORKER_LIMIT cannot occur regardless of the original file size.
+  const WHISPER_SAFE_BYTES = 20 * 1024 * 1024; // 20 MB
 
-  const rechunkFile = async (filePath: string, transcriptionId: string): Promise<string[]> => {
-    toast.info("File too large for direct transcription — downloading to split into chunks...");
+  // POST a single blob directly to the edge function (multipart binary path).
+  const postBlobToEdgeFn = async (blob: Blob, transcriptionId: string): Promise<string> => {
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
+    const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string;
+    const fnUrl = `${supabaseUrl}/functions/v1/transcribe-audio`;
+    const { data: { session } } = await supabase.auth.getSession();
+    const token = session?.access_token ?? supabaseKey;
 
-    const { data: audioBlob, error: downloadError } = await supabase.storage
-      .from("audio-recordings")
-      .download(filePath);
-    if (downloadError) throw new Error(`Failed to download audio for re-chunking: ${downloadError.message}`);
+    const formData = new FormData();
+    formData.append("file", blob, "audio.webm");
+    formData.append("transcriptionId", transcriptionId);
 
-    const totalChunks = Math.ceil(audioBlob.size / RECHUNK_SIZE);
-    toast.info(`Splitting into ${totalChunks} chunks and uploading...`);
-
-    const newPaths: string[] = [];
-    for (let i = 0; i < totalChunks; i++) {
-      const start = i * RECHUNK_SIZE;
-      const end = Math.min(start + RECHUNK_SIZE, audioBlob.size);
-      const chunkBlob = audioBlob.slice(start, end, "audio/webm");
-      const chunkName = `${userId}/${Date.now()}_rechunk_${i}.webm`;
-
-      const { error: uploadError } = await supabase.storage
-        .from("audio-recordings")
-        .upload(chunkName, chunkBlob);
-      if (uploadError) throw new Error(`Failed to upload chunk ${i + 1}: ${uploadError.message}`);
-
-      newPaths.push(chunkName);
-      toast.info(`Uploaded chunk ${i + 1} of ${totalChunks}...`);
+    const response = await fetch(fnUrl, {
+      method: "POST",
+      headers: { "Authorization": `Bearer ${token}`, "apikey": supabaseKey },
+      body: formData,
+    });
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error(`Edge function error (${response.status}): ${errText}`);
     }
-
-    // Update the DB record so the new paths are stored permanently
-    await supabase
-      .from("audio_transcriptions")
-      .update({ audio_file_path: newPaths.join(","), status: "pending" })
-      .eq("id", transcriptionId);
-
-    return newPaths;
+    const data = await response.json();
+    if (!data?.transcription) throw new Error("No transcription returned from edge function");
+    return data.transcription;
   };
 
-  // Calls the edge function once per path and assembles the results in the browser.
-  // This keeps each function invocation's memory footprint to a single small file.
-  // Download each chunk in the browser and POST the binary directly to the edge function.
-  // The edge function never downloads anything from Supabase Storage in this path —
-  // it receives binary in the request body and proxies it straight to Whisper.
-  // Memory usage in the function is near-zero, eliminating WORKER_LIMIT for any file size.
+  // Download each path in the browser, split oversized blobs on the spot,
+  // and binary-POST each piece. Foolproof: no matter what the DB contains,
+  // nothing over WHISPER_SAFE_BYTES ever reaches Whisper.
   const transcribeOneAtATime = async (
     paths: string[],
     transcriptionId: string
   ): Promise<string> => {
-    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
-    const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string;
-    const fnUrl = `${supabaseUrl}/functions/v1/transcribe-audio`;
-
-    const { data: { session } } = await supabase.auth.getSession();
-    const token = session?.access_token ?? supabaseKey;
-
     const results: string[] = [];
     for (let i = 0; i < paths.length; i++) {
-      toast.info(`Transcribing segment ${i + 1} of ${paths.length}...`);
-
-      // Download the chunk in the browser — no memory ceiling here like the edge function
-      const { data: chunkBlob, error: dlError } = await supabase.storage
+      toast.info(`Downloading segment ${i + 1} of ${paths.length}...`);
+      const { data: blob, error: dlError } = await supabase.storage
         .from("audio-recordings")
         .download(paths[i]);
       if (dlError) throw new Error(`Failed to download segment ${i + 1}: ${dlError.message}`);
 
-      // POST binary directly — edge fn receives it, forwards to Whisper, returns text
-      const formData = new FormData();
-      formData.append("file", chunkBlob, "audio.webm");
-      formData.append("transcriptionId", transcriptionId);
-
-      const response = await fetch(fnUrl, {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${token}`,
-          "apikey": supabaseKey,
-        },
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const errText = await response.text();
-        throw new Error(`Segment ${i + 1} failed (${response.status}): ${errText}`);
+      if (blob.size <= WHISPER_SAFE_BYTES) {
+        // Small enough — send directly
+        toast.info(`Transcribing segment ${i + 1} of ${paths.length}...`);
+        const text = await postBlobToEdgeFn(blob, transcriptionId);
+        results.push(text);
+      } else {
+        // Too large — split right here in the browser, no extra upload needed
+        const subChunks = Math.ceil(blob.size / WHISPER_SAFE_BYTES);
+        toast.info(`Segment ${i + 1} is ${(blob.size / 1024 / 1024).toFixed(0)} MB — splitting into ${subChunks} sub-chunks...`);
+        for (let j = 0; j < subChunks; j++) {
+          const start = j * WHISPER_SAFE_BYTES;
+          const end = Math.min(start + WHISPER_SAFE_BYTES, blob.size);
+          const subBlob = blob.slice(start, end, "audio/webm");
+          toast.info(`Transcribing sub-chunk ${j + 1} of ${subChunks} (segment ${i + 1})...`);
+          const text = await postBlobToEdgeFn(subBlob, transcriptionId);
+          results.push(text);
+        }
       }
-
-      const data = await response.json();
-      if (!data?.transcription) throw new Error(`No transcription returned for segment ${i + 1}`);
-      results.push(data.transcription);
     }
-
     const combined = results.join(" ");
     await supabase
       .from("audio_transcriptions")
@@ -191,32 +166,15 @@ export function AudioRecorder({ inspectionId, userId }: AudioRecorderProps) {
     return combined;
   };
 
-  const OVERSIZE_THRESHOLD = 24 * 1024 * 1024;
-
   const retryTranscription = async (recording: FailedRecording) => {
     try {
       setRetryingId(recording.id);
-      setStatus("uploading");
-      setAudioFilePaths([recording.audio_file_path]);
-
-      let paths = recording.audio_file_path.includes(",")
+      setStatus("transcribing");
+      const paths = recording.audio_file_path.includes(",")
         ? recording.audio_file_path.split(",").map(p => p.trim())
         : [recording.audio_file_path];
+      setAudioFilePaths(paths);
 
-      // Check if any single path is an oversized file that would hit the edge function
-      // WORKER_LIMIT. If so, re-chunk it in the browser first before sending to Whisper.
-      if (paths.length === 1) {
-        const { data: headData } = await supabase.storage
-          .from("audio-recordings")
-          .download(paths[0]);
-        if (headData && headData.size > OVERSIZE_THRESHOLD) {
-          paths = await rechunkFile(paths[0], recording.id);
-          setAudioFilePaths(paths);
-        }
-      }
-
-      setStatus("transcribing");
-      // Call the edge function once per chunk — avoids WORKER_LIMIT
       const combined = await transcribeOneAtATime(paths, recording.id);
       setTranscription(combined);
       setCurrentTranscriptionId(recording.id);
