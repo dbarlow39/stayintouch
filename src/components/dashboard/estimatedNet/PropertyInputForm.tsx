@@ -45,6 +45,7 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
   const [linkedClientId, setLinkedClientId] = useState<string | null>(null);
   const [navigationTarget, setNavigationTarget] = useState<string>("closing-costs");
   const [currentPropertyId, setCurrentPropertyId] = useState<string | null>(editingId);
+  const [representationType, setRepresentationType] = useState<'seller' | 'buyer'>('seller');
   
   const formRef = useRef<HTMLFormElement>(null);
   const [formData, setFormData] = useState<PropertyData>({
