@@ -154,8 +154,48 @@ serve(async (req) => {
       const audioFile = formData.get("file") as File | null;
       if (!audioFile) throw new Error("No audio file in request body");
 
-      console.log(`Binary path: received ${(audioFile.size / 1024 / 1024).toFixed(1)} MB directly`);
-      const text = await transcribeBlob(audioFile, OPENAI_API_KEY);
+      const sizeMB = (audioFile.size / 1024 / 1024).toFixed(1);
+      console.log(`Binary path: received ${sizeMB} MB directly`);
+
+      let text: string;
+
+      if (audioFile.size <= WHISPER_MAX_BYTES) {
+        text = await transcribeBlob(audioFile, OPENAI_API_KEY);
+      } else {
+        // Safety split for oversized binary uploads
+        console.log(`Binary file exceeds limit — splitting...`);
+        const buffer = new Uint8Array(await audioFile.arrayBuffer());
+        const SEARCH_LIMIT = Math.min(64 * 1024, buffer.length);
+        let headerEnd = -1;
+        for (let i = 0; i < SEARCH_LIMIT - 4; i++) {
+          if (buffer[i] === 0x1F && buffer[i+1] === 0x43 && buffer[i+2] === 0xB6 && buffer[i+3] === 0x75) {
+            headerEnd = i;
+            break;
+          }
+        }
+        if (headerEnd === -1) {
+          text = await transcribeBlob(audioFile, OPENAI_API_KEY);
+        } else {
+          const header = buffer.slice(0, headerEnd);
+          const body = buffer.slice(headerEnd);
+          const maxBody = WHISPER_MAX_BYTES - header.length;
+          if (maxBody <= 0) throw new Error("WebM header exceeds Whisper size limit.");
+          const total = Math.ceil(body.length / maxBody);
+          const parts: string[] = [];
+          for (let i = 0; i < total; i++) {
+            const slice = body.slice(i * maxBody, Math.min((i+1) * maxBody, body.length));
+            const chunk = new Uint8Array(header.length + slice.length);
+            chunk.set(header, 0);
+            chunk.set(slice, header.length);
+            try {
+              parts.push(await transcribeBlob(new Blob([chunk], { type: "audio/webm" }), OPENAI_API_KEY));
+            } catch (err) {
+              parts.push(`[Chunk ${i+1} failed: ${err instanceof Error ? err.message : String(err)}]`);
+            }
+          }
+          text = parts.join(" ");
+        }
+      }
 
       return new Response(
         JSON.stringify({ success: true, transcription: text }),
