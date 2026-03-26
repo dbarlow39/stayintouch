@@ -26,6 +26,7 @@ BULLSEYE PRICING RULES:
 - NEVER use the lower number within the same bracket as the Bullseye
 - EXAMPLE: If 3 comps sold at $405K, $416K, $427.5K - the majority are in the $400K-$425K bracket, so Bullseye = $424,900. Do NOT pick the $425K-$450K bracket.
 - lowerBracketPrice and upperBracketPrice will be calculated automatically by the system — you may leave them as empty strings or provide rough values, they will be overridden.
+- AGENT OVERRIDE: If the agent provides a Lower Price Bracket, Bullseye Price, and Upper Price Bracket, the system will hard-code those values into the Bullseye model: Lower = bottom ring, Bullseye Price = center target, Upper = top ring. Your AI-generated bullseyePrice will be overridden. If no values are provided, determine pricing using the standard rules above.
 
 ZESTIMATE FRAMING RULES:
 
@@ -265,7 +266,7 @@ serve(async (req) => {
   }
 
   try {
-    const { documents, agentNotes, buyerNames, lowerPriceBracket, upperPriceBracket } = await req.json();
+    const { documents, agentNotes, buyerNames, lowerPriceBracket, bullseyePrice: agentBullseyePrice, upperPriceBracket } = await req.json();
 
     if (!documents || !Array.isArray(documents) || documents.length === 0) {
       return new Response(
@@ -479,6 +480,12 @@ serve(async (req) => {
         if (lowerPriceBracket && upperPriceBracket && lowerPriceBracket > 0 && upperPriceBracket > 0) {
           const lower = roundToBracketPrice(lowerPriceBracket);
           const upper = roundToBracketPrice(upperPriceBracket);
+
+          // If agent provided an explicit bullseye price, override the AI's value
+          if (agentBullseyePrice && agentBullseyePrice > 0) {
+            bullseye = agentBullseyePrice;
+            analysis.pricing.bullseyePrice = fmt(agentBullseyePrice);
+          }
 
           const bWidth = getBracketWidth(bullseye);
           const bTop = Math.ceil(bullseye / bWidth) * bWidth;
