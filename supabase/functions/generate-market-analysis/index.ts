@@ -263,7 +263,7 @@ serve(async (req) => {
   }
 
   try {
-    const { documents, agentNotes, buyerNames } = await req.json();
+    const { documents, agentNotes, buyerNames, lowerPriceBracket, upperPriceBracket } = await req.json();
 
     if (!documents || !Array.isArray(documents) || documents.length === 0) {
       return new Response(
@@ -471,30 +471,51 @@ serve(async (req) => {
           };
         };
 
-        const pct = getAdjustmentPct(bullseye);
-        const upperRaw = bullseye * (1 + pct);
-        const lowerRaw = bullseye * (1 - pct);
-
-        const upper = roundToBracketPrice(upperRaw);
-        const lower = roundToBracketPrice(lowerRaw);
-
-        // Also recalculate the bullseye bracket labels
-        const bWidth = getBracketWidth(bullseye);
-        const bTop = Math.ceil(bullseye / bWidth) * bWidth;
-        const bLow = bTop - bWidth;
-
         const fmt = (n: number) => `$${n.toLocaleString("en-US")}`;
 
-        analysis.pricing.upperBracketPrice = fmt(upper.price);
-        analysis.pricing.upperBracketLow = fmt(upper.low);
-        analysis.pricing.upperBracketHigh = fmt(upper.high);
-        analysis.pricing.lowerBracketPrice = fmt(lower.price);
-        analysis.pricing.lowerBracketLow = fmt(lower.low);
-        analysis.pricing.lowerBracketHigh = fmt(lower.high);
-        analysis.pricing.bullseyeBracketLow = fmt(bLow);
-        analysis.pricing.bullseyeBracketHigh = fmt(bTop);
+        // If agent provided explicit price brackets, use them directly
+        if (lowerPriceBracket && upperPriceBracket && lowerPriceBracket > 0 && upperPriceBracket > 0) {
+          const lower = roundToBracketPrice(lowerPriceBracket);
+          const upper = roundToBracketPrice(upperPriceBracket);
 
-        console.log(`Bullseye recalc: ${fmt(bullseye)} ±${(pct * 100)}% → Lower: ${fmt(lower.price)}, Upper: ${fmt(upper.price)}`);
+          const bWidth = getBracketWidth(bullseye);
+          const bTop = Math.ceil(bullseye / bWidth) * bWidth;
+          const bLow = bTop - bWidth;
+
+          analysis.pricing.lowerBracketPrice = fmt(lower.price);
+          analysis.pricing.lowerBracketLow = fmt(lower.low);
+          analysis.pricing.lowerBracketHigh = fmt(lower.high);
+          analysis.pricing.upperBracketPrice = fmt(upper.price);
+          analysis.pricing.upperBracketLow = fmt(upper.low);
+          analysis.pricing.upperBracketHigh = fmt(upper.high);
+          analysis.pricing.bullseyeBracketLow = fmt(bLow);
+          analysis.pricing.bullseyeBracketHigh = fmt(bTop);
+
+          console.log(`Bullseye recalc (agent brackets): Lower: ${fmt(lower.price)}, Bullseye: ${fmt(bullseye)}, Upper: ${fmt(upper.price)}`);
+        } else {
+          // Default percentage-based calculation
+          const pct = getAdjustmentPct(bullseye);
+          const upperRaw = bullseye * (1 + pct);
+          const lowerRaw = bullseye * (1 - pct);
+
+          const upper = roundToBracketPrice(upperRaw);
+          const lower = roundToBracketPrice(lowerRaw);
+
+          const bWidth = getBracketWidth(bullseye);
+          const bTop = Math.ceil(bullseye / bWidth) * bWidth;
+          const bLow = bTop - bWidth;
+
+          analysis.pricing.upperBracketPrice = fmt(upper.price);
+          analysis.pricing.upperBracketLow = fmt(upper.low);
+          analysis.pricing.upperBracketHigh = fmt(upper.high);
+          analysis.pricing.lowerBracketPrice = fmt(lower.price);
+          analysis.pricing.lowerBracketLow = fmt(lower.low);
+          analysis.pricing.lowerBracketHigh = fmt(lower.high);
+          analysis.pricing.bullseyeBracketLow = fmt(bLow);
+          analysis.pricing.bullseyeBracketHigh = fmt(bTop);
+
+          console.log(`Bullseye recalc: ${fmt(bullseye)} ±${(pct * 100)}% → Lower: ${fmt(lower.price)}, Upper: ${fmt(upper.price)}`);
+        }
       }
     }
     // --- End pricing recalculation ---
