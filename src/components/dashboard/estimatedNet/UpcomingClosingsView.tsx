@@ -308,8 +308,8 @@ const UpcomingClosingsView = ({ onBack }: UpcomingClosingsViewProps) => {
                         <TableHead className="px-2 no-print">Email</TableHead>
                         <TableHead className="px-2 text-right">Sales Price</TableHead>
                         <TableHead className="px-2 text-right">Commission</TableHead>
-                        <TableHead className="px-2">Buyer's Agent</TableHead>
-                        <TableHead className="px-2">Buyer's Agent Phone</TableHead>
+                        <TableHead className="px-2">Co-Op Agent</TableHead>
+                        <TableHead className="px-2">Co-Op Agent Phone</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
