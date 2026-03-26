@@ -134,22 +134,56 @@ export function AudioRecorder({ inspectionId, userId }: AudioRecorderProps) {
 
   // Calls the edge function once per path and assembles the results in the browser.
   // This keeps each function invocation's memory footprint to a single small file.
+  // Download each chunk in the browser and POST the binary directly to the edge function.
+  // The edge function never downloads anything from Supabase Storage in this path —
+  // it receives binary in the request body and proxies it straight to Whisper.
+  // Memory usage in the function is near-zero, eliminating WORKER_LIMIT for any file size.
   const transcribeOneAtATime = async (
     paths: string[],
     transcriptionId: string
   ): Promise<string> => {
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
+    const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string;
+    const fnUrl = `${supabaseUrl}/functions/v1/transcribe-audio`;
+
+    const { data: { session } } = await supabase.auth.getSession();
+    const token = session?.access_token ?? supabaseKey;
+
     const results: string[] = [];
     for (let i = 0; i < paths.length; i++) {
       toast.info(`Transcribing segment ${i + 1} of ${paths.length}...`);
-      const { data, error } = await supabase.functions.invoke("transcribe-audio", {
-        body: { audioFilePaths: [paths[i]], transcriptionId }
+
+      // Download the chunk in the browser — no memory ceiling here like the edge function
+      const { data: chunkBlob, error: dlError } = await supabase.storage
+        .from("audio-recordings")
+        .download(paths[i]);
+      if (dlError) throw new Error(`Failed to download segment ${i + 1}: ${dlError.message}`);
+
+      // POST binary directly — edge fn receives it, forwards to Whisper, returns text
+      const formData = new FormData();
+      formData.append("file", chunkBlob, "audio.webm");
+      formData.append("transcriptionId", transcriptionId);
+
+      const response = await fetch(fnUrl, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "apikey": supabaseKey,
+        },
+        body: formData,
       });
-      if (error) throw new Error(`Segment ${i + 1} transcription failed: ${error.message}`);
+
+      if (!response.ok) {
+        const errText = await response.text();
+        throw new Error(`Segment ${i + 1} failed (${response.status}): ${errText}`);
+      }
+
+      const data = await response.json();
       if (!data?.transcription) throw new Error(`No transcription returned for segment ${i + 1}`);
       results.push(data.transcription);
     }
+
     const combined = results.join(" ");
-    // Write the assembled transcription back to the DB
     await supabase
       .from("audio_transcriptions")
       .update({ transcription: combined, status: "transcribed" })
