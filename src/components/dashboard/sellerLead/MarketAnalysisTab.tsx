@@ -302,9 +302,14 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
         .map((m) => `${m.role === "user" ? "Agent" : "AI"}: ${m.content}`)
         .join("\n\n");
 
+      const priceBracketContext = (lowerPriceBracket.trim() || upperPriceBracket.trim())
+        ? `\n\n--- Agent Price Bracket Guidance ---\nThe agent has specified a target price bracket for the Bullseye pricing model: Lower bracket: $${lowerPriceBracket.trim() || "not specified"}, Upper bracket: $${upperPriceBracket.trim() || "not specified"}. Use these as the anchoring range for the Bullseye Price Model.`
+        : "";
+
       const combinedNotes = [
         aiNotes.trim(),
         conversationContext ? `\n\n--- Q&A Conversation ---\n${conversationContext}` : "",
+        priceBracketContext,
       ].filter(Boolean).join("");
 
       const { data, error } = await supabase.functions.invoke("generate-market-analysis", {
