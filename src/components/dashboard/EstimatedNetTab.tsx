@@ -226,6 +226,8 @@ const EstimatedNetTab = ({ selectedClient, onClearSelectedClient, navigateToProp
       });
     },
     enabled: !!user,
+    staleTime: 0,
+    refetchOnMount: 'always',
   });
 
   const handleNewEstimate = () => {
