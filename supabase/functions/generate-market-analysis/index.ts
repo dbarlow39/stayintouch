@@ -437,7 +437,7 @@ serve(async (req) => {
         return parseFloat(String(v).replace(/[$,]/g, "")) || 0;
       };
 
-      const bullseye = parseDollar(analysis.pricing.bullseyePrice);
+      let bullseye = parseDollar(analysis.pricing.bullseyePrice);
 
       if (bullseye > 0) {
         // Percentage tiers for plus-up / plus-down
