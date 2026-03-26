@@ -104,11 +104,18 @@ interface ClosingData {
   seller_email: string | null;
   agent_name: string | null; // Buyer's agent name
   agent_contact: string | null; // Buyer's agent phone
+  representation_type: string | null;
+  buyer_agent_commission: number;
 }
 
-// Commission calculation: sales price * 1% + $499
-const calculateCommission = (salePrice: number): number => {
-  return salePrice * 0.01 + 499;
+// Commission calculation:
+// Seller deals: sales price * 1% + $499
+// Buyer deals: purchase price * buyer_agent_commission% + $399
+const calculateCommission = (closing: ClosingData): number => {
+  if (closing.representation_type === 'buyer') {
+    return closing.offer_price * (closing.buyer_agent_commission / 100) + 399;
+  }
+  return closing.offer_price * 0.01 + 499;
 };
 
 // Parse a closing date string (handles various formats)
