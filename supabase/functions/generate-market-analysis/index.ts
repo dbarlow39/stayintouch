@@ -55,6 +55,8 @@ FOR ALL SCENARIOS - the zillowNoteOn field must always be exactly this sentence,
 "A note on online valuation tools: Zillow's Zestimate and similar automated valuation models rely on algorithm-driven estimates that often lag actual market conditions and cannot account for your home's specific upgrades, custom finishes, or location premium within the subdivision. The data-driven, agent-guided comparable analysis presented here reflects what real buyers are actually paying in your specific market today."
 
 WRITING RULES:
+- HOA FEES: HOA fees do NOT impact the home's market value or pricing recommendation. Never adjust the Bullseye price, comp analysis, or price justification based on HOA fees. If HOA fees appear in the documents, you may mention them as a factual detail but they must not influence pricing.
+- PRE-LISTING ANALYSIS: These analyses are for homes that are NOT currently on the market. The homeowner is considering selling and this report helps them understand their home's value before listing. Frame all language accordingly - do not refer to the home as "listed" or "on the market." Use language like "when you list," "once on the market," or "prior to listing."
 - No em dashes - use a plain hyphen (-) instead
 - Professional, warm, data-driven tone
 - Address homeowners by FIRST NAMES ONLY (e.g. "Dear John and Jane,") - never use last names in the salutation or intro paragraph
