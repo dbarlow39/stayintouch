@@ -468,6 +468,7 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
 
   const handleRepresentationChange = async (value: 'seller' | 'buyer') => {
     setRepresentationType(value);
+    representationTypeRef.current = value;
     if (!editingId) {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
@@ -549,6 +550,7 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
 
         setFormData(nextFormData);
         setRepresentationType((data as any).representation_type === 'buyer' ? 'buyer' : 'seller');
+        representationTypeRef.current = (data as any).representation_type === 'buyer' ? 'buyer' : 'seller';
 
         // If this estimate isn't linked to a client yet, try to match by address so we can pull phone/taxes.
         let clientIdToUse = data.client_id ?? null;
