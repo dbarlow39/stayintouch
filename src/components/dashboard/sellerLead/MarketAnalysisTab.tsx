@@ -312,8 +312,16 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
         priceBracketContext,
       ].filter(Boolean).join("");
 
+      const parsedLower = parseFloat(lowerPriceBracket.trim().replace(/[$,]/g, "")) || undefined;
+      const parsedUpper = parseFloat(upperPriceBracket.trim().replace(/[$,]/g, "")) || undefined;
+
       const { data, error } = await supabase.functions.invoke("generate-market-analysis", {
-        body: { documents: uploadedDocsRef, agentNotes: combinedNotes || undefined },
+        body: {
+          documents: uploadedDocsRef,
+          agentNotes: combinedNotes || undefined,
+          lowerPriceBracket: parsedLower,
+          upperPriceBracket: parsedUpper,
+        },
       });
 
       if (error) throw error;
