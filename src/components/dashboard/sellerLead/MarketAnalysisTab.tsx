@@ -567,6 +567,39 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
             </p>
           </div>
 
+          {/* Price Bracket Inputs */}
+          <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="lower-price-bracket" className="mb-2 block">
+                Lower Price Bracket
+              </Label>
+              <Input
+                id="lower-price-bracket"
+                type="text"
+                inputMode="numeric"
+                value={lowerPriceBracket}
+                onChange={(e) => setLowerPriceBracket(e.target.value)}
+                placeholder="e.g. 375000"
+              />
+            </div>
+            <div>
+              <Label htmlFor="upper-price-bracket" className="mb-2 block">
+                Upper Price Bracket
+              </Label>
+              <Input
+                id="upper-price-bracket"
+                type="text"
+                inputMode="numeric"
+                value={upperPriceBracket}
+                onChange={(e) => setUpperPriceBracket(e.target.value)}
+                placeholder="e.g. 425000"
+              />
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground mt-1">
+            Optional — provide target price brackets to guide the Bullseye pricing model.
+          </p>
+
           <div className="mt-6 flex items-center gap-3">
             <Button
               onClick={handleStartChat}
