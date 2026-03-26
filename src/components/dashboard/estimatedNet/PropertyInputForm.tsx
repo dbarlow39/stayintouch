@@ -828,7 +828,11 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
         taxDaysDueThisYear: taxDaysDue,
       };
 
-      onSave(savedId, updatedFormData, navigationTarget);
+      if (representationType === 'buyer') {
+        toast({ title: "Deal saved successfully" });
+      } else {
+        onSave(savedId, updatedFormData, navigationTarget);
+      }
     } catch (error: any) {
       toast({
         title: "Error saving property",
@@ -2282,7 +2286,7 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
 
         <div className="flex justify-end">
           <Button type="submit" size="lg" className="text-lg px-8" disabled={loading}>
-            {loading ? "Saving..." : editingId ? "Update & Calculate →" : "Calculate Closing Costs →"}
+            {loading ? "Saving..." : representationType === 'buyer' ? "Save and Continue" : editingId ? "Update & Calculate →" : "Calculate Closing Costs →"}
           </Button>
         </div>
       </form>
