@@ -850,7 +850,7 @@ const EstimatedNetTab = ({ selectedClient, onClearSelectedClient, navigateToProp
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Property</TableHead>
+              <TableHead>Client</TableHead>
               <TableHead>Address</TableHead>
               <TableHead className="text-right">Offer Price</TableHead>
               <TableHead className="text-right">Actions</TableHead>
