@@ -158,7 +158,9 @@ const UpcomingClosingsView = ({ onBack }: UpcomingClosingsViewProps) => {
           seller_phone,
           seller_email,
           agent_name,
-          agent_contact
+          agent_contact,
+          representation_type,
+          buyer_agent_commission
         `)
         .eq("agent_id", user!.id)
         .not("closing_date", "is", null)
@@ -313,7 +315,7 @@ const UpcomingClosingsView = ({ onBack }: UpcomingClosingsViewProps) => {
                     <TableBody>
                       {monthClosings.map((closing) => {
                         const parsedDate = parseClosingDate(closing.closing_date);
-                        const commission = calculateCommission(closing.offer_price);
+                        const commission = calculateCommission(closing);
 
                         return (
                           <TableRow key={closing.id}>
@@ -361,7 +363,7 @@ const UpcomingClosingsView = ({ onBack }: UpcomingClosingsViewProps) => {
                         <TableCell className="px-2 text-right text-emerald-600 dark:text-emerald-400">
                           {formatCurrency(
                             monthClosings.reduce(
-                              (sum, c) => sum + calculateCommission(c.offer_price),
+                              (sum, c) => sum + calculateCommission(c),
                               0
                             )
                           )}
@@ -403,7 +405,7 @@ const UpcomingClosingsView = ({ onBack }: UpcomingClosingsViewProps) => {
                     {formatCurrency(
                       closingsByMonth.reduce(
                         (sum, [, items]) =>
-                          sum + items.reduce((s, c) => s + calculateCommission(c.offer_price), 0),
+                        sum + items.reduce((s, c) => s + calculateCommission(c), 0),
                         0
                       )
                     )}
