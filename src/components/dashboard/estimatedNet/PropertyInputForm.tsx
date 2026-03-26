@@ -46,7 +46,8 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
   const [navigationTarget, setNavigationTarget] = useState<string>("closing-costs");
   const [currentPropertyId, setCurrentPropertyId] = useState<string | null>(editingId);
   const [representationType, setRepresentationType] = useState<'seller' | 'buyer'>('seller');
-  
+  const representationTypeRef = useRef<'seller' | 'buyer'>('seller');
+
   const formRef = useRef<HTMLFormElement>(null);
   const [formData, setFormData] = useState<PropertyData>({
     name: "",
@@ -467,6 +468,7 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
 
   const handleRepresentationChange = async (value: 'seller' | 'buyer') => {
     setRepresentationType(value);
+    representationTypeRef.current = value;
     if (!editingId) {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
@@ -548,6 +550,7 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
 
         setFormData(nextFormData);
         setRepresentationType((data as any).representation_type === 'buyer' ? 'buyer' : 'seller');
+        representationTypeRef.current = (data as any).representation_type === 'buyer' ? 'buyer' : 'seller';
 
         // If this estimate isn't linked to a client yet, try to match by address so we can pull phone/taxes.
         let clientIdToUse = data.client_id ?? null;
@@ -700,7 +703,7 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
         admin_fee: Number(dataToSave.adminFee) || 0,
         appliances: dataToSave.appliances,
          notes: dataToSave.notes,
-         representation_type: representationType,
+         representation_type: representationTypeRef.current,
        };
 
       if (currentPropertyId) {
@@ -791,7 +794,7 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
         admin_fee: Number(formData.adminFee) || 0,
         appliances: formData.appliances,
          notes: formData.notes,
-         representation_type: representationType,
+         representation_type: representationTypeRef.current,
        };
 
       let savedId: string;
