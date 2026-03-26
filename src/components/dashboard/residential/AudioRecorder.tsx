@@ -185,7 +185,7 @@ export function AudioRecorder({ inspectionId, userId }: AudioRecorderProps) {
         toast.info(`Segment ${i + 1} is ${(blob.size / 1024 / 1024).toFixed(0)} MB — split into ${subChunks.length} sub-chunks`);
         for (let j = 0; j < subChunks.length; j++) {
           toast.info(`Transcribing sub-chunk ${j + 1} of ${subChunks.length}...`);
-          const subBlob = new Blob([subChunks[j]], { type: "audio/webm" });
+          const subBlob = new Blob([subChunks[j].buffer as ArrayBuffer], { type: "audio/webm" });
           const text = await postBlobToEdgeFn(subBlob, transcriptionId);
           results.push(text);
         }
