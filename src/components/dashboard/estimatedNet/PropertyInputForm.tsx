@@ -132,7 +132,7 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
       if (editingId) {
         await loadProperty(editingId);
       } else {
-        await loadUserDefaults(session.user.id);
+        await loadUserDefaults(session.user.id, representationType);
       }
     };
 
@@ -424,7 +424,7 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
     }
   };
 
-  const loadUserDefaults = async (userId: string) => {
+  const loadUserDefaults = async (userId: string, repType: 'seller' | 'buyer' = 'seller') => {
     try {
       const { data, error } = await supabase
         .from("profiles")
@@ -438,15 +438,40 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
 
       if (data) {
         const fullName = [data.first_name, data.last_name].filter(Boolean).join(' ');
-        setFormData(prev => ({
-          ...prev,
-          listingAgentName: fullName || "",
-          listingAgentPhone: data.cell_phone || "",
-          listingAgentEmail: data.preferred_email || "",
-        }));
+        if (repType === 'buyer') {
+          setFormData(prev => ({
+            ...prev,
+            agentName: fullName || "",
+            agentContact: data.cell_phone || "",
+            agentEmail: data.preferred_email || "",
+            listingAgentName: "",
+            listingAgentPhone: "",
+            listingAgentEmail: "",
+          }));
+        } else {
+          setFormData(prev => ({
+            ...prev,
+            listingAgentName: fullName || "",
+            listingAgentPhone: data.cell_phone || "",
+            listingAgentEmail: data.preferred_email || "",
+            agentName: "",
+            agentContact: "",
+            agentEmail: "",
+          }));
+        }
       }
     } catch (error: any) {
       console.error("Error loading user defaults:", error);
+    }
+  };
+
+  const handleRepresentationChange = async (value: 'seller' | 'buyer') => {
+    setRepresentationType(value);
+    if (!editingId) {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        await loadUserDefaults(session.user.id, value);
+      }
     }
   };
 
