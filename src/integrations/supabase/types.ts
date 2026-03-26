@@ -768,6 +768,7 @@ export type Database = {
           possession: string | null
           pre_approval_days: number | null
           remedy_period_days: number | null
+          representation_type: string
           respond_to_offer_by: string | null
           second_half_paid: boolean
           second_mortgage: number
@@ -830,6 +831,7 @@ export type Database = {
           possession?: string | null
           pre_approval_days?: number | null
           remedy_period_days?: number | null
+          representation_type?: string
           respond_to_offer_by?: string | null
           second_half_paid?: boolean
           second_mortgage?: number
@@ -892,6 +894,7 @@ export type Database = {
           possession?: string | null
           pre_approval_days?: number | null
           remedy_period_days?: number | null
+          representation_type?: string
           respond_to_offer_by?: string | null
           second_half_paid?: boolean
           second_mortgage?: number
