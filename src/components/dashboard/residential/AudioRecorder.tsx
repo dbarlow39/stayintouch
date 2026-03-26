@@ -124,9 +124,44 @@ export function AudioRecorder({ inspectionId, userId }: AudioRecorderProps) {
     return data.transcription;
   };
 
-  // Download each path in the browser, split oversized blobs on the spot,
-  // and binary-POST each piece. Foolproof: no matter what the DB contains,
-  // nothing over WHISPER_SAFE_BYTES ever reaches Whisper.
+  // Split a raw WebM buffer into valid sub-chunks by finding the file header
+  // (everything before the first Cluster element) and prepending it to every slice.
+  // blob.slice() alone produces unrecognisable binary fragments — Whisper rejects them.
+  const splitWebmBuffer = (buffer: Uint8Array): Uint8Array[] => {
+    const SEARCH_LIMIT = Math.min(64 * 1024, buffer.length);
+    let headerEnd = -1;
+    for (let i = 0; i < SEARCH_LIMIT - 4; i++) {
+      if (
+        buffer[i] === 0x1F && buffer[i + 1] === 0x43 &&
+        buffer[i + 2] === 0xB6 && buffer[i + 3] === 0x75
+      ) {
+        headerEnd = i;
+        break;
+      }
+    }
+    // No cluster boundary found — return as-is
+    if (headerEnd === -1) return [buffer];
+
+    const header = buffer.slice(0, headerEnd);
+    const body = buffer.slice(headerEnd);
+    const maxBody = WHISPER_SAFE_BYTES - header.length;
+    if (maxBody <= 0) return [buffer];
+
+    const chunks: Uint8Array[] = [];
+    for (let offset = 0; offset < body.length; offset += maxBody) {
+      const slice = body.slice(offset, Math.min(offset + maxBody, body.length));
+      const chunk = new Uint8Array(header.length + slice.length);
+      chunk.set(header, 0);
+      chunk.set(slice, header.length);
+      chunks.push(chunk);
+    }
+    return chunks;
+  };
+
+  // Download each stored path in the browser. If the blob exceeds WHISPER_SAFE_BYTES,
+  // split it into WebM-valid sub-chunks (header prepended to each) and POST them one
+  // at a time. Nothing over 20 MB ever reaches Whisper, and every piece Whisper
+  // receives is a properly-headered WebM file it can actually decode.
   const transcribeOneAtATime = async (
     paths: string[],
     transcriptionId: string
@@ -140,19 +175,17 @@ export function AudioRecorder({ inspectionId, userId }: AudioRecorderProps) {
       if (dlError) throw new Error(`Failed to download segment ${i + 1}: ${dlError.message}`);
 
       if (blob.size <= WHISPER_SAFE_BYTES) {
-        // Small enough — send directly
         toast.info(`Transcribing segment ${i + 1} of ${paths.length}...`);
         const text = await postBlobToEdgeFn(blob, transcriptionId);
         results.push(text);
       } else {
-        // Too large — split right here in the browser, no extra upload needed
-        const subChunks = Math.ceil(blob.size / WHISPER_SAFE_BYTES);
-        toast.info(`Segment ${i + 1} is ${(blob.size / 1024 / 1024).toFixed(0)} MB — splitting into ${subChunks} sub-chunks...`);
-        for (let j = 0; j < subChunks; j++) {
-          const start = j * WHISPER_SAFE_BYTES;
-          const end = Math.min(start + WHISPER_SAFE_BYTES, blob.size);
-          const subBlob = blob.slice(start, end, "audio/webm");
-          toast.info(`Transcribing sub-chunk ${j + 1} of ${subChunks} (segment ${i + 1})...`);
+        const arrayBuffer = await blob.arrayBuffer();
+        const buffer = new Uint8Array(arrayBuffer);
+        const subChunks = splitWebmBuffer(buffer);
+        toast.info(`Segment ${i + 1} is ${(blob.size / 1024 / 1024).toFixed(0)} MB — split into ${subChunks.length} sub-chunks`);
+        for (let j = 0; j < subChunks.length; j++) {
+          toast.info(`Transcribing sub-chunk ${j + 1} of ${subChunks.length}...`);
+          const subBlob = new Blob([subChunks[j]], { type: "audio/webm" });
           const text = await postBlobToEdgeFn(subBlob, transcriptionId);
           results.push(text);
         }
