@@ -1393,6 +1393,24 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
               {editingId ? "Edit Property" : "Property Information"}
             </h2>
             <p className="text-muted-foreground">Enter property and offer details</p>
+            
+            <div className="mt-4">
+              <Label className="text-sm font-medium text-foreground mb-2 block">Representation Type</Label>
+              <RadioGroup
+                value={representationType}
+                onValueChange={(val) => handleRepresentationChange(val as 'seller' | 'buyer')}
+                className="flex gap-6"
+              >
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="seller" id="rep-seller" />
+                  <Label htmlFor="rep-seller" className="cursor-pointer font-normal">Seller Representation</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="buyer" id="rep-buyer" />
+                  <Label htmlFor="rep-buyer" className="cursor-pointer font-normal">Buyer Representation</Label>
+                </div>
+              </RadioGroup>
+            </div>
           </div>
 
           <form ref={formRef} onSubmit={handleSubmit}>
