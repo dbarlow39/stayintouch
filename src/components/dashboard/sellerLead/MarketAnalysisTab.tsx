@@ -56,6 +56,7 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
   const [loadingSaved, setLoadingSaved] = useState(true);
   const [aiNotes, setAiNotes] = useState("");
   const [lowerPriceBracket, setLowerPriceBracket] = useState("");
+  const [bullseyePrice, setBullseyePrice] = useState("");
   const [upperPriceBracket, setUpperPriceBracket] = useState("");
   
   // Chat Q&A state
@@ -302,8 +303,8 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
         .map((m) => `${m.role === "user" ? "Agent" : "AI"}: ${m.content}`)
         .join("\n\n");
 
-      const priceBracketContext = (lowerPriceBracket.trim() || upperPriceBracket.trim())
-        ? `\n\n--- Agent Price Bracket Guidance ---\nThe agent has specified a target price bracket for the Bullseye pricing model: Lower bracket: $${lowerPriceBracket.trim() || "not specified"}, Upper bracket: $${upperPriceBracket.trim() || "not specified"}. Use these as the anchoring range for the Bullseye Price Model.`
+      const priceBracketContext = (lowerPriceBracket.trim() || bullseyePrice.trim() || upperPriceBracket.trim())
+        ? `\n\n--- Agent Price Bracket Guidance ---\nThe agent has specified target prices for the Bullseye pricing model: Lower bracket: $${lowerPriceBracket.trim() || "not specified"}, Bullseye price: $${bullseyePrice.trim() || "not specified"}, Upper bracket: $${upperPriceBracket.trim() || "not specified"}. Use these as the anchoring values for the Bullseye Price Model.`
         : "";
 
       const combinedNotes = [
@@ -313,6 +314,7 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
       ].filter(Boolean).join("");
 
       const parsedLower = parseFloat(lowerPriceBracket.trim().replace(/[$,]/g, "")) || undefined;
+      const parsedBullseye = parseFloat(bullseyePrice.trim().replace(/[$,]/g, "")) || undefined;
       const parsedUpper = parseFloat(upperPriceBracket.trim().replace(/[$,]/g, "")) || undefined;
 
       const { data, error } = await supabase.functions.invoke("generate-market-analysis", {
@@ -320,6 +322,7 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
           documents: uploadedDocsRef,
           agentNotes: combinedNotes || undefined,
           lowerPriceBracket: parsedLower,
+          bullseyePrice: parsedBullseye,
           upperPriceBracket: parsedUpper,
         },
       });
@@ -581,7 +584,7 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
           </div>
 
           {/* Price Bracket Inputs */}
-          <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <Label htmlFor="lower-price-bracket" className="mb-2 block">
                 Lower Price Bracket
@@ -593,6 +596,19 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
                 value={lowerPriceBracket}
                 onChange={(e) => setLowerPriceBracket(e.target.value)}
                 placeholder="e.g. 375000"
+              />
+            </div>
+            <div>
+              <Label htmlFor="bullseye-price" className="mb-2 block">
+                Bullseye Price
+              </Label>
+              <Input
+                id="bullseye-price"
+                type="text"
+                inputMode="numeric"
+                value={bullseyePrice}
+                onChange={(e) => setBullseyePrice(e.target.value)}
+                placeholder="e.g. 399900"
               />
             </div>
             <div>

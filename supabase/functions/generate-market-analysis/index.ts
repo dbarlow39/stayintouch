@@ -265,7 +265,7 @@ serve(async (req) => {
   }
 
   try {
-    const { documents, agentNotes, buyerNames, lowerPriceBracket, upperPriceBracket } = await req.json();
+    const { documents, agentNotes, buyerNames, lowerPriceBracket, bullseyePrice: agentBullseyePrice, upperPriceBracket } = await req.json();
 
     if (!documents || !Array.isArray(documents) || documents.length === 0) {
       return new Response(
@@ -479,6 +479,12 @@ serve(async (req) => {
         if (lowerPriceBracket && upperPriceBracket && lowerPriceBracket > 0 && upperPriceBracket > 0) {
           const lower = roundToBracketPrice(lowerPriceBracket);
           const upper = roundToBracketPrice(upperPriceBracket);
+
+          // If agent provided an explicit bullseye price, override the AI's value
+          if (agentBullseyePrice && agentBullseyePrice > 0) {
+            bullseye = agentBullseyePrice;
+            analysis.pricing.bullseyePrice = fmt(agentBullseyePrice);
+          }
 
           const bWidth = getBracketWidth(bullseye);
           const bTop = Math.ceil(bullseye / bWidth) * bWidth;
