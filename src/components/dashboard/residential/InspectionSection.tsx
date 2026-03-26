@@ -148,7 +148,7 @@ export const InspectionSection = ({
           <div key={field.id} className="space-y-2">
             <Label htmlFor={field.id} className="text-sm font-medium text-foreground">{field.label}</Label>
             <div className="flex gap-2">
-              <Input id={field.id} type={field.type} value={field.value as string} onChange={(e) => onFieldChange(field.id, e.target.value)} className="flex-1" />
+              <Input id={field.id} type={field.type} value={field.value as string || ''} onChange={(e) => onFieldChange(field.id, e.target.value)} className="flex-1" />
               {field.type === 'text' && <HandwritingCanvas existingText={field.value as string || ''} onTextExtracted={(text) => onFieldChange(field.id, text)} />}
             </div>
           </div>
@@ -178,7 +178,7 @@ export const InspectionSection = ({
                 <Label htmlFor={field.id} className="text-sm font-medium text-foreground">{field.label}</Label>
                 <HandwritingCanvas existingText={field.value as string || ''} onTextExtracted={(text) => onFieldChange(field.id, text)} />
               </div>
-              <Textarea id={field.id} value={field.value as string} onChange={(e) => onFieldChange(field.id, e.target.value)} rows={field.rows || 3} className="w-full" placeholder="Enter any additional notes, observations, or concerns..." />
+              <Textarea id={field.id} value={field.value as string || ''} onChange={(e) => onFieldChange(field.id, e.target.value)} rows={field.rows || 3} className="w-full" placeholder="Enter any additional notes, observations, or concerns..." />
             </div>
           </div>
         );
