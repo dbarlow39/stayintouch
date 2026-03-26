@@ -57,12 +57,12 @@ export const InspectionSection = ({
         <div key="city-zip" className="flex gap-3">
           <div className="flex-[2] space-y-2">
             <Label htmlFor={field.id} className="text-sm font-medium text-foreground">{field.label}</Label>
-            <Input id={field.id} type="text" value={field.value as string} onChange={(e) => onFieldChange(field.id, e.target.value)} className="w-full" />
+            <Input id={field.id} type="text" value={field.value as string || ''} onChange={(e) => onFieldChange(field.id, e.target.value)} className="w-full" />
           </div>
           {zipField && (
             <div className="flex-1 space-y-2">
               <Label htmlFor={zipField.id} className="text-sm font-medium text-foreground">{zipField.label}</Label>
-              <Input id={zipField.id} type="text" value={zipField.value as string} onChange={(e) => onFieldChange(zipField.id, e.target.value)} className="w-full" />
+              <Input id={zipField.id} type="text" value={zipField.value as string || ''} onChange={(e) => onFieldChange(zipField.id, e.target.value)} className="w-full" />
             </div>
           )}
         </div>
@@ -75,12 +75,12 @@ export const InspectionSection = ({
         <div key="phone-email" className="flex gap-3">
           <div className="flex-1 space-y-2">
             <Label htmlFor={field.id} className="text-sm font-medium text-foreground">{field.label}</Label>
-            <Input id={field.id} type="text" value={field.value as string} onChange={(e) => onFieldChange(field.id, e.target.value)} className="w-full" />
+            <Input id={field.id} type="text" value={field.value as string || ''} onChange={(e) => onFieldChange(field.id, e.target.value)} className="w-full" />
           </div>
           {emailField && (
             <div className="flex-1 space-y-2">
               <Label htmlFor={emailField.id} className="text-sm font-medium text-foreground">{emailField.label}</Label>
-              <Input id={emailField.id} type="email" value={emailField.value as string} onChange={(e) => onFieldChange(emailField.id, e.target.value)} className="w-full" />
+              <Input id={emailField.id} type="email" value={emailField.value as string || ''} onChange={(e) => onFieldChange(emailField.id, e.target.value)} className="w-full" />
             </div>
           )}
         </div>
@@ -95,11 +95,11 @@ export const InspectionSection = ({
         <div key="property-details" className="flex gap-3">
           <div className="flex-1 space-y-2">
             <Label htmlFor={field.id} className="text-sm font-medium text-foreground">{field.label}</Label>
-            <Input id={field.id} type="number" value={field.value as string} onChange={(e) => onFieldChange(field.id, e.target.value)} className="w-full" />
+            <Input id={field.id} type="number" value={field.value as string || ''} onChange={(e) => onFieldChange(field.id, e.target.value)} className="w-full" />
           </div>
-          {bathroomsField && <div className="flex-1 space-y-2"><Label htmlFor={bathroomsField.id} className="text-sm font-medium text-foreground">{bathroomsField.label}</Label><Input id={bathroomsField.id} type="number" value={bathroomsField.value as string} onChange={(e) => onFieldChange(bathroomsField.id, e.target.value)} className="w-full" /></div>}
-          {sqftField && <div className="flex-1 space-y-2"><Label htmlFor={sqftField.id} className="text-sm font-medium text-foreground">{sqftField.label}</Label><Input id={sqftField.id} type="number" value={sqftField.value as string} onChange={(e) => onFieldChange(sqftField.id, e.target.value)} className="w-full" /></div>}
-          {yearBuiltField && <div className="flex-1 space-y-2"><Label htmlFor={yearBuiltField.id} className="text-sm font-medium text-foreground">{yearBuiltField.label}</Label><Input id={yearBuiltField.id} type="number" value={yearBuiltField.value as string} onChange={(e) => onFieldChange(yearBuiltField.id, e.target.value)} className="w-full" /></div>}
+          {bathroomsField && <div className="flex-1 space-y-2"><Label htmlFor={bathroomsField.id} className="text-sm font-medium text-foreground">{bathroomsField.label}</Label><Input id={bathroomsField.id} type="number" value={bathroomsField.value as string || ''} onChange={(e) => onFieldChange(bathroomsField.id, e.target.value)} className="w-full" /></div>}
+          {sqftField && <div className="flex-1 space-y-2"><Label htmlFor={sqftField.id} className="text-sm font-medium text-foreground">{sqftField.label}</Label><Input id={sqftField.id} type="number" value={sqftField.value as string || ''} onChange={(e) => onFieldChange(sqftField.id, e.target.value)} className="w-full" /></div>}
+          {yearBuiltField && <div className="flex-1 space-y-2"><Label htmlFor={yearBuiltField.id} className="text-sm font-medium text-foreground">{yearBuiltField.label}</Label><Input id={yearBuiltField.id} type="number" value={yearBuiltField.value as string || ''} onChange={(e) => onFieldChange(yearBuiltField.id, e.target.value)} className="w-full" /></div>}
         </div>
       );
     }
@@ -148,7 +148,7 @@ export const InspectionSection = ({
           <div key={field.id} className="space-y-2">
             <Label htmlFor={field.id} className="text-sm font-medium text-foreground">{field.label}</Label>
             <div className="flex gap-2">
-              <Input id={field.id} type={field.type} value={field.value as string} onChange={(e) => onFieldChange(field.id, e.target.value)} className="flex-1" />
+              <Input id={field.id} type={field.type} value={field.value as string || ''} onChange={(e) => onFieldChange(field.id, e.target.value)} className="flex-1" />
               {field.type === 'text' && <HandwritingCanvas existingText={field.value as string || ''} onTextExtracted={(text) => onFieldChange(field.id, text)} />}
             </div>
           </div>
@@ -178,7 +178,7 @@ export const InspectionSection = ({
                 <Label htmlFor={field.id} className="text-sm font-medium text-foreground">{field.label}</Label>
                 <HandwritingCanvas existingText={field.value as string || ''} onTextExtracted={(text) => onFieldChange(field.id, text)} />
               </div>
-              <Textarea id={field.id} value={field.value as string} onChange={(e) => onFieldChange(field.id, e.target.value)} rows={field.rows || 3} className="w-full" placeholder="Enter any additional notes, observations, or concerns..." />
+              <Textarea id={field.id} value={field.value as string || ''} onChange={(e) => onFieldChange(field.id, e.target.value)} rows={field.rows || 3} className="w-full" placeholder="Enter any additional notes, observations, or concerns..." />
             </div>
           </div>
         );
