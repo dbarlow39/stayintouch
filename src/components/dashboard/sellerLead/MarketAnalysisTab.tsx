@@ -55,6 +55,8 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
   const [savedFiles, setSavedFiles] = useState<any[]>([]);
   const [loadingSaved, setLoadingSaved] = useState(true);
   const [aiNotes, setAiNotes] = useState("");
+  const [lowerPriceBracket, setLowerPriceBracket] = useState("");
+  const [upperPriceBracket, setUpperPriceBracket] = useState("");
   
   // Chat Q&A state
   type ChatMessage = { role: "user" | "assistant"; content: string };
@@ -300,9 +302,14 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
         .map((m) => `${m.role === "user" ? "Agent" : "AI"}: ${m.content}`)
         .join("\n\n");
 
+      const priceBracketContext = (lowerPriceBracket.trim() || upperPriceBracket.trim())
+        ? `\n\n--- Agent Price Bracket Guidance ---\nThe agent has specified a target price bracket for the Bullseye pricing model: Lower bracket: $${lowerPriceBracket.trim() || "not specified"}, Upper bracket: $${upperPriceBracket.trim() || "not specified"}. Use these as the anchoring range for the Bullseye Price Model.`
+        : "";
+
       const combinedNotes = [
         aiNotes.trim(),
         conversationContext ? `\n\n--- Q&A Conversation ---\n${conversationContext}` : "",
+        priceBracketContext,
       ].filter(Boolean).join("");
 
       const { data, error } = await supabase.functions.invoke("generate-market-analysis", {
@@ -564,6 +571,39 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
               Optional — these notes will be included as additional context for the analysis.
             </p>
           </div>
+
+          {/* Price Bracket Inputs */}
+          <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="lower-price-bracket" className="mb-2 block">
+                Lower Price Bracket
+              </Label>
+              <Input
+                id="lower-price-bracket"
+                type="text"
+                inputMode="numeric"
+                value={lowerPriceBracket}
+                onChange={(e) => setLowerPriceBracket(e.target.value)}
+                placeholder="e.g. 375000"
+              />
+            </div>
+            <div>
+              <Label htmlFor="upper-price-bracket" className="mb-2 block">
+                Upper Price Bracket
+              </Label>
+              <Input
+                id="upper-price-bracket"
+                type="text"
+                inputMode="numeric"
+                value={upperPriceBracket}
+                onChange={(e) => setUpperPriceBracket(e.target.value)}
+                placeholder="e.g. 425000"
+              />
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground mt-1">
+            Optional — provide target price brackets to guide the Bullseye pricing model.
+          </p>
 
           <div className="mt-6 flex items-center gap-3">
             <Button
