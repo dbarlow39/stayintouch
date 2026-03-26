@@ -46,7 +46,8 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
   const [navigationTarget, setNavigationTarget] = useState<string>("closing-costs");
   const [currentPropertyId, setCurrentPropertyId] = useState<string | null>(editingId);
   const [representationType, setRepresentationType] = useState<'seller' | 'buyer'>('seller');
-  
+  const representationTypeRef = useRef<'seller' | 'buyer'>('seller');
+
   const formRef = useRef<HTMLFormElement>(null);
   const [formData, setFormData] = useState<PropertyData>({
     name: "",
@@ -700,7 +701,7 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
         admin_fee: Number(dataToSave.adminFee) || 0,
         appliances: dataToSave.appliances,
          notes: dataToSave.notes,
-         representation_type: representationType,
+         representation_type: representationTypeRef.current,
        };
 
       if (currentPropertyId) {
@@ -791,7 +792,7 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
         admin_fee: Number(formData.adminFee) || 0,
         appliances: formData.appliances,
          notes: formData.notes,
-         representation_type: representationType,
+         representation_type: representationTypeRef.current,
        };
 
       let savedId: string;
