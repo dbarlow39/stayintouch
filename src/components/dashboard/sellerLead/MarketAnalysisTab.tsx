@@ -55,6 +55,8 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
   const [savedFiles, setSavedFiles] = useState<any[]>([]);
   const [loadingSaved, setLoadingSaved] = useState(true);
   const [aiNotes, setAiNotes] = useState("");
+  const [lowerPriceBracket, setLowerPriceBracket] = useState("");
+  const [upperPriceBracket, setUpperPriceBracket] = useState("");
   
   // Chat Q&A state
   type ChatMessage = { role: "user" | "assistant"; content: string };
