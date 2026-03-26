@@ -104,11 +104,18 @@ interface ClosingData {
   seller_email: string | null;
   agent_name: string | null; // Buyer's agent name
   agent_contact: string | null; // Buyer's agent phone
+  representation_type: string | null;
+  buyer_agent_commission: number;
 }
 
-// Commission calculation: sales price * 1% + $499
-const calculateCommission = (salePrice: number): number => {
-  return salePrice * 0.01 + 499;
+// Commission calculation:
+// Seller deals: sales price * 1% + $499
+// Buyer deals: purchase price * buyer_agent_commission% + $399
+const calculateCommission = (closing: ClosingData): number => {
+  if (closing.representation_type === 'buyer') {
+    return closing.offer_price * (closing.buyer_agent_commission / 100) + 399;
+  }
+  return closing.offer_price * 0.01 + 499;
 };
 
 // Parse a closing date string (handles various formats)
@@ -151,7 +158,9 @@ const UpcomingClosingsView = ({ onBack }: UpcomingClosingsViewProps) => {
           seller_phone,
           seller_email,
           agent_name,
-          agent_contact
+          agent_contact,
+          representation_type,
+          buyer_agent_commission
         `)
         .eq("agent_id", user!.id)
         .not("closing_date", "is", null)
@@ -306,7 +315,7 @@ const UpcomingClosingsView = ({ onBack }: UpcomingClosingsViewProps) => {
                     <TableBody>
                       {monthClosings.map((closing) => {
                         const parsedDate = parseClosingDate(closing.closing_date);
-                        const commission = calculateCommission(closing.offer_price);
+                        const commission = calculateCommission(closing);
 
                         return (
                           <TableRow key={closing.id}>
@@ -354,7 +363,7 @@ const UpcomingClosingsView = ({ onBack }: UpcomingClosingsViewProps) => {
                         <TableCell className="px-2 text-right text-emerald-600 dark:text-emerald-400">
                           {formatCurrency(
                             monthClosings.reduce(
-                              (sum, c) => sum + calculateCommission(c.offer_price),
+                              (sum, c) => sum + calculateCommission(c),
                               0
                             )
                           )}
@@ -396,7 +405,7 @@ const UpcomingClosingsView = ({ onBack }: UpcomingClosingsViewProps) => {
                     {formatCurrency(
                       closingsByMonth.reduce(
                         (sum, [, items]) =>
-                          sum + items.reduce((s, c) => s + calculateCommission(c.offer_price), 0),
+                        sum + items.reduce((s, c) => s + calculateCommission(c), 0),
                         0
                       )
                     )}

@@ -1,0 +1,1 @@
+ALTER TABLE public.estimated_net_properties ADD COLUMN representation_type text NOT NULL DEFAULT 'seller';

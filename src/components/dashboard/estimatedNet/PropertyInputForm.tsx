@@ -547,6 +547,7 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
         };
 
         setFormData(nextFormData);
+        setRepresentationType((data as any).representation_type === 'buyer' ? 'buyer' : 'seller');
 
         // If this estimate isn't linked to a client yet, try to match by address so we can pull phone/taxes.
         let clientIdToUse = data.client_id ?? null;
@@ -698,8 +699,9 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
         listing_agent_email: dataToSave.listingAgentEmail,
         admin_fee: Number(dataToSave.adminFee) || 0,
         appliances: dataToSave.appliances,
-        notes: dataToSave.notes,
-      };
+         notes: dataToSave.notes,
+         representation_type: representationType,
+       };
 
       if (currentPropertyId) {
         const { error } = await supabase
@@ -788,8 +790,9 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
        title_email: formData.titleEmail,
         admin_fee: Number(formData.adminFee) || 0,
         appliances: formData.appliances,
-        notes: formData.notes,
-      };
+         notes: formData.notes,
+         representation_type: representationType,
+       };
 
       let savedId: string;
 
