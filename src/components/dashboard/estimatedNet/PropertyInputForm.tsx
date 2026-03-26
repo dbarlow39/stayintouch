@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -10,6 +10,7 @@ import { PropertyData } from "@/types/estimatedNet";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, List, Download, Mail, Calendar, FileText, ArrowRight, DollarSign, ClipboardList, Phone, MessageSquare, StickyNote } from "lucide-react";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import DocumentUploadSection, { ContractExtractedData } from "./DocumentUploadSection";
 import { getEmailClientPreference, openEmailClient } from "@/utils/emailClientUtils";
@@ -44,6 +45,7 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
   const [linkedClientId, setLinkedClientId] = useState<string | null>(null);
   const [navigationTarget, setNavigationTarget] = useState<string>("closing-costs");
   const [currentPropertyId, setCurrentPropertyId] = useState<string | null>(editingId);
+  const [representationType, setRepresentationType] = useState<'seller' | 'buyer'>('seller');
   
   const formRef = useRef<HTMLFormElement>(null);
   const [formData, setFormData] = useState<PropertyData>({
@@ -130,7 +132,7 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
       if (editingId) {
         await loadProperty(editingId);
       } else {
-        await loadUserDefaults(session.user.id);
+        await loadUserDefaults(session.user.id, representationType);
       }
     };
 
@@ -422,7 +424,7 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
     }
   };
 
-  const loadUserDefaults = async (userId: string) => {
+  const loadUserDefaults = async (userId: string, repType: 'seller' | 'buyer' = 'seller') => {
     try {
       const { data, error } = await supabase
         .from("profiles")
@@ -436,15 +438,40 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
 
       if (data) {
         const fullName = [data.first_name, data.last_name].filter(Boolean).join(' ');
-        setFormData(prev => ({
-          ...prev,
-          listingAgentName: fullName || "",
-          listingAgentPhone: data.cell_phone || "",
-          listingAgentEmail: data.preferred_email || "",
-        }));
+        if (repType === 'buyer') {
+          setFormData(prev => ({
+            ...prev,
+            agentName: fullName || "",
+            agentContact: data.cell_phone || "",
+            agentEmail: data.preferred_email || "",
+            listingAgentName: "",
+            listingAgentPhone: "",
+            listingAgentEmail: "",
+          }));
+        } else {
+          setFormData(prev => ({
+            ...prev,
+            listingAgentName: fullName || "",
+            listingAgentPhone: data.cell_phone || "",
+            listingAgentEmail: data.preferred_email || "",
+            agentName: "",
+            agentContact: "",
+            agentEmail: "",
+          }));
+        }
       }
     } catch (error: any) {
       console.error("Error loading user defaults:", error);
+    }
+  };
+
+  const handleRepresentationChange = async (value: 'seller' | 'buyer') => {
+    setRepresentationType(value);
+    if (!editingId) {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        await loadUserDefaults(session.user.id, value);
+      }
     }
   };
 
@@ -1366,6 +1393,24 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
               {editingId ? "Edit Property" : "Property Information"}
             </h2>
             <p className="text-muted-foreground">Enter property and offer details</p>
+            
+            <div className="mt-4">
+              <Label className="text-sm font-medium text-foreground mb-2 block">Representation Type</Label>
+              <RadioGroup
+                value={representationType}
+                onValueChange={(val) => handleRepresentationChange(val as 'seller' | 'buyer')}
+                className="flex gap-6"
+              >
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="seller" id="rep-seller" />
+                  <Label htmlFor="rep-seller" className="cursor-pointer font-normal">Seller Representation</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="buyer" id="rep-buyer" />
+                  <Label htmlFor="rep-buyer" className="cursor-pointer font-normal">Buyer Representation</Label>
+                </div>
+              </RadioGroup>
+            </div>
           </div>
 
           <form ref={formRef} onSubmit={handleSubmit}>
