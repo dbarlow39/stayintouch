@@ -864,7 +864,9 @@ const EstimatedNetTab = ({ selectedClient, onClearSelectedClient, navigateToProp
                 onClick={() => handleEditEstimate(estimate.id)}
               >
                 <TableCell className="font-medium">
-                  {estimate.name}
+                  {estimate.representation_type === 'buyer'
+                    ? [estimate.buyer_name_1, estimate.buyer_name_2].filter(Boolean).join(' & ') || estimate.name
+                    : estimate.name}
                 </TableCell>
                 <TableCell>
                   {estimate.street_address}, {estimate.city}

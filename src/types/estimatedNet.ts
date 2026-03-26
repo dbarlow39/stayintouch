@@ -153,4 +153,7 @@ export interface EstimatedNetProperty {
   created_at: string;
   updated_at: string;
   deal_status: string;
+  representation_type: string;
+  buyer_name_1: string | null;
+  buyer_name_2: string | null;
 }
