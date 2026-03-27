@@ -224,10 +224,6 @@ const AdGeneratorPanel = ({ listing, autoGenerate = false }: AdGeneratorPanelPro
       const igPublicUrl = supabase.storage.from('ad-images').getPublicUrl(igFileName).data.publicUrl;
       const fbPublicUrl = supabase.storage.from('ad-images').getPublicUrl(fbFileName).data.publicUrl;
 
-      // Build OG URL with FB image for Facebook link share
-      const timestamp = Math.floor(ts / 1000);
-      const ogUrlWithImage = `${ogListingUrl}&image=${encodeURIComponent(fbPublicUrl)}&v=${timestamp}`;
-
       // Post to Facebook + Instagram
       const price = formatListingPrice(listing.price);
       const phoneDisplay = agentPhone ? ` at ${agentPhone}` : '';
@@ -239,7 +235,6 @@ const AdGeneratorPanel = ({ listing, autoGenerate = false }: AdGeneratorPanelPro
         body: JSON.stringify({
           agent_id: user.id,
           message,
-          link: ogUrlWithImage,
           photo_url: fbPublicUrl,
           instagram_image_url: igPublicUrl,
         }),
