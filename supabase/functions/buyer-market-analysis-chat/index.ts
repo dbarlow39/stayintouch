@@ -20,10 +20,11 @@ Things you SHOULD ask about:
 - Whether certain items convey with the property (appliances, fixtures)
 - Any known condition issues (foundation, roof, HVAC, plumbing, electrical)
 - Lot specifics (backing, easements, flood zone) if not in the docs
-- HOA fees or special assessments if applicable
 - Recent comparable sales the agent is aware of that aren't in the uploaded docs
 
 Things you must NEVER ask about:
+- HOA fees or special assessments — they do not impact property valuation in our analysis
+- School district — all comparable properties are in the same district, so it has no bearing on relative value
 - The buyer's budget, pre-approval amount, or financing capacity - value is independent of what the buyer can afford
 - The buyer's must-have features or preferences - if they're writing an offer, the property already meets their needs
 - Whether the buyer has seen the property - assume yes, they are ready to write an offer
