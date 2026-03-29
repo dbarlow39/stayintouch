@@ -38,6 +38,7 @@ interface DocumentSlot {
   savedFileName?: string;
   fromDatabase?: boolean;
   inspectionData?: any;
+  inspectionPhotos?: Record<string, string[]>;
 }
 
 interface MarketAnalysisTabProps {
