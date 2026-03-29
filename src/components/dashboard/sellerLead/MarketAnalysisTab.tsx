@@ -36,6 +36,8 @@ interface DocumentSlot {
   required: boolean;
   savedFilePath?: string;
   savedFileName?: string;
+  fromDatabase?: boolean;
+  inspectionData?: any;
 }
 
 interface MarketAnalysisTabProps {
