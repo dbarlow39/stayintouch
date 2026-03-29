@@ -106,6 +106,8 @@ interface ClosingData {
   agent_contact: string | null; // Buyer's agent phone
   representation_type: string | null;
   buyer_agent_commission: number;
+  buyer_name_1: string | null;
+  buyer_name_2: string | null;
 }
 
 // Commission calculation:
@@ -160,7 +162,9 @@ const UpcomingClosingsView = ({ onBack }: UpcomingClosingsViewProps) => {
           agent_name,
           agent_contact,
           representation_type,
-          buyer_agent_commission
+          buyer_agent_commission,
+          buyer_name_1,
+          buyer_name_2
         `)
         .eq("agent_id", user!.id)
         .not("closing_date", "is", null)
@@ -326,7 +330,9 @@ const UpcomingClosingsView = ({ onBack }: UpcomingClosingsViewProps) => {
                               {closing.street_address}
                             </TableCell>
                             <TableCell className="px-2 whitespace-nowrap">
-                              {closing.name}
+                              {closing.representation_type === 'buyer'
+                                ? [closing.buyer_name_1, closing.buyer_name_2].filter(Boolean).join(' & ') || closing.name
+                                : closing.name}
                             </TableCell>
                             <TableCell className="px-2 whitespace-nowrap">
                               {formatPhoneLink(closing.seller_phone)}
