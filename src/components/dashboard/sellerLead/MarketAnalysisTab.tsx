@@ -73,6 +73,7 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
     { label: "Residential Inspection Worksheet", description: "Room-by-room condition notes", file: null, required: false },
     { label: "Summary of Walk-Through", description: "Seller observations and transcript", file: null, required: false },
     { label: "Zillow PDF Screenshot", description: "Zestimate, range, and property stats", file: null, required: false },
+    { label: "Reallist Tax Record", description: "County tax record and assessment details", file: null, required: false },
   ]);
 
   const fileInputRefs = useRef<(HTMLInputElement | null)[]>([]);
