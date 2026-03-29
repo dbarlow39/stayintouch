@@ -180,7 +180,7 @@ export async function renderAdCanvas(opts: RenderOptions): Promise<string> {
   // "Click for More Info" button — bottom right corner
   const btnText = 'Click for more info';
   ctx.font = '700 20px "Segoe UI", Arial, sans-serif';
-  const btnTextW = ctx.measureText(btnText).width;
+  const btnTextW = ctx.measureText(btnText).width / SCALE; // measureText returns scaled pixels; divide back to logical coords
   const btnPadX = 18;
   const btnPadY = 10;
   const btnW = btnTextW + btnPadX * 2;
