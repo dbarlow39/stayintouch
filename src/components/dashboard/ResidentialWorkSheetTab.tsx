@@ -74,13 +74,38 @@ const ResidentialWorkSheetTab = ({ lead }: ResidentialWorkSheetTabProps) => {
     const initForLead = async () => {
       const address = lead.address?.trim();
       if (address) {
-        // Try to find an existing inspection matching this lead's address
-        const { data } = await supabase
+        // Build loose search pattern: "236 Rochdale Run" → "%236%rochdale%run%"
+        const words = address.toLowerCase().replace(/[^a-z0-9\s]/g, '').split(/\s+/).filter(Boolean);
+        const loosePattern = `%${words.join('%')}%`;
+        
+        // Also try matching with just the street number + first word for abbreviated DB entries
+        const streetNumber = words[0] || '';
+        const shortPattern = words.length > 1 ? `%${streetNumber}%${words[1]}%` : loosePattern;
+        
+        // Try to find an existing inspection matching this lead's address (loose match)
+        let { data } = await supabase
           .from("inspections")
-          .select("id")
+          .select("id, property_address")
           .eq("user_id", user.id)
-          .ilike("property_address", `%${address}%`)
+          .ilike("property_address", loosePattern)
           .limit(1);
+        
+        // If no match with full pattern, try shorter pattern
+        if ((!data || data.length === 0) && shortPattern !== loosePattern) {
+          const result = await supabase
+            .from("inspections")
+            .select("id, property_address")
+            .eq("user_id", user.id)
+            .ilike("property_address", shortPattern)
+            .limit(5);
+          // Verify street number matches
+          if (result.data) {
+            data = result.data.filter(r => {
+              const dbNum = r.property_address?.match(/\d+/)?.[0];
+              return dbNum === streetNumber;
+            }).slice(0, 1);
+          }
+        }
 
         if (data && data.length > 0) {
           // Load existing worksheet
