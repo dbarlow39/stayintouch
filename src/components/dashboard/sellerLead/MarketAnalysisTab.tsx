@@ -38,6 +38,7 @@ interface DocumentSlot {
   savedFileName?: string;
   fromDatabase?: boolean;
   inspectionData?: any;
+  inspectionPhotos?: Record<string, string[]>;
 }
 
 interface MarketAnalysisTabProps {
@@ -146,6 +147,20 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
         const inspNumber = inspAddr.match(/^\d+/)?.[0];
         if (leadNumber && inspNumber && leadNumber !== inspNumber) return;
 
+        // Filter photos to only the sections relevant for market analysis
+        const allowedPhotoSections = [
+          'exterior', 'living-room', 'home-office', 'dining-room', 'kitchen',
+          'family-room', 'fireplaces', 'master-bedroom', 'bedroom-2',
+          'bedroom-3', 'bedroom-4', 'basement', 'backyard'
+        ];
+        const rawPhotos = (inspection.photos as Record<string, string[]>) || {};
+        const filteredPhotos: Record<string, string[]> = {};
+        for (const sectionId of allowedPhotoSections) {
+          if (rawPhotos[sectionId] && rawPhotos[sectionId].length > 0) {
+            filteredPhotos[sectionId] = rawPhotos[sectionId];
+          }
+        }
+
         setDocuments((prev) =>
           prev.map((slot) => {
             if (slot.label === "Residential Inspection Worksheet" && !slot.file && !slot.savedFilePath) {
@@ -153,6 +168,7 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
                 ...slot,
                 fromDatabase: true,
                 inspectionData: inspection.inspection_data,
+                inspectionPhotos: filteredPhotos,
                 savedFileName: `Auto-loaded: ${inspection.property_address}`,
               };
             }
@@ -167,17 +183,17 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
 
   const handleFileSelect = (index: number, file: File | null) => {
     setDocuments((prev) =>
-      prev.map((doc, i) => (i === index ? { ...doc, file, fromDatabase: false, inspectionData: undefined } : doc))
+      prev.map((doc, i) => (i === index ? { ...doc, file, fromDatabase: false, inspectionData: undefined, inspectionPhotos: undefined } : doc))
     );
   };
 
-  const uploadFilesToStorage = async (docs: DocumentSlot[]): Promise<{ name: string; filePath: string; mimeType: string; inspectionData?: any }[]> => {
+  const uploadFilesToStorage = async (docs: DocumentSlot[]): Promise<{ name: string; filePath: string; mimeType: string; inspectionData?: any; inspectionPhotos?: Record<string, string[]> }[]> => {
     if (!user) throw new Error("Not authenticated");
-    const uploaded: { name: string; filePath: string; mimeType: string; inspectionData?: any }[] = [];
+    const uploaded: { name: string; filePath: string; mimeType: string; inspectionData?: any; inspectionPhotos?: Record<string, string[]> }[] = [];
     for (const doc of docs) {
       if (doc.fromDatabase && doc.inspectionData) {
         // Database-sourced inspection — pass data inline, no file upload needed
-        uploaded.push({ name: doc.label, filePath: "__database__", mimeType: "application/json", inspectionData: doc.inspectionData });
+        uploaded.push({ name: doc.label, filePath: "__database__", mimeType: "application/json", inspectionData: doc.inspectionData, inspectionPhotos: doc.inspectionPhotos });
       } else if (doc.file) {
         const ext = doc.file.name.split(".").pop() || "pdf";
         const filePath = `${user.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
@@ -596,7 +612,7 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
                       onClick={(e) => {
                         e.stopPropagation();
                         setDocuments((prev) =>
-                          prev.map((d, i) => i === index ? { ...d, fromDatabase: false, inspectionData: undefined, savedFileName: undefined } : d)
+                          prev.map((d, i) => i === index ? { ...d, fromDatabase: false, inspectionData: undefined, inspectionPhotos: undefined, savedFileName: undefined } : d)
                         );
                       }}
                     >
