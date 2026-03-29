@@ -172,7 +172,8 @@ function safeListing(raw: any): MarketingListing {
 
 const isPublicSite = () => {
   const host = window.location.hostname;
-  return host.startsWith('listings.');
+  return host.startsWith('listings.') || 
+    (!host.includes('lovable') && !host.includes('localhost'));
 };
 
 const ListingDetail = () => {
@@ -220,7 +221,7 @@ const ListingDetail = () => {
 
   // Show popup after 8s on public listing pages
   useEffect(() => {
-    if (!isPublic) return;
+    if (!isPublic || user) return;
     const alreadySeen = sessionStorage.getItem(`popup-dismissed-${id}`);
     if (alreadySeen) return;
     const timer = setTimeout(() => setShowPopup(true), 8000);
