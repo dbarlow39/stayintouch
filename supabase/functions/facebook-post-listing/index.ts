@@ -65,14 +65,6 @@ serve(async (req) => {
       });
       result = await postResp.json();
       console.log("[facebook-post] Photo post response:", JSON.stringify(result));
-    } else if (false) { // was: link without photo — now handled above
-      // Link-only post (no image)
-      const postResp = await fetch(`https://graph.facebook.com/v21.0/${page_id}/feed`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message, link, access_token: page_access_token }),
-      });
-      result = await postResp.json();
     } else {
       // Text-only post
       const postResp = await fetch(`https://graph.facebook.com/v21.0/${page_id}/feed`, {
