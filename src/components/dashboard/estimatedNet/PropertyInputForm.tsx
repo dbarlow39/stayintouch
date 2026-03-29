@@ -70,6 +70,8 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
     lendingOfficerEmail: "",
     buyerName1: "",
     buyerName2: "",
+    buyerEmail: "",
+    buyerCellPhone: "",
     loanAppTimeFrame: "7",
     loanCommitment: "",
     preApprovalDays: 2,
@@ -512,6 +514,8 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
           lendingOfficerEmail: (data as any).lending_officer_email || "",
           buyerName1: (data as any).buyer_name_1 || "",
           buyerName2: (data as any).buyer_name_2 || "",
+          buyerEmail: (data as any).buyer_email || "",
+          buyerCellPhone: (data as any).buyer_cell_phone || "",
           loanAppTimeFrame: data.loan_app_time_frame || "",
           loanCommitment: data.loan_commitment || "",
           preApprovalDays: data.pre_approval_days ?? 0,
@@ -672,6 +676,8 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
         lending_officer_email: dataToSave.lendingOfficerEmail || null,
         buyer_name_1: dataToSave.buyerName1 || null,
         buyer_name_2: dataToSave.buyerName2 || null,
+        buyer_email: dataToSave.buyerEmail || null,
+        buyer_cell_phone: dataToSave.buyerCellPhone || null,
         loan_app_time_frame: dataToSave.loanAppTimeFrame || null,
         loan_commitment: dataToSave.loanCommitment || null,
         pre_approval_days: Number(dataToSave.preApprovalDays) || 0,
@@ -759,6 +765,8 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
         lending_officer_email: formData.lendingOfficerEmail || null,
         buyer_name_1: formData.buyerName1 || null,
         buyer_name_2: formData.buyerName2 || null,
+        buyer_email: formData.buyerEmail || null,
+        buyer_cell_phone: formData.buyerCellPhone || null,
         loan_app_time_frame: formData.loanAppTimeFrame || null,
         loan_commitment: formData.loanCommitment || null,
         pre_approval_days: Number(formData.preApprovalDays) || 0,
@@ -2218,6 +2226,30 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
                 />
               </div>
             </div>
+            {representationType === 'buyer' && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                <div>
+                  <Label htmlFor="buyerEmail">Buyer Email</Label>
+                  <Input
+                    id="buyerEmail"
+                    type="email"
+                    value={formData.buyerEmail || ""}
+                    onChange={(e) => updateField("buyerEmail", e.target.value)}
+                    placeholder="buyer@example.com"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="buyerCellPhone">Buyer Cell Phone</Label>
+                  <Input
+                    id="buyerCellPhone"
+                    type="tel"
+                    value={formData.buyerCellPhone || ""}
+                    onChange={(e) => updateField("buyerCellPhone", e.target.value)}
+                    placeholder="555-555-5555"
+                  />
+                </div>
+              </div>
+            )}
           </div>
         </Card>}
 
