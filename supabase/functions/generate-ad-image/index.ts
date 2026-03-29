@@ -104,8 +104,8 @@ function buildFacebookSvg(opts: {
   <text x="${bottomPad + 14}" y="${agentBarY + agentBarH / 2 - 9}" dominant-baseline="central" fill="white" font-size="18" font-weight="700" font-family="Inter, sans-serif">${escXml(agentName || "Agent")}</text>
   <text x="${bottomPad + 14}" y="${agentBarY + agentBarH / 2 + 11}" dominant-baseline="central" fill="#bbbbbb" font-size="15" font-family="Inter, sans-serif">${escXml(agentPhone)}</text>
   <text x="${W - bottomPad - 14}" y="${agentBarY + agentBarH / 2}" dominant-baseline="central" text-anchor="end" fill="#cccccc" font-size="15" font-family="Inter, sans-serif">MLS# ${escXml(mlsNumber)}</text>
-  <rect x="${W - bottomPad - 245}" y="${specsY - 40}" width="245" height="40" rx="6" fill="#cc0000"/>
-  <text x="${W - bottomPad - 227}" y="${specsY - 20}" dominant-baseline="central" text-anchor="start" fill="white" font-size="20" font-weight="700" font-family="Inter, sans-serif">Click for more info</text>
+  <rect x="${W - bottomPad - 245 - 60}" y="${specsY - 40}" width="245" height="40" rx="6" fill="#cc0000"/>
+  <text x="${W - bottomPad - 227 - 60}" y="${specsY - 20}" dominant-baseline="central" text-anchor="start" fill="white" font-size="20" font-weight="700" font-family="Inter, sans-serif">Click for more info</text>
 </svg>`;
 }
 
