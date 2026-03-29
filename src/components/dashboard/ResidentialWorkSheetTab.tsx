@@ -72,17 +72,36 @@ const ResidentialWorkSheetTab = ({ lead }: ResidentialWorkSheetTabProps) => {
     }
 
     const initForLead = async () => {
+      // 1) Check if we already mapped this lead to an inspection (survives address changes)
+      const cachedId = sessionStorage.getItem(`inspection-lead-${lead.id}`);
+      if (cachedId) {
+        // Verify the record still exists
+        const { data: exists } = await supabase
+          .from("inspections")
+          .select("id")
+          .eq("id", cachedId)
+          .eq("user_id", user.id)
+          .maybeSingle();
+        if (exists) {
+          await handleLoad(cachedId);
+          // Sync property_address to lead's current address
+          const currentAddr = lead.address?.trim();
+          if (currentAddr) {
+            await supabase.from("inspections").update({ property_address: currentAddr }).eq("id", cachedId);
+          }
+          setLeadLoaded(true);
+          return;
+        }
+      }
+
+      // 2) Fall back to address-based search
       const address = lead.address?.trim();
       if (address) {
-        // Build loose search pattern: "236 Rochdale Run" → "%236%rochdale%run%"
         const words = address.toLowerCase().replace(/[^a-z0-9\s]/g, '').split(/\s+/).filter(Boolean);
         const loosePattern = `%${words.join('%')}%`;
-        
-        // Also try matching with just the street number + first word for abbreviated DB entries
         const streetNumber = words[0] || '';
         const shortPattern = words.length > 1 ? `%${streetNumber}%${words[1]}%` : loosePattern;
         
-        // Try to find an existing inspection matching this lead's address (loose match)
         let { data } = await supabase
           .from("inspections")
           .select("id, property_address")
@@ -90,7 +109,6 @@ const ResidentialWorkSheetTab = ({ lead }: ResidentialWorkSheetTabProps) => {
           .ilike("property_address", loosePattern)
           .limit(1);
         
-        // If no match with full pattern, try shorter pattern
         if ((!data || data.length === 0) && shortPattern !== loosePattern) {
           const result = await supabase
             .from("inspections")
@@ -98,7 +116,6 @@ const ResidentialWorkSheetTab = ({ lead }: ResidentialWorkSheetTabProps) => {
             .eq("user_id", user.id)
             .ilike("property_address", shortPattern)
             .limit(5);
-          // Verify street number matches
           if (result.data) {
             data = result.data.filter(r => {
               const dbNum = r.property_address?.match(/\d+/)?.[0];
@@ -108,8 +125,9 @@ const ResidentialWorkSheetTab = ({ lead }: ResidentialWorkSheetTabProps) => {
         }
 
         if (data && data.length > 0) {
-          // Load existing worksheet
           await handleLoad(data[0].id);
+          // Cache the mapping so address changes don't lose it
+          sessionStorage.setItem(`inspection-lead-${lead.id}`, data[0].id);
           setLeadLoaded(true);
           return;
         }
