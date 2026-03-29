@@ -1,0 +1,1 @@
+ALTER TABLE public.estimated_net_properties ADD COLUMN buyer_email text DEFAULT NULL, ADD COLUMN buyer_cell_phone text DEFAULT NULL;
