@@ -106,6 +106,8 @@ interface ClosingData {
   agent_contact: string | null; // Buyer's agent phone
   representation_type: string | null;
   buyer_agent_commission: number;
+  buyer_name_1: string | null;
+  buyer_name_2: string | null;
 }
 
 // Commission calculation:
