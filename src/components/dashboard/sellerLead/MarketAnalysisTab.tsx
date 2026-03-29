@@ -147,6 +147,20 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
         const inspNumber = inspAddr.match(/^\d+/)?.[0];
         if (leadNumber && inspNumber && leadNumber !== inspNumber) return;
 
+        // Filter photos to only the sections relevant for market analysis
+        const allowedPhotoSections = [
+          'exterior', 'living-room', 'home-office', 'dining-room', 'kitchen',
+          'family-room', 'fireplaces', 'master-bedroom', 'bedroom-2',
+          'bedroom-3', 'bedroom-4', 'basement', 'backyard'
+        ];
+        const rawPhotos = (inspection.photos as Record<string, string[]>) || {};
+        const filteredPhotos: Record<string, string[]> = {};
+        for (const sectionId of allowedPhotoSections) {
+          if (rawPhotos[sectionId] && rawPhotos[sectionId].length > 0) {
+            filteredPhotos[sectionId] = rawPhotos[sectionId];
+          }
+        }
+
         setDocuments((prev) =>
           prev.map((slot) => {
             if (slot.label === "Residential Inspection Worksheet" && !slot.file && !slot.savedFilePath) {
@@ -154,6 +168,7 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
                 ...slot,
                 fromDatabase: true,
                 inspectionData: inspection.inspection_data,
+                inspectionPhotos: filteredPhotos,
                 savedFileName: `Auto-loaded: ${inspection.property_address}`,
               };
             }
