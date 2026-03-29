@@ -5,7 +5,7 @@ import { flexmlsApi } from '@/lib/api/flexmls';
 import ContactForm from '@/components/dashboard/marketing/ContactForm';
 import PhotoGallery from '@/components/dashboard/marketing/PhotoGallery';
 import {
-  ArrowLeft, Bed, Bath, Maximize, Calendar, MapPin, Home, Share2, Heart,
+  ArrowLeft, Bed, Bath, Maximize, Calendar, MapPin, Home, Share2, Heart, X,
   Thermometer, Wind, Car, Layers, DollarSign, GraduationCap, Droplets, Building,
   Ruler, Clock, FileText, Facebook, Instagram, Twitter, Megaphone, Sparkles, Youtube, Linkedin, ImageIcon,
   Link2, Check, Loader2, Mail, MessageSquare, Copy, BarChart3
@@ -192,6 +192,13 @@ const ListingDetail = () => {
   const [fbLoading, setFbLoading] = useState(false);
   const [descExpanded, setDescExpanded] = useState(false);
 
+  // Showing request popup state
+  const [showPopup, setShowPopup] = useState(false);
+  const [popupDismissed, setPopupDismissed] = useState(false);
+  const [popupSending, setPopupSending] = useState(false);
+  const [popupSubmitted, setPopupSubmitted] = useState(false);
+  const [popupForm, setPopupForm] = useState({ name: '', phone: '', email: '', preferredDate: '' });
+
   useEffect(() => {
     if (!user || isPublic) return;
     (async () => {
@@ -210,6 +217,50 @@ const ListingDetail = () => {
       }
     })();
   }, [user, isPublic]);
+
+  // Show popup after 8s on public listing pages
+  useEffect(() => {
+    if (!isPublic) return;
+    const alreadySeen = sessionStorage.getItem(`popup-dismissed-${id}`);
+    if (alreadySeen) return;
+    const timer = setTimeout(() => setShowPopup(true), 8000);
+    return () => clearTimeout(timer);
+  }, [isPublic, id]);
+
+  const dismissPopup = () => {
+    setShowPopup(false);
+    setPopupDismissed(true);
+    sessionStorage.setItem(`popup-dismissed-${id}`, '1');
+  };
+
+  const handlePopupSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const name = popupForm.name.trim();
+    const phone = popupForm.phone.trim();
+    const email = popupForm.email.trim();
+    if (!name || !phone) { toast.error('Please enter your name and phone number.'); return; }
+    setPopupSending(true);
+    try {
+      const preferredDateStr = popupForm.preferredDate ? `\nPreferred date/time: ${popupForm.preferredDate}` : '';
+      const { error } = await supabase.functions.invoke('send-contact-inquiry', {
+        body: {
+          name,
+          email: email || 'not provided',
+          phone,
+          message: `I would like to schedule a showing for ${fullAddress}.${preferredDateStr}`,
+          address: fullAddress,
+          agentName: listing?.agent?.name || 'Agent',
+        },
+      });
+      if (error) throw error;
+      setPopupSubmitted(true);
+      setTimeout(() => dismissPopup(), 3000);
+    } catch (err) {
+      toast.error('Failed to send request. Please call us directly.');
+    } finally {
+      setPopupSending(false);
+    }
+  };
 
   const connectFacebookFromSidebar = async () => {
     if (!user) return;
