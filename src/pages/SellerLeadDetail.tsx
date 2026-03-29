@@ -135,12 +135,44 @@ const SellerLeadDetail = () => {
 
   const updateMutation = useMutation({
     mutationFn: async () => {
+      const oldAddress = lead?.address?.trim() || "";
+      const newAddress = formData.address?.trim() || "";
+
       const updateData = {
         ...formData,
         status: formData.status as "new" | "contacted" | "qualified" | "unqualified" | "nurturing",
       };
       const { error } = await supabase.from("leads").update(updateData).eq("id", id!);
       if (error) throw error;
+
+      // If the address changed, sync the matching inspection record so worksheet & market analysis stay linked
+      if (user && oldAddress && newAddress && oldAddress !== newAddress) {
+        const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9\s]/g, '').split(/\s+/).filter(Boolean);
+        const oldWords = normalize(oldAddress);
+        if (oldWords.length > 0) {
+          const oldStreetNum = oldWords[0];
+          const shortPattern = oldWords.length > 1 ? `%${oldStreetNum}%${oldWords[1]}%` : `%${oldStreetNum}%`;
+
+          const { data: inspections } = await supabase
+            .from("inspections")
+            .select("id, property_address")
+            .eq("user_id", user.id)
+            .ilike("property_address", shortPattern)
+            .order("updated_at", { ascending: false })
+            .limit(5);
+
+          if (inspections && inspections.length > 0) {
+            // Pick the one whose street number matches
+            const match = inspections.find(r => {
+              const dbNum = r.property_address?.match(/\d+/)?.[0];
+              return dbNum === oldStreetNum;
+            });
+            if (match) {
+              await supabase.from("inspections").update({ property_address: newAddress }).eq("id", match.id);
+            }
+          }
+        }
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["leads"] });
