@@ -43,11 +43,20 @@ serve(async (req) => {
     let result;
     let warning: string | undefined;
 
-    if (photo_url) {
-      // Photo post — posts as full-width image on Facebook (most reliable for branded ads)
-      // The listing URL is included in the message text so users can still click through.
-      // Note: the old "link + attached_media" approach was removed because Facebook's API
-      // silently drops the attached photo and falls back to a plain link card preview.
+    if (link) {
+      // Link post — Facebook scrapes the OG proxy URL to get the branded image and metadata.
+      // This ensures the post is clickable (leads to the listing page) while still showing
+      // the full branded preview image via og:image tags.
+      console.log("[facebook-post] Posting as link share:", link);
+      const postResp = await fetch(`https://graph.facebook.com/v21.0/${page_id}/feed`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message, link, access_token: page_access_token }),
+      });
+      result = await postResp.json();
+      console.log("[facebook-post] Link post response:", JSON.stringify(result));
+    } else if (photo_url) {
+      // Photo-only post (no link provided) — posts as full-width image
       console.log("[facebook-post] Posting as photo:", photo_url);
       const postResp = await fetch(`https://graph.facebook.com/v21.0/${page_id}/photos`, {
         method: "POST",
@@ -56,14 +65,6 @@ serve(async (req) => {
       });
       result = await postResp.json();
       console.log("[facebook-post] Photo post response:", JSON.stringify(result));
-    } else if (link) {
-      // Link-only post (no image)
-      const postResp = await fetch(`https://graph.facebook.com/v21.0/${page_id}/feed`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message, link, access_token: page_access_token }),
-      });
-      result = await postResp.json();
     } else {
       // Text-only post
       const postResp = await fetch(`https://graph.facebook.com/v21.0/${page_id}/feed`, {

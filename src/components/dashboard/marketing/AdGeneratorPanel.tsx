@@ -236,6 +236,7 @@ const AdGeneratorPanel = ({ listing, autoGenerate = false }: AdGeneratorPanelPro
           agent_id: user.id,
           message,
           photo_url: fbPublicUrl,
+          link: `${ogListingUrl}&image=${encodeURIComponent(fbPublicUrl)}&v=${ts}`,
           instagram_image_url: igPublicUrl,
         }),
       });
