@@ -187,13 +187,13 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
     );
   };
 
-  const uploadFilesToStorage = async (docs: DocumentSlot[]): Promise<{ name: string; filePath: string; mimeType: string; inspectionData?: any }[]> => {
+  const uploadFilesToStorage = async (docs: DocumentSlot[]): Promise<{ name: string; filePath: string; mimeType: string; inspectionData?: any; inspectionPhotos?: Record<string, string[]> }[]> => {
     if (!user) throw new Error("Not authenticated");
-    const uploaded: { name: string; filePath: string; mimeType: string; inspectionData?: any }[] = [];
+    const uploaded: { name: string; filePath: string; mimeType: string; inspectionData?: any; inspectionPhotos?: Record<string, string[]> }[] = [];
     for (const doc of docs) {
       if (doc.fromDatabase && doc.inspectionData) {
         // Database-sourced inspection — pass data inline, no file upload needed
-        uploaded.push({ name: doc.label, filePath: "__database__", mimeType: "application/json", inspectionData: doc.inspectionData });
+        uploaded.push({ name: doc.label, filePath: "__database__", mimeType: "application/json", inspectionData: doc.inspectionData, inspectionPhotos: doc.inspectionPhotos });
       } else if (doc.file) {
         const ext = doc.file.name.split(".").pop() || "pdf";
         const filePath = `${user.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;

@@ -66,6 +66,31 @@ serve(async (req) => {
             type: "text",
             text: `[Document: ${doc.name}]\n${inspectionText}`,
           });
+
+          // Include inspection photos if provided
+          if (doc.inspectionPhotos && typeof doc.inspectionPhotos === "object") {
+            const sectionNames: Record<string, string> = {
+              'exterior': 'Exterior', 'living-room': 'Living Room', 'home-office': 'Home Office',
+              'dining-room': 'Dining Room', 'kitchen': 'Kitchen', 'family-room': 'Family Room',
+              'fireplaces': 'Fireplace', 'master-bedroom': 'Master Bedroom', 'bedroom-2': 'Bedroom 2',
+              'bedroom-3': 'Bedroom 3', 'bedroom-4': 'Bedroom 4', 'basement': 'Basement', 'backyard': 'Backyard',
+            };
+            let photoCount = 0;
+            for (const [sectionId, photos] of Object.entries(doc.inspectionPhotos)) {
+              if (!Array.isArray(photos)) continue;
+              const label = sectionNames[sectionId] || sectionId;
+              for (const photoUrl of photos) {
+                if (typeof photoUrl !== "string" || !photoUrl.startsWith("http")) continue;
+                userContent.push({ type: "text", text: `[Inspection Photo: ${label}]` });
+                userContent.push({ type: "image", source: { type: "url", url: photoUrl } });
+                photoCount++;
+                if (photoCount >= 20) break; // Cap total photos sent
+              }
+              if (photoCount >= 20) break;
+            }
+            console.log(`Included ${photoCount} inspection photos for AI review`);
+          }
+
           continue;
         }
 
