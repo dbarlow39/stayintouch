@@ -5,7 +5,7 @@ import { flexmlsApi } from '@/lib/api/flexmls';
 import ContactForm from '@/components/dashboard/marketing/ContactForm';
 import PhotoGallery from '@/components/dashboard/marketing/PhotoGallery';
 import {
-  ArrowLeft, Bed, Bath, Maximize, Calendar, MapPin, Home, Share2, Heart,
+  ArrowLeft, Bed, Bath, Maximize, Calendar, MapPin, Home, Share2, Heart, X,
   Thermometer, Wind, Car, Layers, DollarSign, GraduationCap, Droplets, Building,
   Ruler, Clock, FileText, Facebook, Instagram, Twitter, Megaphone, Sparkles, Youtube, Linkedin, ImageIcon,
   Link2, Check, Loader2, Mail, MessageSquare, Copy, BarChart3
@@ -192,6 +192,13 @@ const ListingDetail = () => {
   const [fbLoading, setFbLoading] = useState(false);
   const [descExpanded, setDescExpanded] = useState(false);
 
+  // Showing request popup state
+  const [showPopup, setShowPopup] = useState(false);
+  const [popupDismissed, setPopupDismissed] = useState(false);
+  const [popupSending, setPopupSending] = useState(false);
+  const [popupSubmitted, setPopupSubmitted] = useState(false);
+  const [popupForm, setPopupForm] = useState({ name: '', phone: '', email: '', preferredDate: '' });
+
   useEffect(() => {
     if (!user || isPublic) return;
     (async () => {
@@ -210,6 +217,50 @@ const ListingDetail = () => {
       }
     })();
   }, [user, isPublic]);
+
+  // Show popup after 8s on public listing pages
+  useEffect(() => {
+    if (!isPublic) return;
+    const alreadySeen = sessionStorage.getItem(`popup-dismissed-${id}`);
+    if (alreadySeen) return;
+    const timer = setTimeout(() => setShowPopup(true), 8000);
+    return () => clearTimeout(timer);
+  }, [isPublic, id]);
+
+  const dismissPopup = () => {
+    setShowPopup(false);
+    setPopupDismissed(true);
+    sessionStorage.setItem(`popup-dismissed-${id}`, '1');
+  };
+
+  const handlePopupSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const name = popupForm.name.trim();
+    const phone = popupForm.phone.trim();
+    const email = popupForm.email.trim();
+    if (!name || !phone) { toast.error('Please enter your name and phone number.'); return; }
+    setPopupSending(true);
+    try {
+      const preferredDateStr = popupForm.preferredDate ? `\nPreferred date/time: ${popupForm.preferredDate}` : '';
+      const { error } = await supabase.functions.invoke('send-contact-inquiry', {
+        body: {
+          name,
+          email: email || 'not provided',
+          phone,
+          message: `I would like to schedule a showing for ${fullAddress}.${preferredDateStr}`,
+          address: fullAddress,
+          agentName: listing?.agent?.name || 'Agent',
+        },
+      });
+      if (error) throw error;
+      setPopupSubmitted(true);
+      setTimeout(() => dismissPopup(), 3000);
+    } catch (err) {
+      toast.error('Failed to send request. Please call us directly.');
+    } finally {
+      setPopupSending(false);
+    }
+  };
 
   const connectFacebookFromSidebar = async () => {
     if (!user) return;
@@ -871,6 +922,104 @@ const ListingDetail = () => {
         </div>
       </main>
       </div>{/* end flex-1 */}
+
+      {/* Showing Request Popup — public site only */}
+      {isPublic && showPopup && !popupDismissed && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 relative animate-in fade-in zoom-in-95 duration-200">
+            <button
+              onClick={dismissPopup}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
+              aria-label="Close"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            {popupSubmitted ? (
+              <div className="text-center py-6">
+                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Check className="w-8 h-8 text-green-600" />
+                </div>
+                <h3 className="text-xl font-bold text-gray-900 mb-2">Request Sent!</h3>
+                <p className="text-gray-500">We'll be in touch shortly to confirm your showing.</p>
+              </div>
+            ) : (
+              <>
+                <div className="flex items-center gap-3 mb-5">
+                  <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">
+                    <Calendar className="w-6 h-6 text-red-700" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-gray-900">Schedule a Showing</h3>
+                    <p className="text-sm text-gray-500">{listing.address}</p>
+                  </div>
+                </div>
+
+                <p className="text-gray-600 text-sm mb-5">
+                  Interested in touring this home? Leave your info and we'll reach out to set up a time that works for you.
+                </p>
+
+                <form onSubmit={handlePopupSubmit} className="space-y-3">
+                  <input
+                    type="text"
+                    placeholder="Your name *"
+                    value={popupForm.name}
+                    onChange={e => setPopupForm(p => ({ ...p, name: e.target.value }))}
+                    className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-700"
+                    required
+                    maxLength={100}
+                  />
+                  <input
+                    type="tel"
+                    placeholder="Phone number *"
+                    value={popupForm.phone}
+                    onChange={e => setPopupForm(p => ({ ...p, phone: e.target.value }))}
+                    className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-700"
+                    required
+                    maxLength={30}
+                  />
+                  <input
+                    type="email"
+                    placeholder="Email (optional)"
+                    value={popupForm.email}
+                    onChange={e => setPopupForm(p => ({ ...p, email: e.target.value }))}
+                    className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-700"
+                    maxLength={255}
+                  />
+                  <input
+                    type="text"
+                    placeholder="Preferred date & time (optional)"
+                    value={popupForm.preferredDate}
+                    onChange={e => setPopupForm(p => ({ ...p, preferredDate: e.target.value }))}
+                    className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-700"
+                    maxLength={100}
+                  />
+
+                  <button
+                    type="submit"
+                    disabled={popupSending}
+                    className="w-full bg-red-700 hover:bg-red-800 text-white font-semibold py-3 rounded-lg text-sm transition-colors flex items-center justify-center gap-2 disabled:opacity-60"
+                  >
+                    {popupSending ? (
+                      <><Loader2 className="w-4 h-4 animate-spin" /> Sending...</>
+                    ) : (
+                      <><Calendar className="w-4 h-4" /> Request a Showing</>
+                    )}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={dismissPopup}
+                    className="w-full text-sm text-gray-400 hover:text-gray-600 py-1 transition-colors"
+                  >
+                    No thanks, just browsing
+                  </button>
+                </form>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
