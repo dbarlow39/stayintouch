@@ -58,6 +58,17 @@ serve(async (req) => {
       userContent.push({ type: "text", text: "I've uploaded the following documents for review:\n" });
 
       for (const doc of documents) {
+        // Handle database-sourced inspection data (inline JSON)
+        if (doc.inspectionData) {
+          console.log(`Using inline inspection data for ${doc.name}`);
+          const inspectionText = JSON.stringify(doc.inspectionData, null, 2);
+          userContent.push({
+            type: "text",
+            text: `[Document: ${doc.name}]\n${inspectionText}`,
+          });
+          continue;
+        }
+
         if (!doc.filePath) continue;
 
         const mimeType = doc.mimeType || "application/pdf";

@@ -36,6 +36,8 @@ interface DocumentSlot {
   required: boolean;
   savedFilePath?: string;
   savedFileName?: string;
+  fromDatabase?: boolean;
+  inspectionData?: any;
 }
 
 interface MarketAnalysisTabProps {
@@ -65,7 +67,7 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [chatInput, setChatInput] = useState("");
   const [chatStreaming, setChatStreaming] = useState(false);
-  const [uploadedDocsRef, setUploadedDocsRef] = useState<{ name: string; filePath: string; mimeType: string }[]>([]);
+  const [uploadedDocsRef, setUploadedDocsRef] = useState<{ name: string; filePath: string; mimeType: string; inspectionData?: any }[]>([]);
   const chatScrollRef = useRef<HTMLDivElement>(null);
   const chatInputRef = useRef<HTMLInputElement>(null);
   const [documents, setDocuments] = useState<DocumentSlot[]>([
@@ -112,25 +114,77 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
     })();
   }, [user, lead?.id]);
 
+  // Auto-load inspection worksheet from database if address matches
+  useEffect(() => {
+    if (!user || !lead?.address) return;
+    (async () => {
+      try {
+        // Normalize: lowercase, strip non-alphanumeric except spaces
+        const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9 ]/g, '').replace(/\s+/g, ' ').trim();
+        const leadAddr = normalize(lead.address);
+        if (!leadAddr) return;
+
+        // Build a loose ilike pattern from the key words
+        const words = leadAddr.split(' ').filter((w: string) => w.length > 1);
+        if (words.length === 0) return;
+        const pattern = `%${words.join('%')}%`;
+
+        const { data, error } = await supabase
+          .from("inspections")
+          .select("id, property_address, inspection_data, photos, updated_at")
+          .eq("user_id", user.id)
+          .ilike("property_address", pattern)
+          .order("updated_at", { ascending: false })
+          .limit(1);
+
+        if (error || !data || data.length === 0) return;
+
+        const inspection = data[0];
+        // Verify loose match: check that at least the street number matches
+        const inspAddr = normalize(inspection.property_address);
+        const leadNumber = leadAddr.match(/^\d+/)?.[0];
+        const inspNumber = inspAddr.match(/^\d+/)?.[0];
+        if (leadNumber && inspNumber && leadNumber !== inspNumber) return;
+
+        setDocuments((prev) =>
+          prev.map((slot) => {
+            if (slot.label === "Residential Inspection Worksheet" && !slot.file && !slot.savedFilePath) {
+              return {
+                ...slot,
+                fromDatabase: true,
+                inspectionData: inspection.inspection_data,
+                savedFileName: `Auto-loaded: ${inspection.property_address}`,
+              };
+            }
+            return slot;
+          })
+        );
+      } catch (e) {
+        console.error("Failed to auto-load inspection:", e);
+      }
+    })();
+  }, [user, lead?.address]);
+
   const handleFileSelect = (index: number, file: File | null) => {
     setDocuments((prev) =>
-      prev.map((doc, i) => (i === index ? { ...doc, file } : doc))
+      prev.map((doc, i) => (i === index ? { ...doc, file, fromDatabase: false, inspectionData: undefined } : doc))
     );
   };
 
-  const uploadFilesToStorage = async (docs: DocumentSlot[]): Promise<{ name: string; filePath: string; mimeType: string }[]> => {
+  const uploadFilesToStorage = async (docs: DocumentSlot[]): Promise<{ name: string; filePath: string; mimeType: string; inspectionData?: any }[]> => {
     if (!user) throw new Error("Not authenticated");
-    const uploaded: { name: string; filePath: string; mimeType: string }[] = [];
+    const uploaded: { name: string; filePath: string; mimeType: string; inspectionData?: any }[] = [];
     for (const doc of docs) {
-      if (doc.file) {
-        // New file selected — upload it
+      if (doc.fromDatabase && doc.inspectionData) {
+        // Database-sourced inspection — pass data inline, no file upload needed
+        uploaded.push({ name: doc.label, filePath: "__database__", mimeType: "application/json", inspectionData: doc.inspectionData });
+      } else if (doc.file) {
         const ext = doc.file.name.split(".").pop() || "pdf";
         const filePath = `${user.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
         const { error } = await supabase.storage.from("market-analysis-docs").upload(filePath, doc.file);
         if (error) throw new Error(`Failed to upload ${doc.label}: ${error.message}`);
         uploaded.push({ name: doc.label, filePath, mimeType: doc.file.type || "application/pdf" });
       } else if (doc.savedFilePath) {
-        // Already saved — reuse existing path without re-uploading
         uploaded.push({ name: doc.label, filePath: doc.savedFilePath, mimeType: "application/pdf" });
       }
     }
@@ -141,7 +195,7 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
     .filter((d) => d.required)
     .every((d) => d.file !== null);
 
-  const uploadedCount = documents.filter((d) => d.file !== null || d.savedFilePath).length;
+  const uploadedCount = documents.filter((d) => d.file !== null || d.savedFilePath || d.fromDatabase).length;
 
   // Capture a ref element to base64 PNG using html-to-image
   const captureGraphic = useCallback(async (element: HTMLDivElement): Promise<string> => {
@@ -523,6 +577,27 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
                       onClick={(e) => {
                         e.stopPropagation();
                         handleFileSelect(index, null);
+                      }}
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </div>
+                ) : doc.fromDatabase ? (
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-5 h-5 text-primary shrink-0" />
+                    <div className="flex-1 text-left min-w-0">
+                      <p className="text-sm font-medium truncate">{doc.savedFileName || doc.label}</p>
+                      <p className="text-xs text-muted-foreground">Auto-loaded from database • click to upload instead</p>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="shrink-0"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setDocuments((prev) =>
+                          prev.map((d, i) => i === index ? { ...d, fromDatabase: false, inspectionData: undefined, savedFileName: undefined } : d)
+                        );
                       }}
                     >
                       <X className="w-4 h-4" />
