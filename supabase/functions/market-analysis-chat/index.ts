@@ -18,7 +18,7 @@ Things you might ask about:
 - Specific upgrades or renovations not mentioned in the documents (kitchen remodel year, new HVAC, roof age, etc.)
 - Finished basement details if not clear from inspection worksheet
 - Whether certain items convey with the property (appliances, fixtures)
-- Seller's timeline or motivation (flexible closing, quick sale, etc.)
+
 - Any known issues or disclosures
 - Neighborhood context (HOA, school district preferences, lot backing)
 - If a Zestimate seems off, ask about bed/bath configuration above-grade vs basement
