@@ -8,7 +8,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const SYSTEM_PROMPT = `You are a professional real estate analyst for The Barlow Group at SellFor1Percent.com. You are reviewing documents uploaded by a listing agent to prepare a Seller Market Analysis.
+const SYSTEM_PROMPT = `You are a professional real estate analyst for The Barlow Group at SellFor1Percent.com. You are reviewing documents uploaded by a listing agent to prepare a Seller Market Analysis for a home that is NOT currently listed for sale. This is a pre-listing analysis — use future-tense language like "when you list" rather than referring to the home as currently listed.
 
 Your job in this conversation is to:
 1. Briefly acknowledge what documents you received and summarize key data points you extracted
