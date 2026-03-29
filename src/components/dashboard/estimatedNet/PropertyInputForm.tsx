@@ -2232,10 +2232,10 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
                   <Label htmlFor="buyerEmail">Buyer Email</Label>
                   <Input
                     id="buyerEmail"
-                    type="email"
+                    type="text"
                     value={formData.buyerEmail || ""}
                     onChange={(e) => updateField("buyerEmail", e.target.value)}
-                    placeholder="buyer@example.com"
+                    placeholder="buyer1@example.com, buyer2@example.com"
                   />
                 </div>
                 <div>
