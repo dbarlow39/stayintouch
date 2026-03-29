@@ -732,6 +732,8 @@ export type Database = {
           appliances: string | null
           appraisal_contingency: boolean | null
           buyer_agent_commission: number
+          buyer_cell_phone: string | null
+          buyer_email: string | null
           buyer_name_1: string | null
           buyer_name_2: string | null
           city: string
@@ -795,6 +797,8 @@ export type Database = {
           appliances?: string | null
           appraisal_contingency?: boolean | null
           buyer_agent_commission?: number
+          buyer_cell_phone?: string | null
+          buyer_email?: string | null
           buyer_name_1?: string | null
           buyer_name_2?: string | null
           city: string
@@ -858,6 +862,8 @@ export type Database = {
           appliances?: string | null
           appraisal_contingency?: boolean | null
           buyer_agent_commission?: number
+          buyer_cell_phone?: string | null
+          buyer_email?: string | null
           buyer_name_1?: string | null
           buyer_name_2?: string | null
           city?: string
