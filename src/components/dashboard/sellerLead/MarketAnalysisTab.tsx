@@ -195,7 +195,7 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
     .filter((d) => d.required)
     .every((d) => d.file !== null);
 
-  const uploadedCount = documents.filter((d) => d.file !== null || d.savedFilePath).length;
+  const uploadedCount = documents.filter((d) => d.file !== null || d.savedFilePath || d.fromDatabase).length;
 
   // Capture a ref element to base64 PNG using html-to-image
   const captureGraphic = useCallback(async (element: HTMLDivElement): Promise<string> => {
