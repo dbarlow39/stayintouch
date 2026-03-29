@@ -181,7 +181,7 @@ export async function renderAdCanvas(opts: RenderOptions): Promise<string> {
   const btnText = 'Click for more info';
   const btnW = 230;
   const btnH = 42;
-  const btnX = W - bottomPad - btnW;
+  const btnX = W - bottomPad - btnW - 60;
   const btnY = specsY - btnH;
   ctx.fillStyle = '#cc0000';
   roundRect(ctx, btnX, btnY, btnW, btnH, 6);
