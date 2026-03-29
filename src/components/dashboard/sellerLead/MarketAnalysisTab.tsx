@@ -183,7 +183,7 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
 
   const handleFileSelect = (index: number, file: File | null) => {
     setDocuments((prev) =>
-      prev.map((doc, i) => (i === index ? { ...doc, file, fromDatabase: false, inspectionData: undefined } : doc))
+      prev.map((doc, i) => (i === index ? { ...doc, file, fromDatabase: false, inspectionData: undefined, inspectionPhotos: undefined } : doc))
     );
   };
 
@@ -612,7 +612,7 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
                       onClick={(e) => {
                         e.stopPropagation();
                         setDocuments((prev) =>
-                          prev.map((d, i) => i === index ? { ...d, fromDatabase: false, inspectionData: undefined, savedFileName: undefined } : d)
+                          prev.map((d, i) => i === index ? { ...d, fromDatabase: false, inspectionData: undefined, inspectionPhotos: undefined, savedFileName: undefined } : d)
                         );
                       }}
                     >
