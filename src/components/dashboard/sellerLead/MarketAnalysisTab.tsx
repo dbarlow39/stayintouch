@@ -67,7 +67,7 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [chatInput, setChatInput] = useState("");
   const [chatStreaming, setChatStreaming] = useState(false);
-  const [uploadedDocsRef, setUploadedDocsRef] = useState<{ name: string; filePath: string; mimeType: string }[]>([]);
+  const [uploadedDocsRef, setUploadedDocsRef] = useState<{ name: string; filePath: string; mimeType: string; inspectionData?: any }[]>([]);
   const chatScrollRef = useRef<HTMLDivElement>(null);
   const chatInputRef = useRef<HTMLInputElement>(null);
   const [documents, setDocuments] = useState<DocumentSlot[]>([
