@@ -179,21 +179,18 @@ export async function renderAdCanvas(opts: RenderOptions): Promise<string> {
 
   // "Click for More Info" button — bottom right corner
   const btnText = 'Click for more info';
-  ctx.font = '700 20px "Segoe UI", Arial, sans-serif';
-  const btnTextW = ctx.measureText(btnText).width / SCALE; // measureText returns scaled pixels; divide back to logical coords
-  const btnPadX = 18;
-  const btnPadY = 10;
-  const btnW = btnTextW + btnPadX * 2;
-  const btnH = 20 + btnPadY * 2;
+  const btnW = 230;
+  const btnH = 42;
   const btnX = W - bottomPad - btnW;
-  const btnY = specsY - btnH; // bottom of button aligned with specs text baseline
+  const btnY = specsY - btnH;
   ctx.fillStyle = '#cc0000';
   roundRect(ctx, btnX, btnY, btnW, btnH, 6);
   ctx.fill();
   ctx.fillStyle = '#ffffff';
-  ctx.textAlign = 'left';
+  ctx.font = '700 20px "Segoe UI", Arial, sans-serif';
+  ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillText(btnText, btnX + btnPadX, btnY + btnH / 2);
+  ctx.fillText(btnText, btnX + btnW / 2, btnY + btnH / 2);
 
   return canvas.toDataURL('image/png');
 }
