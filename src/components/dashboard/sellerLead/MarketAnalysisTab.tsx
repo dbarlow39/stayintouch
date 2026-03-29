@@ -582,6 +582,27 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
                       <X className="w-4 h-4" />
                     </Button>
                   </div>
+                ) : doc.fromDatabase ? (
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-5 h-5 text-primary shrink-0" />
+                    <div className="flex-1 text-left min-w-0">
+                      <p className="text-sm font-medium truncate">{doc.savedFileName || doc.label}</p>
+                      <p className="text-xs text-muted-foreground">Auto-loaded from database • click to upload instead</p>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="shrink-0"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setDocuments((prev) =>
+                          prev.map((d, i) => i === index ? { ...d, fromDatabase: false, inspectionData: undefined, savedFileName: undefined } : d)
+                        );
+                      }}
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </div>
                 ) : doc.savedFilePath ? (
                   <div className="flex items-center gap-2">
                     <CheckCircle2 className="w-5 h-5 text-green-500 shrink-0" />
