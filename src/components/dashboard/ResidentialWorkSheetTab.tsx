@@ -344,6 +344,10 @@ const ResidentialWorkSheetTab = ({ lead }: ResidentialWorkSheetTabProps) => {
         if (error) throw error;
         inspectionId = data.id;
         setCurrentInspectionId(inspectionId);
+        // Cache lead→inspection mapping so address changes don't orphan data
+        if (lead) {
+          sessionStorage.setItem(`inspection-lead-${lead.id}`, inspectionId);
+        }
       }
       toast.success("Work sheet saved successfully!");
     } catch (error: any) {
