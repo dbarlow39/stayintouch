@@ -590,6 +590,74 @@ export type Database = {
         }
         Relationships: []
       }
+      daily_call_entries: {
+        Row: {
+          action: string | null
+          created_at: string
+          id: string
+          name: string | null
+          notes: string | null
+          phone: string | null
+          row_number: number
+          sheet_id: string
+          updated_at: string
+        }
+        Insert: {
+          action?: string | null
+          created_at?: string
+          id?: string
+          name?: string | null
+          notes?: string | null
+          phone?: string | null
+          row_number: number
+          sheet_id: string
+          updated_at?: string
+        }
+        Update: {
+          action?: string | null
+          created_at?: string
+          id?: string
+          name?: string | null
+          notes?: string | null
+          phone?: string | null
+          row_number?: number
+          sheet_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daily_call_entries_sheet_id_fkey"
+            columns: ["sheet_id"]
+            isOneToOne: false
+            referencedRelation: "daily_call_sheets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      daily_call_sheets: {
+        Row: {
+          agent_id: string
+          created_at: string
+          id: string
+          sheet_date: string
+          updated_at: string
+        }
+        Insert: {
+          agent_id: string
+          created_at?: string
+          id?: string
+          sheet_date?: string
+          updated_at?: string
+        }
+        Update: {
+          agent_id?: string
+          created_at?: string
+          id?: string
+          sheet_date?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       deals: {
         Row: {
           agent_id: string
