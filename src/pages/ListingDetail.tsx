@@ -185,7 +185,7 @@ const ListingDetail = () => {
   const [listing, setListing] = useState<MarketingListing | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTool, setActiveTool] = useState<string | null>(searchParams.get('tool') || null);
-  const isPublic = isPublicSite();
+  const isPublic = isPublicSite(user);
   const isMobile = useIsMobile();
 
   // Facebook connection state for sidebar
