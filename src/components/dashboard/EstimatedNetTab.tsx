@@ -409,6 +409,7 @@ const EstimatedNetTab = ({ selectedClient, onClearSelectedClient, navigateToProp
       adminFee: Number(data.admin_fee),
       appliances: data.appliances || "",
       notes: data.notes || "",
+      representationType: data.representation_type || 'seller',
     };
 
     setCurrentPropertyId(id);

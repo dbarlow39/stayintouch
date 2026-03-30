@@ -77,6 +77,7 @@ export interface PropertyData {
   // Additional
   appliances: string;
   notes: string;
+  representationType?: string;
 }
 
 export interface ClosingCostData {
