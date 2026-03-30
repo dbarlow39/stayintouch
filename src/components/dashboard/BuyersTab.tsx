@@ -279,6 +279,7 @@ const BuyersTab = () => {
             </form>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       {isLoading ? (
