@@ -106,7 +106,12 @@ const DailyCallSheet = () => {
     if (!sheetData) return;
     if (sheetData.sheet) {
       setSheetId(sheetData.sheet.id);
-      const merged = emptyEntries().map((empty) => {
+      const maxRow = Math.max(
+        DEFAULT_ROWS,
+        ...sheetData.entries.map((e: CallEntry) => e.row_number)
+      );
+      const base = makeEntries(maxRow);
+      const merged = base.map((empty) => {
         const existing = sheetData.entries.find(
           (e: CallEntry) => e.row_number === empty.row_number
         );
@@ -117,7 +122,7 @@ const DailyCallSheet = () => {
       setEntries(merged);
     } else {
       setSheetId(null);
-      setEntries(emptyEntries());
+      setEntries(makeEntries(DEFAULT_ROWS));
     }
     setHasChanges(false);
   }, [sheetData]);
