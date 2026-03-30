@@ -15,6 +15,7 @@ import NotFound from "./pages/NotFound";
 import AdResults from "./pages/AdResults";
 import SellerLeadDetail from "./pages/SellerLeadDetail";
 import BuyerLeadDetail from "./pages/BuyerLeadDetail";
+import DailyCallSheet from "./pages/DailyCallSheet";
 
 const queryClient = new QueryClient({
   defaultOptions: {
