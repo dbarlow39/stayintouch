@@ -40,7 +40,7 @@ const DailyCallSheet = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-  const [entries, setEntries] = useState<CallEntry[]>(emptyEntries());
+  const [entries, setEntries] = useState<CallEntry[]>(makeEntries(DEFAULT_ROWS));
   const [sheetId, setSheetId] = useState<string | null>(null);
   const [hasChanges, setHasChanges] = useState(false);
 
