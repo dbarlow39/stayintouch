@@ -10,7 +10,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useToast } from "@/hooks/use-toast";
 import { format, parseISO } from "date-fns";
-import { ArrowLeft, CalendarIcon, Save, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowLeft, CalendarIcon, Save, ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const TOTAL_ROWS = 10;
