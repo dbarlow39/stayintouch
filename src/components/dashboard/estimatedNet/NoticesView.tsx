@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { PropertyData } from "@/types/estimatedNet";
+import { filterNavForRepType } from "@/utils/navigationUtils";
 import { format, addDays, subDays, isBefore, startOfDay } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -302,6 +303,7 @@ const NoticesView = ({
       onClick: () => onEdit(propertyId),
     },
   ];
+  const displayNavItems = filterNavForRepType(navigationItems, propertyData.representationType);
 
   const handleSendNotice = (noticeType: NoticeType) => {
     if (noticeType === "clear-to-close") {
@@ -356,7 +358,7 @@ const NoticesView = ({
       {/* Left Navigation Sidebar */}
       <div className="w-48 flex-shrink-0">
         <div className="space-y-1">
-          {navigationItems.map((item, index) => (
+          {displayNavItems.map((item, index) => (
             <Button
               key={index}
               variant={item.isActive ? "secondary" : "ghost"}

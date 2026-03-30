@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PropertyData, ClosingCostData } from "@/types/estimatedNet";
+import { filterNavForRepType } from "@/utils/navigationUtils";
 import { calculateClosingCosts, formatCurrency } from "@/utils/estimatedNetCalculations";
 import { ArrowLeft, Download, List, Mail, Calendar, FileText, ArrowRight, DollarSign, ClipboardList, Settings, Copy } from "lucide-react";
 import { EmailClient, EMAIL_CLIENT_OPTIONS, getEmailClientPreference, setEmailClientPreference, openEmailClient } from "@/utils/emailClientUtils";
@@ -212,6 +213,7 @@ const OfferSummaryView = ({ propertyData, propertyId, onBack, onEdit, onNavigate
       onClick: () => onNavigate('settlement-statement'),
     },
   ];
+  const displayNavItems = filterNavForRepType(navigationItems, propertyData.representationType);
 
   return (
     <div className="flex w-full min-h-[600px]">
@@ -235,7 +237,7 @@ const OfferSummaryView = ({ propertyData, propertyId, onBack, onEdit, onNavigate
         </div>
 
         <div className="space-y-1">
-          {navigationItems.map((item, idx) => (
+          {displayNavItems.map((item, idx) => (
             <Button
               key={idx}
               variant="ghost"

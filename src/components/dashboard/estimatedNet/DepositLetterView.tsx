@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PropertyData } from "@/types/estimatedNet";
+import { filterNavForRepType } from "@/utils/navigationUtils";
 import { ArrowLeft, List, Mail, Calendar, FileText, Copy, DollarSign, ClipboardList, Settings, Home, Bell, Edit } from "lucide-react";
 import { EmailClient, EMAIL_CLIENT_OPTIONS, getEmailClientPreference, setEmailClientPreference, getEmailLink } from "@/utils/emailClientUtils";
 import { useToast } from "@/hooks/use-toast";
@@ -253,6 +254,7 @@ const DepositLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigat
     { label: "Notices", icon: Bell, onClick: () => onNavigate('notices') },
     { label: "Deposit", icon: DollarSign, onClick: () => {}, active: true },
   ];
+  const displayNavItems = filterNavForRepType(navigationItems, propertyData.representationType);
 
   return (
     <div className="flex w-full min-h-[600px]">
@@ -274,7 +276,7 @@ const DepositLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigat
         </div>
 
         <div className="space-y-1">
-          {navigationItems.map((item, idx) => (
+          {displayNavItems.map((item, idx) => (
             <Button
               key={idx}
               variant="ghost"

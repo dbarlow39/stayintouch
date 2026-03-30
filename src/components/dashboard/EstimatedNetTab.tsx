@@ -191,13 +191,14 @@ const EstimatedNetTab = ({ selectedClient, onClearSelectedClient, navigateToProp
         titlePhone: (data as any).title_phone || "614-854-0980",
         titleEmail: (data as any).title_email || "polaris@titlefirst.com",
         adminFee: Number(data.admin_fee),
-        appliances: data.appliances || "",
-        notes: data.notes || "",
-      };
+      appliances: data.appliances || "",
+      notes: data.notes || "",
+      representationType: data.representation_type || 'seller',
+    };
 
-      setCurrentPropertyId(id);
-      setCurrentPropertyData(propertyData);
-      setViewState(view);
+    setCurrentPropertyId(id);
+    setCurrentPropertyData(propertyData);
+    setViewState(view);
     };
 
     loadAndNavigate();
@@ -408,6 +409,7 @@ const EstimatedNetTab = ({ selectedClient, onClearSelectedClient, navigateToProp
       adminFee: Number(data.admin_fee),
       appliances: data.appliances || "",
       notes: data.notes || "",
+      representationType: data.representation_type || 'seller',
     };
 
     setCurrentPropertyId(id);

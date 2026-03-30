@@ -5,6 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PropertyData } from "@/types/estimatedNet";
+import { filterNavForRepType } from "@/utils/navigationUtils";
 import { ArrowLeft, List, Mail, Calendar, FileText, Copy, DollarSign, ClipboardList, Settings, Home, Phone, Search, Wrench, Eye, Key, Wallet, MapPin, Loader2, Send, Paperclip, X } from "lucide-react";
 import { EmailClient, EMAIL_CLIENT_OPTIONS, getEmailClientPreference, setEmailClientPreference, openEmailClient } from "@/utils/emailClientUtils";
 import { useToast } from "@/hooks/use-toast";
@@ -387,6 +388,7 @@ const ImportantDatesView = ({ propertyData, propertyId, onBack, onEdit, onNaviga
     { label: "Request to Remedy", icon: FileText, onClick: () => onNavigate('request-to-remedy') },
     { label: "Settlement Statement", icon: FileText, onClick: () => onNavigate('settlement-statement') },
   ];
+  const displayNavItems = filterNavForRepType(navigationItems, propertyData.representationType);
 
   return (
     <>
@@ -411,7 +413,7 @@ const ImportantDatesView = ({ propertyData, propertyId, onBack, onEdit, onNaviga
         </div>
 
         <div className="space-y-1">
-          {navigationItems.map((item, idx) => (
+          {displayNavItems.map((item, idx) => (
             <Button
               key={idx}
               variant="ghost"

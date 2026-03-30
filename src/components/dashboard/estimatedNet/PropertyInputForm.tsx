@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { PropertyData } from "@/types/estimatedNet";
+import { filterNavForRepType } from "@/utils/navigationUtils";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, List, Download, Mail, Calendar, FileText, ArrowRight, DollarSign, ClipboardList, Phone, MessageSquare, StickyNote } from "lucide-react";
@@ -1382,12 +1383,14 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
     }] : []),
   ];
 
+  const displayNavItems = filterNavForRepType(navigationItems, representationType);
+
   return (
     <div className="flex w-full min-h-[600px]">
       {/* Left Sidebar Navigation */}
       <aside className="w-56 p-3 border-r bg-card shrink-0">
         <div className="space-y-1">
-          {navigationItems.map((item, idx) => (
+          {displayNavItems.map((item, idx) => (
             <Button
               key={idx}
               variant="ghost"
