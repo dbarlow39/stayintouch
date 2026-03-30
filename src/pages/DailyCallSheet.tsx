@@ -10,10 +10,11 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useToast } from "@/hooks/use-toast";
 import { format, parseISO } from "date-fns";
-import { ArrowLeft, CalendarIcon, Save, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowLeft, CalendarIcon, Save, ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const TOTAL_ROWS = 10;
+const DEFAULT_ROWS = 10;
+const ADD_INCREMENT = 5;
 
 interface CallEntry {
   id?: string;
@@ -24,8 +25,8 @@ interface CallEntry {
   action: string;
 }
 
-const emptyEntries = (): CallEntry[] =>
-  Array.from({ length: TOTAL_ROWS }, (_, i) => ({
+const makeEntries = (count: number): CallEntry[] =>
+  Array.from({ length: count }, (_, i) => ({
     row_number: i + 1,
     name: "",
     phone: "",
@@ -39,7 +40,7 @@ const DailyCallSheet = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-  const [entries, setEntries] = useState<CallEntry[]>(emptyEntries());
+  const [entries, setEntries] = useState<CallEntry[]>(makeEntries(DEFAULT_ROWS));
   const [sheetId, setSheetId] = useState<string | null>(null);
   const [hasChanges, setHasChanges] = useState(false);
 
@@ -105,7 +106,12 @@ const DailyCallSheet = () => {
     if (!sheetData) return;
     if (sheetData.sheet) {
       setSheetId(sheetData.sheet.id);
-      const merged = emptyEntries().map((empty) => {
+      const maxRow = Math.max(
+        DEFAULT_ROWS,
+        ...sheetData.entries.map((e: CallEntry) => e.row_number)
+      );
+      const base = makeEntries(maxRow);
+      const merged = base.map((empty) => {
         const existing = sheetData.entries.find(
           (e: CallEntry) => e.row_number === empty.row_number
         );
@@ -116,7 +122,7 @@ const DailyCallSheet = () => {
       setEntries(merged);
     } else {
       setSheetId(null);
-      setEntries(emptyEntries());
+      setEntries(makeEntries(DEFAULT_ROWS));
     }
     setHasChanges(false);
   }, [sheetData]);
@@ -311,6 +317,21 @@ const DailyCallSheet = () => {
                 ))}
               </TableBody>
             </Table>
+            <div className="flex justify-center p-3 border-t">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const currentMax = entries.length;
+                  const newRows = makeEntries(currentMax + ADD_INCREMENT).slice(currentMax);
+                  setEntries((prev) => [...prev, ...newRows]);
+                  setHasChanges(true);
+                }}
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Add {ADD_INCREMENT} More Rows
+              </Button>
+            </div>
           </div>
         )}
       </div>
