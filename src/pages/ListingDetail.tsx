@@ -170,7 +170,8 @@ function safeListing(raw: any): MarketingListing {
   };
 }
 
-const isPublicSite = () => {
+const isPublicSite = (authUser: any) => {
+  if (authUser) return false;
   const host = window.location.hostname;
   return host.startsWith('listings.') || 
     (!host.includes('lovable') && !host.includes('localhost'));
@@ -184,7 +185,7 @@ const ListingDetail = () => {
   const [listing, setListing] = useState<MarketingListing | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTool, setActiveTool] = useState<string | null>(searchParams.get('tool') || null);
-  const isPublic = isPublicSite();
+  const isPublic = isPublicSite(user);
   const isMobile = useIsMobile();
 
   // Facebook connection state for sidebar
