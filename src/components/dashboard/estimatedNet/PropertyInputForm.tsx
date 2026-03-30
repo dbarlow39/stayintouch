@@ -1383,12 +1383,14 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
     }] : []),
   ];
 
+  const displayNavItems = filterNavForRepType(navigationItems, representationType);
+
   return (
     <div className="flex w-full min-h-[600px]">
       {/* Left Sidebar Navigation */}
       <aside className="w-56 p-3 border-r bg-card shrink-0">
         <div className="space-y-1">
-          {navigationItems.map((item, idx) => (
+          {displayNavItems.map((item, idx) => (
             <Button
               key={idx}
               variant="ghost"
