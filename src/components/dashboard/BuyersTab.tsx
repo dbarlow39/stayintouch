@@ -139,13 +139,18 @@ const BuyersTab = () => {
           <h3 className="text-lg font-semibold">Buyer Lead CRM</h3>
           <p className="text-sm text-muted-foreground">Track buyer leads and manage follow-ups</p>
         </div>
-        <Dialog open={open} onOpenChange={(isOpen) => { setOpen(isOpen); if (!isOpen) resetForm(); }}>
-          <DialogTrigger asChild>
-            <Button>
-              <UserPlus className="w-4 h-4 mr-2" />
-              Add Buyer Lead
-            </Button>
-          </DialogTrigger>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={() => navigate("/daily-call-sheet")}>
+            <ClipboardList className="w-4 h-4 mr-2" />
+            Daily Call Sheet
+          </Button>
+          <Dialog open={open} onOpenChange={(isOpen) => { setOpen(isOpen); if (!isOpen) resetForm(); }}>
+            <DialogTrigger asChild>
+              <Button>
+                <UserPlus className="w-4 h-4 mr-2" />
+                Add Buyer Lead
+              </Button>
+            </DialogTrigger>
           <DialogContent className="max-w-2xl">
             <DialogHeader>
               <DialogTitle>Add New Buyer Lead</DialogTitle>
