@@ -170,7 +170,8 @@ function safeListing(raw: any): MarketingListing {
   };
 }
 
-const isPublicSite = () => {
+const isPublicSite = (authUser: any) => {
+  if (authUser) return false;
   const host = window.location.hostname;
   return host.startsWith('listings.') || 
     (!host.includes('lovable') && !host.includes('localhost'));
