@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PropertyData } from "@/types/estimatedNet";
+import { filterNavForRepType } from "@/utils/navigationUtils";
 import { ArrowLeft, List, Mail, Calendar, FileText, Copy, DollarSign, ClipboardList, Settings, Home, Bell, Edit, BarChart3 } from "lucide-react";
 import { EmailClient, EMAIL_CLIENT_OPTIONS, getEmailClientPreference, setEmailClientPreference, getEmailLink } from "@/utils/emailClientUtils";
 import { useToast } from "@/hooks/use-toast";
@@ -278,6 +279,7 @@ const AdResultsLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavig
     { label: "Closed", icon: FileText, onClick: () => onNavigate('closed-referral-letter') },
     { label: "Ad Results Letter", icon: BarChart3, onClick: () => {}, active: true },
   ];
+  const displayNavItems = filterNavForRepType(navigationItems, propertyData.representationType);
 
   return (
     <div className="flex w-full min-h-[600px]">
@@ -300,7 +302,7 @@ const AdResultsLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavig
         </div>
 
         <div className="space-y-1">
-          {navigationItems.map((item, idx) => (
+          {displayNavItems.map((item, idx) => (
             <Button
               key={idx}
               variant="ghost"

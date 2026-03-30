@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PropertyData } from "@/types/estimatedNet";
+import { filterNavForRepType } from "@/utils/navigationUtils";
 import { ArrowLeft, List, Mail, Calendar, FileText, Copy, DollarSign, ClipboardList, Settings } from "lucide-react";
 import { EmailClient, EMAIL_CLIENT_OPTIONS, getEmailClientPreference, setEmailClientPreference, openEmailClient } from "@/utils/emailClientUtils";
 import { useToast } from "@/hooks/use-toast";
@@ -265,6 +266,7 @@ const RequestToRemedyView = ({ propertyData, propertyId, onBack, onEdit, onNavig
       onClick: () => onNavigate('settlement-statement'),
     },
   ];
+  const displayNavItems = filterNavForRepType(navigationItems, propertyData.representationType);
 
   return (
     <div className="flex w-full min-h-[600px]">
@@ -288,7 +290,7 @@ const RequestToRemedyView = ({ propertyData, propertyId, onBack, onEdit, onNavig
         </div>
 
         <div className="space-y-1">
-          {navigationItems.map((item, idx) => (
+          {displayNavItems.map((item, idx) => (
             <Button
               key={idx}
               variant="ghost"

@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PropertyData } from "@/types/estimatedNet";
+import { filterNavForRepType } from "@/utils/navigationUtils";
 import { calculateClosingCosts, formatCurrency } from "@/utils/estimatedNetCalculations";
 import { ArrowLeft, List, Mail, Calendar, FileText, Copy, DollarSign, ClipboardList, Settings, Loader2, Send, Paperclip, X } from "lucide-react";
 import { EmailClient, EMAIL_CLIENT_OPTIONS, getEmailClientPreference, setEmailClientPreference, openEmailClient } from "@/utils/emailClientUtils";
@@ -513,6 +514,7 @@ ${agentFirstName}`;
     { label: "Request to Remedy", icon: FileText, onClick: () => onNavigate('request-to-remedy') },
     { label: "Settlement Statement", icon: FileText, onClick: () => onNavigate('settlement-statement') },
   ];
+  const displayNavItems = filterNavForRepType(navigationItems, propertyData.representationType);
 
   return (
     <>
@@ -537,7 +539,7 @@ ${agentFirstName}`;
         </div>
 
         <div className="space-y-1">
-          {navigationItems.map((item, idx) => (
+          {displayNavItems.map((item, idx) => (
             <Button
               key={idx}
               variant="ghost"
