@@ -14,7 +14,6 @@ import { ArrowLeft, CalendarIcon, Save, ChevronLeft, ChevronRight, Plus } from "
 import { cn } from "@/lib/utils";
 
 const DEFAULT_ROWS = 10;
-const ADD_INCREMENT = 5;
 
 interface CallEntry {
   id?: string;
@@ -322,14 +321,13 @@ const DailyCallSheet = () => {
                 variant="outline"
                 size="sm"
                 onClick={() => {
-                  const currentMax = entries.length;
-                  const newRows = makeEntries(currentMax + ADD_INCREMENT).slice(currentMax);
-                  setEntries((prev) => [...prev, ...newRows]);
+                  const nextRow = entries.length + 1;
+                  setEntries((prev) => [...prev, { row_number: nextRow, name: "", phone: "", notes: "", action: "" }]);
                   setHasChanges(true);
                 }}
               >
                 <Plus className="w-4 h-4 mr-2" />
-                Add {ADD_INCREMENT} More Rows
+                Add Row
               </Button>
             </div>
           </div>
