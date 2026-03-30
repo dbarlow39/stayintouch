@@ -317,6 +317,21 @@ const DailyCallSheet = () => {
                 ))}
               </TableBody>
             </Table>
+            <div className="flex justify-center p-3 border-t">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const currentMax = entries.length;
+                  const newRows = makeEntries(currentMax + ADD_INCREMENT).slice(currentMax);
+                  setEntries((prev) => [...prev, ...newRows]);
+                  setHasChanges(true);
+                }}
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Add {ADD_INCREMENT} More Rows
+              </Button>
+            </div>
           </div>
         )}
       </div>
