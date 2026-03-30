@@ -14,7 +14,6 @@ import { ArrowLeft, CalendarIcon, Save, ChevronLeft, ChevronRight, Plus } from "
 import { cn } from "@/lib/utils";
 
 const DEFAULT_ROWS = 10;
-const ADD_INCREMENT = 5;
 
 interface CallEntry {
   id?: string;
