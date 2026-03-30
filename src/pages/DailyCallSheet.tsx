@@ -13,7 +13,8 @@ import { format, parseISO } from "date-fns";
 import { ArrowLeft, CalendarIcon, Save, ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const TOTAL_ROWS = 10;
+const DEFAULT_ROWS = 10;
+const ADD_INCREMENT = 5;
 
 interface CallEntry {
   id?: string;
@@ -24,8 +25,8 @@ interface CallEntry {
   action: string;
 }
 
-const emptyEntries = (): CallEntry[] =>
-  Array.from({ length: TOTAL_ROWS }, (_, i) => ({
+const makeEntries = (count: number): CallEntry[] =>
+  Array.from({ length: count }, (_, i) => ({
     row_number: i + 1,
     name: "",
     phone: "",
