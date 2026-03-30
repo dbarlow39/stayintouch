@@ -15,6 +15,7 @@ import NotFound from "./pages/NotFound";
 import AdResults from "./pages/AdResults";
 import SellerLeadDetail from "./pages/SellerLeadDetail";
 import BuyerLeadDetail from "./pages/BuyerLeadDetail";
+import DailyCallSheet from "./pages/DailyCallSheet";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -54,6 +55,7 @@ const App = () => (
             <Route path="/ad-results/:postId" element={<AdResults />} />
             <Route path="/seller-lead/:id" element={<SellerLeadDetail />} />
             <Route path="/buyer-lead/:id" element={<BuyerLeadDetail />} />
+            <Route path="/daily-call-sheet" element={<DailyCallSheet />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
