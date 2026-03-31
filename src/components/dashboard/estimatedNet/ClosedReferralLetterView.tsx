@@ -234,9 +234,6 @@ const ClosedReferralLetterView = ({ propertyData, propertyId, onBack, onEdit, on
             <div className="prose prose-lg max-w-none text-foreground">
               <p className="mb-4">Hi {clientFirstNames},</p>
 
-              <p className="mb-4">
-                I hope this note finds you doing well after your big move, we are definitely not getting any younger. . .
-              </p>
 
               <p className="mb-4">
                 I wanted to take a moment to thank you for trusting me (and my team) to help sell your home on {streetOnly}. It was truly a pleasure working with you, from our initial conversations through the negotiations and all the way to a successful closing.
