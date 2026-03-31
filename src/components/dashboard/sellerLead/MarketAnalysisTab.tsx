@@ -624,8 +624,28 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
                     <CheckCircle2 className="w-5 h-5 text-green-500 shrink-0" />
                     <div className="flex-1 text-left min-w-0">
                       <p className="text-sm font-medium truncate">{doc.savedFileName || doc.label}</p>
-                      <p className="text-xs text-muted-foreground">Previously uploaded • click to replace</p>
+                      <p className="text-xs text-muted-foreground">Click to replace</p>
                     </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="shrink-0"
+                      onClick={async (e) => {
+                        e.stopPropagation();
+                        try {
+                          const { data: urlData, error: urlError } = await supabase.storage
+                            .from("market-analysis-docs")
+                            .createSignedUrl(doc.savedFilePath!, 300);
+                          if (urlError || !urlData?.signedUrl) throw urlError || new Error("No URL");
+                          window.open(urlData.signedUrl, "_blank");
+                        } catch (err: any) {
+                          toast({ title: "Error opening document", description: err.message, variant: "destructive" });
+                        }
+                      }}
+                    >
+                      <FileText className="w-4 h-4 mr-1" />
+                      View
+                    </Button>
                     <Button
                       variant="ghost"
                       size="sm"
