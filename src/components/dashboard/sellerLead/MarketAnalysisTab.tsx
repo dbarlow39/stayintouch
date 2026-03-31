@@ -39,6 +39,7 @@ interface DocumentSlot {
   fromDatabase?: boolean;
   inspectionData?: any;
   inspectionPhotos?: Record<string, string[]>;
+  summaryText?: string;
 }
 
 interface MarketAnalysisTabProps {
@@ -161,6 +162,25 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
           }
         }
 
+        // Also check for an AI summary linked to this inspection
+        let aiSummaryText: string | null = null;
+        try {
+          const { data: transcriptionData } = await supabase
+            .from("audio_transcriptions")
+            .select("summary")
+            .eq("user_id", user.id)
+            .eq("inspection_id", inspection.id)
+            .eq("status", "completed")
+            .not("summary", "is", null)
+            .order("created_at", { ascending: false })
+            .limit(1);
+          if (transcriptionData && transcriptionData.length > 0 && transcriptionData[0].summary) {
+            aiSummaryText = transcriptionData[0].summary;
+          }
+        } catch (e) {
+          console.error("Failed to load AI summary:", e);
+        }
+
         setDocuments((prev) =>
           prev.map((slot) => {
             if (slot.label === "Residential Inspection Worksheet" && !slot.file && !slot.savedFilePath) {
@@ -170,6 +190,14 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
                 inspectionData: inspection.inspection_data,
                 inspectionPhotos: filteredPhotos,
                 savedFileName: `Auto-loaded: ${inspection.property_address}`,
+              };
+            }
+            if (slot.label === "Summary of Walk-Through" && !slot.file && !slot.savedFilePath && aiSummaryText) {
+              return {
+                ...slot,
+                fromDatabase: true,
+                summaryText: aiSummaryText,
+                savedFileName: "Auto-loaded from AI Summary",
               };
             }
             return slot;
@@ -194,6 +222,9 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
       if (doc.fromDatabase && doc.inspectionData) {
         // Database-sourced inspection — pass data inline, no file upload needed
         uploaded.push({ name: doc.label, filePath: "__database__", mimeType: "application/json", inspectionData: doc.inspectionData, inspectionPhotos: doc.inspectionPhotos });
+      } else if (doc.fromDatabase && doc.summaryText) {
+        // Database-sourced AI summary — pass text inline
+        uploaded.push({ name: doc.label, filePath: "__database__", mimeType: "text/plain", inspectionData: { summaryText: doc.summaryText } });
       } else if (doc.file) {
         const ext = doc.file.name.split(".").pop() || "pdf";
         const filePath = `${user.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
@@ -211,7 +242,7 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
     .filter((d) => d.required)
     .every((d) => d.file !== null);
 
-  const uploadedCount = documents.filter((d) => d.file !== null || d.savedFilePath || d.fromDatabase).length;
+  const uploadedCount = documents.filter((d) => d.file !== null || d.savedFilePath || d.fromDatabase || d.summaryText).length;
 
   // Capture a ref element to base64 PNG using html-to-image
   const captureGraphic = useCallback(async (element: HTMLDivElement): Promise<string> => {
