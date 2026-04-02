@@ -58,7 +58,7 @@ serve(async (req) => {
         [
           `The\\s+${term}\\s+(?:fixed-rate\\s+mortgage(?:\\s*\\(FRM\\))?|FRM)\\s+averaged\\s+(\\d+(?:\\.\\d+)?)\\s*(?:%|percent)`,
           `[\\s\\S]{0,260}?last week when it averaged\\s+(\\d+(?:\\.\\d+)?)\\s*(?:%|percent)`,
-          `[\\s\\S]{0,360}?A year ago at this time,\\s*the\\s+${term}\\s+(?:fixed-rate\\s+mortgage(?:\\s*\\(FRM\\))?|FRM)\\s+averaged\\s+(\\d+(?:\\.\\d+)?)\\s*(?:%|percent)`,
+          `[\\s\\S]{0,360}?(?:A year ago at this time,\\s*)?the\\s+${term}\\s+(?:fixed-rate\\s+mortgage(?:\\s*\\(FRM\\))?|FRM)\\s+averaged\\s+(\\d+(?:\\.\\d+)?)\\s*(?:%|percent)`,
         ].join(""),
         "i"
       );
