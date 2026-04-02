@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { openEmailClient } from "@/utils/emailClientUtils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
@@ -364,12 +365,13 @@ const ClientDetailModal = ({ client, open, onClose, onClientUpdated }: ClientDet
                       <div>
                         <Label className="text-sm font-semibold text-muted-foreground">Email</Label>
                         {client.email ? (
-                          <a
-                            href={`mailto:${client.email}`}
-                            className="text-base text-primary hover:underline break-all block"
+                          <button
+                            type="button"
+                            onClick={() => openEmailClient(client.email!)}
+                            className="text-base text-primary hover:underline break-all block text-left"
                           >
                             {client.email}
-                          </a>
+                          </button>
                         ) : (
                           <p className="text-base">—</p>
                         )}
