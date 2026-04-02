@@ -93,6 +93,7 @@ const ContractNoticesSection = ({ onNavigateToProperty }: ContractNoticesSection
       const { data, error } = await supabase
         .from("estimated_net_properties")
         .select("id, name, street_address, in_contract, closing_date, inspection_days, loan_app_time_frame, loan_commitment, deposit_collection, deal_status")
+        .eq("agent_id", user.id)
         .not("in_contract", "is", null)
         .neq("deal_status", "closed");
       if (error) throw error;
