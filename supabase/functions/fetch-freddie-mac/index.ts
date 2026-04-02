@@ -54,11 +54,14 @@ serve(async (req) => {
     // "The 30-year FRM averaged X% ... last week when it averaged Y% ... A year ago at this time, the 30-year FRM averaged Z%"
     // NOTE: Support both "30-year FRM" and "30-year fixed-rate mortgage (FRM)" variants.
     const extractRates = (term: "30-year" | "15-year") => {
+      // Pattern: "The XX-year fixed-rate mortgage (averaged|averaged averaged) X.XX% as of ... last week when it averaged Y.YY% ... A year ago ... averaged Z.ZZ%"
+      // Note: Freddie Mac sometimes has a double "averaged averaged" typo and an editorial
+      // sentence before the data sentence. We anchor on "averaged X% as of" to skip editorial.
       const rateBlockRegex = new RegExp(
         [
-          `The\\s+${term}\\s+(?:fixed-rate\\s+mortgage(?:\\s*\\(FRM\\))?|FRM)\\s+averaged\\s+(\\d+(?:\\.\\d+)?)\\s*(?:%|percent)`,
+          `The\\s+${term}\\s+(?:fixed-rate\\s+mortgage(?:\\s*\\(FRM\\))?|FRM)\\s+(?:averaged\\s+)+?(\\d+(?:\\.\\d+)?)\\s*(?:%|percent)\\s*(?:as\\s+of|,)`,
           `[\\s\\S]{0,260}?last week when it averaged\\s+(\\d+(?:\\.\\d+)?)\\s*(?:%|percent)`,
-          `[\\s\\S]{0,360}?A year ago at this time,\\s*the\\s+${term}\\s+(?:fixed-rate\\s+mortgage(?:\\s*\\(FRM\\))?|FRM)\\s+averaged\\s+(\\d+(?:\\.\\d+)?)\\s*(?:%|percent)`,
+          `[\\s\\S]{0,360}?(?:A year ago at this time,\\s*)?the\\s+${term}\\s+(?:fixed-rate\\s+mortgage(?:\\s*\\(FRM\\))?|FRM)\\s+averaged\\s+(\\d+(?:\\.\\d+)?)\\s*(?:%|percent)`,
         ].join(""),
         "i"
       );
