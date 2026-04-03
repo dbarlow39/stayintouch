@@ -778,6 +778,18 @@ const EstimatedNetTab = ({ selectedClient, onClearSelectedClient, navigateToProp
     );
   }
 
+  if (viewState === 'loan-approved-letter' && currentPropertyData && currentPropertyId) {
+    return (
+      <LoanApprovedLetterView
+        propertyData={currentPropertyData}
+        propertyId={currentPropertyId}
+        onBack={handleBackToNotices}
+        onEdit={handleEditEstimate}
+        onNavigate={(view) => setViewState(view as ViewState)}
+      />
+    );
+  }
+
   if (viewState === 'title-commitment-letter' && currentPropertyData && currentPropertyId) {
     return (
       <TitleCommitmentLetterView

@@ -338,6 +338,10 @@ const NoticesView = ({
       onNavigate("request-to-remedy");
       return;
     }
+    if (noticeType === "loan-approved") {
+      onNavigate("loan-approved-letter");
+      return;
+    }
     if (noticeType === "closed") {
       onNavigate("closed-referral-letter");
       return;
