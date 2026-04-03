@@ -26,6 +26,7 @@ import DepositLetterView from "./estimatedNet/DepositLetterView";
 import AppraisalLetterView from "./estimatedNet/AppraisalLetterView";
 import LoanApplicationLetterView from "./estimatedNet/LoanApplicationLetterView";
 import TitleCommitmentLetterView from "./estimatedNet/TitleCommitmentLetterView";
+import LoanApprovedLetterView from "./estimatedNet/LoanApprovedLetterView";
 import ClosedReferralLetterView from "./estimatedNet/ClosedReferralLetterView";
 import AdResultsLetterView from "./estimatedNet/AdResultsLetterView";
 import PropertyNotesView from "./estimatedNet/PropertyNotesView";
