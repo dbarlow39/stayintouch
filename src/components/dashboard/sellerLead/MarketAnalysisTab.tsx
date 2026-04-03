@@ -78,6 +78,7 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
     { label: "Summary of Walk-Through", description: "Seller observations and transcript", file: null, required: false },
     { label: "Zillow PDF Screenshot", description: "Zestimate, range, and property stats", file: null, required: false },
     { label: "Reallist Tax Record", description: "County tax record and assessment details", file: null, required: false },
+    { label: "Optional Information", description: "Any additional documents to be considered", file: null, required: false },
   ]);
 
   const fileInputRefs = useRef<(HTMLInputElement | null)[]>([]);
