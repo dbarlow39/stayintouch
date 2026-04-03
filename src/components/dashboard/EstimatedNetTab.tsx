@@ -43,7 +43,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-type ViewState = 'list' | 'select-client' | 'form' | 'results' | 'offer-letter' | 'offer-summary' | 'important-dates' | 'title-letter' | 'agent-letter' | 'request-to-remedy' | 'settlement-statement' | 'notices' | 'upcoming-closings' | 'clear-to-close-letter' | 'home-inspection-letter' | 'deposit-letter' | 'appraisal-letter' | 'loan-application-letter' | 'title-commitment-letter' | 'closed-referral-letter' | 'ad-results-letter' | 'property-notes';
+type ViewState = 'list' | 'select-client' | 'form' | 'results' | 'offer-letter' | 'offer-summary' | 'important-dates' | 'title-letter' | 'agent-letter' | 'request-to-remedy' | 'settlement-statement' | 'notices' | 'upcoming-closings' | 'clear-to-close-letter' | 'home-inspection-letter' | 'deposit-letter' | 'appraisal-letter' | 'loan-application-letter' | 'loan-approved-letter' | 'title-commitment-letter' | 'closed-referral-letter' | 'ad-results-letter' | 'property-notes';
 
 interface SelectedClientForEstimate {
   id: string;
