@@ -28,6 +28,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { generateMarketAnalysisDocx } from "@/utils/marketAnalysisDocx";
 import BullseyeGraphic from "./BullseyeGraphic";
 import ZillowGraphic from "./ZillowGraphic";
+import AnalysisTweakDialog from "./AnalysisTweakDialog";
 
 interface DocumentSlot {
   label: string;
@@ -72,6 +73,8 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
   const [uploadedDocsRef, setUploadedDocsRef] = useState<{ name: string; filePath: string; mimeType: string; inspectionData?: any }[]>([]);
   const chatScrollRef = useRef<HTMLDivElement>(null);
   const chatInputRef = useRef<HTMLInputElement>(null);
+  const [tweakDialogOpen, setTweakDialogOpen] = useState(false);
+  const [tweakRegenerating, setTweakRegenerating] = useState(false);
   const [documents, setDocuments] = useState<DocumentSlot[]>([
     { label: "CMA / Property Detail Report", description: "CoreLogic, RPR, or similar report", file: null, required: false },
     { label: "Residential Inspection Worksheet", description: "Room-by-room condition notes", file: null, required: false },
@@ -559,7 +562,65 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
     }
   };
 
-  // Map new schema fields for graphics
+  // Handle tweak regeneration
+  const handleTweakRegenerate = async (tweakInstructions: string) => {
+    setTweakRegenerating(true);
+    try {
+      const existingAnalysisSummary = JSON.stringify(analysis, null, 2);
+      const tweakNotes = [
+        aiNotes.trim(),
+        `\n\n--- PREVIOUS ANALYSIS (for reference) ---\n${existingAnalysisSummary}`,
+        `\n\n--- AGENT TWEAK REQUEST ---\nThe agent has reviewed the generated analysis and wants the following changes applied. Regenerate the analysis with these modifications:\n${tweakInstructions}`,
+      ].filter(Boolean).join("");
+
+      const parsedLower = parseFloat(lowerPriceBracket.trim().replace(/[$,]/g, "")) || undefined;
+      const parsedBullseye = parseFloat(bullseyePrice.trim().replace(/[$,]/g, "")) || undefined;
+      const parsedUpper = parseFloat(upperPriceBracket.trim().replace(/[$,]/g, "")) || undefined;
+
+      const { data, error } = await supabase.functions.invoke("generate-market-analysis", {
+        body: {
+          documents: uploadedDocsRef,
+          agentNotes: tweakNotes,
+          lowerPriceBracket: parsedLower,
+          bullseyePrice: parsedBullseye,
+          upperPriceBracket: parsedUpper,
+        },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      if (!data?.analysis) throw new Error("No analysis returned from AI");
+
+      setAnalysis(data.analysis);
+
+      // Persist updated analysis
+      if (user && lead?.id) {
+        try {
+          await supabase
+            .from("market_analysis_files")
+            .update({ analysis_json: data.analysis })
+            .eq("lead_id", lead.id)
+            .eq("file_type", "analysis_json");
+        } catch (persistErr) {
+          console.error("Persistence error:", persistErr);
+        }
+      }
+
+      // Recapture graphics
+      setPendingAutoDownload(true);
+      toast({ title: "Analysis regenerated with your changes" });
+    } catch (err: any) {
+      console.error("Tweak regeneration error:", err);
+      toast({
+        title: "Error regenerating analysis",
+        description: err.message || "Please try again",
+        variant: "destructive",
+      });
+      throw err;
+    } finally {
+      setTweakRegenerating(false);
+    }
+  };
   const pricing = analysis?.pricing;
   const prop = analysis?.property;
 
@@ -985,6 +1046,10 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
               Analysis Preview
             </h4>
             <div className="flex gap-2">
+              <Button onClick={() => setTweakDialogOpen(true)} variant="outline">
+                <Sparkles className="w-4 h-4 mr-2" />
+                Tweak Analysis
+              </Button>
               <Button onClick={handleDownload} variant="default">
                 <Download className="w-4 h-4 mr-2" />
                 Download .docx
@@ -1151,6 +1216,15 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
           )}
         </div>
       )}
+
+      {/* Tweak Analysis Dialog */}
+      <AnalysisTweakDialog
+        open={tweakDialogOpen}
+        onOpenChange={setTweakDialogOpen}
+        currentAnalysis={analysis}
+        onRegenerate={handleTweakRegenerate}
+        isRegenerating={tweakRegenerating}
+      />
     </div>
   );
 };
