@@ -1216,6 +1216,15 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
           )}
         </div>
       )}
+
+      {/* Tweak Analysis Dialog */}
+      <AnalysisTweakDialog
+        open={tweakDialogOpen}
+        onOpenChange={setTweakDialogOpen}
+        currentAnalysis={analysis}
+        onRegenerate={handleTweakRegenerate}
+        isRegenerating={tweakRegenerating}
+      />
     </div>
   );
 };
