@@ -5,7 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { PropertyData } from "@/types/estimatedNet";
 import { filterNavForRepType } from "@/utils/navigationUtils";
 import { ArrowLeft, List, Mail, Calendar, FileText, Copy, DollarSign, ClipboardList, Settings, Home, Bell, Edit } from "lucide-react";
-import { EmailClient, EMAIL_CLIENT_OPTIONS, getEmailClientPreference, setEmailClientPreference, getEmailLink } from "@/utils/emailClientUtils";
+import { EmailClient, EMAIL_CLIENT_OPTIONS, getEmailClientPreference, setEmailClientPreference, openEmailClient } from "@/utils/emailClientUtils";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import logo from "@/assets/logo.jpg";
@@ -150,8 +150,7 @@ const TitleCommitmentLetterView = ({ propertyData, propertyId, onBack, onEdit, o
       const recipients = letterVariant === "homeowner"
         ? (propertyData.sellerEmail || "")
         : (propertyData.titleEmail || "");
-      const link = getEmailLink(recipients, emailClient, subject);
-      window.open(link, '_blank');
+      openEmailClient(recipients, emailClient, subject);
     } catch (error) {
       console.error('Failed to copy:', error);
       toast({
