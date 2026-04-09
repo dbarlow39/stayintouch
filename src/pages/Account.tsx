@@ -174,7 +174,7 @@ const Account = () => {
     } finally {
       setPasswordLoading(false);
     }
-  
+  };
 
   const handleConnectGmail = async () => {
     try {
