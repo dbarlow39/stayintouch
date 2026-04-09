@@ -165,6 +165,24 @@ export type Database = {
           },
         ]
       }
+      check_number_counter: {
+        Row: {
+          id: string
+          last_check_number: number
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          last_check_number?: number
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          last_check_number?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       client_email_logs: {
         Row: {
           agent_id: string
