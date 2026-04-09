@@ -149,6 +149,33 @@ const Account = () => {
     });
   };
 
+  const handleChangePassword = async () => {
+    if (!newPassword || !confirmPassword) {
+      toast({ title: "Please fill in both fields", variant: "destructive" });
+      return;
+    }
+    if (newPassword.length < 6) {
+      toast({ title: "Password must be at least 6 characters", variant: "destructive" });
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      toast({ title: "Passwords do not match", variant: "destructive" });
+      return;
+    }
+    setPasswordLoading(true);
+    try {
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) throw error;
+      setNewPassword("");
+      setConfirmPassword("");
+      toast({ title: "Password updated", description: "Your password has been changed successfully." });
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message || "Failed to update password", variant: "destructive" });
+    } finally {
+      setPasswordLoading(false);
+    }
+  
+
   const handleConnectGmail = async () => {
     try {
       // Get the OAuth URL from the backend (uses GOOGLE_CLIENT_ID secret)
