@@ -85,6 +85,9 @@ const Account = () => {
   const [emailClient, setEmailClientState] = useState<EmailClient>(getEmailClientPreference);
   const [inviteCode, setInviteCode] = useState("");
   const [inviteCodeLoading, setInviteCodeLoading] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [passwordLoading, setPasswordLoading] = useState(false);
 
   // Check if user is admin
   const { data: isAdmin } = useQuery({
