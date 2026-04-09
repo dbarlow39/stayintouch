@@ -10,6 +10,7 @@ import { ArrowLeft, Plus, X, FileDown, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { generateCheckPdf } from "@/utils/generateCheckPdf";
+import { peekNextCheckNumber, getNextCheckNumber } from "@/utils/checkNumberUtils";
 
 interface VendorCheckPageProps {
   vendorId: string;

@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { generateCheckPdf } from "@/utils/generateCheckPdf";
 import type { CheckLineItem } from "@/utils/generateCheckPdf";
+import { getNextCheckNumber } from "@/utils/checkNumberUtils";
 
 interface CommissionPrepProps {
   onBack: () => void;
@@ -243,6 +244,13 @@ const CommissionPrep = ({ onBack }: CommissionPrepProps) => {
 
       const today = format(new Date(), "MMMM d, yyyy");
 
+      // Get next check number and increment counter
+      const checkNumber = await getNextCheckNumber();
+
+      // Save check number on the payout record
+      await supabase.from("commission_payouts").update({ check_number: checkNumber }).eq("id", payoutId);
+      queryClient.invalidateQueries({ queryKey: ["accounting-payouts"] });
+
       generateCheckPdf({
         date: today,
         totalAmount: totalAmount,
@@ -252,6 +260,7 @@ const CommissionPrep = ({ onBack }: CommissionPrepProps) => {
         propertyNames: propertyNames.join("/"),
         lineItems,
         ytdTotal,
+        checkNumber,
       });
 
       toast.success("Check PDF generated.");
