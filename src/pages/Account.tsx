@@ -587,7 +587,46 @@ const Account = () => {
           </CardContent>
         </Card>
 
-        {/* Invite Code Management (Admin Only) */}
+        {/* Change Password Card */}
+        <Card className="shadow-medium animate-fade-in mt-6">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Lock className="w-5 h-5" />
+              Change Password
+            </CardTitle>
+            <CardDescription>
+              Update your account password
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="new-password">New Password</Label>
+              <Input
+                id="new-password"
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="Enter new password"
+                className="max-w-xs"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="confirm-password">Confirm Password</Label>
+              <Input
+                id="confirm-password"
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Confirm new password"
+                className="max-w-xs"
+              />
+            </div>
+            <Button onClick={handleChangePassword} disabled={passwordLoading}>
+              {passwordLoading ? "Updating..." : "Update Password"}
+            </Button>
+          </CardContent>
+        </Card>
+
         {isAdmin && (
           <Card className="shadow-medium animate-fade-in mt-6">
             <CardHeader>
