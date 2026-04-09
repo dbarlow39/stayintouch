@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Save, User, Mail, RefreshCw, CheckCircle, XCircle, Settings, KeyRound } from "lucide-react";
+import { ArrowLeft, Save, User, Mail, RefreshCw, CheckCircle, XCircle, Settings, KeyRound, Lock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { EmailClient, EMAIL_CLIENT_OPTIONS, getEmailClientPreference, setEmailClientPreference } from "@/utils/emailClientUtils";
@@ -85,6 +85,9 @@ const Account = () => {
   const [emailClient, setEmailClientState] = useState<EmailClient>(getEmailClientPreference);
   const [inviteCode, setInviteCode] = useState("");
   const [inviteCodeLoading, setInviteCodeLoading] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [passwordLoading, setPasswordLoading] = useState(false);
 
   // Check if user is admin
   const { data: isAdmin } = useQuery({
@@ -144,6 +147,33 @@ const Account = () => {
       title: "Email Preference Saved",
       description: `Emails will now open in ${EMAIL_CLIENT_OPTIONS.find(o => o.value === client)?.label}`,
     });
+  };
+
+  const handleChangePassword = async () => {
+    if (!newPassword || !confirmPassword) {
+      toast({ title: "Please fill in both fields", variant: "destructive" });
+      return;
+    }
+    if (newPassword.length < 6) {
+      toast({ title: "Password must be at least 6 characters", variant: "destructive" });
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      toast({ title: "Passwords do not match", variant: "destructive" });
+      return;
+    }
+    setPasswordLoading(true);
+    try {
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) throw error;
+      setNewPassword("");
+      setConfirmPassword("");
+      toast({ title: "Password updated", description: "Your password has been changed successfully." });
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message || "Failed to update password", variant: "destructive" });
+    } finally {
+      setPasswordLoading(false);
+    }
   };
 
   const handleConnectGmail = async () => {
@@ -557,7 +587,46 @@ const Account = () => {
           </CardContent>
         </Card>
 
-        {/* Invite Code Management (Admin Only) */}
+        {/* Change Password Card */}
+        <Card className="shadow-medium animate-fade-in mt-6">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Lock className="w-5 h-5" />
+              Change Password
+            </CardTitle>
+            <CardDescription>
+              Update your account password
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="new-password">New Password</Label>
+              <Input
+                id="new-password"
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="Enter new password"
+                className="max-w-xs"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="confirm-password">Confirm Password</Label>
+              <Input
+                id="confirm-password"
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Confirm new password"
+                className="max-w-xs"
+              />
+            </div>
+            <Button onClick={handleChangePassword} disabled={passwordLoading}>
+              {passwordLoading ? "Updating..." : "Update Password"}
+            </Button>
+          </CardContent>
+        </Card>
+
         {isAdmin && (
           <Card className="shadow-medium animate-fade-in mt-6">
             <CardHeader>
