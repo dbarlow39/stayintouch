@@ -59,17 +59,25 @@ const VendorCheckPage = ({ vendorId, vendorName, vendorAddress, vendorAttention,
 
   const addPaymentMutation = useMutation({
     mutationFn: async (data: PaymentFormData) => {
+      // Get next check number if not manually overridden
+      let checkNum = data.check_number;
+      if (!checkNum) {
+        checkNum = await getNextCheckNumber();
+      } else {
+        // Still increment the counter to stay in sync
+        await getNextCheckNumber();
+      }
       const { error } = await supabase.from("vendor_payments").insert({
         vendor_id: vendorId,
         created_by: user!.id,
         amount: parseFloat(data.amount),
-        check_number: data.check_number || null,
+        check_number: checkNum || null,
         payment_date: data.payment_date,
         description: data.description || null,
         notes: data.notes || null,
       });
       if (error) throw error;
-      return { amount: parseFloat(data.amount), payment_date: data.payment_date, description: data.description, check_number: data.check_number };
+      return { amount: parseFloat(data.amount), payment_date: data.payment_date, description: data.description, check_number: checkNum };
     },
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["vendor-payments", vendorId] });
@@ -162,7 +170,11 @@ const VendorCheckPage = ({ vendorId, vendorName, vendorAddress, vendorAttention,
       </div>
 
       {!showForm && (
-        <Button size="sm" onClick={() => { setShowForm(true); setForm(emptyPaymentForm); }}>
+        <Button size="sm" onClick={async () => { 
+          const nextNum = await peekNextCheckNumber();
+          setShowForm(true); 
+          setForm({ ...emptyPaymentForm, check_number: nextNum }); 
+        }}>
           <Plus className="h-3.5 w-3.5 mr-1" /> Write Check
         </Button>
       )}

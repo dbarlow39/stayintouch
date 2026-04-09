@@ -16,6 +16,7 @@ interface CheckData {
   lineItems: CheckLineItem[];
   ytdTotal: number;
   memo?: string;
+  checkNumber?: string;
 }
 
 const numberToWords = (num: number): string => {
