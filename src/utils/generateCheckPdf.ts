@@ -125,6 +125,13 @@ export const generateCheckPdf = (data: CheckData) => {
   doc.text(formatCurrency(data.ytdTotal), leftMargin + 60, y, { align: "right" });
   doc.text("YTD", leftMargin + 80, y);
 
+  // Check number on paystub
+  if (data.checkNumber) {
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+    doc.text(`Check #${data.checkNumber}`, rightMargin, y, { align: "right" });
+  }
+
   // Save
   const fileName = `Commission_Check_${data.agentName.replace(/\s+/g, "_")}_${data.date.replace(/[\s,]+/g, "_")}.pdf`;
   doc.save(fileName);
