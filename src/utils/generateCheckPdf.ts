@@ -109,6 +109,14 @@ export const generateCheckPdf = (data: CheckData) => {
 
   y += 72;
 
+  // Check number as first line on stub
+  if (data.checkNumber) {
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+    doc.text(`Check #${data.checkNumber}`, leftMargin, y);
+    y += 20;
+  }
+
   // Line items table
   doc.setFontSize(11);
   for (const item of data.lineItems) {
@@ -124,13 +132,6 @@ export const generateCheckPdf = (data: CheckData) => {
   doc.setFontSize(12);
   doc.text(formatCurrency(data.ytdTotal), leftMargin + 60, y, { align: "right" });
   doc.text("YTD", leftMargin + 80, y);
-
-  // Check number on paystub
-  if (data.checkNumber) {
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(10);
-    doc.text(`Check #${data.checkNumber}`, rightMargin, y, { align: "right" });
-  }
 
   // Save
   const fileName = `Commission_Check_${data.agentName.replace(/\s+/g, "_")}_${data.date.replace(/[\s,]+/g, "_")}.pdf`;
