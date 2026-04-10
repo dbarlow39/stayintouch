@@ -54,12 +54,9 @@ export const setCheckNumber = async (checkNumber: number): Promise<void> => {
 
   if (readError) throw readError;
 
-  const current = data?.last_check_number ?? 0;
-  if (checkNumber > current) {
-    const { error: updateError } = await supabase
-      .from("check_number_counter")
-      .update({ last_check_number: checkNumber, updated_at: new Date().toISOString() })
-      .eq("id", "default");
-    if (updateError) throw updateError;
-  }
+  const { error: updateError } = await supabase
+    .from("check_number_counter")
+    .update({ last_check_number: checkNumber, updated_at: new Date().toISOString() })
+    .eq("id", "default");
+  if (updateError) throw updateError;
 };
