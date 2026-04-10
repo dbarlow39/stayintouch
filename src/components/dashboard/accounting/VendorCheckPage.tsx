@@ -10,7 +10,7 @@ import { ArrowLeft, Plus, X, FileDown, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { generateCheckPdf } from "@/utils/generateCheckPdf";
-import { peekNextCheckNumber, getNextCheckNumber } from "@/utils/checkNumberUtils";
+import { peekNextCheckNumber, getNextCheckNumber, setCheckNumber } from "@/utils/checkNumberUtils";
 
 interface VendorCheckPageProps {
   vendorId: string;
@@ -64,8 +64,8 @@ const VendorCheckPage = ({ vendorId, vendorName, vendorAddress, vendorAttention,
       if (!checkNum) {
         checkNum = await getNextCheckNumber();
       } else {
-        // Still increment the counter to stay in sync
-        await getNextCheckNumber();
+        // Update counter to match manual entry so future checks increment from here
+        await setCheckNumber(parseInt(checkNum, 10));
       }
       const { error } = await supabase.from("vendor_payments").insert({
         vendor_id: vendorId,
