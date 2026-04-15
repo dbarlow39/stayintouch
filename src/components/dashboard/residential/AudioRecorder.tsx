@@ -419,11 +419,26 @@ export function AudioRecorder({ inspectionId, userId }: AudioRecorderProps) {
 
       let finalTranscription: string;
 
-      if (allPaths.length > 120) {
-        // For very large recordings, process segments one-at-a-time from the client
-        // to avoid edge function timeout limits
-        toast.info("Large recording detected — transcribing segments individually...");
-        finalTranscription = await transcribeOneAtATime(allPaths, transcriptionRecord.id);
+      // Batch paths into groups of 50 to avoid edge function timeouts on large recordings
+      const BATCH_SIZE = 50;
+      if (allPaths.length > BATCH_SIZE) {
+        const batchResults: string[] = [];
+        const totalBatches = Math.ceil(allPaths.length / BATCH_SIZE);
+        for (let i = 0; i < totalBatches; i++) {
+          const batch = allPaths.slice(i * BATCH_SIZE, (i + 1) * BATCH_SIZE);
+          toast.info(`Transcribing batch ${i + 1} of ${totalBatches} (${batch.length} segments)...`);
+          const { data: batchData, error: batchError } = await supabase.functions.invoke("transcribe-audio", {
+            body: { audioFilePaths: batch, transcriptionId: transcriptionRecord.id }
+          });
+          if (batchError) throw new Error(`Transcription batch ${i + 1} failed: ${batchError.message}`);
+          if (batchData?.transcription) batchResults.push(batchData.transcription);
+        }
+        finalTranscription = batchResults.join(" ");
+        // Update the final combined transcription in the database
+        await supabase
+          .from("audio_transcriptions")
+          .update({ transcription: finalTranscription, status: "transcribed" })
+          .eq("id", transcriptionRecord.id);
       } else {
         const { data: transcribeData, error: transcribeError } = await supabase.functions.invoke("transcribe-audio", {
           body: { audioFilePaths: allPaths, transcriptionId: transcriptionRecord.id }
