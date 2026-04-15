@@ -417,13 +417,23 @@ export function AudioRecorder({ inspectionId, userId }: AudioRecorderProps) {
       setStatus("transcribing");
       toast.info(`Transcribing ${allPaths.length} audio segment(s)...`);
 
-      const { data: transcribeData, error: transcribeError } = await supabase.functions.invoke("transcribe-audio", {
-        body: { audioFilePaths: allPaths, transcriptionId: transcriptionRecord.id }
-      });
-      if (transcribeError) throw new Error(`Transcription failed: ${transcribeError.message}`);
-      if (!transcribeData?.transcription) throw new Error("No transcription returned from server");
+      let finalTranscription: string;
 
-      setTranscription(transcribeData.transcription);
+      if (allPaths.length > 10) {
+        // For large recordings, process segments one-at-a-time from the client
+        // to avoid edge function timeout limits
+        toast.info("Large recording detected — transcribing segments individually...");
+        finalTranscription = await transcribeOneAtATime(allPaths, transcriptionRecord.id);
+      } else {
+        const { data: transcribeData, error: transcribeError } = await supabase.functions.invoke("transcribe-audio", {
+          body: { audioFilePaths: allPaths, transcriptionId: transcriptionRecord.id }
+        });
+        if (transcribeError) throw new Error(`Transcription failed: ${transcribeError.message}`);
+        if (!transcribeData?.transcription) throw new Error("No transcription returned from server");
+        finalTranscription = transcribeData.transcription;
+      }
+
+      setTranscription(finalTranscription);
       toast.success("Transcription complete!");
 
       setStatus("summarizing");
