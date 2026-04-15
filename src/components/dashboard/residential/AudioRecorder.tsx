@@ -419,8 +419,8 @@ export function AudioRecorder({ inspectionId, userId }: AudioRecorderProps) {
 
       let finalTranscription: string;
 
-      if (allPaths.length > 10) {
-        // For large recordings, process segments one-at-a-time from the client
+      if (allPaths.length > 120) {
+        // For very large recordings, process segments one-at-a-time from the client
         // to avoid edge function timeout limits
         toast.info("Large recording detected — transcribing segments individually...");
         finalTranscription = await transcribeOneAtATime(allPaths, transcriptionRecord.id);
@@ -440,7 +440,7 @@ export function AudioRecorder({ inspectionId, userId }: AudioRecorderProps) {
       toast.info("Generating summary...");
       try {
         const { data: summaryData, error: summaryError } = await supabase.functions.invoke("summarize-transcription", {
-          body: { transcriptionId: transcriptionRecord.id, transcription: transcribeData.transcription }
+          body: { transcriptionId: transcriptionRecord.id, transcription: finalTranscription }
         });
         if (summaryError) {
           console.error("Summarization failed:", summaryError);
