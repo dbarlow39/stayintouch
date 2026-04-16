@@ -120,7 +120,10 @@ export function AudioRecorder({ inspectionId, userId }: AudioRecorderProps) {
       throw new Error(`Edge function error (${response.status}): ${errText}`);
     }
     const data = await response.json();
-    if (!data?.transcription) throw new Error("No transcription returned from edge function");
+    // Empty string is valid (silent audio segment) — only throw if field is missing entirely
+    if (data?.transcription === undefined || data?.transcription === null) {
+      throw new Error("No transcription returned from edge function");
+    }
     return data.transcription;
   };
 
