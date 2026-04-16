@@ -157,6 +157,14 @@ serve(async (req) => {
       const sizeMB = (audioFile.size / 1024 / 1024).toFixed(1);
       console.log(`Binary path: received ${sizeMB} MB directly`);
 
+      // Reject empty / near-empty files before calling Whisper
+      if (audioFile.size < 1024) {
+        return new Response(
+          JSON.stringify({ success: true, transcription: "" }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
       let text: string;
 
       if (audioFile.size <= WHISPER_MAX_BYTES) {
