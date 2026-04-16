@@ -174,6 +174,12 @@ export function AudioRecorder({ inspectionId, userId }: AudioRecorderProps) {
         .download(paths[i]);
       if (dlError) throw new Error(`Failed to download segment ${i + 1}: ${dlError.message}`);
 
+      // Skip empty or near-empty segments (< 1 KB) — Whisper rejects them
+      if (!blob || blob.size < 1024) {
+        console.warn(`Segment ${i + 1} is ${blob?.size ?? 0} bytes — skipping`);
+        continue;
+      }
+
       if (blob.size <= WHISPER_SAFE_BYTES) {
         toast.info(`Transcribing segment ${i + 1} of ${paths.length}...`);
         const text = await postBlobToEdgeFn(blob, transcriptionId);
