@@ -51,6 +51,8 @@ serve(async (req) => {
     const secondOwnerName = owner.second_name || '';
     const combinedOwnerName = [ownerName, secondOwnerName].filter(Boolean).join(' & ');
 
+    const structure = result.data?.structure || {};
+
     const propertyResult = {
       annual_amount: result.data?.taxes?.[0]?.amount || 0,
       tax_year: result.data?.taxes?.[0]?.year || new Date().getFullYear(),
@@ -60,6 +62,11 @@ serve(async (req) => {
       state: result.data?.address?.state || "",
       zip: result.data?.address?.zip_code || "",
       owner_name: combinedOwnerName,
+      bedrooms: structure.beds_count || "",
+      bathrooms: structure.baths || "",
+      sqft: structure.total_area_sq_ft || "",
+      year_built: structure.year_built || "",
+      stories: structure.stories || "",
     };
 
     return new Response(JSON.stringify(propertyResult), {
