@@ -46,7 +46,7 @@ const SellerLeadDetail = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [lookingUpAddress, setLookingUpAddress] = useState(false);
-  const [addressSuggestion, setAddressSuggestion] = useState<{ address: string; city: string; state: string; zip: string; owner_name: string } | null>(null);
+  const [addressSuggestion, setAddressSuggestion] = useState<{ address: string; city: string; state: string; zip: string; owner_name: string; bedrooms: string | number; bathrooms: string | number; sqft: string | number; year_built: string | number; stories: string | number } | null>(null);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const lookupTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
@@ -396,6 +396,11 @@ const SellerLeadDetail = () => {
                                     state: data.state || "OH",
                                     zip: data.zip || "",
                                     owner_name: data.owner_name || "",
+                                    bedrooms: data.bedrooms || "",
+                                    bathrooms: data.bathrooms || "",
+                                    sqft: data.sqft || "",
+                                    year_built: data.year_built || "",
+                                    stories: data.stories || "",
                                   });
                                   setShowSuggestions(true);
                                 }
