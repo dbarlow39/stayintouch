@@ -383,6 +383,11 @@ const LeadsTab = () => {
                   <TableCell className="font-medium">
                     {lead.first_name} {lead.last_name}
                   </TableCell>
+                  <TableCell className="text-sm text-muted-foreground">
+                    {[lead.address, (lead as any).city, (lead as any).state, (lead as any).zip]
+                      .filter(Boolean)
+                      .join(", ") || "—"}
+                  </TableCell>
                   <TableCell>
                     <div className="flex flex-col gap-1 text-sm">
                       {lead.email && (
@@ -399,12 +404,6 @@ const LeadsTab = () => {
                       )}
                     </div>
                   </TableCell>
-                  <TableCell>
-                    <Badge className={statusColors[lead.status as keyof typeof statusColors]}>
-                      {lead.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">{lead.source || "—"}</TableCell>
                   <TableCell className="text-muted-foreground">
                     {new Date(lead.created_at).toLocaleDateString()}
                   </TableCell>
