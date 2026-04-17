@@ -46,7 +46,7 @@ const SellerLeadDetail = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [lookingUpAddress, setLookingUpAddress] = useState(false);
-  const [addressSuggestion, setAddressSuggestion] = useState<{ address: string; city: string; state: string; zip: string; owner_name: string } | null>(null);
+  const [addressSuggestion, setAddressSuggestion] = useState<{ address: string; city: string; state: string; zip: string; owner_name: string; bedrooms: string | number; bathrooms: string | number; sqft: string | number; year_built: string | number; stories: string | number } | null>(null);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const lookupTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
@@ -396,6 +396,11 @@ const SellerLeadDetail = () => {
                                     state: data.state || "OH",
                                     zip: data.zip || "",
                                     owner_name: data.owner_name || "",
+                                    bedrooms: data.bedrooms || "",
+                                    bathrooms: data.bathrooms || "",
+                                    sqft: data.sqft || "",
+                                    year_built: data.year_built || "",
+                                    stories: data.stories || "",
                                   });
                                   setShowSuggestions(true);
                                 }
@@ -414,7 +419,7 @@ const SellerLeadDetail = () => {
                           <button
                             type="button"
                             className="w-full text-left px-3 py-2 hover:bg-accent/50 text-sm transition-colors"
-                            onClick={() => {
+                            onClick={async () => {
                               const titleCase = (s: string) => s ? s.split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(" ") : "";
                               const ownerName = addressSuggestion.owner_name;
                               const parts = ownerName.split(" ");
@@ -429,6 +434,66 @@ const SellerLeadDetail = () => {
                                 zip: addressSuggestion.zip || prev.zip,
                               }));
                               setShowSuggestions(false);
+
+                              // Seed Residential Work Sheet property-info with structure facts
+                              if (user && formData.address) {
+                                try {
+                                  const storiesMap: Record<string, string> = { '1': 'Ranch', '2': '2 Story', '1.5': 'Cape Cod', '3': '3 Level', '4': '4 Level', '5': '5 Level' };
+                                  const storiesKey = String(addressSuggestion.stories || '').trim();
+                                  const propertyStyle = storiesKey ? (storiesMap[storiesKey] || '') : '';
+                                  const seed = {
+                                    name: titleCase(ownerName),
+                                    address: formData.address,
+                                    city: titleCase(addressSuggestion.city),
+                                    zip: addressSuggestion.zip,
+                                    yearBuilt: addressSuggestion.year_built,
+                                    bedrooms: addressSuggestion.bedrooms,
+                                    bathrooms: addressSuggestion.bathrooms,
+                                    sqft: addressSuggestion.sqft,
+                                    style: propertyStyle,
+                                  };
+
+                                  // Find existing inspection for this lead's address
+                                  const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9\s]/g, '').split(/\s+/).filter(Boolean);
+                                  const words = normalize(formData.address);
+                                  const streetNum = words[0] || '';
+                                  const shortPattern = words.length > 1 ? `%${streetNum}%${words[1]}%` : `%${streetNum}%`;
+                                  const { data: existing } = await supabase
+                                    .from('inspections')
+                                    .select('id, inspection_data')
+                                    .eq('user_id', user.id)
+                                    .ilike('property_address', shortPattern)
+                                    .order('updated_at', { ascending: false })
+                                    .limit(5);
+
+                                  const match = existing?.find(r => {
+                                    const dbWords = normalize(((r as any).inspection_data?.['property-info']?.address) || '');
+                                    return dbWords[0] === streetNum;
+                                  }) || existing?.[0];
+
+                                  if (match) {
+                                    // Only fill blank fields - never overwrite user-entered data
+                                    const currentInfo = ((match as any).inspection_data?.['property-info']) || {};
+                                    const merged = { ...currentInfo };
+                                    Object.entries(seed).forEach(([k, v]) => {
+                                      if (v !== '' && v !== null && v !== undefined && !merged[k]) {
+                                        merged[k] = v;
+                                      }
+                                    });
+                                    const newData = { ...((match as any).inspection_data || {}), 'property-info': merged };
+                                    await supabase.from('inspections').update({ inspection_data: newData }).eq('id', (match as any).id);
+                                  } else {
+                                    await supabase.from('inspections').insert({
+                                      user_id: user.id,
+                                      property_address: formData.address,
+                                      inspection_data: { 'property-info': seed },
+                                      photos: {},
+                                    });
+                                  }
+                                } catch (err) {
+                                  console.error('Failed to seed inspection property-info:', err);
+                                }
+                              }
                             }}
                           >
                             <div className="font-medium">{formData.address}</div>
@@ -436,6 +501,16 @@ const SellerLeadDetail = () => {
                               {[addressSuggestion.city, addressSuggestion.state, addressSuggestion.zip].filter(Boolean).join(", ")}
                               {addressSuggestion.owner_name && ` • Owner: ${addressSuggestion.owner_name}`}
                             </div>
+                            {(addressSuggestion.bedrooms || addressSuggestion.bathrooms || addressSuggestion.sqft || addressSuggestion.year_built) && (
+                              <div className="text-xs text-muted-foreground mt-0.5">
+                                {[
+                                  addressSuggestion.bedrooms && `${addressSuggestion.bedrooms} bed`,
+                                  addressSuggestion.bathrooms && `${addressSuggestion.bathrooms} bath`,
+                                  addressSuggestion.sqft && `${addressSuggestion.sqft} sqft`,
+                                  addressSuggestion.year_built && `built ${addressSuggestion.year_built}`,
+                                ].filter(Boolean).join(" • ")}
+                              </div>
+                            )}
                           </button>
                         </div>
                       )}
