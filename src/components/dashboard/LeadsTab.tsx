@@ -373,7 +373,6 @@ const LeadsTab = () => {
                 <TableHead>Address</TableHead>
                 <TableHead>Contact</TableHead>
                 <TableHead>Created</TableHead>
-                <TableHead>Created</TableHead>
                 <TableHead>Sequences</TableHead>
                  <TableHead className="text-right">Actions</TableHead>
               </TableRow>
