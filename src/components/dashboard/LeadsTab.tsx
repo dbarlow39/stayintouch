@@ -370,9 +370,8 @@ const LeadsTab = () => {
             <TableHeader>
               <TableRow>
                 <TableHead>Name</TableHead>
+                <TableHead>Address</TableHead>
                 <TableHead>Contact</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Source</TableHead>
                 <TableHead>Created</TableHead>
                 <TableHead>Sequences</TableHead>
                  <TableHead className="text-right">Actions</TableHead>
@@ -383,6 +382,11 @@ const LeadsTab = () => {
                 <TableRow key={lead.id} className="cursor-pointer hover:bg-muted/50" onClick={() => navigate(`/seller-lead/${lead.id}`)}>
                   <TableCell className="font-medium">
                     {lead.first_name} {lead.last_name}
+                  </TableCell>
+                  <TableCell className="text-sm text-muted-foreground">
+                    {[lead.address, (lead as any).city, (lead as any).state, (lead as any).zip]
+                      .filter(Boolean)
+                      .join(", ") || "—"}
                   </TableCell>
                   <TableCell>
                     <div className="flex flex-col gap-1 text-sm">
@@ -400,12 +404,6 @@ const LeadsTab = () => {
                       )}
                     </div>
                   </TableCell>
-                  <TableCell>
-                    <Badge className={statusColors[lead.status as keyof typeof statusColors]}>
-                      {lead.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">{lead.source || "—"}</TableCell>
                   <TableCell className="text-muted-foreground">
                     {new Date(lead.created_at).toLocaleDateString()}
                   </TableCell>
