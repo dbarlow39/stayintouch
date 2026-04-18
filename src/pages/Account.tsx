@@ -706,6 +706,37 @@ const Account = () => {
             </CardContent>
           </Card>
         )}
+        {isMasterUser && (
+          <Card className="shadow-medium animate-fade-in mt-6">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Download className="w-5 h-5" />
+                MLS Agent Roster
+              </CardTitle>
+              <CardDescription>
+                Download the full MLS agent roster as a CSV file for offline reference
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Button onClick={handleDownloadRoster} disabled={rosterDownloading}>
+                {rosterDownloading ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                    Downloading... (may take a minute)
+                  </>
+                ) : (
+                  <>
+                    <Download className="w-4 h-4 mr-2" />
+                    Download MLS Agent Roster (CSV)
+                  </>
+                )}
+              </Button>
+              <p className="text-xs text-muted-foreground">
+                Pulls all agents from the MLS via Spark API. The download includes name, email, phone, office, license #, and MLS ID.
+              </p>
+            </CardContent>
+          </Card>
+        )}
       </main>
     </div>
   );
