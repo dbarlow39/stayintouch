@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Save, User, Mail, RefreshCw, CheckCircle, XCircle, Settings, KeyRound, Lock } from "lucide-react";
+import { ArrowLeft, Save, User, Mail, RefreshCw, CheckCircle, XCircle, Settings, KeyRound, Lock, Download } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { EmailClient, EMAIL_CLIENT_OPTIONS, getEmailClientPreference, setEmailClientPreference } from "@/utils/emailClientUtils";
@@ -88,6 +88,52 @@ const Account = () => {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [passwordLoading, setPasswordLoading] = useState(false);
+  const [rosterDownloading, setRosterDownloading] = useState(false);
+
+  const MASTER_USER_ID = "579941cc-bf37-4a75-8030-450e06c49f44";
+  const isMasterUser = user?.id === MASTER_USER_ID;
+
+  const handleDownloadRoster = async () => {
+    setRosterDownloading(true);
+    try {
+      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+      const { data: { session } } = await supabase.auth.getSession();
+      const resp = await fetch(
+        `https://${projectId}.supabase.co/functions/v1/download-mls-roster`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+          },
+        }
+      );
+      if (!resp.ok) {
+        const text = await resp.text();
+        throw new Error(text || `HTTP ${resp.status}`);
+      }
+      const blob = await resp.blob();
+      const total = resp.headers.get('X-Total-Count');
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `mls-agent-roster-${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast({ title: "Roster downloaded", description: `${total || 'All'} agents exported to CSV` });
+    } catch (err) {
+      console.error("Roster download error:", err);
+      toast({
+        title: "Download failed",
+        description: err instanceof Error ? err.message : "Unknown error",
+        variant: "destructive",
+      });
+    } finally {
+      setRosterDownloading(false);
+    }
+  };
 
   // Check if user is admin
   const { data: isAdmin } = useQuery({
@@ -657,6 +703,37 @@ const Account = () => {
                   Share this code with people you want to grant access to the app
                 </p>
               </div>
+            </CardContent>
+          </Card>
+        )}
+        {isMasterUser && (
+          <Card className="shadow-medium animate-fade-in mt-6">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Download className="w-5 h-5" />
+                MLS Agent Roster
+              </CardTitle>
+              <CardDescription>
+                Download the full MLS agent roster as a CSV file for offline reference
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Button onClick={handleDownloadRoster} disabled={rosterDownloading}>
+                {rosterDownloading ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                    Downloading... (may take a minute)
+                  </>
+                ) : (
+                  <>
+                    <Download className="w-4 h-4 mr-2" />
+                    Download MLS Agent Roster (CSV)
+                  </>
+                )}
+              </Button>
+              <p className="text-xs text-muted-foreground">
+                Pulls all agents from the MLS via Spark API. The download includes name, email, phone, office, license #, and MLS ID.
+              </p>
             </CardContent>
           </Card>
         )}

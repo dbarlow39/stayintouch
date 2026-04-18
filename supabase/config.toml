@@ -101,3 +101,6 @@ verify_jwt = false
 
 [functions.market-analysis-chat]
 verify_jwt = false
+
+[functions.download-mls-roster]
+verify_jwt = false
