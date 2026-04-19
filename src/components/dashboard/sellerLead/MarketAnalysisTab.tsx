@@ -447,7 +447,7 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
 
       const { data, error } = await supabase.functions.invoke("generate-market-analysis", {
         body: {
-          documents: uploadedDocsRef,
+          documents: docsForRequest,
           agentNotes: combinedNotes || undefined,
           lowerPriceBracket: parsedLower,
           bullseyePrice: parsedBullseye,
@@ -465,7 +465,7 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
       // Persist source document references and analysis JSON
       if (user && lead?.id) {
         try {
-          const fileRows = uploadedDocsRef.map((doc) => ({
+          const fileRows = docsForRequest.map((doc) => ({
             lead_id: lead.id,
             agent_id: user.id,
             file_name: doc.name,
@@ -588,6 +588,7 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
   const handleTweakRegenerate = async (tweakInstructions: string) => {
     setTweakRegenerating(true);
     try {
+      const docsForRequest = await loadPersistedDocs();
       const existingAnalysisSummary = JSON.stringify(analysis, null, 2);
       const tweakNotes = [
         aiNotes.trim(),
@@ -601,7 +602,7 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
 
       const { data, error } = await supabase.functions.invoke("generate-market-analysis", {
         body: {
-          documents: uploadedDocsRef,
+          documents: docsForRequest,
           agentNotes: tweakNotes,
           lowerPriceBracket: parsedLower,
           bullseyePrice: parsedBullseye,
