@@ -26,7 +26,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    const baseUrl = 'https://replication.sparkapi.com/v1';
+    const baseUrl = 'https://replication.sparkapi.com/Reso/OData';
     const sparkHeaders = {
       'Authorization': `Bearer ${apiKey}`,
       'Accept': 'application/json',
@@ -34,71 +34,81 @@ Deno.serve(async (req) => {
     };
 
     const allMembers: any[] = [];
-    let pageToken: string | null = null;
+    let nextLink: string | null = null;
     let pageCount = 0;
-    const maxPages = 200; // safety cap (200 * 100 = 20,000 agents)
+    const maxPages = 500; // safety cap
+    const pageSize = 200;
+
+    // Initial URL — OData expects $top/$skip; some Spark deployments require $filter.
+    // Try without filter first; on 400, retry with a permissive filter.
+    let url: string = `${baseUrl}/Member?$top=${pageSize}&$skip=0`;
+    let useFilter = false;
 
     do {
-      const url = new URL(`${baseUrl}/accounts`);
-      url.searchParams.set('_pagination', 'count');
-      url.searchParams.set('_limit', '100');
-      if (pageToken) url.searchParams.set('_pagination_token', pageToken);
+      const fetchUrl: string = nextLink || url;
+      const resp = await fetch(fetchUrl, { headers: sparkHeaders });
 
-      const resp = await fetch(url.toString(), { headers: sparkHeaders });
       if (!resp.ok) {
         const text = await resp.text();
-        console.error('Spark API error:', resp.status, text);
-        // Try alternate endpoint /contacts if /accounts not allowed
-        if (pageCount === 0) {
-          const altUrl = new URL(`${baseUrl}/contacts`);
-          altUrl.searchParams.set('_pagination', 'count');
-          altUrl.searchParams.set('_limit', '100');
-          const altResp = await fetch(altUrl.toString(), { headers: sparkHeaders });
-          if (!altResp.ok) {
-            const altText = await altResp.text();
-            return new Response(
-              JSON.stringify({ success: false, error: `Spark API error: ${resp.status} ${text} | alt: ${altResp.status} ${altText}` }),
-              { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-            );
-          }
-          const altJson = await altResp.json();
-          const altResults = altJson.D?.Results || [];
-          allMembers.push(...altResults);
-          pageToken = altJson.D?.Pagination?.NextPageToken || null;
-          pageCount++;
+        console.error('OData Member error:', resp.status, text);
+
+        // First-page fallback: try with a permissive $filter
+        if (pageCount === 0 && !useFilter) {
+          useFilter = true;
+          url = `${baseUrl}/Member?$top=${pageSize}&$skip=0&$filter=MemberKey ne null`;
           continue;
         }
-        break;
+
+        return new Response(
+          JSON.stringify({ success: false, error: `OData Member error: ${resp.status} ${text}` }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
       }
 
       const json = await resp.json();
-      const results = json.D?.Results || [];
+      const results = json.value || [];
       allMembers.push(...results);
-      pageToken = json.D?.Pagination?.NextPageToken || null;
+      nextLink = json['@odata.nextLink'] || null;
       pageCount++;
-    } while (pageToken && pageCount < maxPages);
+
+      // Manual pagination fallback if no nextLink but we got a full page
+      if (!nextLink && results.length === pageSize && pageCount < maxPages) {
+        const skip = pageCount * pageSize;
+        nextLink = useFilter
+          ? `${baseUrl}/Member?$top=${pageSize}&$skip=${skip}&$filter=MemberKey ne null`
+          : `${baseUrl}/Member?$top=${pageSize}&$skip=${skip}`;
+      }
+    } while (nextLink && pageCount < maxPages);
 
     console.log(`Fetched ${allMembers.length} members across ${pageCount} pages`);
 
     // Build CSV
     const headers = [
-      'Full Name', 'First Name', 'Last Name', 'Email', 'Phone',
-      'Office Name', 'Office ID', 'License Number', 'MLS ID', 'Status',
+      'Full Name', 'First Name', 'Last Name', 'Email',
+      'Direct Phone', 'Office Phone', 'Mobile Phone',
+      'Office Name', 'Office MLS ID', 'License Number', 'Member MLS ID',
+      'Member Key', 'Status', 'City', 'State', 'Postal Code',
     ];
     const lines: string[] = [headers.join(',')];
 
     for (const m of allMembers) {
       const row = [
-        m.Name || `${m.FirstName || ''} ${m.LastName || ''}`.trim(),
-        m.FirstName || '',
-        m.LastName || '',
-        m.Email || '',
-        m.Phone || m.OfficePhone || m.MobilePhone || '',
-        m.Office || m.OfficeName || '',
-        m.OfficeId || m.OfficeKey || '',
-        m.LicenseNumber || m.MlsLicenseNumber || '',
-        m.Id || m.MemberKey || '',
-        m.Status || m.MemberStatus || '',
+        m.MemberFullName || `${m.MemberFirstName || ''} ${m.MemberLastName || ''}`.trim(),
+        m.MemberFirstName || '',
+        m.MemberLastName || '',
+        m.MemberEmail || '',
+        m.MemberDirectPhone || '',
+        m.MemberOfficePhone || '',
+        m.MemberMobilePhone || '',
+        m.OfficeName || '',
+        m.OfficeMlsId || '',
+        m.MemberStateLicense || m.MemberNationalAssociationId || '',
+        m.MemberMlsId || '',
+        m.MemberKey || '',
+        m.MemberStatus || '',
+        m.MemberCity || '',
+        m.MemberStateOrProvince || '',
+        m.MemberPostalCode || '',
       ].map(csvEscape);
       lines.push(row.join(','));
     }
