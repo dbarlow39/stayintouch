@@ -41,16 +41,9 @@ Deno.serve(async (req) => {
     const startTime = Date.now();
     const timeBudgetMs = 130_000; // stay under 150s edge timeout
 
-    const selectFields = [
-      'MemberKey', 'MemberMlsId', 'MemberFirstName', 'MemberLastName', 'MemberFullName',
-      'MemberEmail', 'MemberDirectPhone', 'MemberOfficePhone', 'MemberMobilePhone',
-      'OfficeName', 'OfficeMlsId', 'MemberStateLicense', 'MemberNationalAssociationId',
-      'MemberStatus', 'MemberCity', 'MemberStateOrProvince', 'MemberPostalCode',
-    ].join(',');
-
     const filterClause = `$filter=${encodeURIComponent("MemberStatus eq 'Active'")}`;
     const buildUrl = (skip: number) =>
-      `${baseUrl}/Member?$top=${pageSize}&$skip=${skip}&${filterClause}&$select=${selectFields}`;
+      `${baseUrl}/Member?$top=${pageSize}&$skip=${skip}&${filterClause}`;
 
     let url: string = buildUrl(0);
 
