@@ -38,27 +38,34 @@ Deno.serve(async (req) => {
     let pageCount = 0;
     const maxPages = 500; // safety cap
     const pageSize = 200;
+    const startTime = Date.now();
+    const timeBudgetMs = 130_000; // stay under 150s edge timeout
 
-    // Initial URL — OData expects $top/$skip; some Spark deployments require $filter.
-    // Try without filter first; on 400, retry with a permissive filter.
-    let url: string = `${baseUrl}/Member?$top=${pageSize}&$skip=0`;
-    let useFilter = false;
+    const selectFields = [
+      'MemberKey', 'MemberMlsId', 'MemberFirstName', 'MemberLastName', 'MemberFullName',
+      'MemberEmail', 'MemberDirectPhone', 'MemberOfficePhone', 'MemberMobilePhone',
+      'OfficeName', 'OfficeMlsId', 'MemberStateLicense', 'MemberNationalAssociationId',
+      'MemberStatus', 'MemberCity', 'MemberStateOrProvince', 'MemberPostalCode',
+    ].join(',');
+
+    const filterClause = `$filter=${encodeURIComponent("MemberStatus eq 'Active'")}`;
+    const buildUrl = (skip: number) =>
+      `${baseUrl}/Member?$top=${pageSize}&$skip=${skip}&${filterClause}&$select=${selectFields}`;
+
+    let url: string = buildUrl(0);
 
     do {
+      if (Date.now() - startTime > timeBudgetMs) {
+        console.warn(`Time budget reached after ${pageCount} pages, ${allMembers.length} members. Returning partial roster.`);
+        break;
+      }
+
       const fetchUrl: string = nextLink || url;
       const resp = await fetch(fetchUrl, { headers: sparkHeaders });
 
       if (!resp.ok) {
         const text = await resp.text();
         console.error('OData Member error:', resp.status, text);
-
-        // First-page fallback: try with a permissive $filter
-        if (pageCount === 0 && !useFilter) {
-          useFilter = true;
-          url = `${baseUrl}/Member?$top=${pageSize}&$skip=0&$filter=MemberKey ne null`;
-          continue;
-        }
-
         return new Response(
           JSON.stringify({ success: false, error: `OData Member error: ${resp.status} ${text}` }),
           { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -73,10 +80,7 @@ Deno.serve(async (req) => {
 
       // Manual pagination fallback if no nextLink but we got a full page
       if (!nextLink && results.length === pageSize && pageCount < maxPages) {
-        const skip = pageCount * pageSize;
-        nextLink = useFilter
-          ? `${baseUrl}/Member?$top=${pageSize}&$skip=${skip}&$filter=MemberKey ne null`
-          : `${baseUrl}/Member?$top=${pageSize}&$skip=${skip}`;
+        nextLink = buildUrl(pageCount * pageSize);
       }
     } while (nextLink && pageCount < maxPages);
 
