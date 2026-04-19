@@ -397,12 +397,34 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
     }
   };
 
+  // Rehydrate uploaded docs list from DB if local state is empty (e.g., after refresh / tweak flow)
+  const loadPersistedDocs = async (): Promise<{ name: string; filePath: string; mimeType: string }[]> => {
+    if (uploadedDocsRef.length > 0) return uploadedDocsRef;
+    if (!lead?.id) return [];
+    const { data, error } = await supabase
+      .from("market_analysis_files")
+      .select("file_name, file_path, mime_type, file_type")
+      .eq("lead_id", lead.id)
+      .eq("file_type", "source_doc");
+    if (error || !data) return [];
+    const docs = data
+      .filter((r: any) => r.file_path)
+      .map((r: any) => ({
+        name: r.file_name,
+        filePath: r.file_path,
+        mimeType: r.mime_type || "application/pdf",
+      }));
+    if (docs.length > 0) setUploadedDocsRef(docs as any);
+    return docs;
+  };
+
   // Generate final analysis with conversation context
   const handleFinalGenerate = async () => {
     setGenerating(true);
     setProgressMessage("Generating final analysis...");
 
     try {
+      const docsForRequest = await loadPersistedDocs();
       // Build conversation summary for the analysis
       const conversationContext = chatMessages
         .filter((m) => m.content.trim() !== "READY_TO_GENERATE")
