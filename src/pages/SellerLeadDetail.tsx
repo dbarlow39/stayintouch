@@ -129,25 +129,35 @@ const SellerLeadDetail = () => {
     };
   }, [user, authLoading, navigate]);
 
-  // Close suggestions on outside click
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (suggestionsRef.current && !suggestionsRef.current.contains(e.target as Node)) {
-        setShowSuggestions(false);
-      }
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, []);
-
   const updateMutation = useMutation({
     mutationFn: async () => {
       const oldAddress = lead?.address?.trim() || "";
       const newAddress = formData.address?.trim() || "";
 
+      const toNumOrNull = (s: string): number | null => {
+        if (s === "" || s == null) return null;
+        const n = Number(s);
+        return Number.isFinite(n) ? n : null;
+      };
+
       const updateData = {
-        ...formData,
+        address: formData.address,
+        first_name: formData.first_name,
+        last_name: formData.last_name,
+        city: formData.city,
+        state: formData.state,
+        zip: formData.zip,
+        email: formData.email,
+        phone: formData.phone,
+        source: formData.source,
+        notes: formData.notes,
         status: formData.status as "new" | "contacted" | "qualified" | "unqualified" | "nurturing",
+        // Cached property data — editable on this page, never re-pulled automatically
+        bedrooms: toNumOrNull(formData.bedrooms),
+        bathrooms: toNumOrNull(formData.bathrooms),
+        square_feet: toNumOrNull(formData.square_feet),
+        year_built: toNumOrNull(formData.year_built),
+        annual_taxes: toNumOrNull(formData.annual_taxes),
       };
       const { error } = await supabase.from("leads").update(updateData).eq("id", id!);
       if (error) throw error;
@@ -169,7 +179,6 @@ const SellerLeadDetail = () => {
             .limit(5);
 
           if (inspections && inspections.length > 0) {
-            // Pick the one whose street number matches
             const match = inspections.find(r => {
               const dbNum = r.property_address?.match(/\d+/)?.[0];
               return dbNum === oldStreetNum;
@@ -190,6 +199,65 @@ const SellerLeadDetail = () => {
       toast({ title: "Error updating lead", description: error.message, variant: "destructive" });
     },
   });
+
+  // Manual "Refresh from Estated" — only runs when user explicitly clicks it
+  const refreshFromEstated = async () => {
+    if (!id) return;
+    if (!formData.address?.trim()) {
+      toast({ title: "Add a property address first", variant: "destructive" });
+      return;
+    }
+    setRefreshingEstated(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("lookup-property", {
+        body: {
+          address: formData.address,
+          city: formData.city,
+          state: formData.state || "OH",
+          zip: formData.zip,
+        },
+      });
+      if (error || !data || data.error) {
+        throw new Error(error?.message || data?.error || "Lookup failed");
+      }
+      const toN = (v: any) => {
+        const n = Number(v);
+        return Number.isFinite(n) && n > 0 ? n : null;
+      };
+      const cache = {
+        bedrooms: toN(data.bedrooms),
+        bathrooms: toN(data.bathrooms),
+        square_feet: toN(data.sqft),
+        year_built: toN(data.year_built),
+        lot_size_sqft: toN(data.lot_size_sqft),
+        annual_taxes: toN(data.annual_amount),
+        assessed_value: toN(data.assessed_value),
+        market_value: toN(data.market_value),
+        owner_name: data.owner_name || null,
+        property_type: data.property_type || null,
+        estated_data: data.raw || data,
+        estated_fetched_at: new Date().toISOString(),
+      };
+      const { error: upErr } = await supabase.from("leads").update(cache).eq("id", id);
+      if (upErr) throw upErr;
+      // Update local form fields too
+      setFormData((prev) => ({
+        ...prev,
+        bedrooms: cache.bedrooms != null ? String(cache.bedrooms) : prev.bedrooms,
+        bathrooms: cache.bathrooms != null ? String(cache.bathrooms) : prev.bathrooms,
+        square_feet: cache.square_feet != null ? String(cache.square_feet) : prev.square_feet,
+        year_built: cache.year_built != null ? String(cache.year_built) : prev.year_built,
+        annual_taxes: cache.annual_taxes != null ? String(cache.annual_taxes) : prev.annual_taxes,
+      }));
+      queryClient.invalidateQueries({ queryKey: ["lead", id] });
+      toast({ title: "Property data refreshed from public records" });
+    } catch (e: any) {
+      toast({ title: "Refresh failed", description: e.message, variant: "destructive" });
+    } finally {
+      setRefreshingEstated(false);
+    }
+  };
+
 
   const deleteMutation = useMutation({
     mutationFn: async () => {
