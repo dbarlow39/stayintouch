@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -16,6 +16,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth";
 import SequenceManager from "./SequenceManager";
 import LeadEnrollmentDialog from "./LeadEnrollmentDialog";
+import { GooglePlacesAddressInput } from "./residential/GooglePlacesAddressInput";
 
 interface Lead {
   id: string;
@@ -38,6 +39,50 @@ const statusColors = {
   nurturing: "bg-secondary/50 text-secondary-foreground border-border",
 };
 
+const titleCase = (s: string) =>
+  s
+    ? s
+        .split(" ")
+        .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+        .join(" ")
+    : "";
+
+// Estated cached fields kept alongside the lead form
+type EstatedCache = {
+  bedrooms: number | null;
+  bathrooms: number | null;
+  square_feet: number | null;
+  year_built: number | null;
+  lot_size_sqft: number | null;
+  annual_taxes: number | null;
+  assessed_value: number | null;
+  market_value: number | null;
+  owner_name: string | null;
+  property_type: string | null;
+  estated_data: any | null;
+  estated_fetched_at: string | null;
+};
+
+const emptyEstated: EstatedCache = {
+  bedrooms: null,
+  bathrooms: null,
+  square_feet: null,
+  year_built: null,
+  lot_size_sqft: null,
+  annual_taxes: null,
+  assessed_value: null,
+  market_value: null,
+  owner_name: null,
+  property_type: null,
+  estated_data: null,
+  estated_fetched_at: null,
+};
+
+const toNum = (v: any): number | null => {
+  const n = Number(v);
+  return Number.isFinite(n) && n > 0 ? n : null;
+};
+
 const LeadsTab = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -45,10 +90,8 @@ const LeadsTab = () => {
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [lookingUpAddress, setLookingUpAddress] = useState(false);
-  const [addressSuggestion, setAddressSuggestion] = useState<{ address: string; city: string; state: string; zip: string; owner_name: string } | null>(null);
-  const [showSuggestions, setShowSuggestions] = useState(false);
-  const lookupTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const suggestionsRef = useRef<HTMLDivElement>(null);
+  const [googleMapsKey, setGoogleMapsKey] = useState<string>("");
+  const [estatedCache, setEstatedCache] = useState<EstatedCache>(emptyEstated);
   const [formData, setFormData] = useState({
     address: "",
     first_name: "",
@@ -62,6 +105,20 @@ const LeadsTab = () => {
     source: "",
     notes: "",
   });
+
+  // Fetch Google Maps API key once when component mounts (so dialog opens fast)
+  useEffect(() => {
+    let cancelled = false;
+    supabase.functions.invoke("get-google-maps-key").then(({ data, error }) => {
+      if (cancelled) return;
+      if (error) {
+        console.error("Failed to fetch Google Maps key:", error);
+        return;
+      }
+      if (data?.apiKey) setGoogleMapsKey(data.apiKey);
+    });
+    return () => { cancelled = true; };
+  }, []);
 
   const { data: leads, isLoading } = useQuery({
     queryKey: ["leads"],
@@ -78,13 +135,27 @@ const LeadsTab = () => {
 
   const createMutation = useMutation({
     mutationFn: async (newLead: typeof formData) => {
+      const insertPayload: any = {
+        ...newLead,
+        agent_id: user?.id,
+        status: newLead.status as "new" | "contacted" | "qualified" | "unqualified" | "nurturing",
+        // Estated cache (one-time pull, reused everywhere)
+        bedrooms: estatedCache.bedrooms,
+        bathrooms: estatedCache.bathrooms,
+        square_feet: estatedCache.square_feet,
+        year_built: estatedCache.year_built,
+        lot_size_sqft: estatedCache.lot_size_sqft,
+        annual_taxes: estatedCache.annual_taxes,
+        assessed_value: estatedCache.assessed_value,
+        market_value: estatedCache.market_value,
+        owner_name: estatedCache.owner_name,
+        property_type: estatedCache.property_type,
+        estated_data: estatedCache.estated_data,
+        estated_fetched_at: estatedCache.estated_fetched_at,
+      };
       const { data, error } = await supabase
         .from("leads")
-        .insert([{ 
-          ...newLead, 
-          agent_id: user?.id,
-          status: newLead.status as "new" | "contacted" | "qualified" | "unqualified" | "nurturing",
-        }])
+        .insert([insertPayload])
         .select()
         .single();
       if (error) throw error;
@@ -129,6 +200,98 @@ const LeadsTab = () => {
       source: "",
       notes: "",
     });
+    setEstatedCache(emptyEstated);
+  };
+
+  // Handle Google Places selection: parse components, then call Estated ONCE and cache everything
+  const handleGooglePlaceSelect = async (fullAddress: string) => {
+    // Parse Google address_components from the most recent place_changed event
+    let streetNumber = "";
+    let route = "";
+    let city = "";
+    let state = "";
+    let zip = "";
+
+    // Pull components from the Google Place sitting on window (set by GooglePlacesAddressInput)
+    // Fallback: parse from formatted_address if components unavailable
+    const w = window as any;
+    const place = w.__lastGooglePlace;
+    if (place?.address_components) {
+      for (const c of place.address_components) {
+        const types: string[] = c.types || [];
+        if (types.includes("street_number")) streetNumber = c.long_name;
+        else if (types.includes("route")) route = c.long_name;
+        else if (types.includes("locality")) city = c.long_name;
+        else if (!city && types.includes("sublocality")) city = c.long_name;
+        else if (types.includes("administrative_area_level_1")) state = c.short_name;
+        else if (types.includes("postal_code")) zip = c.long_name;
+      }
+    }
+
+    const streetAddress = [streetNumber, route].filter(Boolean).join(" ").trim() || fullAddress.split(",")[0]?.trim() || fullAddress;
+
+    setFormData((prev) => ({
+      ...prev,
+      address: streetAddress,
+      city: city || prev.city,
+      state: state || prev.state,
+      zip: zip || prev.zip,
+    }));
+
+    // Now call Estated ONE time with the parsed pieces
+    setLookingUpAddress(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("lookup-property", {
+        body: { address: streetAddress, city, state: state || "OH", zip },
+      });
+
+      if (error || !data || data.error) {
+        console.error("Estated lookup error:", error || data?.error);
+        toast({
+          title: "Address found",
+          description: "Property details from public records weren't available for this address.",
+        });
+        return;
+      }
+
+      // Cache everything we got back
+      const cache: EstatedCache = {
+        bedrooms: toNum(data.bedrooms),
+        bathrooms: toNum(data.bathrooms),
+        square_feet: toNum(data.sqft),
+        year_built: toNum(data.year_built),
+        lot_size_sqft: toNum(data.lot_size_sqft),
+        annual_taxes: toNum(data.annual_amount),
+        assessed_value: toNum(data.assessed_value),
+        market_value: toNum(data.market_value),
+        owner_name: data.owner_name || null,
+        property_type: data.property_type || null,
+        estated_data: data.raw || data,
+        estated_fetched_at: new Date().toISOString(),
+      };
+      setEstatedCache(cache);
+
+      // Auto-fill owner name into first/last if blank
+      if (data.owner_name) {
+        const parts = String(data.owner_name).split(" ");
+        const fn = parts[0] || "";
+        const ln = parts.slice(1).join(" ") || "";
+        setFormData((prev) => ({
+          ...prev,
+          first_name: prev.first_name || titleCase(fn),
+          last_name: prev.last_name || titleCase(ln),
+          // Backfill city/zip from Estated if Google missed them
+          city: prev.city || titleCase(data.city || ""),
+          zip: prev.zip || data.zip || "",
+        }));
+      }
+
+      toast({ title: "Property details loaded", description: "Owner & property data cached for all tabs." });
+    } catch (err: any) {
+      console.error("Estated lookup error:", err);
+    } finally {
+      setLookingUpAddress(false);
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -169,76 +332,36 @@ const LeadsTab = () => {
               <DialogTitle>Add New Seller Lead</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2 relative" ref={suggestionsRef}>
+              <div className="space-y-2">
                 <Label htmlFor="address" className="flex items-center gap-1">
                   Property Address {lookingUpAddress && <Loader2 className="w-3 h-3 animate-spin text-muted-foreground" />}
                 </Label>
-                <Input
-                  id="address"
-                  placeholder="Enter street address"
-                  value={formData.address}
-                  onChange={(e) => {
-                    const address = e.target.value;
-                    setFormData({ ...formData, address });
-                    setAddressSuggestion(null);
-                    setShowSuggestions(false);
-                    if (lookupTimeoutRef.current) clearTimeout(lookupTimeoutRef.current);
-                    if (address.length > 10) {
-                      lookupTimeoutRef.current = setTimeout(async () => {
-                        setLookingUpAddress(true);
-                        try {
-                          const { data, error } = await supabase.functions.invoke('lookup-property', {
-                            body: { address, state: formData.state || 'OH' }
-                          });
-                          if (!error && data && !data.error && (data.city || data.zip || data.owner_name)) {
-                            setAddressSuggestion({
-                              address: address,
-                              city: data.city || "",
-                              state: data.state || "OH",
-                              zip: data.zip || "",
-                              owner_name: data.owner_name || "",
-                            });
-                            setShowSuggestions(true);
-                          }
-                        } catch (err) {
-                          console.error("Address lookup error:", err);
-                        } finally {
-                          setLookingUpAddress(false);
-                        }
-                      }, 1000);
-                    }
-                  }}
-                  onFocus={() => { if (addressSuggestion) setShowSuggestions(true); }}
-                />
-                {showSuggestions && addressSuggestion && (
-                  <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-popover border border-border rounded-md shadow-md max-h-48 overflow-y-auto">
-                    <button
-                      type="button"
-                      className="w-full text-left px-3 py-2 hover:bg-accent/50 text-sm transition-colors"
-                      onClick={() => {
-                        const titleCase = (s: string) => s ? s.split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(" ") : "";
-                        const ownerName = addressSuggestion.owner_name;
-                        const parts = ownerName.split(" ");
-                        const firstName = parts[0] || "";
-                        const lastName = parts.slice(1).join(" ") || "";
-                        setFormData(prev => ({
-                          ...prev,
-                          first_name: prev.first_name || titleCase(firstName),
-                          last_name: prev.last_name || titleCase(lastName),
-                          city: titleCase(addressSuggestion.city) || prev.city,
-                          state: addressSuggestion.state || prev.state,
-                          zip: addressSuggestion.zip || prev.zip,
-                        }));
-                        setShowSuggestions(false);
-                      }}
-                    >
-                      <div className="font-medium">{formData.address}</div>
-                      <div className="text-xs text-muted-foreground">
-                        {[addressSuggestion.city, addressSuggestion.state, addressSuggestion.zip].filter(Boolean).join(", ")}
-                        {addressSuggestion.owner_name && ` • Owner: ${addressSuggestion.owner_name}`}
-                      </div>
-                    </button>
-                  </div>
+                {googleMapsKey ? (
+                  <GooglePlacesAddressInput
+                    id="address"
+                    apiKey={googleMapsKey}
+                    value={formData.address}
+                    onChange={(v) => setFormData({ ...formData, address: v })}
+                    onAddressSelect={handleGooglePlaceSelect}
+                  />
+                ) : (
+                  <Input
+                    id="address"
+                    placeholder="Loading address autocomplete..."
+                    value={formData.address}
+                    onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                  />
+                )}
+                {(estatedCache.bedrooms || estatedCache.bathrooms || estatedCache.square_feet || estatedCache.year_built) && (
+                  <p className="text-xs text-muted-foreground">
+                    {[
+                      estatedCache.bedrooms && `${estatedCache.bedrooms} bed`,
+                      estatedCache.bathrooms && `${estatedCache.bathrooms} bath`,
+                      estatedCache.square_feet && `${estatedCache.square_feet.toLocaleString()} sqft`,
+                      estatedCache.year_built && `built ${estatedCache.year_built}`,
+                      estatedCache.annual_taxes && `taxes $${estatedCache.annual_taxes.toLocaleString()}`,
+                    ].filter(Boolean).join(" • ")}
+                  </p>
                 )}
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -424,12 +547,12 @@ const LeadsTab = () => {
                       variant="ghost"
                       size="sm"
                       onClick={() => {
-                        if (confirm("Are you sure you want to delete this lead?")) {
+                        if (confirm(`Delete lead ${lead.first_name} ${lead.last_name}?`)) {
                           deleteMutation.mutate(lead.id);
                         }
                       }}
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <Trash2 className="w-4 h-4 text-destructive" />
                     </Button>
                   </TableCell>
                 </TableRow>

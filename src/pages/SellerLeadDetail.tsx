@@ -45,11 +45,7 @@ const SellerLeadDetail = () => {
   const { user, loading: authLoading } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [lookingUpAddress, setLookingUpAddress] = useState(false);
-  const [addressSuggestion, setAddressSuggestion] = useState<{ address: string; city: string; state: string; zip: string; owner_name: string; bedrooms: string | number; bathrooms: string | number; sqft: string | number; year_built: string | number; stories: string | number } | null>(null);
-  const [showSuggestions, setShowSuggestions] = useState(false);
-  const lookupTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const suggestionsRef = useRef<HTMLDivElement>(null);
+  const [refreshingEstated, setRefreshingEstated] = useState(false);
   const [activeTab, setActiveTab] = useState("details");
   const [showConvertDialog, setShowConvertDialog] = useState(false);
   const [isConverting, setIsConverting] = useState(false);
@@ -66,6 +62,12 @@ const SellerLeadDetail = () => {
     status: "new",
     source: "",
     notes: "",
+    // Cached property data (from Estated, pulled once at lead creation)
+    bedrooms: "",
+    bathrooms: "",
+    square_feet: "",
+    year_built: "",
+    annual_taxes: "",
   });
 
   const { data: lead, isLoading } = useQuery({
@@ -96,6 +98,11 @@ const SellerLeadDetail = () => {
         status: lead.status || "new",
         source: lead.source || "",
         notes: lead.notes || "",
+        bedrooms: (lead as any).bedrooms != null ? String((lead as any).bedrooms) : "",
+        bathrooms: (lead as any).bathrooms != null ? String((lead as any).bathrooms) : "",
+        square_feet: (lead as any).square_feet != null ? String((lead as any).square_feet) : "",
+        year_built: (lead as any).year_built != null ? String((lead as any).year_built) : "",
+        annual_taxes: (lead as any).annual_taxes != null ? String((lead as any).annual_taxes) : "",
       });
     }
   }, [lead]);
@@ -122,25 +129,35 @@ const SellerLeadDetail = () => {
     };
   }, [user, authLoading, navigate]);
 
-  // Close suggestions on outside click
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (suggestionsRef.current && !suggestionsRef.current.contains(e.target as Node)) {
-        setShowSuggestions(false);
-      }
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, []);
-
   const updateMutation = useMutation({
     mutationFn: async () => {
       const oldAddress = lead?.address?.trim() || "";
       const newAddress = formData.address?.trim() || "";
 
+      const toNumOrNull = (s: string): number | null => {
+        if (s === "" || s == null) return null;
+        const n = Number(s);
+        return Number.isFinite(n) ? n : null;
+      };
+
       const updateData = {
-        ...formData,
+        address: formData.address,
+        first_name: formData.first_name,
+        last_name: formData.last_name,
+        city: formData.city,
+        state: formData.state,
+        zip: formData.zip,
+        email: formData.email,
+        phone: formData.phone,
+        source: formData.source,
+        notes: formData.notes,
         status: formData.status as "new" | "contacted" | "qualified" | "unqualified" | "nurturing",
+        // Cached property data — editable on this page, never re-pulled automatically
+        bedrooms: toNumOrNull(formData.bedrooms),
+        bathrooms: toNumOrNull(formData.bathrooms),
+        square_feet: toNumOrNull(formData.square_feet),
+        year_built: toNumOrNull(formData.year_built),
+        annual_taxes: toNumOrNull(formData.annual_taxes),
       };
       const { error } = await supabase.from("leads").update(updateData).eq("id", id!);
       if (error) throw error;
@@ -162,7 +179,6 @@ const SellerLeadDetail = () => {
             .limit(5);
 
           if (inspections && inspections.length > 0) {
-            // Pick the one whose street number matches
             const match = inspections.find(r => {
               const dbNum = r.property_address?.match(/\d+/)?.[0];
               return dbNum === oldStreetNum;
@@ -183,6 +199,65 @@ const SellerLeadDetail = () => {
       toast({ title: "Error updating lead", description: error.message, variant: "destructive" });
     },
   });
+
+  // Manual "Refresh from Estated" — only runs when user explicitly clicks it
+  const refreshFromEstated = async () => {
+    if (!id) return;
+    if (!formData.address?.trim()) {
+      toast({ title: "Add a property address first", variant: "destructive" });
+      return;
+    }
+    setRefreshingEstated(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("lookup-property", {
+        body: {
+          address: formData.address,
+          city: formData.city,
+          state: formData.state || "OH",
+          zip: formData.zip,
+        },
+      });
+      if (error || !data || data.error) {
+        throw new Error(error?.message || data?.error || "Lookup failed");
+      }
+      const toN = (v: any) => {
+        const n = Number(v);
+        return Number.isFinite(n) && n > 0 ? n : null;
+      };
+      const cache = {
+        bedrooms: toN(data.bedrooms),
+        bathrooms: toN(data.bathrooms),
+        square_feet: toN(data.sqft),
+        year_built: toN(data.year_built),
+        lot_size_sqft: toN(data.lot_size_sqft),
+        annual_taxes: toN(data.annual_amount),
+        assessed_value: toN(data.assessed_value),
+        market_value: toN(data.market_value),
+        owner_name: data.owner_name || null,
+        property_type: data.property_type || null,
+        estated_data: data.raw || data,
+        estated_fetched_at: new Date().toISOString(),
+      };
+      const { error: upErr } = await supabase.from("leads").update(cache).eq("id", id);
+      if (upErr) throw upErr;
+      // Update local form fields too
+      setFormData((prev) => ({
+        ...prev,
+        bedrooms: cache.bedrooms != null ? String(cache.bedrooms) : prev.bedrooms,
+        bathrooms: cache.bathrooms != null ? String(cache.bathrooms) : prev.bathrooms,
+        square_feet: cache.square_feet != null ? String(cache.square_feet) : prev.square_feet,
+        year_built: cache.year_built != null ? String(cache.year_built) : prev.year_built,
+        annual_taxes: cache.annual_taxes != null ? String(cache.annual_taxes) : prev.annual_taxes,
+      }));
+      queryClient.invalidateQueries({ queryKey: ["lead", id] });
+      toast({ title: "Property data refreshed from public records" });
+    } catch (e: any) {
+      toast({ title: "Refresh failed", description: e.message, variant: "destructive" });
+    } finally {
+      setRefreshingEstated(false);
+    }
+  };
+
 
   const deleteMutation = useMutation({
     mutationFn: async () => {
@@ -368,152 +443,55 @@ const SellerLeadDetail = () => {
                 </CardHeader>
                 <CardContent>
                   <form onSubmit={handleSubmit} className="space-y-4">
-                    <div className="space-y-2 relative" ref={suggestionsRef}>
-                      <Label htmlFor="address" className="flex items-center gap-1">
-                        Property Address {lookingUpAddress && <Loader2 className="w-3 h-3 animate-spin text-muted-foreground" />}
-                      </Label>
+                    <div className="space-y-2">
+                      <Label htmlFor="address">Property Address</Label>
                       <Input
                         id="address"
                         placeholder="Enter street address"
                         value={formData.address}
-                        onChange={(e) => {
-                          const address = e.target.value;
-                          setFormData({ ...formData, address });
-                          setAddressSuggestion(null);
-                          setShowSuggestions(false);
-                          if (lookupTimeoutRef.current) clearTimeout(lookupTimeoutRef.current);
-                          if (address.length > 10) {
-                            lookupTimeoutRef.current = setTimeout(async () => {
-                              setLookingUpAddress(true);
-                              try {
-                                const { data, error } = await supabase.functions.invoke('lookup-property', {
-                                  body: { address, state: formData.state || 'OH' }
-                                });
-                                if (!error && data && !data.error && (data.city || data.zip || data.owner_name)) {
-                                  setAddressSuggestion({
-                                    address,
-                                    city: data.city || "",
-                                    state: data.state || "OH",
-                                    zip: data.zip || "",
-                                    owner_name: data.owner_name || "",
-                                    bedrooms: data.bedrooms || "",
-                                    bathrooms: data.bathrooms || "",
-                                    sqft: data.sqft || "",
-                                    year_built: data.year_built || "",
-                                    stories: data.stories || "",
-                                  });
-                                  setShowSuggestions(true);
-                                }
-                              } catch (err) {
-                                console.error("Address lookup error:", err);
-                              } finally {
-                                setLookingUpAddress(false);
-                              }
-                            }, 1000);
-                          }
-                        }}
-                        onFocus={() => { if (addressSuggestion) setShowSuggestions(true); }}
+                        onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                       />
-                      {showSuggestions && addressSuggestion && (
-                        <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-popover border border-border rounded-md shadow-md max-h-48 overflow-y-auto">
-                          <button
-                            type="button"
-                            className="w-full text-left px-3 py-2 hover:bg-accent/50 text-sm transition-colors"
-                            onClick={async () => {
-                              const titleCase = (s: string) => s ? s.split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(" ") : "";
-                              const ownerName = addressSuggestion.owner_name;
-                              const parts = ownerName.split(" ");
-                              const firstName = parts[0] || "";
-                              const lastName = parts.slice(1).join(" ") || "";
-                              setFormData(prev => ({
-                                ...prev,
-                                first_name: prev.first_name || titleCase(firstName),
-                                last_name: prev.last_name || titleCase(lastName),
-                                city: titleCase(addressSuggestion.city) || prev.city,
-                                state: addressSuggestion.state || prev.state,
-                                zip: addressSuggestion.zip || prev.zip,
-                              }));
-                              setShowSuggestions(false);
+                    </div>
 
-                              // Seed Residential Work Sheet property-info with structure facts
-                              if (user && formData.address) {
-                                try {
-                                  const storiesMap: Record<string, string> = { '1': 'Ranch', '2': '2 Story', '1.5': 'Cape Cod', '3': '3 Level', '4': '4 Level', '5': '5 Level' };
-                                  const storiesKey = String(addressSuggestion.stories || '').trim();
-                                  const propertyStyle = storiesKey ? (storiesMap[storiesKey] || '') : '';
-                                  const seed = {
-                                    name: titleCase(ownerName),
-                                    address: formData.address,
-                                    city: titleCase(addressSuggestion.city),
-                                    zip: addressSuggestion.zip,
-                                    yearBuilt: addressSuggestion.year_built,
-                                    bedrooms: addressSuggestion.bedrooms,
-                                    bathrooms: addressSuggestion.bathrooms,
-                                    sqft: addressSuggestion.sqft,
-                                    style: propertyStyle,
-                                  };
-
-                                  // Find existing inspection for this lead's address
-                                  const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9\s]/g, '').split(/\s+/).filter(Boolean);
-                                  const words = normalize(formData.address);
-                                  const streetNum = words[0] || '';
-                                  const shortPattern = words.length > 1 ? `%${streetNum}%${words[1]}%` : `%${streetNum}%`;
-                                  const { data: existing } = await supabase
-                                    .from('inspections')
-                                    .select('id, inspection_data')
-                                    .eq('user_id', user.id)
-                                    .ilike('property_address', shortPattern)
-                                    .order('updated_at', { ascending: false })
-                                    .limit(5);
-
-                                  const match = existing?.find(r => {
-                                    const dbWords = normalize(((r as any).inspection_data?.['property-info']?.address) || '');
-                                    return dbWords[0] === streetNum;
-                                  }) || existing?.[0];
-
-                                  if (match) {
-                                    // Only fill blank fields - never overwrite user-entered data
-                                    const currentInfo = ((match as any).inspection_data?.['property-info']) || {};
-                                    const merged = { ...currentInfo };
-                                    Object.entries(seed).forEach(([k, v]) => {
-                                      if (v !== '' && v !== null && v !== undefined && !merged[k]) {
-                                        merged[k] = v;
-                                      }
-                                    });
-                                    const newData = { ...((match as any).inspection_data || {}), 'property-info': merged };
-                                    await supabase.from('inspections').update({ inspection_data: newData }).eq('id', (match as any).id);
-                                  } else {
-                                    await supabase.from('inspections').insert({
-                                      user_id: user.id,
-                                      property_address: formData.address,
-                                      inspection_data: { 'property-info': seed },
-                                      photos: {},
-                                    });
-                                  }
-                                } catch (err) {
-                                  console.error('Failed to seed inspection property-info:', err);
-                                }
-                              }
-                            }}
-                          >
-                            <div className="font-medium">{formData.address}</div>
-                            <div className="text-xs text-muted-foreground">
-                              {[addressSuggestion.city, addressSuggestion.state, addressSuggestion.zip].filter(Boolean).join(", ")}
-                              {addressSuggestion.owner_name && ` • Owner: ${addressSuggestion.owner_name}`}
-                            </div>
-                            {(addressSuggestion.bedrooms || addressSuggestion.bathrooms || addressSuggestion.sqft || addressSuggestion.year_built) && (
-                              <div className="text-xs text-muted-foreground mt-0.5">
-                                {[
-                                  addressSuggestion.bedrooms && `${addressSuggestion.bedrooms} bed`,
-                                  addressSuggestion.bathrooms && `${addressSuggestion.bathrooms} bath`,
-                                  addressSuggestion.sqft && `${addressSuggestion.sqft} sqft`,
-                                  addressSuggestion.year_built && `built ${addressSuggestion.year_built}`,
-                                ].filter(Boolean).join(" • ")}
-                              </div>
+                    {/* Cached property data — pulled once at lead creation, editable here, reused by all tabs */}
+                    <div className="rounded-md border border-border/60 bg-muted/30 p-4 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h4 className="text-sm font-semibold">Property Data (cached)</h4>
+                          <p className="text-xs text-muted-foreground">
+                            Used by Residential Work Sheet, Estimated Net & Market Analysis. No re-lookup unless you click Refresh.
+                            {(lead as any)?.estated_fetched_at && (
+                              <> Last refreshed: {new Date((lead as any).estated_fetched_at).toLocaleDateString()}</>
                             )}
-                          </button>
+                          </p>
                         </div>
-                      )}
+                        <Button type="button" variant="outline" size="sm" onClick={refreshFromEstated} disabled={refreshingEstated}>
+                          {refreshingEstated ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : null}
+                          Refresh from Estated
+                        </Button>
+                      </div>
+                      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                        <div className="space-y-1">
+                          <Label htmlFor="bedrooms" className="text-xs">Bedrooms</Label>
+                          <Input id="bedrooms" inputMode="numeric" value={formData.bedrooms} onChange={(e) => setFormData({ ...formData, bedrooms: e.target.value })} />
+                        </div>
+                        <div className="space-y-1">
+                          <Label htmlFor="bathrooms" className="text-xs">Bathrooms</Label>
+                          <Input id="bathrooms" inputMode="decimal" value={formData.bathrooms} onChange={(e) => setFormData({ ...formData, bathrooms: e.target.value })} />
+                        </div>
+                        <div className="space-y-1">
+                          <Label htmlFor="square_feet" className="text-xs">Square Feet</Label>
+                          <Input id="square_feet" inputMode="numeric" value={formData.square_feet} onChange={(e) => setFormData({ ...formData, square_feet: e.target.value })} />
+                        </div>
+                        <div className="space-y-1">
+                          <Label htmlFor="year_built" className="text-xs">Year Built</Label>
+                          <Input id="year_built" inputMode="numeric" value={formData.year_built} onChange={(e) => setFormData({ ...formData, year_built: e.target.value })} />
+                        </div>
+                        <div className="space-y-1">
+                          <Label htmlFor="annual_taxes" className="text-xs">Annual Taxes</Label>
+                          <Input id="annual_taxes" inputMode="decimal" value={formData.annual_taxes} onChange={(e) => setFormData({ ...formData, annual_taxes: e.target.value })} />
+                        </div>
+                      </div>
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
