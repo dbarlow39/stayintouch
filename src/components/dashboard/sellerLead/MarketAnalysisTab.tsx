@@ -109,6 +109,17 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
             prev.map((slot) => {
               const saved = sourceDocs.find((f: any) => f.document_label === slot.label);
               if (saved) {
+                if (saved.source_type === "inline" && saved.inline_data) {
+                  const inline = saved.inline_data as any;
+                  return {
+                    ...slot,
+                    fromDatabase: true,
+                    inspectionData: inline.inspectionData,
+                    inspectionPhotos: inline.inspectionPhotos,
+                    summaryText: inline.summaryText,
+                    savedFileName: saved.file_name,
+                  };
+                }
                 return { ...slot, savedFilePath: saved.file_path, savedFileName: saved.file_name };
               }
               return slot;
