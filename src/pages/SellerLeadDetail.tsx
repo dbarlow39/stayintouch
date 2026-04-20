@@ -45,11 +45,7 @@ const SellerLeadDetail = () => {
   const { user, loading: authLoading } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [lookingUpAddress, setLookingUpAddress] = useState(false);
-  const [addressSuggestion, setAddressSuggestion] = useState<{ address: string; city: string; state: string; zip: string; owner_name: string; bedrooms: string | number; bathrooms: string | number; sqft: string | number; year_built: string | number; stories: string | number } | null>(null);
-  const [showSuggestions, setShowSuggestions] = useState(false);
-  const lookupTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const suggestionsRef = useRef<HTMLDivElement>(null);
+  const [refreshingEstated, setRefreshingEstated] = useState(false);
   const [activeTab, setActiveTab] = useState("details");
   const [showConvertDialog, setShowConvertDialog] = useState(false);
   const [isConverting, setIsConverting] = useState(false);
@@ -66,6 +62,12 @@ const SellerLeadDetail = () => {
     status: "new",
     source: "",
     notes: "",
+    // Cached property data (from Estated, pulled once at lead creation)
+    bedrooms: "",
+    bathrooms: "",
+    square_feet: "",
+    year_built: "",
+    annual_taxes: "",
   });
 
   const { data: lead, isLoading } = useQuery({
@@ -96,6 +98,11 @@ const SellerLeadDetail = () => {
         status: lead.status || "new",
         source: lead.source || "",
         notes: lead.notes || "",
+        bedrooms: (lead as any).bedrooms != null ? String((lead as any).bedrooms) : "",
+        bathrooms: (lead as any).bathrooms != null ? String((lead as any).bathrooms) : "",
+        square_feet: (lead as any).square_feet != null ? String((lead as any).square_feet) : "",
+        year_built: (lead as any).year_built != null ? String((lead as any).year_built) : "",
+        annual_taxes: (lead as any).annual_taxes != null ? String((lead as any).annual_taxes) : "",
       });
     }
   }, [lead]);
