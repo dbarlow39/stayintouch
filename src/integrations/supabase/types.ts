@@ -1283,58 +1283,94 @@ export type Database = {
         Row: {
           address: string | null
           agent_id: string
+          annual_taxes: number | null
+          assessed_value: number | null
+          bathrooms: number | null
+          bedrooms: number | null
           city: string | null
           created_at: string | null
           email: string | null
+          estated_data: Json | null
+          estated_fetched_at: string | null
           first_name: string
           id: string
           last_name: string
           lead_type: string
+          lot_size_sqft: number | null
+          market_value: number | null
           notes: string | null
+          owner_name: string | null
           phone: string | null
           preferences: Json | null
+          property_type: string | null
           source: string | null
+          square_feet: number | null
           state: string | null
           status: Database["public"]["Enums"]["lead_status"]
           updated_at: string | null
+          year_built: number | null
           zip: string | null
         }
         Insert: {
           address?: string | null
           agent_id: string
+          annual_taxes?: number | null
+          assessed_value?: number | null
+          bathrooms?: number | null
+          bedrooms?: number | null
           city?: string | null
           created_at?: string | null
           email?: string | null
+          estated_data?: Json | null
+          estated_fetched_at?: string | null
           first_name: string
           id?: string
           last_name: string
           lead_type?: string
+          lot_size_sqft?: number | null
+          market_value?: number | null
           notes?: string | null
+          owner_name?: string | null
           phone?: string | null
           preferences?: Json | null
+          property_type?: string | null
           source?: string | null
+          square_feet?: number | null
           state?: string | null
           status?: Database["public"]["Enums"]["lead_status"]
           updated_at?: string | null
+          year_built?: number | null
           zip?: string | null
         }
         Update: {
           address?: string | null
           agent_id?: string
+          annual_taxes?: number | null
+          assessed_value?: number | null
+          bathrooms?: number | null
+          bedrooms?: number | null
           city?: string | null
           created_at?: string | null
           email?: string | null
+          estated_data?: Json | null
+          estated_fetched_at?: string | null
           first_name?: string
           id?: string
           last_name?: string
           lead_type?: string
+          lot_size_sqft?: number | null
+          market_value?: number | null
           notes?: string | null
+          owner_name?: string | null
           phone?: string | null
           preferences?: Json | null
+          property_type?: string | null
           source?: string | null
+          square_feet?: number | null
           state?: string | null
           status?: Database["public"]["Enums"]["lead_status"]
           updated_at?: string | null
+          year_built?: number | null
           zip?: string | null
         }
         Relationships: []
