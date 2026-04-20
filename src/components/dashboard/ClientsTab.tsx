@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -21,7 +21,7 @@ import { cn } from "@/lib/utils";
 import logo from "@/assets/logo.jpg";
 import { InventoryImportDialog } from "./InventoryImportDialog";
 import ClientFeedbackPage from "./ClientFeedbackPage";
-import ClientDetailModal from "./ClientDetailModal";
+
 import { getEmailLink } from "@/utils/emailClientUtils";
 
 interface Client {
@@ -115,9 +115,10 @@ const ClientsTab = ({ onSelectClientForEstimate }: ClientsTabProps) => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
-  const [viewingClient, setViewingClient] = useState<Client | null>(null);
+  
   const openClientId = searchParams.get("openClient");
   
   const [csvMappingOpen, setCsvMappingOpen] = useState(false);
@@ -300,18 +301,15 @@ const ClientsTab = ({ onSelectClientForEstimate }: ClientsTabProps) => {
     enabled: !!user,
   });
 
-  // Auto-open client detail modal from URL param (e.g. after lead conversion)
+  // Auto-navigate to client detail page from URL param (e.g. after lead conversion)
   useEffect(() => {
-    if (openClientId && clients.length > 0 && !viewingClient) {
-      const match = clients.find((c) => c.id === openClientId);
-      if (match) {
-        setViewingClient(match);
-        // Clean up the URL param
-        searchParams.delete("openClient");
-        setSearchParams(searchParams, { replace: true });
-      }
+    if (openClientId) {
+      // Clean up the URL param and navigate to the standalone client page
+      searchParams.delete("openClient");
+      setSearchParams(searchParams, { replace: true });
+      navigate(`/clients/${openClientId}`);
     }
-  }, [openClientId, clients, viewingClient, searchParams, setSearchParams]);
+  }, [openClientId, searchParams, setSearchParams, navigate]);
 
   const filteredClients = clients.filter((client) => {
     if (!searchQuery) return true;
@@ -1189,7 +1187,7 @@ const ClientsTab = ({ onSelectClientForEstimate }: ClientsTabProps) => {
               {filteredClients.map((client) => (
                 <TableRow 
                   key={client.id}
-                  onClick={() => setViewingClient(client)}
+                  onClick={() => navigate(`/clients/${client.id}`)}
                   className="cursor-pointer hover:bg-muted/50"
                 >
                   <TableCell>
@@ -1314,15 +1312,7 @@ const ClientsTab = ({ onSelectClientForEstimate }: ClientsTabProps) => {
         </div>
       )}
 
-      {/* Client Detail View Modal */}
-      <ClientDetailModal
-        client={viewingClient}
-        open={!!viewingClient}
-        onClose={() => setViewingClient(null)}
-        onClientUpdated={() => {
-          queryClient.invalidateQueries({ queryKey: ["clients"] });
-        }}
-      />
+      {/* Client Detail now lives at /clients/:id — no modal here */}
 
     </div>
   );
