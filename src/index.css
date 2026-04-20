@@ -147,3 +147,9 @@ All colors MUST be HSL.
 
   @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
 }
+
+/* Google Places Autocomplete dropdown — must sit above Radix Dialog (z-50) */
+.pac-container {
+  z-index: 10000 !important;
+  pointer-events: auto !important;
+}
