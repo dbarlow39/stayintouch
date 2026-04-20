@@ -266,8 +266,18 @@ serve(async (req) => {
   }
 
   try {
-    const { documents, agentNotes, buyerNames, lowerPriceBracket, bullseyePrice: agentBullseyePrice, upperPriceBracket } = await req.json();
-    console.log(`Received agent bracket inputs → lower: ${lowerPriceBracket}, bullseye: ${agentBullseyePrice}, upper: ${upperPriceBracket}`);
+    const reqBody = await req.json();
+    const { documents, agentNotes, buyerNames } = reqBody;
+    const toNum = (v: unknown): number => {
+      if (v === null || v === undefined || v === "") return 0;
+      const n = typeof v === "number" ? v : parseFloat(String(v).replace(/[$,\s]/g, ""));
+      return Number.isFinite(n) && n > 0 ? n : 0;
+    };
+    const lowerPriceBracket = toNum(reqBody.lowerPriceBracket);
+    const agentBullseyePrice = toNum(reqBody.bullseyePrice);
+    const upperPriceBracket = toNum(reqBody.upperPriceBracket);
+    console.log(`[BRACKETS] raw payload → lower:${JSON.stringify(reqBody.lowerPriceBracket)} bullseye:${JSON.stringify(reqBody.bullseyePrice)} upper:${JSON.stringify(reqBody.upperPriceBracket)}`);
+    console.log(`[BRACKETS] coerced → lower:${lowerPriceBracket} bullseye:${agentBullseyePrice} upper:${upperPriceBracket}`);
 
     if (!documents || !Array.isArray(documents) || documents.length === 0) {
       return new Response(
