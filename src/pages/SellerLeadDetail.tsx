@@ -443,152 +443,55 @@ const SellerLeadDetail = () => {
                 </CardHeader>
                 <CardContent>
                   <form onSubmit={handleSubmit} className="space-y-4">
-                    <div className="space-y-2 relative" ref={suggestionsRef}>
-                      <Label htmlFor="address" className="flex items-center gap-1">
-                        Property Address {lookingUpAddress && <Loader2 className="w-3 h-3 animate-spin text-muted-foreground" />}
-                      </Label>
+                    <div className="space-y-2">
+                      <Label htmlFor="address">Property Address</Label>
                       <Input
                         id="address"
                         placeholder="Enter street address"
                         value={formData.address}
-                        onChange={(e) => {
-                          const address = e.target.value;
-                          setFormData({ ...formData, address });
-                          setAddressSuggestion(null);
-                          setShowSuggestions(false);
-                          if (lookupTimeoutRef.current) clearTimeout(lookupTimeoutRef.current);
-                          if (address.length > 10) {
-                            lookupTimeoutRef.current = setTimeout(async () => {
-                              setLookingUpAddress(true);
-                              try {
-                                const { data, error } = await supabase.functions.invoke('lookup-property', {
-                                  body: { address, state: formData.state || 'OH' }
-                                });
-                                if (!error && data && !data.error && (data.city || data.zip || data.owner_name)) {
-                                  setAddressSuggestion({
-                                    address,
-                                    city: data.city || "",
-                                    state: data.state || "OH",
-                                    zip: data.zip || "",
-                                    owner_name: data.owner_name || "",
-                                    bedrooms: data.bedrooms || "",
-                                    bathrooms: data.bathrooms || "",
-                                    sqft: data.sqft || "",
-                                    year_built: data.year_built || "",
-                                    stories: data.stories || "",
-                                  });
-                                  setShowSuggestions(true);
-                                }
-                              } catch (err) {
-                                console.error("Address lookup error:", err);
-                              } finally {
-                                setLookingUpAddress(false);
-                              }
-                            }, 1000);
-                          }
-                        }}
-                        onFocus={() => { if (addressSuggestion) setShowSuggestions(true); }}
+                        onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                       />
-                      {showSuggestions && addressSuggestion && (
-                        <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-popover border border-border rounded-md shadow-md max-h-48 overflow-y-auto">
-                          <button
-                            type="button"
-                            className="w-full text-left px-3 py-2 hover:bg-accent/50 text-sm transition-colors"
-                            onClick={async () => {
-                              const titleCase = (s: string) => s ? s.split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(" ") : "";
-                              const ownerName = addressSuggestion.owner_name;
-                              const parts = ownerName.split(" ");
-                              const firstName = parts[0] || "";
-                              const lastName = parts.slice(1).join(" ") || "";
-                              setFormData(prev => ({
-                                ...prev,
-                                first_name: prev.first_name || titleCase(firstName),
-                                last_name: prev.last_name || titleCase(lastName),
-                                city: titleCase(addressSuggestion.city) || prev.city,
-                                state: addressSuggestion.state || prev.state,
-                                zip: addressSuggestion.zip || prev.zip,
-                              }));
-                              setShowSuggestions(false);
+                    </div>
 
-                              // Seed Residential Work Sheet property-info with structure facts
-                              if (user && formData.address) {
-                                try {
-                                  const storiesMap: Record<string, string> = { '1': 'Ranch', '2': '2 Story', '1.5': 'Cape Cod', '3': '3 Level', '4': '4 Level', '5': '5 Level' };
-                                  const storiesKey = String(addressSuggestion.stories || '').trim();
-                                  const propertyStyle = storiesKey ? (storiesMap[storiesKey] || '') : '';
-                                  const seed = {
-                                    name: titleCase(ownerName),
-                                    address: formData.address,
-                                    city: titleCase(addressSuggestion.city),
-                                    zip: addressSuggestion.zip,
-                                    yearBuilt: addressSuggestion.year_built,
-                                    bedrooms: addressSuggestion.bedrooms,
-                                    bathrooms: addressSuggestion.bathrooms,
-                                    sqft: addressSuggestion.sqft,
-                                    style: propertyStyle,
-                                  };
-
-                                  // Find existing inspection for this lead's address
-                                  const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9\s]/g, '').split(/\s+/).filter(Boolean);
-                                  const words = normalize(formData.address);
-                                  const streetNum = words[0] || '';
-                                  const shortPattern = words.length > 1 ? `%${streetNum}%${words[1]}%` : `%${streetNum}%`;
-                                  const { data: existing } = await supabase
-                                    .from('inspections')
-                                    .select('id, inspection_data')
-                                    .eq('user_id', user.id)
-                                    .ilike('property_address', shortPattern)
-                                    .order('updated_at', { ascending: false })
-                                    .limit(5);
-
-                                  const match = existing?.find(r => {
-                                    const dbWords = normalize(((r as any).inspection_data?.['property-info']?.address) || '');
-                                    return dbWords[0] === streetNum;
-                                  }) || existing?.[0];
-
-                                  if (match) {
-                                    // Only fill blank fields - never overwrite user-entered data
-                                    const currentInfo = ((match as any).inspection_data?.['property-info']) || {};
-                                    const merged = { ...currentInfo };
-                                    Object.entries(seed).forEach(([k, v]) => {
-                                      if (v !== '' && v !== null && v !== undefined && !merged[k]) {
-                                        merged[k] = v;
-                                      }
-                                    });
-                                    const newData = { ...((match as any).inspection_data || {}), 'property-info': merged };
-                                    await supabase.from('inspections').update({ inspection_data: newData }).eq('id', (match as any).id);
-                                  } else {
-                                    await supabase.from('inspections').insert({
-                                      user_id: user.id,
-                                      property_address: formData.address,
-                                      inspection_data: { 'property-info': seed },
-                                      photos: {},
-                                    });
-                                  }
-                                } catch (err) {
-                                  console.error('Failed to seed inspection property-info:', err);
-                                }
-                              }
-                            }}
-                          >
-                            <div className="font-medium">{formData.address}</div>
-                            <div className="text-xs text-muted-foreground">
-                              {[addressSuggestion.city, addressSuggestion.state, addressSuggestion.zip].filter(Boolean).join(", ")}
-                              {addressSuggestion.owner_name && ` • Owner: ${addressSuggestion.owner_name}`}
-                            </div>
-                            {(addressSuggestion.bedrooms || addressSuggestion.bathrooms || addressSuggestion.sqft || addressSuggestion.year_built) && (
-                              <div className="text-xs text-muted-foreground mt-0.5">
-                                {[
-                                  addressSuggestion.bedrooms && `${addressSuggestion.bedrooms} bed`,
-                                  addressSuggestion.bathrooms && `${addressSuggestion.bathrooms} bath`,
-                                  addressSuggestion.sqft && `${addressSuggestion.sqft} sqft`,
-                                  addressSuggestion.year_built && `built ${addressSuggestion.year_built}`,
-                                ].filter(Boolean).join(" • ")}
-                              </div>
+                    {/* Cached property data — pulled once at lead creation, editable here, reused by all tabs */}
+                    <div className="rounded-md border border-border/60 bg-muted/30 p-4 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h4 className="text-sm font-semibold">Property Data (cached)</h4>
+                          <p className="text-xs text-muted-foreground">
+                            Used by Residential Work Sheet, Estimated Net & Market Analysis. No re-lookup unless you click Refresh.
+                            {(lead as any)?.estated_fetched_at && (
+                              <> Last refreshed: {new Date((lead as any).estated_fetched_at).toLocaleDateString()}</>
                             )}
-                          </button>
+                          </p>
                         </div>
-                      )}
+                        <Button type="button" variant="outline" size="sm" onClick={refreshFromEstated} disabled={refreshingEstated}>
+                          {refreshingEstated ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : null}
+                          Refresh from Estated
+                        </Button>
+                      </div>
+                      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                        <div className="space-y-1">
+                          <Label htmlFor="bedrooms" className="text-xs">Bedrooms</Label>
+                          <Input id="bedrooms" inputMode="numeric" value={formData.bedrooms} onChange={(e) => setFormData({ ...formData, bedrooms: e.target.value })} />
+                        </div>
+                        <div className="space-y-1">
+                          <Label htmlFor="bathrooms" className="text-xs">Bathrooms</Label>
+                          <Input id="bathrooms" inputMode="decimal" value={formData.bathrooms} onChange={(e) => setFormData({ ...formData, bathrooms: e.target.value })} />
+                        </div>
+                        <div className="space-y-1">
+                          <Label htmlFor="square_feet" className="text-xs">Square Feet</Label>
+                          <Input id="square_feet" inputMode="numeric" value={formData.square_feet} onChange={(e) => setFormData({ ...formData, square_feet: e.target.value })} />
+                        </div>
+                        <div className="space-y-1">
+                          <Label htmlFor="year_built" className="text-xs">Year Built</Label>
+                          <Input id="year_built" inputMode="numeric" value={formData.year_built} onChange={(e) => setFormData({ ...formData, year_built: e.target.value })} />
+                        </div>
+                        <div className="space-y-1">
+                          <Label htmlFor="annual_taxes" className="text-xs">Annual Taxes</Label>
+                          <Input id="annual_taxes" inputMode="decimal" value={formData.annual_taxes} onChange={(e) => setFormData({ ...formData, annual_taxes: e.target.value })} />
+                        </div>
+                      </div>
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
