@@ -36,6 +36,8 @@ interface LeadData {
   zip?: string;
   phone?: string;
   email?: string;
+  // Cached Estated property data — passed through so we don't re-call the API
+  annual_taxes?: number | null;
 }
 
 interface LeadEstimatedNetProps {
@@ -87,7 +89,7 @@ const LeadEstimatedNet = ({ lead, onBack }: LeadEstimatedNetProps) => {
         }
       }
 
-      // No existing estimate — pre-fill from lead data
+      // No existing estimate — pre-fill from lead data (including cached Estated taxes, no API call)
       const addressParts = (lead.address || "").trim().match(/^(\d+)\s+(.+)$/);
       setInitialClient({
         id: "", // No client link — this is a lead
@@ -100,7 +102,8 @@ const LeadEstimatedNet = ({ lead, onBack }: LeadEstimatedNetProps) => {
         zip: lead.zip || undefined,
         phone: lead.phone || undefined,
         email: lead.email || undefined,
-      });
+        annualTaxes: lead.annual_taxes != null ? Number(lead.annual_taxes) : undefined,
+      } as any);
       setLoaded(true);
     };
 

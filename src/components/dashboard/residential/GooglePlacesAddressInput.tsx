@@ -69,6 +69,10 @@ export const GooglePlacesAddressInput = ({
         autocomplete.addListener("place_changed", () => {
           const place = autocomplete.getPlace();
           const fullAddress = place?.formatted_address || inputRef.current?.value || "";
+          // Stash place on window so callers can read parsed components without changing this component's API
+          if (typeof window !== "undefined") {
+            (window as any).__lastGooglePlace = place || null;
+          }
           if (fullAddress) {
             onChange(fullAddress);
             onAddressSelect?.(fullAddress);

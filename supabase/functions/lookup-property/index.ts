@@ -53,6 +53,8 @@ serve(async (req) => {
 
     const structure = result.data?.structure || {};
 
+    const parcel = result.data?.parcel || {};
+
     const propertyResult = {
       annual_amount: result.data?.taxes?.[0]?.amount || 0,
       tax_year: result.data?.taxes?.[0]?.year || new Date().getFullYear(),
@@ -67,6 +69,10 @@ serve(async (req) => {
       sqft: structure.total_area_sq_ft || "",
       year_built: structure.year_built || "",
       stories: structure.stories || "",
+      lot_size_sqft: parcel.area_sq_ft || result.data?.parcel?.area_sq_ft || "",
+      property_type: structure.units_count ? `${structure.units_count}-unit` : (parcel.standardized_land_use_category || ""),
+      // Full raw response so callers can cache and reuse without re-calling Estated
+      raw: result.data || null,
     };
 
     return new Response(JSON.stringify(propertyResult), {
