@@ -320,13 +320,11 @@ const LeadsTab = () => {
 
       <TabsContent value="lead-list" className="space-y-4">
         <div className="flex justify-end">
+          <Button onClick={() => navigate("/leads/new")}>
+            <UserPlus className="w-4 h-4 mr-2" />
+            Add Lead
+          </Button>
           <Dialog open={open} onOpenChange={(isOpen) => { setOpen(isOpen); if (!isOpen) resetForm(); }}>
-          <DialogTrigger asChild>
-            <Button>
-              <UserPlus className="w-4 h-4 mr-2" />
-              Add Lead
-            </Button>
-          </DialogTrigger>
           <DialogContent className="max-w-2xl">
             <DialogHeader>
               <DialogTitle>Add New Seller Lead</DialogTitle>
