@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { PhotoUpload } from "./PhotoUpload";
 import { StarRating } from "./StarRating";
 import ConditionIndicator, { getConditionLevel } from "./ConditionIndicator";
-import { MapboxAddressInput } from "./MapboxAddressInput";
+import { GooglePlacesAddressInput } from "./GooglePlacesAddressInput";
 import { HandwritingCanvas } from "./HandwritingCanvas";
 
 interface Field {
@@ -46,7 +46,7 @@ export const InspectionSection = ({
       return (
         <div key={field.id} className="space-y-2">
           <Label htmlFor={field.id} className="text-sm font-medium text-foreground">{field.label}</Label>
-          <MapboxAddressInput id={field.id} value={field.value as string || ''} onChange={(value) => onFieldChange(field.id, value)} onAddressSelect={onAddressSelect} apiKey={mapboxApiKey} />
+          <GooglePlacesAddressInput id={field.id} value={field.value as string || ''} onChange={(value) => onFieldChange(field.id, value)} onAddressSelect={onAddressSelect} apiKey={mapboxApiKey} />
         </div>
       );
     }
