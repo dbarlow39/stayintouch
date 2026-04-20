@@ -29,6 +29,12 @@ interface LeadData {
   city?: string | null;
   state?: string | null;
   zip?: string | null;
+  // Cached Estated property facts — used to seed worksheet WITHOUT calling Estated again
+  bedrooms?: number | null;
+  bathrooms?: number | null;
+  square_feet?: number | null;
+  year_built?: number | null;
+  annual_taxes?: number | null;
 }
 
 interface ResidentialWorkSheetTabProps {
@@ -147,13 +153,17 @@ const ResidentialWorkSheetTab = ({ lead }: ResidentialWorkSheetTabProps) => {
         }
       }
 
-      // No existing worksheet — pre-fill from lead data but DON'T auto-save
+      // No existing worksheet — pre-fill from lead data INCLUDING cached Estated facts (no API call)
       setInspectionData({
         'property-info': {
           name: `${lead.first_name || ''} ${lead.last_name || ''}`.trim(),
           address: address || '',
           city: lead.city || '',
           zip: lead.zip || '',
+          bedrooms: lead.bedrooms != null ? String(lead.bedrooms) : '',
+          bathrooms: lead.bathrooms != null ? String(lead.bathrooms) : '',
+          sqft: lead.square_feet != null ? String(lead.square_feet) : '',
+          yearBuilt: lead.year_built != null ? String(lead.year_built) : '',
         },
       });
       setCurrentInspectionId(null);
