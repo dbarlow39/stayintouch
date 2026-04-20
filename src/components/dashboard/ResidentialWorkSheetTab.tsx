@@ -19,7 +19,7 @@ interface Inspection {
   updated_at: string;
 }
 
-const MAPBOX_API_KEY = 'pk.eyJ1IjoiZGJhcmxvdzM5IiwiYSI6ImNtaHY3bGppZjA4YjAybHBxMTFpcXc4cjUifQ.FR_LuIGPTri475ANOVKxFw';
+
 
 interface LeadData {
   id: string;
@@ -47,6 +47,20 @@ const ResidentialWorkSheetTab = ({ lead }: ResidentialWorkSheetTabProps) => {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [leadLoaded, setLeadLoaded] = useState(false);
+  const [googleMapsKey, setGoogleMapsKey] = useState<string>("");
+
+  useEffect(() => {
+    let cancelled = false;
+    supabase.functions.invoke("get-google-maps-key").then(({ data, error }) => {
+      if (cancelled) return;
+      if (error) {
+        console.error("Failed to fetch Google Maps key:", error);
+        return;
+      }
+      if (data?.apiKey) setGoogleMapsKey(data.apiKey);
+    });
+    return () => { cancelled = true; };
+  }, []);
 
   // Auto-save refs
   const autoSaveRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -473,7 +487,7 @@ const ResidentialWorkSheetTab = ({ lead }: ResidentialWorkSheetTabProps) => {
                 onPhotosChange={(newPhotos) => handlePhotosChange(section.id, newPhotos)}
                 photos={photos[section.id] || []}
                 defaultExpanded={index === 0}
-                mapboxApiKey={MAPBOX_API_KEY}
+                mapboxApiKey={googleMapsKey}
                 onAddressSelect={section.id === 'property-info' ? handleAddressSelect : undefined}
                 averageRating={section.id === 'property-info' ? avgRating : undefined}
                 sectionRating={Number(inspectionData[section.id]?.rating) || 0}
