@@ -267,6 +267,7 @@ serve(async (req) => {
 
   try {
     const { documents, agentNotes, buyerNames, lowerPriceBracket, bullseyePrice: agentBullseyePrice, upperPriceBracket } = await req.json();
+    console.log(`Received agent bracket inputs → lower: ${lowerPriceBracket}, bullseye: ${agentBullseyePrice}, upper: ${upperPriceBracket}`);
 
     if (!documents || !Array.isArray(documents) || documents.length === 0) {
       return new Response(
