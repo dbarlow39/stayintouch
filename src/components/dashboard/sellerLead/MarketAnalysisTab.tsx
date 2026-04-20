@@ -490,23 +490,36 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
       // Persist source document references and analysis JSON
       if (user && lead?.id) {
         try {
-          const fileRows = docsForRequest.map((doc) => ({
-            lead_id: lead.id,
-            agent_id: user.id,
-            file_name: doc.name,
-            file_path: doc.filePath,
-            file_type: "source_doc",
-            mime_type: doc.mimeType,
-            document_label: doc.name,
-          }));
+          const fileRows: any[] = docsForRequest.map((doc: any) => {
+            const isInline = doc.filePath === "__database__";
+            return {
+              lead_id: lead.id,
+              agent_id: user.id,
+              file_name: doc.name,
+              file_path: isInline ? null : doc.filePath,
+              file_type: "source_doc",
+              mime_type: doc.mimeType,
+              document_label: doc.name,
+              source_type: isInline ? "inline" : "storage",
+              inline_data: isInline
+                ? {
+                    inspectionData: doc.inspectionData,
+                    inspectionPhotos: doc.inspectionPhotos,
+                    summaryText: doc.inspectionData?.summaryText,
+                  }
+                : null,
+            };
+          });
           fileRows.push({
             lead_id: lead.id,
             agent_id: user.id,
             file_name: "Market Analysis Data",
-            file_path: "",
+            file_path: null,
             file_type: "analysis_json",
             mime_type: "application/json",
             document_label: "Generated Analysis",
+            source_type: "storage",
+            inline_data: null,
           });
           await supabase.from("market_analysis_files").delete().eq("lead_id", lead.id);
           const rowsToInsert = fileRows.map((row, i) => ({
