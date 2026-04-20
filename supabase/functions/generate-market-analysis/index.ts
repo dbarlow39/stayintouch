@@ -498,24 +498,28 @@ serve(async (req) => {
 
         const fmt = (n: number) => `$${n.toLocaleString("en-US")}`;
 
-        // If agent provided explicit price brackets, use them EXACTLY as entered (no rounding)
-        if (lowerPriceBracket && upperPriceBracket && lowerPriceBracket > 0 && upperPriceBracket > 0) {
-          // If agent provided an explicit bullseye price, override the AI's value (use exactly as entered)
-          if (agentBullseyePrice && agentBullseyePrice > 0) {
+        // If agent provided ANY explicit price brackets, use them EXACTLY as entered (no rounding, no fallback math)
+        const hasAgentBrackets = lowerPriceBracket > 0 || upperPriceBracket > 0 || agentBullseyePrice > 0;
+        if (hasAgentBrackets) {
+          if (agentBullseyePrice > 0) {
             bullseye = agentBullseyePrice;
             analysis.pricing.bullseyePrice = fmt(agentBullseyePrice);
           }
 
-          analysis.pricing.lowerBracketPrice = fmt(lowerPriceBracket);
-          analysis.pricing.lowerBracketLow = fmt(lowerPriceBracket);
-          analysis.pricing.lowerBracketHigh = fmt(lowerPriceBracket);
-          analysis.pricing.upperBracketPrice = fmt(upperPriceBracket);
-          analysis.pricing.upperBracketLow = fmt(upperPriceBracket);
-          analysis.pricing.upperBracketHigh = fmt(upperPriceBracket);
+          if (lowerPriceBracket > 0) {
+            analysis.pricing.lowerBracketPrice = fmt(lowerPriceBracket);
+            analysis.pricing.lowerBracketLow = fmt(lowerPriceBracket);
+            analysis.pricing.lowerBracketHigh = fmt(lowerPriceBracket);
+          }
+          if (upperPriceBracket > 0) {
+            analysis.pricing.upperBracketPrice = fmt(upperPriceBracket);
+            analysis.pricing.upperBracketLow = fmt(upperPriceBracket);
+            analysis.pricing.upperBracketHigh = fmt(upperPriceBracket);
+          }
           analysis.pricing.bullseyeBracketLow = fmt(bullseye);
           analysis.pricing.bullseyeBracketHigh = fmt(bullseye);
 
-          console.log(`Bullseye recalc (agent brackets, exact): Lower: ${fmt(lowerPriceBracket)}, Bullseye: ${fmt(bullseye)}, Upper: ${fmt(upperPriceBracket)}`);
+          console.log(`[BRACKETS] OVERRIDE APPLIED → Lower:${lowerPriceBracket > 0 ? fmt(lowerPriceBracket) : "(kept AI)"} Bullseye:${fmt(bullseye)} Upper:${upperPriceBracket > 0 ? fmt(upperPriceBracket) : "(kept AI)"}`);
         } else {
           // Default percentage-based calculation
           const pct = getAdjustmentPct(bullseye);
@@ -538,7 +542,7 @@ serve(async (req) => {
           analysis.pricing.bullseyeBracketLow = fmt(bLow);
           analysis.pricing.bullseyeBracketHigh = fmt(bTop);
 
-          console.log(`Bullseye recalc: ${fmt(bullseye)} ±${(pct * 100)}% → Lower: ${fmt(lower.price)}, Upper: ${fmt(upper.price)}`);
+          console.log(`[BRACKETS] FALLBACK calc: ${fmt(bullseye)} ±${(pct * 100)}% → Lower: ${fmt(lower.price)}, Upper: ${fmt(upper.price)}`);
         }
       }
     }
