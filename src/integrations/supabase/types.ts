@@ -1400,11 +1400,13 @@ export type Database = {
           created_at: string
           document_label: string | null
           file_name: string
-          file_path: string
+          file_path: string | null
           file_type: string
           id: string
+          inline_data: Json | null
           lead_id: string
           mime_type: string | null
+          source_type: string
         }
         Insert: {
           agent_id: string
@@ -1412,11 +1414,13 @@ export type Database = {
           created_at?: string
           document_label?: string | null
           file_name: string
-          file_path: string
+          file_path?: string | null
           file_type?: string
           id?: string
+          inline_data?: Json | null
           lead_id: string
           mime_type?: string | null
+          source_type?: string
         }
         Update: {
           agent_id?: string
@@ -1424,11 +1428,13 @@ export type Database = {
           created_at?: string
           document_label?: string | null
           file_name?: string
-          file_path?: string
+          file_path?: string | null
           file_type?: string
           id?: string
+          inline_data?: Json | null
           lead_id?: string
           mime_type?: string | null
+          source_type?: string
         }
         Relationships: [
           {

@@ -70,7 +70,7 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [chatInput, setChatInput] = useState("");
   const [chatStreaming, setChatStreaming] = useState(false);
-  const [uploadedDocsRef, setUploadedDocsRef] = useState<{ name: string; filePath: string; mimeType: string; inspectionData?: any }[]>([]);
+  const [uploadedDocsRef, setUploadedDocsRef] = useState<{ name: string; filePath: string; mimeType: string; inspectionData?: any; inspectionPhotos?: Record<string, string[]> }[]>([]);
   const chatScrollRef = useRef<HTMLDivElement>(null);
   const chatInputRef = useRef<HTMLInputElement>(null);
   const [tweakDialogOpen, setTweakDialogOpen] = useState(false);
@@ -109,6 +109,17 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
             prev.map((slot) => {
               const saved = sourceDocs.find((f: any) => f.document_label === slot.label);
               if (saved) {
+                if (saved.source_type === "inline" && saved.inline_data) {
+                  const inline = saved.inline_data as any;
+                  return {
+                    ...slot,
+                    fromDatabase: true,
+                    inspectionData: inline.inspectionData,
+                    inspectionPhotos: inline.inspectionPhotos,
+                    summaryText: inline.summaryText,
+                    savedFileName: saved.file_name,
+                  };
+                }
                 return { ...slot, savedFilePath: saved.file_path, savedFileName: saved.file_name };
               }
               return slot;
@@ -398,22 +409,36 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
   };
 
   // Rehydrate uploaded docs list from DB if local state is empty (e.g., after refresh / tweak flow)
-  const loadPersistedDocs = async (): Promise<{ name: string; filePath: string; mimeType: string }[]> => {
+  const loadPersistedDocs = async (): Promise<{ name: string; filePath: string; mimeType: string; inspectionData?: any; inspectionPhotos?: Record<string, string[]> }[]> => {
     if (uploadedDocsRef.length > 0) return uploadedDocsRef;
     if (!lead?.id) return [];
     const { data, error } = await supabase
       .from("market_analysis_files")
-      .select("file_name, file_path, mime_type, file_type")
+      .select("file_name, file_path, mime_type, file_type, source_type, inline_data")
       .eq("lead_id", lead.id)
       .eq("file_type", "source_doc");
     if (error || !data) return [];
     const docs = data
-      .filter((r: any) => r.file_path)
-      .map((r: any) => ({
-        name: r.file_name,
-        filePath: r.file_path,
-        mimeType: r.mime_type || "application/pdf",
-      }));
+      .filter((r: any) => r.source_type === "inline" || r.file_path)
+      .map((r: any) => {
+        if (r.source_type === "inline") {
+          const inline = (r.inline_data as any) || {};
+          return {
+            name: r.file_name,
+            filePath: "__database__",
+            mimeType: r.mime_type || "application/json",
+            inspectionData: inline.summaryText
+              ? { summaryText: inline.summaryText }
+              : inline.inspectionData,
+            inspectionPhotos: inline.inspectionPhotos,
+          };
+        }
+        return {
+          name: r.file_name,
+          filePath: r.file_path,
+          mimeType: r.mime_type || "application/pdf",
+        };
+      });
     if (docs.length > 0) setUploadedDocsRef(docs as any);
     return docs;
   };
@@ -465,23 +490,36 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
       // Persist source document references and analysis JSON
       if (user && lead?.id) {
         try {
-          const fileRows = docsForRequest.map((doc) => ({
-            lead_id: lead.id,
-            agent_id: user.id,
-            file_name: doc.name,
-            file_path: doc.filePath,
-            file_type: "source_doc",
-            mime_type: doc.mimeType,
-            document_label: doc.name,
-          }));
+          const fileRows: any[] = docsForRequest.map((doc: any) => {
+            const isInline = doc.filePath === "__database__";
+            return {
+              lead_id: lead.id,
+              agent_id: user.id,
+              file_name: doc.name,
+              file_path: isInline ? null : doc.filePath,
+              file_type: "source_doc",
+              mime_type: doc.mimeType,
+              document_label: doc.name,
+              source_type: isInline ? "inline" : "storage",
+              inline_data: isInline
+                ? {
+                    inspectionData: doc.inspectionData,
+                    inspectionPhotos: doc.inspectionPhotos,
+                    summaryText: doc.inspectionData?.summaryText,
+                  }
+                : null,
+            };
+          });
           fileRows.push({
             lead_id: lead.id,
             agent_id: user.id,
             file_name: "Market Analysis Data",
-            file_path: "",
+            file_path: null,
             file_type: "analysis_json",
             mime_type: "application/json",
             document_label: "Generated Analysis",
+            source_type: "storage",
+            inline_data: null,
           });
           await supabase.from("market_analysis_files").delete().eq("lead_id", lead.id);
           const rowsToInsert = fileRows.map((row, i) => ({
