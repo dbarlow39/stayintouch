@@ -21,7 +21,7 @@ import { cn } from "@/lib/utils";
 import logo from "@/assets/logo.jpg";
 import { InventoryImportDialog } from "./InventoryImportDialog";
 import ClientFeedbackPage from "./ClientFeedbackPage";
-import ClientDetailModal from "./ClientDetailModal";
+
 import { getEmailLink } from "@/utils/emailClientUtils";
 
 interface Client {
@@ -118,7 +118,7 @@ const ClientsTab = ({ onSelectClientForEstimate }: ClientsTabProps) => {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
-  const [viewingClient, setViewingClient] = useState<Client | null>(null);
+  
   const openClientId = searchParams.get("openClient");
   
   const [csvMappingOpen, setCsvMappingOpen] = useState(false);
