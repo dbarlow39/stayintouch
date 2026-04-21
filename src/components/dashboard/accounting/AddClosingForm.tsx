@@ -29,6 +29,42 @@ const AddClosingForm = ({ onBack }: AddClosingFormProps) => {
   const [lookupResult, setLookupResult] = useState<{ city: string; state: string; zip: string; annual_taxes: number; owner_name: string } | null>(null);
   const [lookupLoading, setLookupLoading] = useState(false);
   const lookupTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [googleApiKey, setGoogleApiKey] = useState<string>("");
+
+  useEffect(() => {
+    let cancelled = false;
+    supabase.functions.invoke("get-google-maps-key").then(({ data, error }) => {
+      if (!cancelled && !error && data?.apiKey) setGoogleApiKey(data.apiKey);
+    });
+    return () => { cancelled = true; };
+  }, []);
+
+  const handleGooglePlaceSelect = (fullAddress: string) => {
+    const place = (typeof window !== "undefined" ? (window as any).__lastGooglePlace : null) as
+      | { address_components?: Array<{ long_name: string; short_name: string; types: string[] }> }
+      | null;
+    const comps = place?.address_components || [];
+    const get = (type: string, useShort = false) => {
+      const c = comps.find(x => x.types.includes(type));
+      return c ? (useShort ? c.short_name : c.long_name) : "";
+    };
+    const streetNumber = get("street_number");
+    const route = get("route");
+    const street = [streetNumber, route].filter(Boolean).join(" ").trim();
+    const city = get("locality") || get("sublocality") || get("postal_town") || get("administrative_area_level_3");
+    const state = get("administrative_area_level_1", true);
+    const zip = get("postal_code");
+
+    setForm(prev => ({
+      ...prev,
+      property_address: street || fullAddress,
+      city: city || prev.city,
+      state: state || prev.state,
+      zip: zip || prev.zip,
+    }));
+    setAddressQuery(street || fullAddress);
+    setShowSuggestions(false);
+  };
 
   // Query clients for address autocomplete
   const { data: clientSuggestions = [] } = useQuery({
