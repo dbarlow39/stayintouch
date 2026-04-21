@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { useAgentsList } from "./useAgentsList";
+import { GooglePlacesAddressInput } from "@/components/dashboard/residential/GooglePlacesAddressInput";
 
 interface AddClosingFormProps {
   onBack: () => void;
