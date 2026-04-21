@@ -643,7 +643,7 @@ Deno.serve(async (req) => {
                     for (const agent of connectedAgents) {
                       const isAdmin = adminSet.has(agent.agent_id);
                       if (!isAdmin) {
-                        const agentMlsId = (mlsIdMap.get(agent.agent_id) || '').trim();
+                        const agentMlsId = String(mlsIdMap.get(agent.agent_id) || '').trim();
                         if (!agentMlsId || !listingAgentMlsId || agentMlsId !== listingAgentMlsId) {
                           continue; // Skip — not their listing
                         }
