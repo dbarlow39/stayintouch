@@ -233,11 +233,8 @@ Deno.serve(async (req) => {
         ? statusParam.map((s: string) => s.toLowerCase())
         : [statusParam.toLowerCase()];
 
-      const matchedIds: string[] = [];
       const perPage = 1000;
       const scanFields = 'ListOfficeMlsId,MlsStatus';
-      let startPage = 1;
-      let scanDone = false;
       const SCAN_PARALLEL = 2;
 
       // Helper: fetch with retry on 429
@@ -255,43 +252,6 @@ Deno.serve(async (req) => {
         return new Response(null, { status: 429 });
       }
 
-      while (matchedIds.length < wantedCount && !scanDone && startPage <= 20) {
-        const pages = Array.from({ length: SCAN_PARALLEL }, (_, i) => startPage + i).filter(p => p <= 20);
-        const results = await Promise.all(
-          pages.map(async p => {
-            const url = `${baseUrl}/listings?_limit=${perPage}&_page=${p}&_select=${scanFields}`;
-            const r = await fetchWithRetry(url, { method: 'GET', headers: sparkHeaders });
-            if (!r.ok) {
-              const body = await r.text().catch(() => '');
-              throw new Error(`Scan page ${p} failed with HTTP ${r.status}${body ? `: ${body}` : ''}`);
-            }
-            return r.json();
-          })
-        );
-
-        for (const [idx, pageData] of results.entries()) {
-          const pageListings = pageData?.D?.Results || [];
-          if (pageListings.length === 0) { scanDone = true; break; }
-
-          for (const item of pageListings) {
-            const sf = item.StandardFields || {};
-            const isOffice = !officeId || String(sf.ListOfficeMlsId).trim() === String(officeId).trim();
-            const status = (sf.MlsStatus || '').toLowerCase();
-            const statusMatch = desiredStatuses.some(ds => status === ds || status.startsWith(ds + ' '));
-            if (isOffice && statusMatch) {
-              matchedIds.push(item.Id);
-              if (matchedIds.length >= wantedCount) { scanDone = true; break; }
-            }
-          }
-          console.log(`Scan page ${pages[idx]}: ${pageListings.length} listings, ${matchedIds.length} matched`);
-          if (pageListings.length < perPage) { scanDone = true; break; }
-          if (scanDone) break;
-        }
-        startPage += SCAN_PARALLEL;
-      }
-
-      console.log(`Found ${matchedIds.length} active listings for office ${officeId}`);
-
       const propertyTypeMap: Record<string, string> = {
         'A': 'Residential', 'B': 'Multi-Family', 'C': 'Commercial',
         'D': 'Lots & Land', 'E': 'Rental', 'F': 'Farm & Ranch',
@@ -299,40 +259,126 @@ Deno.serve(async (req) => {
       };
 
       const BATCH = 20;
-      const transformed: any[] = [];
 
-      for (let i = 0; i < matchedIds.length; i += BATCH) {
-        const batch = matchedIds.slice(i, i + BATCH);
-        const results = await Promise.all(
-          batch.map(async id => {
-            const detailUrl = `${baseUrl}/listings/${id}?_select=${allDetailFields}&_expand=Photos`;
-            const r = await fetchWithRetry(detailUrl, { method: 'GET', headers: sparkHeaders });
-            if (!r.ok) {
-              const body = await r.text().catch(() => '');
-              throw new Error(`Detail fetch failed for listing ${id} with HTTP ${r.status}${body ? `: ${body}` : ''}`);
-            }
-            return r.json();
-          })
-        );
-        for (const [resultIndex, detailData] of results.entries()) {
-          const item = detailData?.D?.Results?.[0];
-          if (!item) {
-            throw new Error(`Detail fetch returned no listing payload for ${batch[resultIndex]}`);
-          }
+      // Encapsulated full sync (scan + detail fetch). Throws on any HTTP/payload failure.
+      async function performFullSync(label: string): Promise<any[]> {
+        const matchedIds: string[] = [];
+        let startPage = 1;
+        let scanDone = false;
 
-          const photos: string[] = [];
-          const sf = item.StandardFields || {};
-          if (sf.Photos && Array.isArray(sf.Photos)) {
-            for (const p of sf.Photos) {
-              const u = p.Uri1600 || p.Uri800 || p.Uri640 || p.UriLarge || p.Uri || '';
-              if (u) photos.push(u);
+        while (matchedIds.length < wantedCount && !scanDone && startPage <= 20) {
+          const pages = Array.from({ length: SCAN_PARALLEL }, (_, i) => startPage + i).filter(p => p <= 20);
+          const results = await Promise.all(
+            pages.map(async p => {
+              const url = `${baseUrl}/listings?_limit=${perPage}&_page=${p}&_select=${scanFields}`;
+              const r = await fetchWithRetry(url, { method: 'GET', headers: sparkHeaders });
+              if (!r.ok) {
+                const body = await r.text().catch(() => '');
+                throw new Error(`[${label}] Scan page ${p} failed with HTTP ${r.status}${body ? `: ${body}` : ''}`);
+              }
+              return r.json();
+            })
+          );
+
+          for (const [idx, pageData] of results.entries()) {
+            const pageListings = pageData?.D?.Results || [];
+            if (pageListings.length === 0) { scanDone = true; break; }
+
+            for (const item of pageListings) {
+              const sf = item.StandardFields || {};
+              const isOffice = !officeId || String(sf.ListOfficeMlsId).trim() === String(officeId).trim();
+              const status = (sf.MlsStatus || '').toLowerCase();
+              const statusMatch = desiredStatuses.some(ds => status === ds || status.startsWith(ds + ' '));
+              if (isOffice && statusMatch) {
+                matchedIds.push(item.Id);
+                if (matchedIds.length >= wantedCount) { scanDone = true; break; }
+              }
             }
+            console.log(`[${label}] Scan page ${pages[idx]}: ${pageListings.length} listings, ${matchedIds.length} matched`);
+            if (pageListings.length < perPage) { scanDone = true; break; }
+            if (scanDone) break;
           }
-          transformed.push(transformListing(item, photos, { PropertyType: propertyTypeMap }));
+          startPage += SCAN_PARALLEL;
         }
+
+        console.log(`[${label}] Found ${matchedIds.length} active listings for office ${officeId}`);
+
+        const out: any[] = [];
+        for (let i = 0; i < matchedIds.length; i += BATCH) {
+          const batch = matchedIds.slice(i, i + BATCH);
+          const results = await Promise.all(
+            batch.map(async id => {
+              const detailUrl = `${baseUrl}/listings/${id}?_select=${allDetailFields}&_expand=Photos`;
+              const r = await fetchWithRetry(detailUrl, { method: 'GET', headers: sparkHeaders });
+              if (!r.ok) {
+                const body = await r.text().catch(() => '');
+                throw new Error(`[${label}] Detail fetch failed for listing ${id} with HTTP ${r.status}${body ? `: ${body}` : ''}`);
+              }
+              return r.json();
+            })
+          );
+          for (const [resultIndex, detailData] of results.entries()) {
+            const item = detailData?.D?.Results?.[0];
+            if (!item) {
+              throw new Error(`[${label}] Detail fetch returned no listing payload for ${batch[resultIndex]}`);
+            }
+
+            const photos: string[] = [];
+            const sf = item.StandardFields || {};
+            if (sf.Photos && Array.isArray(sf.Photos)) {
+              for (const p of sf.Photos) {
+                const u = p.Uri1600 || p.Uri800 || p.Uri640 || p.UriLarge || p.Uri || '';
+                if (u) photos.push(u);
+              }
+            }
+            out.push(transformListing(item, photos, { PropertyType: propertyTypeMap }));
+          }
+        }
+
+        console.log(`[${label}] Fetched details for ${out.length} listings`);
+        return out;
       }
 
-      console.log(`Fetched details for ${transformed.length} listings`);
+      // First scan
+      const transformed = await performFullSync('scan-1');
+
+      // Confirmation re-scan: only when count drops vs. cached snapshot.
+      // If the two scans disagree on the MLS-ID set, abort to avoid acting on a partial download.
+      try {
+        const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+        const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+        const dbHeadersCheck = {
+          'Content-Type': 'application/json',
+          'apikey': serviceKey,
+          'Authorization': `Bearer ${serviceKey}`,
+        };
+        const cacheRes = await fetch(`${supabaseUrl}/rest/v1/listings_cache?id=eq.current&select=listings`, {
+          headers: dbHeadersCheck,
+        });
+        let cachedCount = 0;
+        if (cacheRes.ok) {
+          const cacheData = await cacheRes.json();
+          if (Array.isArray(cacheData?.[0]?.listings)) cachedCount = cacheData[0].listings.length;
+        }
+
+        if (cachedCount > 0 && transformed.length < cachedCount) {
+          console.log(`[verify] Count dropped (${transformed.length} < ${cachedCount}). Running confirmation re-scan...`);
+          const confirm = await performFullSync('scan-2');
+          const setA = new Set(transformed.map((l: any) => l.mlsNumber));
+          const setB = new Set(confirm.map((l: any) => l.mlsNumber));
+          const sameSize = setA.size === setB.size;
+          const sameMembers = sameSize && [...setA].every(id => setB.has(id));
+          if (!sameMembers) {
+            const onlyInA = [...setA].filter(id => !setB.has(id));
+            const onlyInB = [...setB].filter(id => !setA.has(id));
+            throw new Error(`[verify] Confirmation re-scan disagrees with first scan. scan-1=${setA.size}, scan-2=${setB.size}, only-in-1=${JSON.stringify(onlyInA)}, only-in-2=${JSON.stringify(onlyInB)}. Aborting to avoid acting on a partial download.`);
+          }
+          console.log(`[verify] Confirmation re-scan matches first scan (${setA.size} listings). Proceeding.`);
+        }
+      } catch (verifyErr) {
+        console.error('[verify] Aborting sync:', verifyErr);
+        throw verifyErr;
+      }
 
       // Log sync timestamp, detect changes, cache listings, and notify
       try {
