@@ -288,18 +288,33 @@ const AddClosingForm = ({ onBack }: AddClosingFormProps) => {
               </Select>
             </div>
             <div className="space-y-2 relative" ref={suggestionsRef}>
-              <Label>Property Address *</Label>
-              <Input
-                value={form.property_address}
-                onChange={e => {
-                  update("property_address", e.target.value);
-                  setAddressQuery(e.target.value);
-                  setShowSuggestions(true);
-                }}
-                onFocus={() => { if (clientSuggestions.length > 0 || lookupResult) setShowSuggestions(true); }}
-                placeholder="123 Main St"
-                autoComplete="off"
-              />
+              <Label htmlFor="closing_property_address">Property Address *</Label>
+              {googleApiKey ? (
+                <GooglePlacesAddressInput
+                  id="closing_property_address"
+                  apiKey={googleApiKey}
+                  value={form.property_address}
+                  onChange={(v) => {
+                    update("property_address", v);
+                    setAddressQuery(v);
+                    setShowSuggestions(true);
+                  }}
+                  onAddressSelect={handleGooglePlaceSelect}
+                />
+              ) : (
+                <Input
+                  id="closing_property_address"
+                  value={form.property_address}
+                  onChange={e => {
+                    update("property_address", e.target.value);
+                    setAddressQuery(e.target.value);
+                    setShowSuggestions(true);
+                  }}
+                  onFocus={() => { if (clientSuggestions.length > 0 || lookupResult) setShowSuggestions(true); }}
+                  placeholder="123 Main St"
+                  autoComplete="off"
+                />
+              )}
               {showSuggestions && (clientSuggestions.length > 0 || lookupResult || lookupLoading) && (
                 <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-popover border rounded-md shadow-lg max-h-48 overflow-y-auto">
                   {clientSuggestions.length > 0 ? (
