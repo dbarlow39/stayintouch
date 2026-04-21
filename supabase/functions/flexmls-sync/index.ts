@@ -257,24 +257,20 @@ Deno.serve(async (req) => {
 
       while (matchedIds.length < wantedCount && !scanDone && startPage <= 20) {
         const pages = Array.from({ length: SCAN_PARALLEL }, (_, i) => startPage + i).filter(p => p <= 20);
-        const results = await Promise.allSettled(
+        const results = await Promise.all(
           pages.map(async p => {
             const url = `${baseUrl}/listings?_limit=${perPage}&_page=${p}&_select=${scanFields}`;
             const r = await fetchWithRetry(url, { method: 'GET', headers: sparkHeaders });
             if (!r.ok) {
-              console.log(`Scan page ${p} HTTP ${r.status}`);
-              return null;
+              const body = await r.text().catch(() => '');
+              throw new Error(`Scan page ${p} failed with HTTP ${r.status}${body ? `: ${body}` : ''}`);
             }
             return r.json();
           })
         );
 
-        for (const [idx, r] of results.entries()) {
-          if (r.status !== 'fulfilled' || !r.value) {
-            console.log(`Scan page ${pages[idx]} failed or returned null, skipping`);
-            continue; // Skip failed pages instead of aborting entire scan
-          }
-          const pageListings = r.value?.D?.Results || [];
+        for (const [idx, pageData] of results.entries()) {
+          const pageListings = pageData?.D?.Results || [];
           if (pageListings.length === 0) { scanDone = true; break; }
 
           for (const item of pageListings) {
@@ -307,27 +303,32 @@ Deno.serve(async (req) => {
 
       for (let i = 0; i < matchedIds.length; i += BATCH) {
         const batch = matchedIds.slice(i, i + BATCH);
-        const results = await Promise.allSettled(
-          batch.map(id =>
-            fetchWithRetry(`${baseUrl}/listings/${id}?_select=${allDetailFields}&_expand=Photos`, { method: 'GET', headers: sparkHeaders })
-              .then(r => r.ok ? r.json() : null)
-          )
+        const results = await Promise.all(
+          batch.map(async id => {
+            const detailUrl = `${baseUrl}/listings/${id}?_select=${allDetailFields}&_expand=Photos`;
+            const r = await fetchWithRetry(detailUrl, { method: 'GET', headers: sparkHeaders });
+            if (!r.ok) {
+              const body = await r.text().catch(() => '');
+              throw new Error(`Detail fetch failed for listing ${id} with HTTP ${r.status}${body ? `: ${body}` : ''}`);
+            }
+            return r.json();
+          })
         );
-        for (const r of results) {
-          if (r.status === 'fulfilled' && r.value) {
-            const item = r.value?.D?.Results?.[0];
-            if (item) {
-              const photos: string[] = [];
-              const sf = item.StandardFields || {};
-              if (sf.Photos && Array.isArray(sf.Photos)) {
-                for (const p of sf.Photos) {
-                  const u = p.Uri1600 || p.Uri800 || p.Uri640 || p.UriLarge || p.Uri || '';
-                  if (u) photos.push(u);
-                }
-              }
-              transformed.push(transformListing(item, photos, { PropertyType: propertyTypeMap }));
+        for (const [resultIndex, detailData] of results.entries()) {
+          const item = detailData?.D?.Results?.[0];
+          if (!item) {
+            throw new Error(`Detail fetch returned no listing payload for ${batch[resultIndex]}`);
+          }
+
+          const photos: string[] = [];
+          const sf = item.StandardFields || {};
+          if (sf.Photos && Array.isArray(sf.Photos)) {
+            for (const p of sf.Photos) {
+              const u = p.Uri1600 || p.Uri800 || p.Uri640 || p.UriLarge || p.Uri || '';
+              if (u) photos.push(u);
             }
           }
+          transformed.push(transformListing(item, photos, { PropertyType: propertyTypeMap }));
         }
       }
 
@@ -642,7 +643,7 @@ Deno.serve(async (req) => {
                     for (const agent of connectedAgents) {
                       const isAdmin = adminSet.has(agent.agent_id);
                       if (!isAdmin) {
-                        const agentMlsId = (mlsIdMap.get(agent.agent_id) || '').trim();
+                        const agentMlsId = String(mlsIdMap.get(agent.agent_id) || '').trim();
                         if (!agentMlsId || !listingAgentMlsId || agentMlsId !== listingAgentMlsId) {
                           continue; // Skip — not their listing
                         }
@@ -796,28 +797,19 @@ Deno.serve(async (req) => {
           body: JSON.stringify({ sync_type: 'mls_listings', record_count: transformed.length }),
         });
 
-        // Safety guard: don't overwrite cache if new count is drastically lower than previous
-        const prevCount = previousListings.length;
-        const newCount = transformed.length;
-        const shouldUpdateCache = prevCount === 0 || newCount >= Math.floor(prevCount * 0.5);
-
-        if (shouldUpdateCache) {
-          // Update listings cache
-          await fetch(`${supabaseUrl}/rest/v1/listings_cache?id=eq.current`, {
-            method: 'DELETE',
-            headers: { ...dbHeaders, 'Prefer': 'return=minimal' },
-          });
-          await fetch(`${supabaseUrl}/rest/v1/listings_cache`, {
-            method: 'POST',
-            headers: { ...dbHeaders, 'Prefer': 'return=minimal' },
-            body: JSON.stringify({ id: 'current', listings: transformed, updated_at: new Date().toISOString() }),
-          });
-          console.log('Listings cache updated with', newCount, 'listings');
-        } else {
-          console.log(`SKIPPED cache update: new count (${newCount}) is too low vs previous (${prevCount}). Possible API issue.`);
-        }
+        // Update listings cache with the verified-complete snapshot
+        await fetch(`${supabaseUrl}/rest/v1/listings_cache?id=eq.current`, {
+          method: 'DELETE',
+          headers: { ...dbHeaders, 'Prefer': 'return=minimal' },
+        });
+        await fetch(`${supabaseUrl}/rest/v1/listings_cache`, {
+          method: 'POST',
+          headers: { ...dbHeaders, 'Prefer': 'return=minimal' },
+          body: JSON.stringify({ id: 'current', listings: transformed, updated_at: new Date().toISOString() }),
+        });
+        console.log('Listings cache updated with', transformed.length, 'listings');
       } catch (e) {
-        console.log('Failed to log sync:', e);
+        console.log('Failed to finalize sync:', e);
       }
 
       return new Response(
