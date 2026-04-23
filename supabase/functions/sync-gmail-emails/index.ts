@@ -782,6 +782,44 @@ async function syncAgentEmails(
       if (!insertError && insertedEmail) {
         processedEmails.push(emailLog);
 
+        // ─── AUTO-EMAIL TRIGGER REGISTRY ───────────────────────────────────
+        // For each new email, check against keyword triggers. Each trigger
+        // invokes its own edge function fire-and-forget. To add a new trigger
+        // (e.g. "INSPECTION SCHEDULED"), add an entry below + create the
+        // corresponding edge function. Keep this section minimal — the
+        // invoked function does all parsing/validation/sending.
+        try {
+          const subjectUpper = subject.toUpperCase();
+          const autoTriggers: Array<{ keyword: string; functionName: string }> = [
+            { keyword: "APPRAISAL CONFIRMED", functionName: "auto-send-appraisal-confirmed" },
+          ];
+          for (const trigger of autoTriggers) {
+            if (subjectUpper.includes(trigger.keyword)) {
+              const fullBody = decodeBody(msg);
+              const triggerUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/${trigger.functionName}`;
+              // Fire-and-forget; do not await to avoid blocking sync
+              fetch(triggerUrl, {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+                },
+                body: JSON.stringify({
+                  agent_id: effectiveAgentId,
+                  gmail_message_id: msg.id,
+                  subject,
+                  from_email: fromEmail,
+                  received_at: receivedAt,
+                  raw_body: fullBody,
+                }),
+              }).catch((err) => console.error(`[auto-trigger ${trigger.functionName}] invoke error:`, err));
+              console.log(`[auto-trigger] Invoked ${trigger.functionName} for message ${msg.id}`);
+            }
+          }
+        } catch (autoErr) {
+          console.error("[auto-trigger] Error in trigger registry:", autoErr);
+        }
+
         // Only store feedback for "FEEDBACK RECEIVED" emails, not "SHOWING CONFIRMED"
         // SHOWING CONFIRMED emails are still used to extract showing counts
         const isFeedbackEmail = subject.toUpperCase().includes('FEEDBACK RECEIVED');
