@@ -207,6 +207,42 @@ export type Database = {
         }
         Relationships: []
       }
+      buyers_guide_requests: {
+        Row: {
+          buying_timeframe: string | null
+          created_at: string
+          email: string
+          id: string
+          inquirer_ip: string | null
+          mls_id: string | null
+          name: string
+          phone: string | null
+          property_street: string | null
+        }
+        Insert: {
+          buying_timeframe?: string | null
+          created_at?: string
+          email: string
+          id?: string
+          inquirer_ip?: string | null
+          mls_id?: string | null
+          name: string
+          phone?: string | null
+          property_street?: string | null
+        }
+        Update: {
+          buying_timeframe?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          inquirer_ip?: string | null
+          mls_id?: string | null
+          name?: string
+          phone?: string | null
+          property_street?: string | null
+        }
+        Relationships: []
+      }
       check_number_counter: {
         Row: {
           id: string
