@@ -1417,6 +1417,48 @@ export type Database = {
         }
         Relationships: []
       }
+      listing_inquiries: {
+        Row: {
+          created_at: string
+          id: string
+          inquirer_email: string | null
+          inquirer_ip: string | null
+          inquirer_name: string
+          inquirer_phone: string | null
+          listing_agent_email: string | null
+          listing_agent_name: string | null
+          mls_id: string | null
+          property_street: string | null
+          requested_date: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          inquirer_email?: string | null
+          inquirer_ip?: string | null
+          inquirer_name: string
+          inquirer_phone?: string | null
+          listing_agent_email?: string | null
+          listing_agent_name?: string | null
+          mls_id?: string | null
+          property_street?: string | null
+          requested_date?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          inquirer_email?: string | null
+          inquirer_ip?: string | null
+          inquirer_name?: string
+          inquirer_phone?: string | null
+          listing_agent_email?: string | null
+          listing_agent_name?: string | null
+          mls_id?: string | null
+          property_street?: string | null
+          requested_date?: string | null
+        }
+        Relationships: []
+      }
       listings_cache: {
         Row: {
           id: string

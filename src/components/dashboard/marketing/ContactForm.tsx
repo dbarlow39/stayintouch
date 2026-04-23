@@ -10,11 +10,14 @@ import { supabase } from '@/integrations/supabase/client';
 interface ContactFormProps {
   address: string;
   agentName: string;
+  agentEmail?: string;
+  mlsId?: string;
+  streetName?: string;
 }
 
 const COOLDOWN_MS = 60_000; // 1 minute between submissions
 
-const ContactForm = ({ address, agentName }: ContactFormProps) => {
+const ContactForm = ({ address, agentName, agentEmail, mlsId, streetName }: ContactFormProps) => {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -72,6 +75,11 @@ const ContactForm = ({ address, agentName }: ContactFormProps) => {
           message,
           address,
           agentName,
+          mlsId: mlsId || '',
+          streetName: streetName || address.split(',')[0]?.trim() || '',
+          listingAgentName: agentName || '',
+          listingAgentEmail: agentEmail || '',
+          preferredDate: '',
         },
       });
 
