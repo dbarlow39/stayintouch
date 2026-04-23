@@ -146,7 +146,7 @@ const ContactForm = ({ address, agentName, agentEmail, mlsId, streetName }: Cont
         />
       </div>
       <div className="space-y-2">
-        <Label htmlFor="contact-message">Message</Label>
+        <Label htmlFor="contact-message">Preferred Day and Time</Label>
         <Textarea
           id="contact-message"
           value={formData.message}
