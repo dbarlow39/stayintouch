@@ -923,7 +923,13 @@ const ListingDetail = () => {
                 </a>
               )}
               <Separator className="my-4" />
-              <ContactForm address={listing.address} agentName={listing.agent.name} />
+              <ContactForm
+                address={listing.address}
+                agentName={listing.agent.name}
+                agentEmail={listing.agent.email}
+                mlsId={listing.mlsNumber || id || ''}
+                streetName={listing.address}
+              />
             </div>
           </div>
         </div>
