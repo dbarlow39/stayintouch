@@ -97,18 +97,18 @@ const PhotoGallery = ({ photos, address }: PhotoGalleryProps) => {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="absolute left-4 top-1/2 -translate-y-1/2 text-white hover:bg-white/20 h-12 w-12"
+                  className="absolute left-6 top-1/2 -translate-y-1/2 text-white bg-black/60 hover:bg-black/80 hover:text-white h-16 w-16 rounded-full shadow-lg ring-2 ring-white/40"
                   onClick={(e) => { e.stopPropagation(); prev(); }}
                 >
-                  <ChevronLeft className="w-8 h-8" />
+                  <ChevronLeft className="!w-10 !h-10" strokeWidth={3} />
                 </Button>
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-white hover:bg-white/20 h-12 w-12"
+                  className="absolute right-6 top-1/2 -translate-y-1/2 text-white bg-black/60 hover:bg-black/80 hover:text-white h-16 w-16 rounded-full shadow-lg ring-2 ring-white/40"
                   onClick={(e) => { e.stopPropagation(); next(); }}
                 >
-                  <ChevronRight className="w-8 h-8" />
+                  <ChevronRight className="!w-10 !h-10" strokeWidth={3} />
                 </Button>
               </>
             )}
