@@ -91,7 +91,8 @@ Deno.serve(async (req) => {
         <hr style="border:none;border-top:1px solid #eee;margin:28px 0;" />
         <p style="font-size:13px;color:#888;margin:0;">
           Thanks,<br/>
-          <strong>Dave & Jaime Barlow</strong><br/>
+          <strong>Jaime Barlow</strong><br/>
+          614-493-8541<br/>
           Sell For 1 Percent · Columbus, OH<br/>
           <a href="https://sellfor1percent.com" style="color:#8B0000;">sellfor1percent.com</a>
         </p>
