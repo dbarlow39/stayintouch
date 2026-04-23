@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { Send, Loader2 } from 'lucide-react';
+import { Send, Loader2, CalendarHeart } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
 interface ContactFormProps {
@@ -110,7 +110,12 @@ const ContactForm = ({ address, agentName, agentEmail, mlsId, streetName }: Cont
         />
       </div>
 
-      <h3 className="text-lg font-semibold">Schedule a Showing</h3>
+      <div className="flex items-center gap-2 pb-2 border-b-2" style={{ borderColor: '#8B0000' }}>
+        <CalendarHeart className="w-7 h-7" style={{ color: '#8B0000' }} />
+        <h3 className="text-2xl font-bold tracking-tight" style={{ color: '#8B0000' }}>
+          Schedule a Showing
+        </h3>
+      </div>
       <div className="space-y-2">
         <Label htmlFor="contact-name">Full Name</Label>
         <Input
