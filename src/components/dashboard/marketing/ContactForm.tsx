@@ -159,7 +159,7 @@ const ContactForm = ({ address, agentName, agentEmail, mlsId, streetName }: Cont
         {isSending ? (
           <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Sending...</>
         ) : (
-          <><Send className="w-4 h-4 mr-2" /> Send Inquiry to {agentName}</>
+          <><Send className="w-4 h-4 mr-2" /> Submit Your Showing Request</>
         )}
       </Button>
     </form>
