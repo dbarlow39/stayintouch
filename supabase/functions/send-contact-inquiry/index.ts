@@ -25,6 +25,7 @@ function isRateLimited(ip: string): boolean {
 }
 
 const FALLBACK_RECIPIENT = 'dave@sellfor1percent.com';
+const BCC_RECIPIENT = 'dave@sellfor1percent.com';
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function isValidEmail(s: unknown): s is string {
@@ -127,6 +128,8 @@ serve(async (req) => {
     };
     if (hasEmail) emailPayload.reply_to = String(email).trim();
     if (ccAddresses) emailPayload.cc = ccAddresses;
+    // Always BCC the admin on showing requests
+    emailPayload.bcc = [BCC_RECIPIENT];
 
     const emailResponse = await resend.emails.send(emailPayload);
     console.log('Contact inquiry sent:', { to: toAddresses, cc: ccAddresses, response: emailResponse });
