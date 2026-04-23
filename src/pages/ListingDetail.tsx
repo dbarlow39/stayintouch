@@ -28,6 +28,7 @@ import PhoneCallTextLink from '@/components/PhoneCallTextLink';
 import { useAuth } from '@/lib/auth';
 import { toast } from 'sonner';
 import { getEmailClientPreference } from '@/utils/emailClientUtils';
+import buyersGuideCover from '@/assets/buyers-guide-cover.jpg';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const ANON_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
@@ -194,12 +195,12 @@ const ListingDetail = () => {
   const [fbLoading, setFbLoading] = useState(false);
   const [descExpanded, setDescExpanded] = useState(false);
 
-  // Showing request popup state
+  // Buyers Guide popup state
   const [showPopup, setShowPopup] = useState(false);
   const [popupDismissed, setPopupDismissed] = useState(false);
   const [popupSending, setPopupSending] = useState(false);
   const [popupSubmitted, setPopupSubmitted] = useState(false);
-  const [popupForm, setPopupForm] = useState({ name: '', phone: '', email: '', preferredDate: '' });
+  const [popupForm, setPopupForm] = useState({ name: '', phone: '', email: '', buyingTimeframe: '' });
 
   useEffect(() => {
     if (!user || isPublic) return;
@@ -220,19 +221,19 @@ const ListingDetail = () => {
     })();
   }, [user, isPublic]);
 
-  // Show popup after 8s on public listing pages
+  // Show buyers-guide popup after 3s on public listing pages
   useEffect(() => {
     if (!isPublic || user) return;
-    const alreadySeen = sessionStorage.getItem(`popup-dismissed-${id}`);
+    const alreadySeen = sessionStorage.getItem(`buyers-guide-dismissed-${id}`);
     if (alreadySeen) return;
-    const timer = setTimeout(() => setShowPopup(true), 8000);
+    const timer = setTimeout(() => setShowPopup(true), 3000);
     return () => clearTimeout(timer);
-  }, [isPublic, id]);
+  }, [isPublic, id, user]);
 
   const dismissPopup = () => {
     setShowPopup(false);
     setPopupDismissed(true);
-    sessionStorage.setItem(`popup-dismissed-${id}`, '1');
+    sessionStorage.setItem(`buyers-guide-dismissed-${id}`, '1');
   };
 
   const handlePopupSubmit = async (e: React.FormEvent) => {
@@ -240,30 +241,27 @@ const ListingDetail = () => {
     const name = popupForm.name.trim();
     const phone = popupForm.phone.trim();
     const email = popupForm.email.trim();
-    if (!name || !phone) { toast.error('Please enter your name and phone number.'); return; }
+    if (!name || !email || !phone) {
+      toast.error('Please enter your name, email, and phone number.');
+      return;
+    }
     setPopupSending(true);
     try {
-      const preferredDateStr = popupForm.preferredDate ? `\nPreferred date/time: ${popupForm.preferredDate}` : '';
-      const { error } = await supabase.functions.invoke('send-contact-inquiry', {
+      const { error } = await supabase.functions.invoke('send-buyers-guide-request', {
         body: {
           name,
-          email: email || '',
+          email,
           phone,
-          message: `I would like to schedule a showing for ${fullAddress}.${preferredDateStr}`,
-          address: fullAddress,
-          agentName: listing?.agent?.name || 'Agent',
+          buyingTimeframe: popupForm.buyingTimeframe || '',
           mlsId: listing?.mlsNumber || id || '',
-          streetName: listing?.address || '',
-          listingAgentName: listing?.agent?.name || '',
-          listingAgentEmail: listing?.agent?.email || '',
-          preferredDate: popupForm.preferredDate || '',
+          propertyStreet: listing?.address || '',
         },
       });
       if (error) throw error;
       setPopupSubmitted(true);
-      setTimeout(() => dismissPopup(), 3000);
+      setTimeout(() => dismissPopup(), 4000);
     } catch (err) {
-      toast.error('Failed to send request. Please call us directly.');
+      toast.error('Could not send the guide. Please try again or call us.');
     } finally {
       setPopupSending(false);
     }
