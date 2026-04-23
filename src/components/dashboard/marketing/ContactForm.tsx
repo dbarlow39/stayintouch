@@ -22,7 +22,7 @@ const ContactForm = ({ address, agentName, agentEmail, mlsId, streetName }: Cont
     name: '',
     email: '',
     phone: '',
-    message: `I'm interested in the property at ${address}. Please send me more information.`,
+    message: '',
   });
   const [honeypot, setHoneypot] = useState('');
   const [isSending, setIsSending] = useState(false);
