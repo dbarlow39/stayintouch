@@ -247,11 +247,16 @@ const ListingDetail = () => {
       const { error } = await supabase.functions.invoke('send-contact-inquiry', {
         body: {
           name,
-          email: email || 'not provided',
+          email: email || '',
           phone,
           message: `I would like to schedule a showing for ${fullAddress}.${preferredDateStr}`,
           address: fullAddress,
           agentName: listing?.agent?.name || 'Agent',
+          mlsId: listing?.mlsNumber || id || '',
+          streetName: listing?.address || '',
+          listingAgentName: listing?.agent?.name || '',
+          listingAgentEmail: listing?.agent?.email || '',
+          preferredDate: popupForm.preferredDate || '',
         },
       });
       if (error) throw error;
