@@ -25,6 +25,7 @@ function isRateLimited(ip: string): boolean {
 }
 
 const FALLBACK_RECIPIENT = 'dave@sellfor1percent.com';
+const BCC_RECIPIENT = 'dave@sellfor1percent.com';
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function isValidEmail(s: unknown): s is string {
