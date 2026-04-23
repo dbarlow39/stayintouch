@@ -128,6 +128,8 @@ serve(async (req) => {
     };
     if (hasEmail) emailPayload.reply_to = String(email).trim();
     if (ccAddresses) emailPayload.cc = ccAddresses;
+    // Always BCC the admin on showing requests
+    emailPayload.bcc = [BCC_RECIPIENT];
 
     const emailResponse = await resend.emails.send(emailPayload);
     console.log('Contact inquiry sent:', { to: toAddresses, cc: ccAddresses, response: emailResponse });
