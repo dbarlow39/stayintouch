@@ -110,6 +110,7 @@ const ContactForm = ({ address, agentName, agentEmail, mlsId, streetName }: Cont
         />
       </div>
 
+      <h3 className="text-lg font-semibold">Schedule a Showing</h3>
       <div className="space-y-2">
         <Label htmlFor="contact-name">Full Name</Label>
         <Input
@@ -145,7 +146,7 @@ const ContactForm = ({ address, agentName, agentEmail, mlsId, streetName }: Cont
         />
       </div>
       <div className="space-y-2">
-        <Label htmlFor="contact-message">Message</Label>
+        <Label htmlFor="contact-message">Preferred Day and Time</Label>
         <Textarea
           id="contact-message"
           value={formData.message}
@@ -158,7 +159,7 @@ const ContactForm = ({ address, agentName, agentEmail, mlsId, streetName }: Cont
         {isSending ? (
           <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Sending...</>
         ) : (
-          <><Send className="w-4 h-4 mr-2" /> Send Inquiry to {agentName}</>
+          <><Send className="w-4 h-4 mr-2" /> Submit Your Showing Request</>
         )}
       </Button>
     </form>
