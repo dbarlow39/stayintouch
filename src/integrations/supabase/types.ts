@@ -165,6 +165,48 @@ export type Database = {
           },
         ]
       }
+      auto_email_log: {
+        Row: {
+          agent_id: string
+          client_id: string | null
+          created_at: string
+          gmail_message_id: string
+          id: string
+          keyword: string
+          parsed_data: Json | null
+          reason: string | null
+          recipient_emails: string[] | null
+          source_subject: string | null
+          status: string
+        }
+        Insert: {
+          agent_id: string
+          client_id?: string | null
+          created_at?: string
+          gmail_message_id: string
+          id?: string
+          keyword: string
+          parsed_data?: Json | null
+          reason?: string | null
+          recipient_emails?: string[] | null
+          source_subject?: string | null
+          status: string
+        }
+        Update: {
+          agent_id?: string
+          client_id?: string | null
+          created_at?: string
+          gmail_message_id?: string
+          id?: string
+          keyword?: string
+          parsed_data?: Json | null
+          reason?: string | null
+          recipient_emails?: string[] | null
+          source_subject?: string | null
+          status?: string
+        }
+        Relationships: []
+      }
       check_number_counter: {
         Row: {
           id: string
