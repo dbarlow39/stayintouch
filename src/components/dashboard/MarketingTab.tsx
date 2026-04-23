@@ -5,10 +5,11 @@ import MarketingListingCard from '@/components/dashboard/marketing/MarketingList
 import FacebookAdResultsDashboard from '@/components/dashboard/marketing/FacebookAdResultsDashboard';
 import AutoPostToggle from '@/components/dashboard/marketing/AutoPostToggle';
 import InquiriesDialog from '@/components/dashboard/marketing/InquiriesDialog';
+import BuyersGuideLeadsDialog from '@/components/dashboard/marketing/BuyersGuideLeadsDialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Building2, Search, RefreshCw, Download, Loader2, Wifi, WifiOff, ArrowUpDown, BarChart3, Inbox } from 'lucide-react';
+import { Building2, Search, RefreshCw, Download, Loader2, Wifi, WifiOff, ArrowUpDown, BarChart3, Inbox, BookOpen } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -20,6 +21,7 @@ const MarketingTab = () => {
   const [sortBy, setSortBy] = useState<string>('status-price');
   const [view, setView] = useState<'listings' | 'ad-results'>('listings');
   const [inquiriesOpen, setInquiriesOpen] = useState(false);
+  const [buyersGuideOpen, setBuyersGuideOpen] = useState(false);
   
 
   const [listings, setListings] = useState<MarketingListing[]>(mockMarketingListings);
@@ -137,11 +139,19 @@ const MarketingTab = () => {
           >
             <Inbox className="w-4 h-4 mr-1.5" /> Inquiries
           </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setBuyersGuideOpen(true)}
+          >
+            <BookOpen className="w-4 h-4 mr-1.5" /> Buyers Guide Leads
+          </Button>
         </div>
         <AutoPostToggle />
       </div>
 
       <InquiriesDialog open={inquiriesOpen} onOpenChange={setInquiriesOpen} />
+      <BuyersGuideLeadsDialog open={buyersGuideOpen} onOpenChange={setBuyersGuideOpen} />
 
       {view === 'ad-results' ? (
         <FacebookAdResultsDashboard />

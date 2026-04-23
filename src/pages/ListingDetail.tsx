@@ -934,99 +934,114 @@ const ListingDetail = () => {
       </main>
       </div>{/* end flex-1 */}
 
-      {/* Showing Request Popup — public site only */}
+      {/* Buyers Guide Popup — public site only */}
       {isPublic && showPopup && !popupDismissed && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 relative animate-in fade-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl relative animate-in fade-in zoom-in-95 duration-200 overflow-hidden">
             <button
               onClick={dismissPopup}
-              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
+              className="absolute top-3 right-3 z-10 bg-white/90 hover:bg-white rounded-full p-1.5 text-gray-500 hover:text-gray-800 shadow-sm transition-colors"
               aria-label="Close"
             >
               <X className="w-5 h-5" />
             </button>
 
             {popupSubmitted ? (
-              <div className="text-center py-6">
+              <div className="text-center py-12 px-6">
                 <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
                   <Check className="w-8 h-8 text-green-600" />
                 </div>
-                <h3 className="text-xl font-bold text-gray-900 mb-2">Request Sent!</h3>
-                <p className="text-gray-500">We'll be in touch shortly to confirm your showing.</p>
+                <h3 className="text-2xl font-bold text-gray-900 mb-2">Check your inbox!</h3>
+                <p className="text-gray-600 max-w-md mx-auto">
+                  Your 15-page Buyers Guide is on its way to <strong>{popupForm.email}</strong>.
+                  If you don't see it in a few minutes, check your spam folder.
+                </p>
               </div>
             ) : (
-              <>
-                <div className="flex items-center gap-3 mb-5">
-                  <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">
-                    <Calendar className="w-6 h-6 text-red-700" />
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-bold text-gray-900">Schedule a Showing</h3>
-                    <p className="text-sm text-gray-500">{listing.address}</p>
-                  </div>
+              <div className="grid md:grid-cols-2">
+                {/* Cover image */}
+                <div className="hidden md:block bg-gray-100">
+                  <img
+                    src={buyersGuideCover}
+                    alt="Things to Consider When Buying a Home — Spring 2026"
+                    className="w-full h-full object-cover"
+                  />
                 </div>
 
-                <p className="text-gray-600 text-sm mb-5">
-                  Interested in touring this home? Leave your info and we'll reach out to set up a time that works for you.
-                </p>
+                {/* Form */}
+                <div className="p-6 md:p-7">
+                  <p className="text-xs font-bold text-red-700 uppercase tracking-wider mb-1">Free 15-Page Guide</p>
+                  <h3 className="text-2xl font-bold text-gray-900 leading-tight mb-2">
+                    Things to Consider When Buying a Home
+                  </h3>
+                  <p className="text-sm text-gray-500 mb-4">Spring 2026 Edition</p>
+                  <p className="text-sm text-gray-600 mb-5 leading-relaxed">
+                    Get our complete buyers guide emailed to you instantly — covering financing,
+                    the home search, making an offer, inspections, and closing.
+                  </p>
 
-                <form onSubmit={handlePopupSubmit} className="space-y-3">
-                  <input
-                    type="text"
-                    placeholder="Your name *"
-                    value={popupForm.name}
-                    onChange={e => setPopupForm(p => ({ ...p, name: e.target.value }))}
-                    className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-700"
-                    required
-                    maxLength={100}
-                  />
-                  <input
-                    type="tel"
-                    placeholder="Phone number *"
-                    value={popupForm.phone}
-                    onChange={e => setPopupForm(p => ({ ...p, phone: e.target.value }))}
-                    className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-700"
-                    required
-                    maxLength={30}
-                  />
-                  <input
-                    type="email"
-                    placeholder="Email (optional)"
-                    value={popupForm.email}
-                    onChange={e => setPopupForm(p => ({ ...p, email: e.target.value }))}
-                    className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-700"
-                    maxLength={255}
-                  />
-                  <input
-                    type="text"
-                    placeholder="Preferred date & time (optional)"
-                    value={popupForm.preferredDate}
-                    onChange={e => setPopupForm(p => ({ ...p, preferredDate: e.target.value }))}
-                    className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-700"
-                    maxLength={100}
-                  />
+                  <form onSubmit={handlePopupSubmit} className="space-y-2.5">
+                    <input
+                      type="text"
+                      placeholder="Your name *"
+                      value={popupForm.name}
+                      onChange={e => setPopupForm(p => ({ ...p, name: e.target.value }))}
+                      className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-700"
+                      required
+                      maxLength={100}
+                    />
+                    <input
+                      type="email"
+                      placeholder="Email address *"
+                      value={popupForm.email}
+                      onChange={e => setPopupForm(p => ({ ...p, email: e.target.value }))}
+                      className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-700"
+                      required
+                      maxLength={255}
+                    />
+                    <input
+                      type="tel"
+                      placeholder="Phone number *"
+                      value={popupForm.phone}
+                      onChange={e => setPopupForm(p => ({ ...p, phone: e.target.value }))}
+                      className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-700"
+                      required
+                      maxLength={30}
+                    />
+                    <select
+                      value={popupForm.buyingTimeframe}
+                      onChange={e => setPopupForm(p => ({ ...p, buyingTimeframe: e.target.value }))}
+                      className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-700 bg-white text-gray-700"
+                    >
+                      <option value="">When are you looking to buy?</option>
+                      <option value="0-3 months">Within 3 months</option>
+                      <option value="3-6 months">3 to 6 months</option>
+                      <option value="6-12 months">6 to 12 months</option>
+                      <option value="Just researching">Just researching</option>
+                    </select>
 
-                  <button
-                    type="submit"
-                    disabled={popupSending}
-                    className="w-full bg-red-700 hover:bg-red-800 text-white font-semibold py-3 rounded-lg text-sm transition-colors flex items-center justify-center gap-2 disabled:opacity-60"
-                  >
-                    {popupSending ? (
-                      <><Loader2 className="w-4 h-4 animate-spin" /> Sending...</>
-                    ) : (
-                      <><Calendar className="w-4 h-4" /> Request a Showing</>
-                    )}
-                  </button>
+                    <button
+                      type="submit"
+                      disabled={popupSending}
+                      className="w-full bg-red-700 hover:bg-red-800 text-white font-semibold py-3 rounded-lg text-sm transition-colors flex items-center justify-center gap-2 disabled:opacity-60 mt-2"
+                    >
+                      {popupSending ? (
+                        <><Loader2 className="w-4 h-4 animate-spin" /> Sending...</>
+                      ) : (
+                        <>Email Me the Buyers Guide</>
+                      )}
+                    </button>
 
-                  <button
-                    type="button"
-                    onClick={dismissPopup}
-                    className="w-full text-sm text-gray-400 hover:text-gray-600 py-1 transition-colors"
-                  >
-                    No thanks, just browsing
-                  </button>
-                </form>
-              </>
+                    <button
+                      type="button"
+                      onClick={dismissPopup}
+                      className="w-full text-xs text-gray-400 hover:text-gray-600 py-1 transition-colors"
+                    >
+                      No thanks, just browsing
+                    </button>
+                  </form>
+                </div>
+              </div>
             )}
           </div>
         </div>
