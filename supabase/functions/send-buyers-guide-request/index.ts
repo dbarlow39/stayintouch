@@ -110,7 +110,7 @@ Deno.serve(async (req) => {
       body: JSON.stringify({
         from: 'Jaime Barlow <jaime@resend.sellfor1percent.com>',
         to: [email],
-        bcc: ['dave@sellfor1percent.com'],
+        bcc: ['dave@sellfor1percent.com', 'jaime@sellfor1percent.com'],
         reply_to: 'jaime@sellfor1percent.com',
         subject,
         html,
