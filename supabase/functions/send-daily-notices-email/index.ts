@@ -5,7 +5,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const APP_BASE_URL = "https://stayintouch.lovable.app";
+const APP_BASE_URL = "https://myrealestateoffice.ai";
 
 interface PropertyRow {
   id: string;
@@ -193,8 +193,26 @@ Deno.serve(async (req) => {
         propMap[it.propertyId].items.push(it);
       }
 
+      // Generate a magic link per property for auto sign-in, falling back to plain URL
+      const propIds = Object.keys(propMap);
+      const linkMap: Record<string, string> = {};
+      for (const pid of propIds) {
+        const target = `${APP_BASE_URL}/dashboard?tab=deals&propertyId=${pid}`;
+        try {
+          const { data: linkData, error: linkErr } = await (supabase as any).auth.admin.generateLink({
+            type: "magiclink",
+            email: recipient,
+            options: { redirectTo: target },
+          });
+          const url = linkData?.properties?.action_link || linkData?.action_link;
+          linkMap[pid] = linkErr || !url ? target : url;
+        } catch (_e) {
+          linkMap[pid] = target;
+        }
+      }
+
       const propertySections = Object.entries(propMap).map(([pid, info]) => {
-        const link = `${APP_BASE_URL}/dashboard?tab=deals&propertyId=${pid}`;
+        const link = linkMap[pid];
         const rows = info.items.map((it) => {
           const days = diffDays(it.dueDate, today);
           const overdue = days < 0;
@@ -204,7 +222,7 @@ Deno.serve(async (req) => {
               ? `<span style="background:#fef3c7;color:#92400e;padding:2px 8px;border-radius:4px;font-size:12px;font-weight:600;">Due Today</span>`
               : `<span style="background:#fef3c7;color:#92400e;padding:2px 8px;border-radius:4px;font-size:12px;font-weight:600;">Due in ${days}d</span>`;
           return `<tr>
-            <td style="padding:6px 12px 6px 0;color:#111;font-size:14px;">${it.label}</td>
+            <td style="padding:6px 12px 6px 0;font-size:14px;"><a href="${link}" style="color:#1d4ed8;text-decoration:none;">${it.label}</a></td>
             <td style="padding:6px 12px 6px 0;color:#555;font-size:13px;">${fmtDate(it.dueDate)}</td>
             <td style="padding:6px 0;">${badge}</td>
           </tr>`;
@@ -220,7 +238,7 @@ Deno.serve(async (req) => {
       }).join("");
 
       const html = `<!DOCTYPE html><html><body style="font-family:Arial,sans-serif;color:#111;max-width:640px;margin:0 auto;padding:20px;">
-        <h2 style="margin:0 0 4px 0;">📋 Working Deals Notices Due</h2>
+        <h2 style="margin:0 0 4px 0;">🚨 Working Deals Notices Due</h2>
         <p style="color:#666;margin:0 0 20px 0;font-size:14px;">${fmtDate(today)} — ${items.length} notice${items.length === 1 ? "" : "s"} need attention</p>
         ${propertySections}
         <p style="margin-top:24px;color:#111;font-size:14px;">Thanks,<br>${agentName}</p>
@@ -235,7 +253,7 @@ Deno.serve(async (req) => {
         body: JSON.stringify({
           from: `${agentName} via Sellfor1Percent.com <updates@resend.sellfor1percent.com>`,
           to: [recipient],
-          subject: "📋 Working Deals Notices Due",
+          subject: "🚨 Working Deals Notices Due",
           html,
         }),
       });
