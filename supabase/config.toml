@@ -104,3 +104,6 @@ verify_jwt = false
 
 [functions.download-mls-roster]
 verify_jwt = false
+
+[functions.send-daily-notices-email]
+verify_jwt = false
