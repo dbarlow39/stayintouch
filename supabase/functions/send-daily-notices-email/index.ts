@@ -194,11 +194,14 @@ Deno.serve(async (req) => {
       }
 
       // Generate ONE magic link per agent (multiple calls invalidate prior tokens),
-      // then swap the redirect_to query param per property to land on the right deal.
+      // then build per-property verify URLs using the hashed_token so each link can
+      // carry its own redirect_to (the action_link's redirect is locked at issue time).
       const propIds = Object.keys(propMap);
       const linkMap: Record<string, string> = {};
       const baseTarget = `${APP_BASE_URL}/dashboard?tab=deals`;
-      let baseActionLink: string | null = null;
+      let hashedToken: string | null = null;
+      let verificationType: string = "magiclink";
+      const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
       try {
         const { data: linkData, error: linkErr } = await (supabase as any).auth.admin.generateLink({
           type: "magiclink",
@@ -206,21 +209,28 @@ Deno.serve(async (req) => {
           options: { redirectTo: baseTarget },
         });
         if (!linkErr) {
-          baseActionLink = linkData?.properties?.action_link || linkData?.action_link || null;
+          hashedToken =
+            linkData?.properties?.hashed_token ||
+            linkData?.hashed_token ||
+            null;
+          verificationType =
+            linkData?.properties?.verification_type ||
+            linkData?.verification_type ||
+            "magiclink";
         }
       } catch (_e) {
-        baseActionLink = null;
+        hashedToken = null;
       }
       for (const pid of propIds) {
         const propTarget = `${APP_BASE_URL}/dashboard?tab=deals&propertyId=${pid}`;
-        if (baseActionLink) {
-          try {
-            const u = new URL(baseActionLink);
-            u.searchParams.set("redirect_to", propTarget);
-            linkMap[pid] = u.toString();
-          } catch {
-            linkMap[pid] = propTarget;
-          }
+        if (hashedToken) {
+          // Build our own verify URL so each property gets its own redirect_to
+          // while reusing the single valid one-time token.
+          const verifyUrl = new URL(`${SUPABASE_URL}/auth/v1/verify`);
+          verifyUrl.searchParams.set("token", hashedToken);
+          verifyUrl.searchParams.set("type", verificationType);
+          verifyUrl.searchParams.set("redirect_to", propTarget);
+          linkMap[pid] = verifyUrl.toString();
         } else {
           linkMap[pid] = propTarget;
         }
