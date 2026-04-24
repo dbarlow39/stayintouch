@@ -156,7 +156,7 @@ serve(async (req) => {
 
     } catch (err) {
       console.error("Facebook OAuth callback error:", err);
-      return Response.redirect(`${APP_URL}/dashboard?fb_error=unknown`, 302);
+      return Response.redirect(`${DEFAULT_APP_URL}/dashboard?fb_error=unknown`, 302);
     }
   }
 
