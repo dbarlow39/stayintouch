@@ -38,7 +38,17 @@ const Dashboard = () => {
   const [searchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState(() => searchParams.get("tab") || "clients");
   const [selectedClientForEstimate, setSelectedClientForEstimate] = useState<SelectedClientForEstimate | null>(null);
-  const [navigateToPropertyId, setNavigateToPropertyId] = useState<string | null>(null);
+  const [navigateToPropertyId, setNavigateToPropertyId] = useState<string | null>(
+    () => searchParams.get("propertyId")
+  );
+
+  // Handle direct links from emails (e.g. ?tab=deals&propertyId=...)
+  useEffect(() => {
+    const tab = searchParams.get("tab");
+    const propertyId = searchParams.get("propertyId");
+    if (tab) setActiveTab(tab);
+    if (propertyId) setNavigateToPropertyId(propertyId);
+  }, [searchParams]);
 
   const handleSelectClientForEstimate = (client: SelectedClientForEstimate) => {
     setSelectedClientForEstimate(client);
