@@ -193,21 +193,36 @@ Deno.serve(async (req) => {
         propMap[it.propertyId].items.push(it);
       }
 
-      // Generate a magic link per property for auto sign-in, falling back to plain URL
+      // Generate ONE magic link per agent (multiple calls invalidate prior tokens),
+      // then swap the redirect_to query param per property to land on the right deal.
       const propIds = Object.keys(propMap);
       const linkMap: Record<string, string> = {};
+      const baseTarget = `${APP_BASE_URL}/dashboard?tab=deals`;
+      let baseActionLink: string | null = null;
+      try {
+        const { data: linkData, error: linkErr } = await (supabase as any).auth.admin.generateLink({
+          type: "magiclink",
+          email: recipient,
+          options: { redirectTo: baseTarget },
+        });
+        if (!linkErr) {
+          baseActionLink = linkData?.properties?.action_link || linkData?.action_link || null;
+        }
+      } catch (_e) {
+        baseActionLink = null;
+      }
       for (const pid of propIds) {
-        const target = `${APP_BASE_URL}/dashboard?tab=deals&propertyId=${pid}`;
-        try {
-          const { data: linkData, error: linkErr } = await (supabase as any).auth.admin.generateLink({
-            type: "magiclink",
-            email: recipient,
-            options: { redirectTo: target },
-          });
-          const url = linkData?.properties?.action_link || linkData?.action_link;
-          linkMap[pid] = linkErr || !url ? target : url;
-        } catch (_e) {
-          linkMap[pid] = target;
+        const propTarget = `${APP_BASE_URL}/dashboard?tab=deals&propertyId=${pid}`;
+        if (baseActionLink) {
+          try {
+            const u = new URL(baseActionLink);
+            u.searchParams.set("redirect_to", propTarget);
+            linkMap[pid] = u.toString();
+          } catch {
+            linkMap[pid] = propTarget;
+          }
+        } else {
+          linkMap[pid] = propTarget;
         }
       }
 
