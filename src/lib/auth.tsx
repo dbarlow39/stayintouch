@@ -4,6 +4,20 @@ import { User, Session } from "@supabase/supabase-js";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
+const getSafeRedirectPath = () => {
+  const params = new URLSearchParams(window.location.search);
+  const redirect = params.get("redirect");
+
+  if (!redirect) return "/dashboard";
+
+  try {
+    const decoded = decodeURIComponent(redirect);
+    return decoded.startsWith("/") && !decoded.startsWith("//") ? decoded : "/dashboard";
+  } catch {
+    return "/dashboard";
+  }
+};
+
 interface AuthContextType {
   user: User | null;
   session: Session | null;
@@ -80,7 +94,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       });
       if (error) throw error;
       toast.success("Welcome back!");
-      navigate("/dashboard");
+      navigate(getSafeRedirectPath());
       return { error: null };
     } catch (error: any) {
       toast.error(error.message || "Failed to sign in");
@@ -116,7 +130,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/dashboard`,
+          redirectTo: `${window.location.origin}${getSafeRedirectPath()}`,
         },
       });
       if (error) throw error;

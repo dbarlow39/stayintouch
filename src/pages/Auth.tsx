@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,12 +12,31 @@ import { toast } from "sonner";
 import logo from "@/assets/logo.jpg";
 
 const Auth = () => {
-  const { signIn, signUp, signInWithGoogle } = useAuth();
+  const { signIn, signUp, signInWithGoogle, user, loading: authLoading } = useAuth();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
 
   const [signInData, setSignInData] = useState({ email: "", password: "" });
   const [signUpData, setSignUpData] = useState({ email: "", password: "", fullName: "", inviteCode: "" });
+
+  useEffect(() => {
+    if (authLoading || !user) return;
+
+    const redirect = searchParams.get("redirect");
+    if (!redirect) {
+      navigate("/dashboard", { replace: true });
+      return;
+    }
+
+    try {
+      const decoded = decodeURIComponent(redirect);
+      navigate(decoded.startsWith("/") && !decoded.startsWith("//") ? decoded : "/dashboard", { replace: true });
+    } catch {
+      navigate("/dashboard", { replace: true });
+    }
+  }, [authLoading, navigate, searchParams, user]);
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();

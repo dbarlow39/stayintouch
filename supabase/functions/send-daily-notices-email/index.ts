@@ -193,47 +193,10 @@ Deno.serve(async (req) => {
         propMap[it.propertyId].items.push(it);
       }
 
-      // Generate ONE magic link per agent (multiple calls invalidate prior tokens),
-      // then build per-property verify URLs using the hashed_token so each link can
-      // carry its own redirect_to (the action_link's redirect is locked at issue time).
       const propIds = Object.keys(propMap);
       const linkMap: Record<string, string> = {};
-      const baseTarget = `${APP_BASE_URL}/dashboard?tab=deals`;
-      let hashedToken: string | null = null;
-      let verificationType: string = "magiclink";
-      const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-      try {
-        const { data: linkData, error: linkErr } = await (supabase as any).auth.admin.generateLink({
-          type: "magiclink",
-          email: recipient,
-          options: { redirectTo: baseTarget },
-        });
-        if (!linkErr) {
-          hashedToken =
-            linkData?.properties?.hashed_token ||
-            linkData?.hashed_token ||
-            null;
-          verificationType =
-            linkData?.properties?.verification_type ||
-            linkData?.verification_type ||
-            "magiclink";
-        }
-      } catch (_e) {
-        hashedToken = null;
-      }
       for (const pid of propIds) {
-        const propTarget = `${APP_BASE_URL}/dashboard?tab=deals&propertyId=${pid}`;
-        if (hashedToken) {
-          // Build our own verify URL so each property gets its own redirect_to
-          // while reusing the single valid one-time token.
-          const verifyUrl = new URL(`${SUPABASE_URL}/auth/v1/verify`);
-          verifyUrl.searchParams.set("token", hashedToken);
-          verifyUrl.searchParams.set("type", verificationType);
-          verifyUrl.searchParams.set("redirect_to", propTarget);
-          linkMap[pid] = verifyUrl.toString();
-        } else {
-          linkMap[pid] = propTarget;
-        }
+        linkMap[pid] = `${APP_BASE_URL}/dashboard?tab=deals&propertyId=${pid}`;
       }
 
       const propertySections = Object.entries(propMap).map(([pid, info]) => {

@@ -83,7 +83,8 @@ const Dashboard = () => {
       // This is critical for custom domains where token refresh may be slower
       redirectTimerRef.current = setTimeout(() => {
         // Re-check: if user is still null after delay, redirect
-        navigate("/auth");
+        const destination = `${window.location.pathname}${window.location.search}`;
+        navigate(`/auth?redirect=${encodeURIComponent(destination)}`);
       }, 2000);
     }
 
