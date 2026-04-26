@@ -31,6 +31,7 @@ import {
   Save,
   BarChart3,
   CheckCircle,
+  ClipboardList,
 } from "lucide-react";
 import PhoneCallTextLink from "@/components/PhoneCallTextLink";
 import logo from "@/assets/logo.jpg";
@@ -38,6 +39,8 @@ import ClientFeedbackPage from "./ClientFeedbackPage";
 import ClientCommunicationsView from "./ClientCommunicationsView";
 import ClientEditForm from "./ClientEditForm";
 import ClientAnalysisView from "./weeklyUpdate/ClientAnalysisView";
+import ResidentialWorkSheetTab from "./ResidentialWorkSheetTab";
+import MarketAnalysisTab from "./sellerLead/MarketAnalysisTab";
 
 interface Client {
   id: string;
@@ -83,7 +86,7 @@ interface ClientDetailModalProps {
   onClientUpdated?: () => void;
 }
 
-type TabView = "details" | "edit" | "notes" | "communications" | "feedback" | "stats";
+type TabView = "details" | "edit" | "notes" | "communications" | "feedback" | "stats" | "pre-listing" | "market-analysis" | "residential";
 
 const ClientDetailModal = ({ client, open, onClose, onClientUpdated }: ClientDetailModalProps) => {
   const { user } = useAuth();
