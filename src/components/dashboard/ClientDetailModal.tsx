@@ -31,6 +31,7 @@ import {
   Save,
   BarChart3,
   CheckCircle,
+  ClipboardList,
 } from "lucide-react";
 import PhoneCallTextLink from "@/components/PhoneCallTextLink";
 import logo from "@/assets/logo.jpg";
@@ -38,6 +39,8 @@ import ClientFeedbackPage from "./ClientFeedbackPage";
 import ClientCommunicationsView from "./ClientCommunicationsView";
 import ClientEditForm from "./ClientEditForm";
 import ClientAnalysisView from "./weeklyUpdate/ClientAnalysisView";
+import ResidentialWorkSheetTab from "./ResidentialWorkSheetTab";
+import MarketAnalysisTab from "./sellerLead/MarketAnalysisTab";
 
 interface Client {
   id: string;
@@ -83,7 +86,7 @@ interface ClientDetailModalProps {
   onClientUpdated?: () => void;
 }
 
-type TabView = "details" | "edit" | "notes" | "communications" | "feedback" | "stats";
+type TabView = "details" | "edit" | "notes" | "communications" | "feedback" | "stats" | "pre-listing" | "market-analysis" | "residential";
 
 const ClientDetailModal = ({ client, open, onClose, onClientUpdated }: ClientDetailModalProps) => {
   const { user } = useAuth();
@@ -111,6 +114,42 @@ const ClientDetailModal = ({ client, open, onClose, onClientUpdated }: ClientDet
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data as ClientNote[];
+    },
+    enabled: !!client && !!user,
+  });
+
+  // Best-effort lookup of the source seller-lead row for this client.
+  // Used to power the Residential Work Sheet and Market Analysis tabs,
+  // which both require a `leads.id` foreign key.
+  const { data: linkedLead } = useQuery({
+    queryKey: ["client-linked-lead", client?.id, user?.id],
+    queryFn: async () => {
+      if (!client || !user) return null;
+      const fullAddress = [client.street_number, client.street_name]
+        .filter(Boolean)
+        .join(" ")
+        .trim();
+
+      let query = supabase
+        .from("leads")
+        .select("*")
+        .eq("agent_id", user.id)
+        .eq("lead_type", "seller");
+
+      if (fullAddress) {
+        query = query.ilike("address", `%${fullAddress}%`);
+      } else {
+        query = query
+          .ilike("first_name", client.first_name || "")
+          .ilike("last_name", client.last_name || "");
+      }
+
+      const { data, error } = await query.limit(1).maybeSingle();
+      if (error) {
+        console.warn("Linked lead lookup failed:", error.message);
+        return null;
+      }
+      return data;
     },
     enabled: !!client && !!user,
   });
@@ -304,6 +343,45 @@ const ClientDetailModal = ({ client, open, onClose, onClientUpdated }: ClientDet
               >
                 <BarChart3 className="h-4 w-4" />
                 Stats
+              </button>
+
+              {/* Pre-Listing Pack */}
+              <button
+                onClick={() => setActiveTab("pre-listing")}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors ${
+                  activeTab === "pre-listing"
+                    ? "bg-primary text-primary-foreground"
+                    : "hover:bg-muted text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <FileText className="h-4 w-4" />
+                Pre-Listing Pack
+              </button>
+
+              {/* Market Analysis */}
+              <button
+                onClick={() => setActiveTab("market-analysis")}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors ${
+                  activeTab === "market-analysis"
+                    ? "bg-primary text-primary-foreground"
+                    : "hover:bg-muted text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <BarChart3 className="h-4 w-4" />
+                Market Analysis
+              </button>
+
+              {/* Residential Work Sheet */}
+              <button
+                onClick={() => setActiveTab("residential")}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors ${
+                  activeTab === "residential"
+                    ? "bg-primary text-primary-foreground"
+                    : "hover:bg-muted text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <ClipboardList className="h-4 w-4" />
+                Residential Work Sheet
               </button>
 
               {/* Mark as Sold */}
@@ -613,6 +691,42 @@ const ClientDetailModal = ({ client, open, onClose, onClientUpdated }: ClientDet
                   }}
                   onBack={() => setActiveTab("details")}
                 />
+              )}
+
+              {activeTab === "pre-listing" && (
+                <div className="text-center py-16 text-muted-foreground">
+                  <FileText className="h-10 w-10 mx-auto mb-3 opacity-50" />
+                  <h3 className="font-semibold text-foreground mb-1">Pre-Listing Pack</h3>
+                  <p className="text-sm">Coming soon.</p>
+                </div>
+              )}
+
+              {activeTab === "market-analysis" && (
+                linkedLead ? (
+                  <MarketAnalysisTab lead={linkedLead} />
+                ) : (
+                  <div className="text-center py-16 text-muted-foreground">
+                    <BarChart3 className="h-10 w-10 mx-auto mb-3 opacity-50" />
+                    <h3 className="font-semibold text-foreground mb-1">No source lead found</h3>
+                    <p className="text-sm">
+                      Market Analysis is only available for clients converted from a Seller Lead.
+                    </p>
+                  </div>
+                )
+              )}
+
+              {activeTab === "residential" && (
+                linkedLead ? (
+                  <ResidentialWorkSheetTab lead={linkedLead as any} />
+                ) : (
+                  <div className="text-center py-16 text-muted-foreground">
+                    <ClipboardList className="h-10 w-10 mx-auto mb-3 opacity-50" />
+                    <h3 className="font-semibold text-foreground mb-1">No source lead found</h3>
+                    <p className="text-sm">
+                      The Residential Work Sheet is only available for clients converted from a Seller Lead.
+                    </p>
+                  </div>
+                )
               )}
             </ScrollArea>
           </div>
