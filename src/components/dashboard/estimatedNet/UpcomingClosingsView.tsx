@@ -176,37 +176,32 @@ const UpcomingClosingsView = ({ onBack }: UpcomingClosingsViewProps) => {
     enabled: !!user,
   });
 
-  // Group closings by month
+  // Group closings by month — keep ALL closings (past and future) so deals
+  // marked sold remain visible. Only removed when closing_date is cleared.
   const closingsByMonth = useMemo(() => {
-    const now = new Date();
-    const grouped: Map<string, ClosingData[]> = new Map();
+    const grouped: Map<string, { date: Date; items: ClosingData[] }> = new Map();
 
-    // Filter to future closings and sort by date
-    const futureClosings = closings
+    const allClosings = closings
       .map((closing) => ({
         ...closing,
         parsedDate: parseClosingDate(closing.closing_date),
       }))
-      .filter((c) => c.parsedDate && c.parsedDate >= startOfMonth(now))
+      .filter((c) => c.parsedDate)
       .sort((a, b) => (a.parsedDate!.getTime() - b.parsedDate!.getTime()));
 
-    // Generate next 12 months as keys
-    for (let i = 0; i < 12; i++) {
-      const monthDate = addMonths(startOfMonth(now), i);
+    allClosings.forEach((closing) => {
+      const monthDate = startOfMonth(closing.parsedDate!);
       const monthKey = format(monthDate, "MMMM yyyy");
-      grouped.set(monthKey, []);
-    }
-
-    // Group closings into months
-    futureClosings.forEach((closing) => {
-      const monthKey = format(closing.parsedDate!, "MMMM yyyy");
-      if (grouped.has(monthKey)) {
-        grouped.get(monthKey)!.push(closing);
+      if (!grouped.has(monthKey)) {
+        grouped.set(monthKey, { date: monthDate, items: [] });
       }
+      grouped.get(monthKey)!.items.push(closing);
     });
 
-    // Return only months with closings
-    return Array.from(grouped.entries()).filter(([, items]) => items.length > 0);
+    // Sort months chronologically and return [monthKey, items]
+    return Array.from(grouped.entries())
+      .sort((a, b) => a[1].date.getTime() - b[1].date.getTime())
+      .map(([key, val]) => [key, val.items] as [string, ClosingData[]]);
   }, [closings]);
 
   const formatPhoneLink = (phone: string | null) => {
