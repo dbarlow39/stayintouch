@@ -692,6 +692,42 @@ const ClientDetailModal = ({ client, open, onClose, onClientUpdated }: ClientDet
                   onBack={() => setActiveTab("details")}
                 />
               )}
+
+              {activeTab === "pre-listing" && (
+                <div className="text-center py-16 text-muted-foreground">
+                  <FileText className="h-10 w-10 mx-auto mb-3 opacity-50" />
+                  <h3 className="font-semibold text-foreground mb-1">Pre-Listing Pack</h3>
+                  <p className="text-sm">Coming soon.</p>
+                </div>
+              )}
+
+              {activeTab === "market-analysis" && (
+                linkedLead ? (
+                  <MarketAnalysisTab lead={linkedLead} />
+                ) : (
+                  <div className="text-center py-16 text-muted-foreground">
+                    <BarChart3 className="h-10 w-10 mx-auto mb-3 opacity-50" />
+                    <h3 className="font-semibold text-foreground mb-1">No source lead found</h3>
+                    <p className="text-sm">
+                      Market Analysis is only available for clients converted from a Seller Lead.
+                    </p>
+                  </div>
+                )
+              )}
+
+              {activeTab === "residential" && (
+                linkedLead ? (
+                  <ResidentialWorkSheetTab lead={linkedLead as any} />
+                ) : (
+                  <div className="text-center py-16 text-muted-foreground">
+                    <ClipboardList className="h-10 w-10 mx-auto mb-3 opacity-50" />
+                    <h3 className="font-semibold text-foreground mb-1">No source lead found</h3>
+                    <p className="text-sm">
+                      The Residential Work Sheet is only available for clients converted from a Seller Lead.
+                    </p>
+                  </div>
+                )
+              )}
             </ScrollArea>
           </div>
         </div>
