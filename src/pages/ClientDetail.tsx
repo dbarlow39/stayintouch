@@ -608,6 +608,42 @@ const ClientDetail = () => {
                   onBack={() => setActiveTab("details")}
                 />
               )}
+
+              {activeTab === "pre-listing" && (
+                <div className="text-center py-16 border border-dashed rounded-lg">
+                  <Package className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
+                  <h3 className="font-semibold text-foreground mb-1">Pre-Listing Pack</h3>
+                  <p className="text-sm text-muted-foreground">Coming soon</p>
+                </div>
+              )}
+
+              {activeTab === "market-analysis" && (
+                linkedLead ? (
+                  <MarketAnalysisTab lead={linkedLead as any} />
+                ) : (
+                  <div className="text-center py-16 border border-dashed rounded-lg">
+                    <TrendingUp className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
+                    <h3 className="font-semibold text-foreground mb-1">No source lead found</h3>
+                    <p className="text-sm text-muted-foreground">
+                      This client doesn't have a matching seller-lead record to load Market Analysis from.
+                    </p>
+                  </div>
+                )
+              )}
+
+              {activeTab === "residential-work-sheet" && (
+                linkedLead ? (
+                  <ResidentialWorkSheetTab lead={linkedLead as any} />
+                ) : (
+                  <div className="text-center py-16 border border-dashed rounded-lg">
+                    <ClipboardList className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
+                    <h3 className="font-semibold text-foreground mb-1">No source lead found</h3>
+                    <p className="text-sm text-muted-foreground">
+                      This client doesn't have a matching seller-lead record to load the Residential Work Sheet from.
+                    </p>
+                  </div>
+                )
+              )}
             </div>
           </div>
         </Card>
