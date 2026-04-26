@@ -345,6 +345,45 @@ const ClientDetailModal = ({ client, open, onClose, onClientUpdated }: ClientDet
                 Stats
               </button>
 
+              {/* Pre-Listing Pack */}
+              <button
+                onClick={() => setActiveTab("pre-listing")}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors ${
+                  activeTab === "pre-listing"
+                    ? "bg-primary text-primary-foreground"
+                    : "hover:bg-muted text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <FileText className="h-4 w-4" />
+                Pre-Listing Pack
+              </button>
+
+              {/* Market Analysis */}
+              <button
+                onClick={() => setActiveTab("market-analysis")}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors ${
+                  activeTab === "market-analysis"
+                    ? "bg-primary text-primary-foreground"
+                    : "hover:bg-muted text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <BarChart3 className="h-4 w-4" />
+                Market Analysis
+              </button>
+
+              {/* Residential Work Sheet */}
+              <button
+                onClick={() => setActiveTab("residential")}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors ${
+                  activeTab === "residential"
+                    ? "bg-primary text-primary-foreground"
+                    : "hover:bg-muted text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <ClipboardList className="h-4 w-4" />
+                Residential Work Sheet
+              </button>
+
               {/* Mark as Sold */}
               <button
                 onClick={() => setShowMarkSoldDialog(true)}
