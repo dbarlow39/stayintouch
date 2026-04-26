@@ -304,9 +304,9 @@ const SellerLeadDetail = () => {
         .single();
       if (insertError) throw insertError;
 
-      // Delete the lead
-      const { error: deleteError } = await supabase.from("leads").delete().eq("id", id!);
-      if (deleteError) throw deleteError;
+      // Keep the lead row so the Residential Work Sheet, Market Analysis, and
+      // Pre-Listing Pack remain accessible from the Client Detail modal.
+      // The Client Detail modal locates the lead via best-effort address match.
 
       queryClient.invalidateQueries({ queryKey: ["leads"] });
       queryClient.invalidateQueries({ queryKey: ["clients"] });
