@@ -111,13 +111,105 @@ const EstimatedNetTab = ({ selectedClient, onClearSelectedClient, navigateToProp
     loadClientEstimate();
   }, [selectedClient, onClearSelectedClient, user]);
 
-  // Handle navigation from external sources (Tasks tab) or internal ContractNoticesSection
+  // Handle navigation from external sources (email deep links, Tasks tab).
+  // Load the property directly and switch to the notices view in one shot —
+  // we deliberately do NOT route through `pendingPropertyNav` here because the
+  // synchronous parent-prop clear was racing with the load and leaving the
+  // user stuck on the list view.
   useEffect(() => {
-    if (navigateToPropertyId) {
-      setPendingPropertyNav({ id: navigateToPropertyId, view: 'notices' });
+    if (!navigateToPropertyId || !user) return;
+    const idToLoad = navigateToPropertyId;
+    let cancelled = false;
+
+    (async () => {
+      const { data, error } = await supabase
+        .from("estimated_net_properties")
+        .select("*")
+        .eq("id", idToLoad)
+        .single();
+
+      if (cancelled) return;
+
+      if (error || !data) {
+        toast({
+          title: "Error loading property",
+          description: error?.message || "Property not found",
+          variant: "destructive",
+        });
+        onClearNavigateToProperty?.();
+        return;
+      }
+
+      const propertyData: PropertyData = {
+        name: data.name,
+        sellerPhone: data.seller_phone || "",
+        sellerEmail: data.seller_email || "",
+        streetAddress: data.street_address,
+        city: data.city,
+        state: data.state,
+        zip: data.zip,
+        offerPrice: Number(data.offer_price),
+        firstMortgage: Number(data.first_mortgage),
+        secondMortgage: Number(data.second_mortgage),
+        listingAgentCommission: Number(data.listing_agent_commission),
+        buyerAgentCommission: Number(data.buyer_agent_commission),
+        closingCost: Number(data.closing_cost),
+        typeOfLoan: data.type_of_loan || "Conventional",
+        lenderName: (data as any).lender_name || "",
+        lendingOfficer: (data as any).lending_officer || "",
+        lendingOfficerPhone: (data as any).lending_officer_phone || "",
+        lendingOfficerEmail: (data as any).lending_officer_email || "",
+        buyerName1: (data as any).buyer_name_1 || "",
+        buyerName2: (data as any).buyer_name_2 || "",
+        buyerEmail: (data as any).buyer_email || "",
+        buyerCellPhone: (data as any).buyer_cell_phone || "",
+        loanAppTimeFrame: data.loan_app_time_frame || "",
+        loanCommitment: data.loan_commitment || "",
+        preApprovalDays: data.pre_approval_days ?? 0,
+        appraisalContingency: data.appraisal_contingency ?? true,
+        homeWarranty: Number(data.home_warranty),
+        homeWarrantyCompany: data.home_warranty_company || "",
+        deposit: Number(data.deposit),
+        depositCollection: data.deposit_collection || "Within 3 Days of Acceptance",
+        inContract: data.in_contract || "",
+        closingDate: data.closing_date || "",
+        possession: data.possession || "",
+        finalWalkThrough: data.final_walk_through || "48 hours prior to close",
+        respondToOfferBy: data.respond_to_offer_by || "",
+        inspectionDays: data.inspection_days || 0,
+        remedyPeriodDays: data.remedy_period_days || 0,
+        annualTaxes: Number(data.annual_taxes),
+        firstHalfPaid: data.first_half_paid,
+        secondHalfPaid: data.second_half_paid,
+        taxDaysDueThisYear: data.tax_days_due_this_year || 0,
+        daysFirstHalfTaxes: data.days_first_half_taxes || 0,
+        daysSecondHalfTaxes: data.days_second_half_taxes || 0,
+        agentName: data.agent_name || "",
+        agentContact: data.agent_contact || "",
+        agentEmail: data.agent_email || "",
+        listingAgentName: data.listing_agent_name || "",
+        listingAgentPhone: data.listing_agent_phone || "",
+        listingAgentEmail: data.listing_agent_email || "",
+        titleCompanyName: (data as any).title_company_name || "Caliber Title / Title First",
+        titleProcessor: (data as any).title_processor || "Kameron Faulkner or Shina Painter",
+        titlePhone: (data as any).title_phone || "614-854-0980",
+        titleEmail: (data as any).title_email || "polaris@titlefirst.com",
+        adminFee: Number(data.admin_fee),
+        appliances: data.appliances || "",
+        notes: data.notes || "",
+        representationType: data.representation_type || 'seller',
+      };
+
+      setCurrentPropertyId(idToLoad);
+      setCurrentPropertyData(propertyData);
+      setViewState('notices');
       onClearNavigateToProperty?.();
-    }
-  }, [navigateToPropertyId]);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [navigateToPropertyId, user]);
 
   // Process pending property navigation
   useEffect(() => {
