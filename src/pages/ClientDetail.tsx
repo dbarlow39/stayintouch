@@ -34,6 +34,9 @@ import {
   ArrowLeft,
   LogOut,
   Settings,
+  Package,
+  TrendingUp,
+  ClipboardList,
 } from "lucide-react";
 import PhoneCallTextLink from "@/components/PhoneCallTextLink";
 import logo from "@/assets/logo.jpg";
@@ -41,6 +44,8 @@ import ClientFeedbackPage from "@/components/dashboard/ClientFeedbackPage";
 import ClientCommunicationsView from "@/components/dashboard/ClientCommunicationsView";
 import ClientEditForm from "@/components/dashboard/ClientEditForm";
 import ClientAnalysisView from "@/components/dashboard/weeklyUpdate/ClientAnalysisView";
+import ResidentialWorkSheetTab from "@/components/dashboard/ResidentialWorkSheetTab";
+import MarketAnalysisTab from "@/components/dashboard/sellerLead/MarketAnalysisTab";
 
 interface ClientNote {
   id: string;
