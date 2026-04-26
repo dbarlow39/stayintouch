@@ -79,11 +79,13 @@ const Dashboard = () => {
     }
 
     if (!loading && !user) {
+      // Capture destination synchronously BEFORE the timeout fires.
+      // Otherwise query params (e.g. ?tab=deals&propertyId=...) may be cleared
+      // by the time the redirect runs, losing the deep-link context.
+      const destination = `${window.location.pathname}${window.location.search}`;
       // Delay redirect to give auth token refresh time to complete
       // This is critical for custom domains where token refresh may be slower
       redirectTimerRef.current = setTimeout(() => {
-        // Re-check: if user is still null after delay, redirect
-        const destination = `${window.location.pathname}${window.location.search}`;
         navigate(`/auth?redirect=${encodeURIComponent(destination)}`);
       }, 2000);
     }
