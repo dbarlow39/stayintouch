@@ -34,6 +34,9 @@ import {
   ArrowLeft,
   LogOut,
   Settings,
+  Package,
+  TrendingUp,
+  ClipboardList,
 } from "lucide-react";
 import PhoneCallTextLink from "@/components/PhoneCallTextLink";
 import logo from "@/assets/logo.jpg";
@@ -41,6 +44,8 @@ import ClientFeedbackPage from "@/components/dashboard/ClientFeedbackPage";
 import ClientCommunicationsView from "@/components/dashboard/ClientCommunicationsView";
 import ClientEditForm from "@/components/dashboard/ClientEditForm";
 import ClientAnalysisView from "@/components/dashboard/weeklyUpdate/ClientAnalysisView";
+import ResidentialWorkSheetTab from "@/components/dashboard/ResidentialWorkSheetTab";
+import MarketAnalysisTab from "@/components/dashboard/sellerLead/MarketAnalysisTab";
 
 interface ClientNote {
   id: string;
@@ -49,7 +54,7 @@ interface ClientNote {
   updated_at: string;
 }
 
-type TabView = "details" | "edit" | "notes" | "communications" | "feedback" | "stats";
+type TabView = "details" | "edit" | "notes" | "communications" | "feedback" | "stats" | "pre-listing" | "market-analysis" | "residential-work-sheet";
 
 const ClientDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -103,6 +108,41 @@ const ClientDetail = () => {
       return data as ClientNote[];
     },
     enabled: !!id && !!user,
+  });
+
+  // Best-effort lookup of the source seller-lead row for this client.
+  // Powers the Residential Work Sheet and Market Analysis tabs (both require leads.id).
+  const { data: linkedLead } = useQuery({
+    queryKey: ["client-linked-lead", id, user?.id],
+    queryFn: async () => {
+      if (!client || !user) return null;
+      const fullAddress = [client.street_number, client.street_name]
+        .filter(Boolean)
+        .join(" ")
+        .trim();
+
+      let query = supabase
+        .from("leads")
+        .select("*")
+        .eq("agent_id", user.id)
+        .eq("lead_type", "seller");
+
+      if (fullAddress) {
+        query = query.ilike("address", `%${fullAddress}%`);
+      } else {
+        query = query
+          .ilike("first_name", client.first_name || "")
+          .ilike("last_name", client.last_name || "");
+      }
+
+      const { data, error } = await query.limit(1).maybeSingle();
+      if (error) {
+        console.warn("Linked lead lookup failed:", error.message);
+        return null;
+      }
+      return data;
+    },
+    enabled: !!client && !!user,
   });
 
   const addNoteMutation = useMutation({
@@ -279,6 +319,9 @@ const ClientDetail = () => {
                   { id: "communications" as TabView, label: "Communications", icon: Mail },
                   { id: "feedback" as TabView, label: "Feedback", icon: MessageSquare },
                   { id: "stats" as TabView, label: "Stats", icon: BarChart3 },
+                  { id: "pre-listing" as TabView, label: "Pre-Listing Pack", icon: Package },
+                  { id: "market-analysis" as TabView, label: "Market Analysis", icon: TrendingUp },
+                  { id: "residential-work-sheet" as TabView, label: "Residential Work Sheet", icon: ClipboardList },
                 ].map(({ id: tabId, label, icon: Icon }) => (
                   <button
                     key={tabId}
@@ -564,6 +607,42 @@ const ClientDetail = () => {
                   }}
                   onBack={() => setActiveTab("details")}
                 />
+              )}
+
+              {activeTab === "pre-listing" && (
+                <div className="text-center py-16 border border-dashed rounded-lg">
+                  <Package className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
+                  <h3 className="font-semibold text-foreground mb-1">Pre-Listing Pack</h3>
+                  <p className="text-sm text-muted-foreground">Coming soon</p>
+                </div>
+              )}
+
+              {activeTab === "market-analysis" && (
+                linkedLead ? (
+                  <MarketAnalysisTab lead={linkedLead as any} />
+                ) : (
+                  <div className="text-center py-16 border border-dashed rounded-lg">
+                    <TrendingUp className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
+                    <h3 className="font-semibold text-foreground mb-1">No source lead found</h3>
+                    <p className="text-sm text-muted-foreground">
+                      This client doesn't have a matching seller-lead record to load Market Analysis from.
+                    </p>
+                  </div>
+                )
+              )}
+
+              {activeTab === "residential-work-sheet" && (
+                linkedLead ? (
+                  <ResidentialWorkSheetTab lead={linkedLead as any} />
+                ) : (
+                  <div className="text-center py-16 border border-dashed rounded-lg">
+                    <ClipboardList className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
+                    <h3 className="font-semibold text-foreground mb-1">No source lead found</h3>
+                    <p className="text-sm text-muted-foreground">
+                      This client doesn't have a matching seller-lead record to load the Residential Work Sheet from.
+                    </p>
+                  </div>
+                )
               )}
             </div>
           </div>
