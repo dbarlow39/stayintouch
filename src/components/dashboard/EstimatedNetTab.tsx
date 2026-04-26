@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -112,14 +112,20 @@ const EstimatedNetTab = ({ selectedClient, onClearSelectedClient, navigateToProp
   }, [selectedClient, onClearSelectedClient, user]);
 
   // Handle navigation from external sources (email deep links, Tasks tab).
-  // Load the property directly and switch to the notices view in one shot —
-  // we deliberately do NOT route through `pendingPropertyNav` here because the
-  // synchronous parent-prop clear was racing with the load and leaving the
-  // user stuck on the list view.
+  // Use a ref to ensure each propertyId is processed exactly once. We do NOT
+  // call onClearNavigateToProperty here because clearing the parent prop
+  // triggers a re-render that was racing with the state commit.
+  const handledPropertyIdRef = useRef<string | null>(null);
   useEffect(() => {
     if (!navigateToPropertyId || !user) return;
+    if (handledPropertyIdRef.current === navigateToPropertyId) {
+      console.log('[deep-link] already handled', navigateToPropertyId);
+      return;
+    }
     const idToLoad = navigateToPropertyId;
+    handledPropertyIdRef.current = idToLoad;
     let cancelled = false;
+    console.log('[deep-link] loading property', idToLoad);
 
     (async () => {
       const { data, error } = await supabase
@@ -131,14 +137,15 @@ const EstimatedNetTab = ({ selectedClient, onClearSelectedClient, navigateToProp
       if (cancelled) return;
 
       if (error || !data) {
+        console.error('[deep-link] load failed', error);
         toast({
           title: "Error loading property",
           description: error?.message || "Property not found",
           variant: "destructive",
         });
-        onClearNavigateToProperty?.();
         return;
       }
+      console.log('[deep-link] loaded, switching to notices view');
 
       const propertyData: PropertyData = {
         name: data.name,
@@ -203,7 +210,7 @@ const EstimatedNetTab = ({ selectedClient, onClearSelectedClient, navigateToProp
       setCurrentPropertyId(idToLoad);
       setCurrentPropertyData(propertyData);
       setViewState('notices');
-      onClearNavigateToProperty?.();
+      console.log('[deep-link] state set, viewState=notices');
     })();
 
     return () => {
