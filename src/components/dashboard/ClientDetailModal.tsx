@@ -118,6 +118,42 @@ const ClientDetailModal = ({ client, open, onClose, onClientUpdated }: ClientDet
     enabled: !!client && !!user,
   });
 
+  // Best-effort lookup of the source seller-lead row for this client.
+  // Used to power the Residential Work Sheet and Market Analysis tabs,
+  // which both require a `leads.id` foreign key.
+  const { data: linkedLead } = useQuery({
+    queryKey: ["client-linked-lead", client?.id, user?.id],
+    queryFn: async () => {
+      if (!client || !user) return null;
+      const fullAddress = [client.street_number, client.street_name]
+        .filter(Boolean)
+        .join(" ")
+        .trim();
+
+      let query = supabase
+        .from("leads")
+        .select("*")
+        .eq("agent_id", user.id)
+        .eq("lead_type", "seller");
+
+      if (fullAddress) {
+        query = query.ilike("address", `%${fullAddress}%`);
+      } else {
+        query = query
+          .ilike("first_name", client.first_name || "")
+          .ilike("last_name", client.last_name || "");
+      }
+
+      const { data, error } = await query.limit(1).maybeSingle();
+      if (error) {
+        console.warn("Linked lead lookup failed:", error.message);
+        return null;
+      }
+      return data;
+    },
+    enabled: !!client && !!user,
+  });
+
   // Add note mutation
   const addNoteMutation = useMutation({
     mutationFn: async (content: string) => {
