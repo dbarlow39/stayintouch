@@ -10,6 +10,7 @@ import AgentsPage from "./accounting/AgentsPage";
 import VendorsPage from "./accounting/VendorsPage";
 import VendorCheckPage from "./accounting/VendorCheckPage";
 import ClosedDealsPage from "./accounting/ClosedDealsPage";
+import DepositReturnPage from "./accounting/DepositReturnPage";
 
 const AccountingTab = () => {
   const [view, setView] = useState("dashboard");
@@ -70,6 +71,8 @@ const AccountingTab = () => {
       return agentClosingsName ? <AgentClosingsView agentName={agentClosingsName} onBack={() => handleNavigate("agents")} /> : null;
     case "closed-deals":
       return <ClosedDealsPage onBack={goToDashboard} onNavigate={handleNavigate} />;
+    case "deposit-return":
+      return <DepositReturnPage onBack={goToDashboard} />;
     default:
       return <AccountingDashboard onNavigate={handleNavigate} />;
   }

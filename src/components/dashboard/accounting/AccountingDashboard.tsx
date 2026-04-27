@@ -192,6 +192,10 @@ const AccountingDashboard = ({ onNavigate }: AccountingDashboardProps) => {
           <CheckCircle2 className="h-4 w-4 mr-2" />
           Closed Deals
         </Button>
+        <Button onClick={() => onNavigate("deposit-return")} variant="outline">
+          <DollarSign className="h-4 w-4 mr-2" />
+          Return Deposit
+        </Button>
       </div>
 
       {/* Recent Closings */}
