@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { CheckCircle2, AlertCircle } from "lucide-react";
@@ -115,8 +116,8 @@ const ClosingPaperworkChecklist = ({
 
       <ul className="space-y-2 pt-2">
         {items.map(item => (
-          <>
-            <li key={item.key} className="flex items-start gap-2">
+          <Fragment key={item.key}>
+            <li className="flex items-start gap-2">
               <Checkbox
                 id={`chk-${item.key}`}
                 checked={!!checklist[item.key]}
@@ -138,7 +139,7 @@ const ClosingPaperworkChecklist = ({
               </label>
             </li>
             {item.key === "residential_property_disclosure" && (
-              <li key="built-before-1978-toggle" className="flex items-center gap-2 pl-6">
+              <li className="flex items-center gap-2 pl-6">
                 <Checkbox
                   id="built-before-1978"
                   checked={builtBefore1978}
@@ -149,7 +150,7 @@ const ClosingPaperworkChecklist = ({
                 </label>
               </li>
             )}
-          </>
+          </Fragment>
         ))}
       </ul>
     </div>
