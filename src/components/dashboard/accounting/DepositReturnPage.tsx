@@ -92,10 +92,9 @@ const DepositReturnPage = ({ onBack }: DepositReturnPageProps) => {
         agentName: result.payee_name,
         agentAddress: "",
         agentCityStateZip: "",
-        propertyNames: result.property_address || "",
+        propertyNames: result.property_address ? `Return of Deposit for: ${result.property_address}` : "Return of Deposit",
         lineItems: [{ amount: result.amount, label: "Return of Deposit" }],
         ytdTotal: checks.reduce((sum, c) => sum + Number(c.amount), 0) + result.amount,
-        memo: result.property_address || undefined,
         checkNumber: result.check_number,
       });
       setForm(emptyForm);
