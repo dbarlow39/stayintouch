@@ -826,6 +826,63 @@ export type Database = {
           },
         ]
       }
+      deposit_return_check_counter: {
+        Row: {
+          id: string
+          last_check_number: number
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          last_check_number?: number
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          last_check_number?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      deposit_return_checks: {
+        Row: {
+          amount: number
+          check_date: string
+          check_number: string | null
+          created_at: string
+          created_by: string
+          id: string
+          notes: string | null
+          payee_name: string
+          property_address: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount?: number
+          check_date?: string
+          check_number?: string | null
+          created_at?: string
+          created_by: string
+          id?: string
+          notes?: string | null
+          payee_name: string
+          property_address?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          check_date?: string
+          check_number?: string | null
+          created_at?: string
+          created_by?: string
+          id?: string
+          notes?: string | null
+          payee_name?: string
+          property_address?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       email_logs: {
         Row: {
           agent_id: string
