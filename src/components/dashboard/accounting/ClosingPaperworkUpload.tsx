@@ -83,6 +83,7 @@ const ClosingPaperworkUpload = ({ folderId, files, onChange, onUpload, parsing }
       if (uploaded.length > 0) {
         onChange([...files, ...uploaded]);
         toast.success(`Uploaded ${uploaded.length} file(s).`);
+        onUpload?.(uploaded);
       }
     } finally {
       setUploading(false);
