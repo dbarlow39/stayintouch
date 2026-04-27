@@ -31,6 +31,8 @@ const AddClosingForm = ({ onBack }: AddClosingFormProps) => {
   const [lookupLoading, setLookupLoading] = useState(false);
   const lookupTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [googleApiKey, setGoogleApiKey] = useState<string>("");
+  const [paperworkFiles, setPaperworkFiles] = useState<PaperworkFile[]>([]);
+  const [folderId] = useState<string>(() => crypto.randomUUID());
 
   useEffect(() => {
     let cancelled = false;
