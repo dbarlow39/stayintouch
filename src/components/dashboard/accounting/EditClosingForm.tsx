@@ -81,6 +81,10 @@ const EditClosingForm = ({ closingId, onBack }: EditClosingFormProps) => {
         paperwork_received: closing.paperwork_status === "received",
         notes: closing.notes || "",
       });
+      const existing = (closing as any).paperwork_files;
+      if (Array.isArray(existing)) {
+        setPaperworkFiles(existing as PaperworkFile[]);
+      }
     }
   }, [closing]);
 
