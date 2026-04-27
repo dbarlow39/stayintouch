@@ -19,6 +19,10 @@ interface Props {
   folderId: string;
   files: PaperworkFile[];
   onChange: (files: PaperworkFile[]) => void;
+  /** Called immediately after one or more new files are uploaded successfully. */
+  onUpload?: (newFiles: PaperworkFile[]) => void;
+  /** When true, shows a "Reading paperwork…" indicator overlay. */
+  parsing?: boolean;
 }
 
 const MAX_SIZE_MB = 25;
