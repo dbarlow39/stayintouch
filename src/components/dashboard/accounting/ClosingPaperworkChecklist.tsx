@@ -113,37 +113,43 @@ const ClosingPaperworkChecklist = ({
         </div>
       </div>
 
-      <label className="flex items-center gap-2 cursor-pointer pt-1">
-        <Checkbox
-          checked={builtBefore1978}
-          onCheckedChange={c => onBuiltBefore1978Change(!!c)}
-        />
-        <span className="text-sm">Home was built prior to 1978</span>
-      </label>
-
       <ul className="space-y-2 pt-2">
         {items.map(item => (
-          <li key={item.key} className="flex items-start gap-2">
-            <Checkbox
-              id={`chk-${item.key}`}
-              checked={!!checklist[item.key]}
-              onCheckedChange={c => toggle(item.key, !!c)}
-              className="mt-0.5"
-            />
-            <label
-              htmlFor={`chk-${item.key}`}
-              className="text-sm cursor-pointer leading-tight"
-            >
-              <span className={checklist[item.key] ? "line-through text-muted-foreground" : ""}>
-                {item.label}
-              </span>
-              {item.hint && (
-                <span className="block text-xs text-muted-foreground mt-0.5">
-                  {item.hint}
+          <>
+            <li key={item.key} className="flex items-start gap-2">
+              <Checkbox
+                id={`chk-${item.key}`}
+                checked={!!checklist[item.key]}
+                onCheckedChange={c => toggle(item.key, !!c)}
+                className="mt-0.5"
+              />
+              <label
+                htmlFor={`chk-${item.key}`}
+                className="text-sm cursor-pointer leading-tight"
+              >
+                <span className={checklist[item.key] ? "line-through text-muted-foreground" : ""}>
+                  {item.label}
                 </span>
-              )}
-            </label>
-          </li>
+                {item.hint && (
+                  <span className="block text-xs text-muted-foreground mt-0.5">
+                    {item.hint}
+                  </span>
+                )}
+              </label>
+            </li>
+            {item.key === "residential_property_disclosure" && (
+              <li key="built-before-1978-toggle" className="flex items-center gap-2 pl-6">
+                <Checkbox
+                  id="built-before-1978"
+                  checked={builtBefore1978}
+                  onCheckedChange={c => onBuiltBefore1978Change(!!c)}
+                />
+                <label htmlFor="built-before-1978" className="text-xs cursor-pointer text-muted-foreground">
+                  Home was built prior to 1978 (requires Lead Paint Disclosure)
+                </label>
+              </li>
+            )}
+          </>
         ))}
       </ul>
     </div>
