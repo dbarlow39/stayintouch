@@ -89,6 +89,14 @@ const EditClosingForm = ({ closingId, onBack }: EditClosingFormProps) => {
       if (Array.isArray(existing)) {
         setPaperworkFiles(existing as PaperworkFile[]);
       }
+      const repr = (closing as any).representation;
+      if (repr === "seller" || repr === "buyer") setRepresentation(repr);
+      const savedChecklist = (closing as any).paperwork_checklist;
+      if (savedChecklist && typeof savedChecklist === "object") {
+        const { built_before_1978, ...rest } = savedChecklist as any;
+        setBuiltBefore1978(!!built_before_1978);
+        setChecklist(rest as ChecklistState);
+      }
     }
   }, [closing]);
 
