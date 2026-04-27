@@ -72,6 +72,11 @@ const EditClosingForm = ({ closingId, onBack }: EditClosingFormProps) => {
 
   useEffect(() => {
     if (closing) {
+      const initialPaperwork = closing.paperwork_status === "received" || (Array.isArray((closing as any).paperwork_files) && (closing as any).paperwork_files.length > 0);
+      const initialCheck = closing.status === "received";
+      if (initialReceivedRef.current === null) {
+        initialReceivedRef.current = { paperwork: initialPaperwork, check: initialCheck };
+      }
       setForm({
         agent_name: closing.agent_name || "",
         property_address: closing.property_address || "",
