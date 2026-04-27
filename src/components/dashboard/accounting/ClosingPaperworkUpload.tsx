@@ -139,6 +139,13 @@ const ClosingPaperworkUpload = ({ folderId, files, onChange, onUpload, parsing }
         />
       </div>
 
+      {parsing && (
+        <div className="flex items-center gap-2 text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-md px-3 py-2">
+          <Loader2 className="w-4 h-4 animate-spin" />
+          Reading paperwork and auto-filling fields…
+        </div>
+      )}
+
       <p className="text-xs text-muted-foreground">
         Upload all signed paperwork from this closing (PDF only, up to {MAX_SIZE_MB}MB each).
         AI signature scanning will be added in a follow-up step.
