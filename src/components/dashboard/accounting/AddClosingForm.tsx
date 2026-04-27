@@ -36,6 +36,8 @@ const AddClosingForm = ({ onBack }: AddClosingFormProps) => {
   const [folderId] = useState<string>(() => crypto.randomUUID());
   const [parsingPaperwork, setParsingPaperwork] = useState(false);
   const [representation, setRepresentation] = useState<"seller" | "buyer" | null>(null);
+  const [builtBefore1978, setBuiltBefore1978] = useState(false);
+  const [checklist, setChecklist] = useState<ChecklistState>({});
 
   useEffect(() => {
     let cancelled = false;
