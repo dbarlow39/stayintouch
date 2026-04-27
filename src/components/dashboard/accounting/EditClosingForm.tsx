@@ -150,6 +150,8 @@ const EditClosingForm = ({ closingId, onBack }: EditClosingFormProps) => {
         paperwork_status: form.paperwork_received || paperworkFiles.length > 0 ? "received" : "not_received",
         notes: form.notes,
         paperwork_files: paperworkFiles as any,
+        representation: representation,
+        paperwork_checklist: { ...checklist, built_before_1978: builtBefore1978 } as any,
       }).eq("id", closingId);
       if (error) throw error;
       toast.success("Closing updated successfully.");
