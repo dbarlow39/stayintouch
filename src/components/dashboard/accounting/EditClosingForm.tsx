@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -15,6 +15,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useAgentsList } from "./useAgentsList";
 import ClosingPaperworkUpload, { type PaperworkFile } from "./ClosingPaperworkUpload";
 import ClosingPaperworkChecklist, { type ChecklistState } from "./ClosingPaperworkChecklist";
+import ClosingNotificationDialog from "./ClosingNotificationDialog";
 
 interface EditClosingFormProps {
   closingId: string;
@@ -31,6 +32,10 @@ const EditClosingForm = ({ closingId, onBack }: EditClosingFormProps) => {
   const [representation, setRepresentation] = useState<"seller" | "buyer" | null>(null);
   const [builtBefore1978, setBuiltBefore1978] = useState(false);
   const [checklist, setChecklist] = useState<ChecklistState>({});
+  const initialReceivedRef = useRef<{ paperwork: boolean; check: boolean } | null>(null);
+  const [notifyDialog, setNotifyDialog] = useState<{ open: boolean; paperwork: boolean; check: boolean; agentEmail: string; agentName: string; address: string }>({
+    open: false, paperwork: false, check: false, agentEmail: "", agentName: "", address: "",
+  });
 
   const [form, setForm] = useState({
     agent_name: "",
