@@ -584,6 +584,7 @@ export type Database = {
           id: string
           notes: string | null
           paid: boolean
+          paperwork_files: Json
           paperwork_status: string
           property_address: string
           sale_price: number
@@ -610,6 +611,7 @@ export type Database = {
           id?: string
           notes?: string | null
           paid?: boolean
+          paperwork_files?: Json
           paperwork_status?: string
           property_address: string
           sale_price?: number
@@ -636,6 +638,7 @@ export type Database = {
           id?: string
           notes?: string | null
           paid?: boolean
+          paperwork_files?: Json
           paperwork_status?: string
           property_address?: string
           sale_price?: number
