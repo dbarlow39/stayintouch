@@ -351,6 +351,14 @@ const AddClosingForm = ({ onBack }: AddClosingFormProps) => {
           <CardDescription>Enter the closing details. We'll calculate the split for you.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
+          <ClosingPaperworkUpload
+            folderId={folderId}
+            files={paperworkFiles}
+            onChange={setPaperworkFiles}
+            onUpload={handlePaperworkUploaded}
+            parsing={parsingPaperwork}
+          />
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Agent Name *</Label>
