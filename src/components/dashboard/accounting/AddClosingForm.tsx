@@ -424,6 +424,7 @@ const AddClosingForm = ({ onBack }: AddClosingFormProps) => {
             onChange={setPaperworkFiles}
             onUpload={handlePaperworkUploaded}
             parsing={parsingPaperwork}
+            representation={representation}
           />
 
           <ClosingPaperworkChecklist

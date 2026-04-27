@@ -436,6 +436,7 @@ const EditClosingForm = ({ closingId, onBack }: EditClosingFormProps) => {
             folderId={closingId}
             files={paperworkFiles}
             onChange={setPaperworkFiles}
+            representation={representation}
           />
 
           <ClosingPaperworkChecklist
