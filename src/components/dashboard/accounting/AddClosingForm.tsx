@@ -342,6 +342,8 @@ const AddClosingForm = ({ onBack }: AddClosingFormProps) => {
         status: form.check_status || "pending",
         paperwork_status: form.paperwork_received || paperworkFiles.length > 0 ? "received" : "pending",
         paperwork_files: paperworkFiles as any,
+        representation: representation,
+        paperwork_checklist: { ...checklist, built_before_1978: builtBefore1978 } as any,
         created_by: user.id,
       });
       if (error) throw error;
