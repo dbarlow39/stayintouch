@@ -139,13 +139,13 @@ const ClosingPaperworkChecklist = ({
               </label>
             </li>
             {item.key === "residential_property_disclosure" && (
-              <li className="flex items-center gap-2 pl-6">
+              <li className="flex items-center gap-2 list-none -ml-0">
                 <Checkbox
                   id="built-before-1978"
                   checked={builtBefore1978}
                   onCheckedChange={c => onBuiltBefore1978Change(!!c)}
                 />
-                <label htmlFor="built-before-1978" className="text-xs cursor-pointer text-muted-foreground">
+                <label htmlFor="built-before-1978" className="text-sm cursor-pointer">
                   Home was built prior to 1978 (requires Lead Paint Disclosure)
                 </label>
               </li>
