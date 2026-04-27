@@ -37,6 +37,7 @@ const ClosingPaperworkChecklist = ({
   onChange,
 }: Props) => {
   const items: Item[] = [
+    { key: "settlement_statement", label: "Settlement Statement" },
     { key: "consumer_guide", label: "Consumer Guide" },
     { key: "agency_disclosure", label: "Agency Disclosure" },
     { key: "signed_contract", label: "Signed and Dated Contract" },
@@ -59,7 +60,7 @@ const ClosingPaperworkChecklist = ({
   if (builtBefore1978) {
     items.push({
       key: "lead_based_paint_disclosure",
-      label: "Lead Based Paint Disclosure",
+      label: "Lead Paint Disclosure",
       hint: "Required for homes built prior to 1978.",
     });
   }
@@ -79,8 +80,6 @@ const ClosingPaperworkChecklist = ({
       hint: "Required when representing the buyer.",
     });
   }
-
-  items.push({ key: "settlement_statement", label: "Settlement Statement" });
 
   const toggle = (key: ChecklistKey, value: boolean) =>
     onChange({ ...checklist, [key]: value });
