@@ -13,6 +13,7 @@ import { ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { useAgentsList } from "./useAgentsList";
 import { GooglePlacesAddressInput } from "@/components/dashboard/residential/GooglePlacesAddressInput";
+import ClosingPaperworkUpload, { type PaperworkFile } from "./ClosingPaperworkUpload";
 
 interface AddClosingFormProps {
   onBack: () => void;
@@ -30,6 +31,8 @@ const AddClosingForm = ({ onBack }: AddClosingFormProps) => {
   const [lookupLoading, setLookupLoading] = useState(false);
   const lookupTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [googleApiKey, setGoogleApiKey] = useState<string>("");
+  const [paperworkFiles, setPaperworkFiles] = useState<PaperworkFile[]>([]);
+  const [folderId] = useState<string>(() => crypto.randomUUID());
 
   useEffect(() => {
     let cancelled = false;
@@ -246,7 +249,8 @@ const AddClosingForm = ({ onBack }: AddClosingFormProps) => {
         caliber_title_amount: caliberAmount > 0 ? caliberAmount : 150,
         notes: form.notes,
         status: form.check_status || "pending",
-        paperwork_status: form.paperwork_received ? "received" : "pending",
+        paperwork_status: form.paperwork_received || paperworkFiles.length > 0 ? "received" : "pending",
+        paperwork_files: paperworkFiles as any,
         created_by: user.id,
       });
       if (error) throw error;
@@ -497,6 +501,13 @@ const AddClosingForm = ({ onBack }: AddClosingFormProps) => {
             </CardContent>
           </Card>
 
+
+
+          <ClosingPaperworkUpload
+            folderId={folderId}
+            files={paperworkFiles}
+            onChange={setPaperworkFiles}
+          />
 
           <div className="space-y-2">
             <Label>Notes</Label>

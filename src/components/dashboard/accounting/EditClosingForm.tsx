@@ -13,6 +13,7 @@ import { ArrowLeft, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useAgentsList } from "./useAgentsList";
+import ClosingPaperworkUpload, { type PaperworkFile } from "./ClosingPaperworkUpload";
 
 interface EditClosingFormProps {
   closingId: string;
@@ -25,6 +26,7 @@ const EditClosingForm = ({ closingId, onBack }: EditClosingFormProps) => {
   const { data: agentOptions = [] } = useAgentsList();
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [paperworkFiles, setPaperworkFiles] = useState<PaperworkFile[]>([]);
 
   const [form, setForm] = useState({
     agent_name: "",
@@ -79,6 +81,10 @@ const EditClosingForm = ({ closingId, onBack }: EditClosingFormProps) => {
         paperwork_received: closing.paperwork_status === "received",
         notes: closing.notes || "",
       });
+      const existing = (closing as any).paperwork_files;
+      if (Array.isArray(existing)) {
+        setPaperworkFiles(existing as PaperworkFile[]);
+      }
     }
   }, [closing]);
 
@@ -129,8 +135,9 @@ const EditClosingForm = ({ closingId, onBack }: EditClosingFormProps) => {
         caliber_title_bonus: form.caliber_title_bonus,
         caliber_title_amount: caliberAmount > 0 ? caliberAmount : 150,
         status: form.check_received ? "received" : "not_received",
-        paperwork_status: form.paperwork_received ? "received" : "not_received",
+        paperwork_status: form.paperwork_received || paperworkFiles.length > 0 ? "received" : "not_received",
         notes: form.notes,
+        paperwork_files: paperworkFiles as any,
       }).eq("id", closingId);
       if (error) throw error;
       toast.success("Closing updated successfully.");
@@ -362,6 +369,12 @@ const EditClosingForm = ({ closingId, onBack }: EditClosingFormProps) => {
               </div>
             </CardContent>
           </Card>
+
+          <ClosingPaperworkUpload
+            folderId={closingId}
+            files={paperworkFiles}
+            onChange={setPaperworkFiles}
+          />
 
           <div className="space-y-2">
             <Label>Notes</Label>
