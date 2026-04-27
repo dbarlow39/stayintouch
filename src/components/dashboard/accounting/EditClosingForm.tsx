@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useAgentsList } from "./useAgentsList";
 import ClosingPaperworkUpload, { type PaperworkFile } from "./ClosingPaperworkUpload";
+import ClosingPaperworkChecklist, { type ChecklistState } from "./ClosingPaperworkChecklist";
 
 interface EditClosingFormProps {
   closingId: string;
