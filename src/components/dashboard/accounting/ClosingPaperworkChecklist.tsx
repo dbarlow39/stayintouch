@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { CheckCircle2, AlertCircle } from "lucide-react";
@@ -37,6 +38,7 @@ const ClosingPaperworkChecklist = ({
   onChange,
 }: Props) => {
   const items: Item[] = [
+    { key: "settlement_statement", label: "Settlement Statement" },
     { key: "consumer_guide", label: "Consumer Guide" },
     { key: "agency_disclosure", label: "Agency Disclosure" },
     { key: "signed_contract", label: "Signed and Dated Contract" },
@@ -59,7 +61,7 @@ const ClosingPaperworkChecklist = ({
   if (builtBefore1978) {
     items.push({
       key: "lead_based_paint_disclosure",
-      label: "Lead Based Paint Disclosure",
+      label: "Lead Paint Disclosure",
       hint: "Required for homes built prior to 1978.",
     });
   }
@@ -79,8 +81,6 @@ const ClosingPaperworkChecklist = ({
       hint: "Required when representing the buyer.",
     });
   }
-
-  items.push({ key: "settlement_statement", label: "Settlement Statement" });
 
   const toggle = (key: ChecklistKey, value: boolean) =>
     onChange({ ...checklist, [key]: value });
@@ -114,37 +114,43 @@ const ClosingPaperworkChecklist = ({
         </div>
       </div>
 
-      <label className="flex items-center gap-2 cursor-pointer pt-1">
-        <Checkbox
-          checked={builtBefore1978}
-          onCheckedChange={c => onBuiltBefore1978Change(!!c)}
-        />
-        <span className="text-sm">Home was built prior to 1978</span>
-      </label>
-
       <ul className="space-y-2 pt-2">
         {items.map(item => (
-          <li key={item.key} className="flex items-start gap-2">
-            <Checkbox
-              id={`chk-${item.key}`}
-              checked={!!checklist[item.key]}
-              onCheckedChange={c => toggle(item.key, !!c)}
-              className="mt-0.5"
-            />
-            <label
-              htmlFor={`chk-${item.key}`}
-              className="text-sm cursor-pointer leading-tight"
-            >
-              <span className={checklist[item.key] ? "line-through text-muted-foreground" : ""}>
-                {item.label}
-              </span>
-              {item.hint && (
-                <span className="block text-xs text-muted-foreground mt-0.5">
-                  {item.hint}
+          <Fragment key={item.key}>
+            <li className="flex items-start gap-2">
+              <Checkbox
+                id={`chk-${item.key}`}
+                checked={!!checklist[item.key]}
+                onCheckedChange={c => toggle(item.key, !!c)}
+                className="mt-0.5"
+              />
+              <label
+                htmlFor={`chk-${item.key}`}
+                className="text-sm cursor-pointer leading-tight"
+              >
+                <span className={checklist[item.key] ? "line-through text-muted-foreground" : ""}>
+                  {item.label}
                 </span>
-              )}
-            </label>
-          </li>
+                {item.hint && (
+                  <span className="block text-xs text-muted-foreground mt-0.5">
+                    {item.hint}
+                  </span>
+                )}
+              </label>
+            </li>
+            {item.key === "residential_property_disclosure" && (
+              <li className="flex items-center gap-2 pl-6">
+                <Checkbox
+                  id="built-before-1978"
+                  checked={builtBefore1978}
+                  onCheckedChange={c => onBuiltBefore1978Change(!!c)}
+                />
+                <label htmlFor="built-before-1978" className="text-xs cursor-pointer text-muted-foreground">
+                  Home was built prior to 1978 (requires Lead Paint Disclosure)
+                </label>
+              </li>
+            )}
+          </Fragment>
         ))}
       </ul>
     </div>
