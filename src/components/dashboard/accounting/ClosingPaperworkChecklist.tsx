@@ -146,7 +146,7 @@ const ClosingPaperworkChecklist = ({
                   onCheckedChange={c => onBuiltBefore1978Change(!!c)}
                 />
                 <label htmlFor="built-before-1978" className="text-sm cursor-pointer">
-                  Home was built prior to 1978 (requires Lead Paint Disclosure)
+                  Lead Paint Disclosure
                 </label>
               </li>
             )}
