@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { useAgentsList } from "./useAgentsList";
 import { GooglePlacesAddressInput } from "@/components/dashboard/residential/GooglePlacesAddressInput";
 import ClosingPaperworkUpload, { type PaperworkFile } from "./ClosingPaperworkUpload";
+import ClosingPaperworkChecklist, { type ChecklistState } from "./ClosingPaperworkChecklist";
 
 interface AddClosingFormProps {
   onBack: () => void;
@@ -35,6 +36,8 @@ const AddClosingForm = ({ onBack }: AddClosingFormProps) => {
   const [folderId] = useState<string>(() => crypto.randomUUID());
   const [parsingPaperwork, setParsingPaperwork] = useState(false);
   const [representation, setRepresentation] = useState<"seller" | "buyer" | null>(null);
+  const [builtBefore1978, setBuiltBefore1978] = useState(false);
+  const [checklist, setChecklist] = useState<ChecklistState>({});
 
   useEffect(() => {
     let cancelled = false;
@@ -284,6 +287,21 @@ const AddClosingForm = ({ onBack }: AddClosingFormProps) => {
 
       if (ext.property_address) setAddressQuery(String(ext.property_address));
 
+      // AI-detected checklist
+      const detected = ext.checklist_detected as Record<string, boolean> | undefined;
+      if (detected && typeof detected === "object") {
+        setChecklist(prev => {
+          const merged = { ...prev };
+          for (const [k, v] of Object.entries(detected)) {
+            if (v === true) (merged as any)[k] = true;
+          }
+          return merged;
+        });
+      }
+      if (ext.built_before_1978 === true) {
+        setBuiltBefore1978(true);
+      }
+
       if (filled.length > 0) {
         toast.success(`Auto-filled from paperwork: ${filled.join(", ")}.`);
       } else {
@@ -324,6 +342,8 @@ const AddClosingForm = ({ onBack }: AddClosingFormProps) => {
         status: form.check_status || "pending",
         paperwork_status: form.paperwork_received || paperworkFiles.length > 0 ? "received" : "pending",
         paperwork_files: paperworkFiles as any,
+        representation: representation,
+        paperwork_checklist: { ...checklist, built_before_1978: builtBefore1978 } as any,
         created_by: user.id,
       });
       if (error) throw error;
@@ -385,6 +405,14 @@ const AddClosingForm = ({ onBack }: AddClosingFormProps) => {
             onChange={setPaperworkFiles}
             onUpload={handlePaperworkUploaded}
             parsing={parsingPaperwork}
+          />
+
+          <ClosingPaperworkChecklist
+            representation={representation}
+            builtBefore1978={builtBefore1978}
+            onBuiltBefore1978Change={setBuiltBefore1978}
+            checklist={checklist}
+            onChange={setChecklist}
           />
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

@@ -64,6 +64,26 @@ const TOOL = {
       title_company: { type: "string" },
       listing_agent_name: { type: "string", description: "Listing/seller agent full name." },
       buyer_agent_name: { type: "string", description: "Buyer/selling agent full name." },
+      built_before_1978: {
+        type: "boolean",
+        description: "True ONLY if the paperwork explicitly states the home was built before 1978 (e.g. on the Lead Based Paint Disclosure or Residential Property Disclosure year-built field). Otherwise omit.",
+      },
+      checklist_detected: {
+        type: "object",
+        description: "For each document type, set to TRUE only if you find a clearly identifiable copy of that document in the uploaded PDFs (signed or unsigned). Omit fields you can't confirm.",
+        properties: {
+          consumer_guide: { type: "boolean", description: "Ohio 'Consumer Guide to Agency Relationships' or similar consumer guide." },
+          agency_disclosure: { type: "boolean", description: "Agency Disclosure Statement." },
+          signed_contract: { type: "boolean", description: "A purchase contract / Residential Real Estate Purchase Agreement that has been signed AND dated by the parties." },
+          representation_agreement: { type: "boolean", description: "Either the Exclusive Right to Sell listing agreement OR the Buyer Representation/Agency Agreement." },
+          residential_property_disclosure: { type: "boolean", description: "Residential Property Disclosure Form." },
+          lead_based_paint_disclosure: { type: "boolean", description: "Disclosure of Information on Lead-Based Paint and/or Lead-Based Paint Hazards." },
+          affiliated_business_arrangement: { type: "boolean", description: "Affiliated Business Arrangement Disclosure Statement (ABA)." },
+          home_inspection: { type: "boolean", description: "Evidence the buyer obtained a home inspection (inspection report, inspection response/remedy form, or inspection waiver)." },
+          settlement_statement: { type: "boolean", description: "Closing Disclosure (CD), ALTA Settlement Statement, or HUD-1." },
+        },
+        additionalProperties: false,
+      },
     },
     required: [],
     additionalProperties: false,
@@ -140,7 +160,9 @@ Deno.serve(async (req) => {
           "Extract the following fields and call extract_closing_fields exactly once. " +
           "Only include fields you find with high confidence. Leave anything unknown blank. " +
           "For property_address return ONLY the street number and street name (do NOT include city/state/zip). " +
-          "For closing_date use YYYY-MM-DD. For sale_price return a plain number with no symbols or commas.",
+          "For closing_date use YYYY-MM-DD. For sale_price return a plain number with no symbols or commas. " +
+          "ALSO populate checklist_detected by scanning every page across every PDF and marking each document type TRUE only when you can clearly identify a copy of that document (signed or unsigned). " +
+          "If you can determine the year the home was built (from disclosures or settlement docs), set built_before_1978 = true when the year is before 1978; otherwise omit that field.",
       },
     ];
 

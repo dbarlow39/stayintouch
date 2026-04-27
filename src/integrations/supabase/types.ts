@@ -584,9 +584,11 @@ export type Database = {
           id: string
           notes: string | null
           paid: boolean
+          paperwork_checklist: Json
           paperwork_files: Json
           paperwork_status: string
           property_address: string
+          representation: string | null
           sale_price: number
           state: string | null
           status: string
@@ -611,9 +613,11 @@ export type Database = {
           id?: string
           notes?: string | null
           paid?: boolean
+          paperwork_checklist?: Json
           paperwork_files?: Json
           paperwork_status?: string
           property_address: string
+          representation?: string | null
           sale_price?: number
           state?: string | null
           status?: string
@@ -638,9 +642,11 @@ export type Database = {
           id?: string
           notes?: string | null
           paid?: boolean
+          paperwork_checklist?: Json
           paperwork_files?: Json
           paperwork_status?: string
           property_address?: string
+          representation?: string | null
           sale_price?: number
           state?: string | null
           status?: string

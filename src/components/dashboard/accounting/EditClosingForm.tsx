@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useAgentsList } from "./useAgentsList";
 import ClosingPaperworkUpload, { type PaperworkFile } from "./ClosingPaperworkUpload";
+import ClosingPaperworkChecklist, { type ChecklistState } from "./ClosingPaperworkChecklist";
 
 interface EditClosingFormProps {
   closingId: string;
@@ -27,6 +28,9 @@ const EditClosingForm = ({ closingId, onBack }: EditClosingFormProps) => {
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [paperworkFiles, setPaperworkFiles] = useState<PaperworkFile[]>([]);
+  const [representation, setRepresentation] = useState<"seller" | "buyer" | null>(null);
+  const [builtBefore1978, setBuiltBefore1978] = useState(false);
+  const [checklist, setChecklist] = useState<ChecklistState>({});
 
   const [form, setForm] = useState({
     agent_name: "",
@@ -85,6 +89,14 @@ const EditClosingForm = ({ closingId, onBack }: EditClosingFormProps) => {
       if (Array.isArray(existing)) {
         setPaperworkFiles(existing as PaperworkFile[]);
       }
+      const repr = (closing as any).representation;
+      if (repr === "seller" || repr === "buyer") setRepresentation(repr);
+      const savedChecklist = (closing as any).paperwork_checklist;
+      if (savedChecklist && typeof savedChecklist === "object") {
+        const { built_before_1978, ...rest } = savedChecklist as any;
+        setBuiltBefore1978(!!built_before_1978);
+        setChecklist(rest as ChecklistState);
+      }
     }
   }, [closing]);
 
@@ -138,6 +150,8 @@ const EditClosingForm = ({ closingId, onBack }: EditClosingFormProps) => {
         paperwork_status: form.paperwork_received || paperworkFiles.length > 0 ? "received" : "not_received",
         notes: form.notes,
         paperwork_files: paperworkFiles as any,
+        representation: representation,
+        paperwork_checklist: { ...checklist, built_before_1978: builtBefore1978 } as any,
       }).eq("id", closingId);
       if (error) throw error;
       toast.success("Closing updated successfully.");
@@ -370,10 +384,38 @@ const EditClosingForm = ({ closingId, onBack }: EditClosingFormProps) => {
             </CardContent>
           </Card>
 
+          <div className="space-y-2">
+            <Label>Representation</Label>
+            <div className="flex flex-wrap items-center gap-6">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <Checkbox
+                  checked={representation === "seller"}
+                  onCheckedChange={(checked) => setRepresentation(checked ? "seller" : null)}
+                />
+                <span className="text-sm">Representing Seller</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <Checkbox
+                  checked={representation === "buyer"}
+                  onCheckedChange={(checked) => setRepresentation(checked ? "buyer" : null)}
+                />
+                <span className="text-sm">Representing Buyer</span>
+              </label>
+            </div>
+          </div>
+
           <ClosingPaperworkUpload
             folderId={closingId}
             files={paperworkFiles}
             onChange={setPaperworkFiles}
+          />
+
+          <ClosingPaperworkChecklist
+            representation={representation}
+            builtBefore1978={builtBefore1978}
+            onBuiltBefore1978Change={setBuiltBefore1978}
+            checklist={checklist}
+            onChange={setChecklist}
           />
 
           <div className="space-y-2">
