@@ -249,7 +249,8 @@ const AddClosingForm = ({ onBack }: AddClosingFormProps) => {
         caliber_title_amount: caliberAmount > 0 ? caliberAmount : 150,
         notes: form.notes,
         status: form.check_status || "pending",
-        paperwork_status: form.paperwork_received ? "received" : "pending",
+        paperwork_status: form.paperwork_received || paperworkFiles.length > 0 ? "received" : "pending",
+        paperwork_files: paperworkFiles as any,
         created_by: user.id,
       });
       if (error) throw error;
