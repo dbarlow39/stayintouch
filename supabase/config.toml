@@ -107,3 +107,6 @@ verify_jwt = false
 
 [functions.send-daily-notices-email]
 verify_jwt = false
+
+[functions.parse-closing-paperwork]
+verify_jwt = true

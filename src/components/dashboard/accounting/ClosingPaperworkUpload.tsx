@@ -19,6 +19,10 @@ interface Props {
   folderId: string;
   files: PaperworkFile[];
   onChange: (files: PaperworkFile[]) => void;
+  /** Called immediately after one or more new files are uploaded successfully. */
+  onUpload?: (newFiles: PaperworkFile[]) => void;
+  /** When true, shows a "Reading paperwork…" indicator overlay. */
+  parsing?: boolean;
 }
 
 const MAX_SIZE_MB = 25;
@@ -29,7 +33,7 @@ const formatBytes = (bytes: number) => {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 };
 
-const ClosingPaperworkUpload = ({ folderId, files, onChange }: Props) => {
+const ClosingPaperworkUpload = ({ folderId, files, onChange, onUpload, parsing }: Props) => {
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
 
@@ -79,6 +83,7 @@ const ClosingPaperworkUpload = ({ folderId, files, onChange }: Props) => {
       if (uploaded.length > 0) {
         onChange([...files, ...uploaded]);
         toast.success(`Uploaded ${uploaded.length} file(s).`);
+        onUpload?.(uploaded);
       }
     } finally {
       setUploading(false);
@@ -133,6 +138,13 @@ const ClosingPaperworkUpload = ({ folderId, files, onChange }: Props) => {
           onChange={(e) => handleFiles(e.target.files)}
         />
       </div>
+
+      {parsing && (
+        <div className="flex items-center gap-2 text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-md px-3 py-2">
+          <Loader2 className="w-4 h-4 animate-spin" />
+          Reading paperwork and auto-filling fields…
+        </div>
+      )}
 
       <p className="text-xs text-muted-foreground">
         Upload all signed paperwork from this closing (PDF only, up to {MAX_SIZE_MB}MB each).
