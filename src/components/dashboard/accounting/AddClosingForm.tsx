@@ -224,6 +224,77 @@ const AddClosingForm = ({ onBack }: AddClosingFormProps) => {
     }
   };
 
+  const handlePaperworkUploaded = async (newFiles: PaperworkFile[]) => {
+    if (newFiles.length === 0) return;
+    setParsingPaperwork(true);
+    try {
+      const signedUrls: string[] = [];
+      for (const f of newFiles) {
+        const { data, error } = await supabase.storage
+          .from("closing-paperwork")
+          .createSignedUrl(f.path, 60 * 5);
+        if (!error && data?.signedUrl) signedUrls.push(data.signedUrl);
+      }
+      if (signedUrls.length === 0) {
+        console.warn("No signed URLs available for parsing");
+        return;
+      }
+
+      const { data, error } = await supabase.functions.invoke("parse-closing-paperwork", {
+        body: { signed_urls: signedUrls },
+      });
+      if (error) {
+        console.error("parse-closing-paperwork error:", error);
+        return;
+      }
+      const ext = (data as any)?.extracted as Record<string, any> | undefined;
+      if (!ext) return;
+
+      const filled: string[] = [];
+      setForm(prev => {
+        const next = { ...prev };
+        const setIf = (key: keyof typeof next, value: any, label: string) => {
+          if (value === undefined || value === null || value === "") return;
+          (next as any)[key] = String(value);
+          filled.push(label);
+        };
+
+        setIf("property_address", ext.property_address, "address");
+        setIf("city", ext.city, "city");
+        setIf("state", ext.state, "state");
+        setIf("zip", ext.zip, "zip");
+        setIf("closing_date", ext.closing_date, "closing date");
+        if (typeof ext.sale_price === "number" && ext.sale_price > 0) {
+          next.sale_price = String(Math.round(ext.sale_price));
+          filled.push("sale price");
+        }
+
+        const candidates = [ext.listing_agent_name, ext.buyer_agent_name].filter(Boolean) as string[];
+        for (const candidate of candidates) {
+          const lower = candidate.toLowerCase().trim();
+          const exact = agentOptions.find(a => a.full_name.toLowerCase() === lower);
+          if (exact) { next.agent_name = exact.full_name; filled.push("agent"); break; }
+          const lastName = lower.split(/\s+/).pop() || "";
+          const byLast = agentOptions.find(a => a.full_name.toLowerCase().split(/\s+/).pop() === lastName);
+          if (byLast) { next.agent_name = byLast.full_name; filled.push("agent"); break; }
+        }
+        return next;
+      });
+
+      if (ext.property_address) setAddressQuery(String(ext.property_address));
+
+      if (filled.length > 0) {
+        toast.success(`Auto-filled from paperwork: ${filled.join(", ")}.`);
+      } else {
+        toast.info("Paperwork uploaded — no fields could be auto-filled.");
+      }
+    } catch (e) {
+      console.error("Auto-fill failed:", e);
+    } finally {
+      setParsingPaperwork(false);
+    }
+  };
+
   const handleSave = async () => {
     if (!user || !form.agent_name || !form.property_address || !form.closing_date) {
       toast.error("Please fill in agent name, property address, and closing date.");
