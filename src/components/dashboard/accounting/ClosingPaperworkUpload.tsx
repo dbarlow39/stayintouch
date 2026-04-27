@@ -23,6 +23,8 @@ interface Props {
   onUpload?: (newFiles: PaperworkFile[]) => void;
   /** When true, shows a "Reading paperwork…" indicator overlay. */
   parsing?: boolean;
+  /** Representation type — uploads are blocked when null. */
+  representation?: "seller" | "buyer" | null;
 }
 
 const MAX_SIZE_MB = 25;
