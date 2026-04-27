@@ -35,13 +35,24 @@ const formatBytes = (bytes: number) => {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 };
 
-const ClosingPaperworkUpload = ({ folderId, files, onChange, onUpload, parsing }: Props) => {
+const ClosingPaperworkUpload = ({ folderId, files, onChange, onUpload, parsing, representation }: Props) => {
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
 
-  const handleSelect = () => inputRef.current?.click();
+  const handleSelect = () => {
+    if (!representation) {
+      toast.error("Please select a Representation (Seller or Buyer) before uploading documents.");
+      return;
+    }
+    inputRef.current?.click();
+  };
 
   const handleFiles = async (fileList: FileList | null) => {
+    if (!representation) {
+      toast.error("Please select a Representation (Seller or Buyer) before uploading documents.");
+      if (inputRef.current) inputRef.current.value = "";
+      return;
+    }
     if (!fileList || fileList.length === 0) return;
     const selected = Array.from(fileList);
 
