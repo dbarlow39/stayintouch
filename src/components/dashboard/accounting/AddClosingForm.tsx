@@ -407,6 +407,14 @@ const AddClosingForm = ({ onBack }: AddClosingFormProps) => {
             parsing={parsingPaperwork}
           />
 
+          <ClosingPaperworkChecklist
+            representation={representation}
+            builtBefore1978={builtBefore1978}
+            onBuiltBefore1978Change={setBuiltBefore1978}
+            checklist={checklist}
+            onChange={setChecklist}
+          />
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Agent Name *</Label>
