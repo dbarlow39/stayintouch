@@ -135,8 +135,9 @@ const EditClosingForm = ({ closingId, onBack }: EditClosingFormProps) => {
         caliber_title_bonus: form.caliber_title_bonus,
         caliber_title_amount: caliberAmount > 0 ? caliberAmount : 150,
         status: form.check_received ? "received" : "not_received",
-        paperwork_status: form.paperwork_received ? "received" : "not_received",
+        paperwork_status: form.paperwork_received || paperworkFiles.length > 0 ? "received" : "not_received",
         notes: form.notes,
+        paperwork_files: paperworkFiles as any,
       }).eq("id", closingId);
       if (error) throw error;
       toast.success("Closing updated successfully.");
