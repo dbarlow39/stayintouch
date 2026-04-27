@@ -167,7 +167,25 @@ const EditClosingForm = ({ closingId, onBack }: EditClosingFormProps) => {
       toast.success("Closing updated successfully.");
       queryClient.invalidateQueries({ queryKey: ["accounting-closings-summary"] });
       queryClient.invalidateQueries({ queryKey: ["closing-detail", closingId] });
-      onBack();
+
+      const nowPaperwork = form.paperwork_received || paperworkFiles.length > 0;
+      const nowCheck = form.check_received;
+      const init = initialReceivedRef.current || { paperwork: false, check: false };
+      const paperworkTransition = nowPaperwork && !init.paperwork;
+      const checkTransition = nowCheck && !init.check;
+      if (paperworkTransition || checkTransition) {
+        const agentRec = agentOptions.find(a => a.full_name === form.agent_name);
+        setNotifyDialog({
+          open: true,
+          paperwork: paperworkTransition,
+          check: checkTransition,
+          agentEmail: (agentRec as any)?.email || "",
+          agentName: form.agent_name,
+          address: form.property_address,
+        });
+      } else {
+        onBack();
+      }
     } catch (err: any) {
       toast.error(err.message || "Failed to update closing");
     } finally {
