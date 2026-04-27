@@ -92,10 +92,9 @@ const DepositReturnPage = ({ onBack }: DepositReturnPageProps) => {
         agentName: result.payee_name,
         agentAddress: "",
         agentCityStateZip: "",
-        propertyNames: result.property_address || "",
+        propertyNames: result.property_address ? `Return of Deposit for: ${result.property_address}` : "Return of Deposit",
         lineItems: [{ amount: result.amount, label: "Return of Deposit" }],
         ytdTotal: checks.reduce((sum, c) => sum + Number(c.amount), 0) + result.amount,
-        memo: result.property_address || undefined,
         checkNumber: result.check_number,
       });
       setForm(emptyForm);
@@ -152,10 +151,9 @@ const DepositReturnPage = ({ onBack }: DepositReturnPageProps) => {
       agentName: chk.payee_name,
       agentAddress: "",
       agentCityStateZip: "",
-      propertyNames: chk.property_address || "",
+      propertyNames: chk.property_address ? `Return of Deposit for: ${chk.property_address}` : "Return of Deposit",
       lineItems: [{ amount, label: "Return of Deposit" }],
       ytdTotal: ytdMap.get(chk.id) || amount,
-      memo: chk.property_address || undefined,
       checkNumber: chk.check_number || undefined,
     });
   };
