@@ -33,6 +33,7 @@ const AddClosingForm = ({ onBack }: AddClosingFormProps) => {
   const [googleApiKey, setGoogleApiKey] = useState<string>("");
   const [paperworkFiles, setPaperworkFiles] = useState<PaperworkFile[]>([]);
   const [folderId] = useState<string>(() => crypto.randomUUID());
+  const [parsingPaperwork, setParsingPaperwork] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
