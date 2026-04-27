@@ -503,12 +503,6 @@ const AddClosingForm = ({ onBack }: AddClosingFormProps) => {
 
 
 
-          <ClosingPaperworkUpload
-            folderId={folderId}
-            files={paperworkFiles}
-            onChange={setPaperworkFiles}
-          />
-
           <div className="space-y-2">
             <Label>Notes</Label>
             <Textarea value={form.notes} onChange={e => update("notes", e.target.value)} placeholder="Optional notes about this closing..." rows={3} />
