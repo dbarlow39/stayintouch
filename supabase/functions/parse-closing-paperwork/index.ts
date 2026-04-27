@@ -160,7 +160,9 @@ Deno.serve(async (req) => {
           "Extract the following fields and call extract_closing_fields exactly once. " +
           "Only include fields you find with high confidence. Leave anything unknown blank. " +
           "For property_address return ONLY the street number and street name (do NOT include city/state/zip). " +
-          "For closing_date use YYYY-MM-DD. For sale_price return a plain number with no symbols or commas.",
+          "For closing_date use YYYY-MM-DD. For sale_price return a plain number with no symbols or commas. " +
+          "ALSO populate checklist_detected by scanning every page across every PDF and marking each document type TRUE only when you can clearly identify a copy of that document (signed or unsigned). " +
+          "If you can determine the year the home was built (from disclosures or settlement docs), set built_before_1978 = true when the year is before 1978; otherwise omit that field.",
       },
     ];
 
