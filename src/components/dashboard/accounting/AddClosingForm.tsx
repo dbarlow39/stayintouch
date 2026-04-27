@@ -234,6 +234,7 @@ const AddClosingForm = ({ onBack }: AddClosingFormProps) => {
 
   const handlePaperworkUploaded = async (newFiles: PaperworkFile[]) => {
     if (newFiles.length === 0) return;
+    setForm(prev => ({ ...prev, paperwork_received: true }));
     setParsingPaperwork(true);
     try {
       const signedUrls: string[] = [];
