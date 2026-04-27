@@ -15,6 +15,7 @@ import { useAgentsList } from "./useAgentsList";
 import { GooglePlacesAddressInput } from "@/components/dashboard/residential/GooglePlacesAddressInput";
 import ClosingPaperworkUpload, { type PaperworkFile } from "./ClosingPaperworkUpload";
 import ClosingPaperworkChecklist, { type ChecklistState } from "./ClosingPaperworkChecklist";
+import ClosingNotificationDialog from "./ClosingNotificationDialog";
 
 interface AddClosingFormProps {
   onBack: () => void;
@@ -38,6 +39,9 @@ const AddClosingForm = ({ onBack }: AddClosingFormProps) => {
   const [representation, setRepresentation] = useState<"seller" | "buyer" | null>(null);
   const [builtBefore1978, setBuiltBefore1978] = useState(false);
   const [checklist, setChecklist] = useState<ChecklistState>({});
+  const [notifyDialog, setNotifyDialog] = useState<{ open: boolean; paperwork: boolean; check: boolean; agentEmail: string; agentName: string; address: string }>({
+    open: false, paperwork: false, check: false, agentEmail: "", agentName: "", address: "",
+  });
 
   useEffect(() => {
     let cancelled = false;
@@ -349,7 +353,22 @@ const AddClosingForm = ({ onBack }: AddClosingFormProps) => {
       if (error) throw error;
       toast.success("Closing logged successfully—you're almost there.");
       queryClient.invalidateQueries({ queryKey: ["accounting-closings-summary"] });
-      onBack();
+
+      const paperworkReceived = form.paperwork_received || paperworkFiles.length > 0 || Object.values(checklist).some(Boolean);
+      const checkReceived = !!form.check_status && form.check_status === "received";
+      if (paperworkReceived || checkReceived) {
+        const agentRec = agentOptions.find(a => a.full_name === form.agent_name);
+        setNotifyDialog({
+          open: true,
+          paperwork: paperworkReceived,
+          check: checkReceived,
+          agentEmail: (agentRec as any)?.email || "",
+          agentName: form.agent_name,
+          address: form.property_address,
+        });
+      } else {
+        onBack();
+      }
     } catch (err: any) {
       toast.error(err.message || "Failed to save closing");
     } finally {
@@ -652,6 +671,16 @@ const AddClosingForm = ({ onBack }: AddClosingFormProps) => {
           </div>
         </CardContent>
       </Card>
+
+      <ClosingNotificationDialog
+        open={notifyDialog.open}
+        onClose={() => { setNotifyDialog(d => ({ ...d, open: false })); onBack(); }}
+        agentName={notifyDialog.agentName}
+        defaultEmail={notifyDialog.agentEmail}
+        propertyAddress={notifyDialog.address}
+        paperworkReceived={notifyDialog.paperwork}
+        checkReceived={notifyDialog.check}
+      />
     </div>
   );
 };

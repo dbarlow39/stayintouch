@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -15,6 +15,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useAgentsList } from "./useAgentsList";
 import ClosingPaperworkUpload, { type PaperworkFile } from "./ClosingPaperworkUpload";
 import ClosingPaperworkChecklist, { type ChecklistState } from "./ClosingPaperworkChecklist";
+import ClosingNotificationDialog from "./ClosingNotificationDialog";
 
 interface EditClosingFormProps {
   closingId: string;
@@ -31,6 +32,10 @@ const EditClosingForm = ({ closingId, onBack }: EditClosingFormProps) => {
   const [representation, setRepresentation] = useState<"seller" | "buyer" | null>(null);
   const [builtBefore1978, setBuiltBefore1978] = useState(false);
   const [checklist, setChecklist] = useState<ChecklistState>({});
+  const initialReceivedRef = useRef<{ paperwork: boolean; check: boolean } | null>(null);
+  const [notifyDialog, setNotifyDialog] = useState<{ open: boolean; paperwork: boolean; check: boolean; agentEmail: string; agentName: string; address: string }>({
+    open: false, paperwork: false, check: false, agentEmail: "", agentName: "", address: "",
+  });
 
   const [form, setForm] = useState({
     agent_name: "",
@@ -67,6 +72,11 @@ const EditClosingForm = ({ closingId, onBack }: EditClosingFormProps) => {
 
   useEffect(() => {
     if (closing) {
+      const initialPaperwork = closing.paperwork_status === "received" || (Array.isArray((closing as any).paperwork_files) && (closing as any).paperwork_files.length > 0);
+      const initialCheck = closing.status === "received";
+      if (initialReceivedRef.current === null) {
+        initialReceivedRef.current = { paperwork: initialPaperwork, check: initialCheck };
+      }
       setForm({
         agent_name: closing.agent_name || "",
         property_address: closing.property_address || "",
@@ -157,7 +167,25 @@ const EditClosingForm = ({ closingId, onBack }: EditClosingFormProps) => {
       toast.success("Closing updated successfully.");
       queryClient.invalidateQueries({ queryKey: ["accounting-closings-summary"] });
       queryClient.invalidateQueries({ queryKey: ["closing-detail", closingId] });
-      onBack();
+
+      const nowPaperwork = form.paperwork_received || paperworkFiles.length > 0;
+      const nowCheck = form.check_received;
+      const init = initialReceivedRef.current || { paperwork: false, check: false };
+      const paperworkTransition = nowPaperwork && !init.paperwork;
+      const checkTransition = nowCheck && !init.check;
+      if (paperworkTransition || checkTransition) {
+        const agentRec = agentOptions.find(a => a.full_name === form.agent_name);
+        setNotifyDialog({
+          open: true,
+          paperwork: paperworkTransition,
+          check: checkTransition,
+          agentEmail: (agentRec as any)?.email || "",
+          agentName: form.agent_name,
+          address: form.property_address,
+        });
+      } else {
+        onBack();
+      }
     } catch (err: any) {
       toast.error(err.message || "Failed to update closing");
     } finally {
@@ -431,6 +459,16 @@ const EditClosingForm = ({ closingId, onBack }: EditClosingFormProps) => {
           </div>
         </CardContent>
       </Card>
+
+      <ClosingNotificationDialog
+        open={notifyDialog.open}
+        onClose={() => { setNotifyDialog(d => ({ ...d, open: false })); onBack(); }}
+        agentName={notifyDialog.agentName}
+        defaultEmail={notifyDialog.agentEmail}
+        propertyAddress={notifyDialog.address}
+        paperworkReceived={notifyDialog.paperwork}
+        checkReceived={notifyDialog.check}
+      />
     </div>
   );
 };

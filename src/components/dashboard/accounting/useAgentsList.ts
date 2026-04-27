@@ -9,7 +9,7 @@ export const useAgentsList = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("agents")
-        .select("id, full_name")
+        .select("id, full_name, email")
         .order("full_name");
       if (error) throw error;
       return data || [];
