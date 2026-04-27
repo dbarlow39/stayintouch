@@ -34,6 +34,7 @@ const AddClosingForm = ({ onBack }: AddClosingFormProps) => {
   const [paperworkFiles, setPaperworkFiles] = useState<PaperworkFile[]>([]);
   const [folderId] = useState<string>(() => crypto.randomUUID());
   const [parsingPaperwork, setParsingPaperwork] = useState(false);
+  const [representation, setRepresentation] = useState<"seller" | "buyer" | null>(null);
 
   useEffect(() => {
     let cancelled = false;
