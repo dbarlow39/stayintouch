@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,6 +27,10 @@ const ClosingNotificationDialog = ({
 }: ClosingNotificationDialogProps) => {
   const [email, setEmail] = useState(defaultEmail);
   const [sending, setSending] = useState(false);
+
+  useEffect(() => {
+    if (open) setEmail(defaultEmail);
+  }, [open, defaultEmail]);
 
   const items: string[] = [];
   if (paperworkReceived) items.push("paperwork");
