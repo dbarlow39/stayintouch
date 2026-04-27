@@ -671,6 +671,16 @@ const AddClosingForm = ({ onBack }: AddClosingFormProps) => {
           </div>
         </CardContent>
       </Card>
+
+      <ClosingNotificationDialog
+        open={notifyDialog.open}
+        onClose={() => { setNotifyDialog(d => ({ ...d, open: false })); onBack(); }}
+        agentName={notifyDialog.agentName}
+        defaultEmail={notifyDialog.agentEmail}
+        propertyAddress={notifyDialog.address}
+        paperworkReceived={notifyDialog.paperwork}
+        checkReceived={notifyDialog.check}
+      />
     </div>
   );
 };
