@@ -287,6 +287,21 @@ const AddClosingForm = ({ onBack }: AddClosingFormProps) => {
 
       if (ext.property_address) setAddressQuery(String(ext.property_address));
 
+      // AI-detected checklist
+      const detected = ext.checklist_detected as Record<string, boolean> | undefined;
+      if (detected && typeof detected === "object") {
+        setChecklist(prev => {
+          const merged = { ...prev };
+          for (const [k, v] of Object.entries(detected)) {
+            if (v === true) (merged as any)[k] = true;
+          }
+          return merged;
+        });
+      }
+      if (ext.built_before_1978 === true) {
+        setBuiltBefore1978(true);
+      }
+
       if (filled.length > 0) {
         toast.success(`Auto-filled from paperwork: ${filled.join(", ")}.`);
       } else {
