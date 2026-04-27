@@ -384,10 +384,38 @@ const EditClosingForm = ({ closingId, onBack }: EditClosingFormProps) => {
             </CardContent>
           </Card>
 
+          <div className="space-y-2">
+            <Label>Representation</Label>
+            <div className="flex flex-wrap items-center gap-6">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <Checkbox
+                  checked={representation === "seller"}
+                  onCheckedChange={(checked) => setRepresentation(checked ? "seller" : null)}
+                />
+                <span className="text-sm">Representing Seller</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <Checkbox
+                  checked={representation === "buyer"}
+                  onCheckedChange={(checked) => setRepresentation(checked ? "buyer" : null)}
+                />
+                <span className="text-sm">Representing Buyer</span>
+              </label>
+            </div>
+          </div>
+
           <ClosingPaperworkUpload
             folderId={closingId}
             files={paperworkFiles}
             onChange={setPaperworkFiles}
+          />
+
+          <ClosingPaperworkChecklist
+            representation={representation}
+            builtBefore1978={builtBefore1978}
+            onBuiltBefore1978Change={setBuiltBefore1978}
+            checklist={checklist}
+            onChange={setChecklist}
           />
 
           <div className="space-y-2">
