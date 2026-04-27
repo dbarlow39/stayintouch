@@ -101,13 +101,15 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { signed_urls } = await req.json();
+    const { signed_urls, representation } = await req.json();
     if (!Array.isArray(signed_urls) || signed_urls.length === 0) {
       return new Response(JSON.stringify({ error: "signed_urls required" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    const repr = representation === "seller" || representation === "buyer" ? representation : null;
 
     // Cap to 5 PDFs to control cost/latency
     const urls = signed_urls.slice(0, 5);
