@@ -33,7 +33,7 @@ const formatBytes = (bytes: number) => {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 };
 
-const ClosingPaperworkUpload = ({ folderId, files, onChange }: Props) => {
+const ClosingPaperworkUpload = ({ folderId, files, onChange, onUpload, parsing }: Props) => {
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
 
