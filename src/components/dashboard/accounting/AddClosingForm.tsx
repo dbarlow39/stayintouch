@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { useAgentsList } from "./useAgentsList";
 import { GooglePlacesAddressInput } from "@/components/dashboard/residential/GooglePlacesAddressInput";
 import ClosingPaperworkUpload, { type PaperworkFile } from "./ClosingPaperworkUpload";
+import ClosingPaperworkChecklist, { type ChecklistState } from "./ClosingPaperworkChecklist";
 
 interface AddClosingFormProps {
   onBack: () => void;
