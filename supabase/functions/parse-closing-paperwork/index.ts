@@ -101,13 +101,15 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { signed_urls } = await req.json();
+    const { signed_urls, representation } = await req.json();
     if (!Array.isArray(signed_urls) || signed_urls.length === 0) {
       return new Response(JSON.stringify({ error: "signed_urls required" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    const repr = representation === "seller" || representation === "buyer" ? representation : null;
 
     // Cap to 5 PDFs to control cost/latency
     const urls = signed_urls.slice(0, 5);
@@ -122,12 +124,19 @@ Deno.serve(async (req) => {
       }),
     );
 
+    const reprNote = repr === "seller"
+      ? "The agent using this system is REPRESENTING THE SELLER on this transaction. The expected paperwork set typically includes the Listing Agreement, Seller's Disclosure, Lead-Based Paint Disclosure, Purchase Contract (seller-signed), Counter-Offers/Addenda, and the Closing Disclosure / Settlement Statement (seller side). When extracting agent names, prioritize the listing/seller-side agent for matching."
+      : repr === "buyer"
+      ? "The agent using this system is REPRESENTING THE BUYER on this transaction. The expected paperwork set typically includes the Buyer Agency Agreement, Purchase Contract (buyer-signed), Pre-Approval Letter, Inspection Response/Remedy, Loan/Appraisal Addenda, and the Closing Disclosure / Settlement Statement (buyer side). When extracting agent names, prioritize the buyer/selling-side agent for matching."
+      : "Representation side was not specified.";
+
     const userContent: any[] = [
       ...pdfBlocks,
       {
         type: "text",
         text:
           "These PDFs are paperwork from a real estate closing (typically the Purchase Contract and related forms). " +
+          reprNote + " " +
           "Extract the following fields and call extract_closing_fields exactly once. " +
           "Only include fields you find with high confidence. Leave anything unknown blank. " +
           "For property_address return ONLY the street number and street name (do NOT include city/state/zip). " +

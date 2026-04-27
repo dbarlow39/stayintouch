@@ -34,6 +34,7 @@ const AddClosingForm = ({ onBack }: AddClosingFormProps) => {
   const [paperworkFiles, setPaperworkFiles] = useState<PaperworkFile[]>([]);
   const [folderId] = useState<string>(() => crypto.randomUUID());
   const [parsingPaperwork, setParsingPaperwork] = useState(false);
+  const [representation, setRepresentation] = useState<"seller" | "buyer" | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -241,7 +242,7 @@ const AddClosingForm = ({ onBack }: AddClosingFormProps) => {
       }
 
       const { data, error } = await supabase.functions.invoke("parse-closing-paperwork", {
-        body: { signed_urls: signedUrls },
+        body: { signed_urls: signedUrls, representation },
       });
       if (error) {
         console.error("parse-closing-paperwork error:", error);
@@ -351,6 +352,33 @@ const AddClosingForm = ({ onBack }: AddClosingFormProps) => {
           <CardDescription>Enter the closing details. We'll calculate the split for you.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
+          <div className="space-y-2">
+            <Label>Representation</Label>
+            <div className="flex flex-wrap items-center gap-6">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <Checkbox
+                  checked={representation === "seller"}
+                  onCheckedChange={(checked) =>
+                    setRepresentation(checked ? "seller" : null)
+                  }
+                />
+                <span className="text-sm">Representing Seller</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <Checkbox
+                  checked={representation === "buyer"}
+                  onCheckedChange={(checked) =>
+                    setRepresentation(checked ? "buyer" : null)
+                  }
+                />
+                <span className="text-sm">Representing Buyer</span>
+              </label>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Select one — this tells the AI which paperwork set to expect in the upload.
+            </p>
+          </div>
+
           <ClosingPaperworkUpload
             folderId={folderId}
             files={paperworkFiles}
