@@ -75,7 +75,7 @@ const calculateNotices = (property: PropertyRow): { type: string; label: string;
     { type: "home-inspection-scheduled", label: "Home Inspection Scheduled", dueDate: inspectionDueDate },
     { type: "loan-application", label: "Loan Application", dueDate: isCash ? null : loanAppDueDate },
     { type: "title-commitment-received", label: "Title Commitment Received", dueDate: titleCommitmentDueDate },
-    { type: "appraisal-ordered", label: "Appraisal Ordered", dueDate: appraisalDueDate },
+    { type: "appraisal-ordered", label: "Appraisal Ordered", dueDate: isCash ? null : appraisalDueDate },
     { type: "loan-approved", label: "Loan Approved", dueDate: isCash ? null : loanApprovedDueDate },
     { type: "clear-to-close", label: "Clear to Close", dueDate: clearToCloseDueDate },
     { type: "hud-settlement-statement", label: "HUD Settlement Statement", dueDate: hudSettlementDueDate },
