@@ -17,6 +17,7 @@ interface PropertyRow {
   loan_app_time_frame: string | null;
   loan_commitment: string | null;
   deposit_collection: string | null;
+  type_of_loan: string | null;
 }
 
 interface NoticeStatusRow {
