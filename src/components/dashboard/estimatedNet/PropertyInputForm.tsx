@@ -1734,13 +1734,15 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
               />
             </div>
             {!hideSections.includes('contract-extra-fields') && (<>
+            {(() => { return null; })()}
             <div>
               <Label htmlFor="preApprovalDays">(3.2a) Lender Pre-Qualification (Days Due)</Label>
               <Input
                 id="preApprovalDays"
                 type="text"
                 inputMode="numeric"
-                value={preApprovalFocused ? preApprovalText : (formData.preApprovalDays === 0 ? "Received" : String(formData.preApprovalDays ?? ""))}
+                disabled={normalizeTypeOfLoan(formData.typeOfLoan) === "Cash"}
+                value={normalizeTypeOfLoan(formData.typeOfLoan) === "Cash" ? "N/A" : (preApprovalFocused ? preApprovalText : (formData.preApprovalDays === 0 ? "Received" : String(formData.preApprovalDays ?? "")))}
                 onFocus={() => {
                   setPreApprovalFocused(true);
                   setPreApprovalText(formData.preApprovalDays === 0 ? "" : String(formData.preApprovalDays ?? ""));
@@ -1763,8 +1765,9 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
               <Label htmlFor="loanAppTimeFrame">(3.2b) Loan Application</Label>
               <Input
                 id="loanAppTimeFrame"
-                type="number"
-                value={formData.loanAppTimeFrame ?? ""}
+                type={normalizeTypeOfLoan(formData.typeOfLoan) === "Cash" ? "text" : "number"}
+                disabled={normalizeTypeOfLoan(formData.typeOfLoan) === "Cash"}
+                value={normalizeTypeOfLoan(formData.typeOfLoan) === "Cash" ? "N/A" : (formData.loanAppTimeFrame ?? "")}
                 onChange={(e) => updateField("loanAppTimeFrame", e.target.value)}
                 placeholder="7"
               />
@@ -1797,7 +1800,8 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
               <Label htmlFor="loanCommitment">(3.2c) Loan Commitment (Days Due)</Label>
               <Input
                 id="loanCommitment"
-                value={formData.loanCommitment}
+                disabled={normalizeTypeOfLoan(formData.typeOfLoan) === "Cash"}
+                value={normalizeTypeOfLoan(formData.typeOfLoan) === "Cash" ? "N/A" : formData.loanCommitment}
                 onChange={(e) => updateField("loanCommitment", e.target.value)}
               />
             </div>
