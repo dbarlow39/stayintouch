@@ -18,6 +18,7 @@ interface PropertyRow {
   loan_app_time_frame: string | null;
   loan_commitment: string | null;
   deposit_collection: string | null;
+  type_of_loan: string | null;
 }
 
 interface NoticeStatusRow {
@@ -64,6 +65,7 @@ const fmtDate = (d: Date) => {
 const calculateNotices = (p: PropertyRow) => {
   const inContract = parseLocalDate(p.in_contract);
   const closing = parseLocalDate(p.closing_date);
+  const isCash = (p.type_of_loan || "").trim().toLowerCase() === "cash";
 
   let depositDue: Date | null = null;
   if (p.deposit_collection && inContract) {
@@ -71,11 +73,11 @@ const calculateNotices = (p: PropertyRow) => {
     if (m) depositDue = addDays(inContract, parseInt(m[1]));
   }
   const inspectionDue = inContract && p.inspection_days ? addDays(inContract, p.inspection_days) : null;
-  const loanAppDue = inContract && p.loan_app_time_frame
+  const loanAppDue = !isCash && inContract && p.loan_app_time_frame
     ? addDays(inContract, parseInt(p.loan_app_time_frame) || 7) : null;
   const titleDue = closing ? subDays(closing, 15) : null;
-  const appraisalDue = closing ? subDays(closing, 14) : null;
-  const loanApprovedDue = inContract && p.loan_commitment
+  const appraisalDue = !isCash && closing ? subDays(closing, 14) : null;
+  const loanApprovedDue = !isCash && inContract && p.loan_commitment
     ? addDays(inContract, parseInt(p.loan_commitment) || 21) : null;
   const clearToCloseDue = closing ? subDays(closing, 4) : null;
   const hudDue = closing ? subDays(closing, 2) : null;
@@ -107,7 +109,7 @@ Deno.serve(async (req) => {
     // Fetch all in-contract, non-closed properties
     const { data: properties, error: pErr } = await supabase
       .from("estimated_net_properties")
-      .select("id, agent_id, name, street_address, in_contract, closing_date, inspection_days, loan_app_time_frame, loan_commitment, deposit_collection, deal_status")
+      .select("id, agent_id, name, street_address, in_contract, closing_date, inspection_days, loan_app_time_frame, loan_commitment, deposit_collection, deal_status, type_of_loan")
       .not("in_contract", "is", null)
       .neq("deal_status", "closed");
     if (pErr) throw pErr;
