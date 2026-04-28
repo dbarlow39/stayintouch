@@ -68,13 +68,15 @@ const calculateNotices = (property: PropertyRow): { type: string; label: string;
   const clearToCloseDueDate = closingDate ? subDays(closingDate, 4) : null;
   const hudSettlementDueDate = closingDate ? subDays(closingDate, 2) : null;
 
+  const isCash = (property.type_of_loan || "").trim().toLowerCase() === "cash";
+
   return [
     { type: "deposit-received", label: "Deposit Received", dueDate: depositDueDate },
     { type: "home-inspection-scheduled", label: "Home Inspection Scheduled", dueDate: inspectionDueDate },
-    { type: "loan-application", label: "Loan Application", dueDate: loanAppDueDate },
+    { type: "loan-application", label: "Loan Application", dueDate: isCash ? null : loanAppDueDate },
     { type: "title-commitment-received", label: "Title Commitment Received", dueDate: titleCommitmentDueDate },
     { type: "appraisal-ordered", label: "Appraisal Ordered", dueDate: appraisalDueDate },
-    { type: "loan-approved", label: "Loan Approved", dueDate: loanApprovedDueDate },
+    { type: "loan-approved", label: "Loan Approved", dueDate: isCash ? null : loanApprovedDueDate },
     { type: "clear-to-close", label: "Clear to Close", dueDate: clearToCloseDueDate },
     { type: "hud-settlement-statement", label: "HUD Settlement Statement", dueDate: hudSettlementDueDate },
     { type: "closed", label: "Closed", dueDate: closingDate },
