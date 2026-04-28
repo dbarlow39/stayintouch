@@ -241,7 +241,7 @@ const NoticesView = ({
 
   const isCashDeal = (propertyData.typeOfLoan || "").trim().toLowerCase() === "cash";
   const noticeOptions = calculateDueDates().filter(o =>
-    !isCashDeal || (o.value !== "loan-application" && o.value !== "loan-approved")
+    !isCashDeal || (o.value !== "loan-application" && o.value !== "loan-approved" && o.value !== "appraisal-ordered")
   );
 
   // Check for overdue incomplete notices
