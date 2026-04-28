@@ -1800,7 +1800,8 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
               <Label htmlFor="loanCommitment">(3.2c) Loan Commitment (Days Due)</Label>
               <Input
                 id="loanCommitment"
-                value={formData.loanCommitment}
+                disabled={normalizeTypeOfLoan(formData.typeOfLoan) === "Cash"}
+                value={normalizeTypeOfLoan(formData.typeOfLoan) === "Cash" ? "N/A" : formData.loanCommitment}
                 onChange={(e) => updateField("loanCommitment", e.target.value)}
               />
             </div>
