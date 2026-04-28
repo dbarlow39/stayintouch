@@ -4,7 +4,7 @@ export function calculateClosingCosts(data: PropertyData): ClosingCostData {
   const offerPrice = data.offerPrice || 0;
   
   // Calculate commissions
-  const listingCommission = offerPrice * (data.listingAgentCommission / 100);
+  const listingCommission = Math.max(offerPrice * (data.listingAgentCommission / 100), 2250);
   const buyerCommission = offerPrice * (data.buyerAgentCommission / 100);
   
   // Calculate taxes due for current year
