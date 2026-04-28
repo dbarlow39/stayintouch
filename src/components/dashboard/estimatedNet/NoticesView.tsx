@@ -239,7 +239,10 @@ const NoticesView = ({
     ];
   };
 
-  const noticeOptions = calculateDueDates();
+  const isCashDeal = (propertyData.typeOfLoan || "").trim().toLowerCase() === "cash";
+  const noticeOptions = calculateDueDates().filter(o =>
+    !isCashDeal || (o.value !== "loan-application" && o.value !== "loan-approved")
+  );
 
   // Check for overdue incomplete notices
   const today = startOfDay(new Date());
