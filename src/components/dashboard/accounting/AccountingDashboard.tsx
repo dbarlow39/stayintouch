@@ -73,6 +73,26 @@ const AccountingDashboard = ({ onNavigate }: AccountingDashboardProps) => {
     enabled: !!user,
   });
 
+  const { data: preppedClosingIds = new Set<string>() } = useQuery({
+    queryKey: ["accounting-prepped-closing-ids"],
+    queryFn: async () => {
+      const { data: payouts, error: pErr } = await supabase
+        .from("commission_payouts")
+        .select("id")
+        .in("status", ["pending", "approved"]);
+      if (pErr) throw pErr;
+      const payoutIds = (payouts || []).map((p) => p.id);
+      if (payoutIds.length === 0) return new Set<string>();
+      const { data: links, error: lErr } = await supabase
+        .from("payout_closing_links")
+        .select("closing_id")
+        .in("payout_id", payoutIds);
+      if (lErr) throw lErr;
+      return new Set<string>((links || []).map((l) => l.closing_id));
+    },
+    enabled: !!user,
+  });
+
   const pendingClosings = closings.filter(c => c.status === "pending" || c.status === "check_received");
   const totalPendingCommission = pendingPayouts.reduce((sum, p) => sum + Number(p.total_amount), 0);
 
