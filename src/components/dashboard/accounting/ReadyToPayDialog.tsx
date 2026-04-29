@@ -138,19 +138,6 @@ const ReadyToPayDialog = ({ open, onOpenChange, closings, onNavigate }: ReadyToP
                 </p>
               )}
 
-              <div className="mt-3 flex items-center gap-3 max-w-xs">
-                <Label htmlFor={`advance-${agentName}`} className="text-sm whitespace-nowrap">Advance Pay</Label>
-                <Input
-                  id={`advance-${agentName}`}
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  placeholder="0.00"
-                  value={advances[agentName] || ""}
-                  onChange={(e) => setAdvances(prev => ({ ...prev, [agentName]: e.target.value }))}
-                  className="h-9 text-right"
-                />
-              </div>
             </div>
           );
         })}
