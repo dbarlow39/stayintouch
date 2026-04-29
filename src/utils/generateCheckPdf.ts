@@ -126,6 +126,13 @@ export const generateCheckPdf = (data: CheckData) => {
     y += 18;
   }
 
+  // Advance deduction line (if any)
+  if (data.advanceAmount && data.advanceAmount > 0) {
+    doc.text(`-${formatCurrency(data.advanceAmount)}`, leftMargin + 60, y, { align: "right" });
+    doc.text("Advance", leftMargin + 80, y);
+    y += 18;
+  }
+
   y += 14;
 
   // YTD Total
