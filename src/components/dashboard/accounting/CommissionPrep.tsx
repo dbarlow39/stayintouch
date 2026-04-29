@@ -415,19 +415,41 @@ const CommissionPrep = ({ onBack }: CommissionPrepProps) => {
               </div>
 
               {selectedIds.length > 0 && (
-                <div className="mt-6 bg-emerald-50 rounded-lg p-5 flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Payout for <strong>{agentName}</strong></p>
-                    <p className="text-2xl font-semibold text-emerald-800">{formatCurrency(totalPayout)}</p>
-                    {!sameAgent && <p className="text-xs text-red-600 mt-1">⚠ Select closings for one agent only</p>}
+                <div className="mt-6 bg-emerald-50 rounded-lg p-5 space-y-4">
+                  <div className="flex items-center gap-3 max-w-xs">
+                    <label htmlFor="advance-pay" className="text-sm font-medium whitespace-nowrap">Advance Pay</label>
+                    <Input
+                      id="advance-pay"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      placeholder="0.00"
+                      value={advance}
+                      onChange={(e) => setAdvance(e.target.value)}
+                      className="h-9 text-right bg-white"
+                    />
                   </div>
-                  <Button
-                    onClick={handleCreatePayout}
-                    disabled={creating || !sameAgent}
-                    className="bg-emerald-700 hover:bg-emerald-800 text-white"
-                  >
-                    <Printer className="w-4 h-4 mr-2" /> Generate Check
-                  </Button>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Payout for <strong>{agentName}</strong></p>
+                      <p className="text-2xl font-semibold text-emerald-800">
+                        {formatCurrency(Math.max(0, totalPayout - (Number(advance) || 0)))}
+                      </p>
+                      {Number(advance) > 0 && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Gross {formatCurrency(totalPayout)} − Advance {formatCurrency(Number(advance))}
+                        </p>
+                      )}
+                      {!sameAgent && <p className="text-xs text-red-600 mt-1">⚠ Select closings for one agent only</p>}
+                    </div>
+                    <Button
+                      onClick={handleCreatePayout}
+                      disabled={creating || !sameAgent}
+                      className="bg-emerald-700 hover:bg-emerald-800 text-white"
+                    >
+                      <Printer className="w-4 h-4 mr-2" /> Generate Check
+                    </Button>
+                  </div>
                 </div>
               )}
             </>
