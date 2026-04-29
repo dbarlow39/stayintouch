@@ -658,6 +658,7 @@ export type Database = {
       }
       commission_payouts: {
         Row: {
+          advance_amount: number
           agent_id: string
           agent_name: string
           check_number: string | null
@@ -670,6 +671,7 @@ export type Database = {
           total_amount: number
         }
         Insert: {
+          advance_amount?: number
           agent_id: string
           agent_name: string
           check_number?: string | null
@@ -682,6 +684,7 @@ export type Database = {
           total_amount?: number
         }
         Update: {
+          advance_amount?: number
           agent_id?: string
           agent_name?: string
           check_number?: string | null

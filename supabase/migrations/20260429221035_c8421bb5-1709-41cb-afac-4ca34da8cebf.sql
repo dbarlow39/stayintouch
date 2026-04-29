@@ -1,0 +1,1 @@
+ALTER TABLE public.commission_payouts ADD COLUMN IF NOT EXISTS advance_amount NUMERIC NOT NULL DEFAULT 0;
