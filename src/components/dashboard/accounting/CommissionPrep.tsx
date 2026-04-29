@@ -133,13 +133,15 @@ const CommissionPrep = ({ onBack }: CommissionPrepProps) => {
     }
     setCreating(true);
     try {
+      const advanceAmount = Number(advance) || 0;
       const { data: payout, error } = await supabase.from("commission_payouts").insert({
         agent_id: selectedClosings[0].agent_id,
         agent_name: agentName,
         total_amount: totalPayout,
+        advance_amount: advanceAmount,
         status: "approved",
         created_by: user.id,
-      }).select().single();
+      } as any).select().single();
       if (error) throw error;
 
       // Link closings to payout
@@ -156,6 +158,7 @@ const CommissionPrep = ({ onBack }: CommissionPrepProps) => {
       queryClient.invalidateQueries({ queryKey: ["accounting-payout-links"] });
       queryClient.invalidateQueries({ queryKey: ["accounting-closings-summary"] });
       setSelectedIds([]);
+      setAdvance("");
     } catch (err: any) {
       toast.error(err.message || "Failed to create payout");
     } finally {
