@@ -17,6 +17,7 @@ interface CheckData {
   ytdTotal: number;
   memo?: string;
   checkNumber?: string;
+  advanceAmount?: number;
 }
 
 const numberToWords = (num: number): string => {
