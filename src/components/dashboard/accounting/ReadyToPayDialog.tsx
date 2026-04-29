@@ -55,14 +55,16 @@ const ReadyToPayDialog = ({ open, onOpenChange, closings, onNavigate }: ReadyToP
     try {
       for (const [agentName, agentClosings] of agents) {
         const totalPayout = agentClosings.reduce((sum, c) => sum + Number(c.agent_share), 0);
+        const advanceAmount = Number(advances[agentName]) || 0;
 
         const { data: payout, error } = await supabase.from("commission_payouts").insert({
           agent_id: agentClosings[0].agent_id,
           agent_name: agentName,
           total_amount: totalPayout,
+          advance_amount: advanceAmount,
           status: "approved",
           created_by: user.id,
-        }).select().single();
+        } as any).select().single();
         if (error) throw error;
 
         const links = agentClosings.map(c => ({
