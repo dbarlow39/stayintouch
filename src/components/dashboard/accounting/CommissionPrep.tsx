@@ -521,7 +521,8 @@ const CommissionPrep = ({ onBack }: CommissionPrepProps) => {
                         )}
                       </TableCell>
                     </TableRow>
-                  ))}
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>
