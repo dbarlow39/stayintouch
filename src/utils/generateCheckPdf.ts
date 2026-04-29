@@ -17,6 +17,7 @@ interface CheckData {
   ytdTotal: number;
   memo?: string;
   checkNumber?: string;
+  advanceAmount?: number;
 }
 
 const numberToWords = (num: number): string => {
@@ -122,6 +123,13 @@ export const generateCheckPdf = (data: CheckData) => {
   for (const item of data.lineItems) {
     doc.text(formatCurrency(item.amount), leftMargin + 60, y, { align: "right" });
     doc.text(item.label, leftMargin + 80, y);
+    y += 18;
+  }
+
+  // Advance deduction line (if any)
+  if (data.advanceAmount && data.advanceAmount > 0) {
+    doc.text(`-${formatCurrency(data.advanceAmount)}`, leftMargin + 60, y, { align: "right" });
+    doc.text("Advance", leftMargin + 80, y);
     y += 18;
   }
 

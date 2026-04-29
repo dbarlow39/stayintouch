@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { ArrowLeft, Printer, Trash2, FileDown } from "lucide-react";
@@ -221,6 +222,14 @@ const CommissionPrep = ({ onBack }: CommissionPrepProps) => {
         .eq("full_name", agentName)
         .maybeSingle();
 
+      // Fetch advance amount for this payout
+      const { data: payoutRow } = await supabase
+        .from("commission_payouts")
+        .select("advance_amount")
+        .eq("id", payoutId)
+        .maybeSingle();
+      const advance = Number((payoutRow as any)?.advance_amount || 0);
+
       // Build line items: each property + bonus if applicable
       const lineItems: CheckLineItem[] = [];
       const propertyNames: string[] = [];
@@ -233,7 +242,7 @@ const CommissionPrep = ({ onBack }: CommissionPrepProps) => {
         }
       });
 
-      // Calculate YTD: sum all paid/approved payouts for this agent this year
+      // Calculate YTD: sum all paid/approved payouts for this agent this year (gross — advances do not reduce income)
       const yearStart = new Date().getFullYear() + "-01-01";
       const { data: ytdPayouts } = await supabase
         .from("commission_payouts")
@@ -251,9 +260,11 @@ const CommissionPrep = ({ onBack }: CommissionPrepProps) => {
       await supabase.from("commission_payouts").update({ check_number: checkNumber }).eq("id", payoutId);
       queryClient.invalidateQueries({ queryKey: ["accounting-payouts"] });
 
+      const netCheckAmount = Math.max(0, totalAmount - advance);
+
       generateCheckPdf({
         date: today,
-        totalAmount: totalAmount,
+        totalAmount: netCheckAmount,
         agentName: agentName,
         agentAddress: agentData?.home_address || "",
         agentCityStateZip: agentData ? `${agentData.city || ""}, ${agentData.state || ""} ${agentData.zip || ""}` : "",
@@ -261,6 +272,7 @@ const CommissionPrep = ({ onBack }: CommissionPrepProps) => {
         lineItems,
         ytdTotal,
         checkNumber,
+        advanceAmount: advance,
       });
 
       toast.success("Check PDF generated.");
@@ -434,18 +446,47 @@ const CommissionPrep = ({ onBack }: CommissionPrepProps) => {
                    <TableRow>
                      <TableHead>Agent</TableHead>
                      <TableHead>Property</TableHead>
-                     <TableHead className="text-right">Amount</TableHead>
+                     <TableHead className="text-right">Gross</TableHead>
+                     <TableHead className="text-right w-32">Advance</TableHead>
+                     <TableHead className="text-right">Net Check</TableHead>
                      <TableHead>Date</TableHead>
                      <TableHead>Status</TableHead>
                      <TableHead></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {payouts.map(payout => (
+                  {payouts.map(payout => {
+                    const advance = Number((payout as any).advance_amount || 0);
+                    const gross = Number(payout.total_amount);
+                    const net = Math.max(0, gross - advance);
+                    return (
                     <TableRow key={payout.id}>
                      <TableCell className="font-medium">{payout.agent_name}</TableCell>
                       <TableCell className="text-sm text-muted-foreground">{getPayoutProperties(payout.id)}</TableCell>
-                      <TableCell className="text-right">{formatCurrency(Number(payout.total_amount))}</TableCell>
+                      <TableCell className="text-right">{formatCurrency(gross)}</TableCell>
+                      <TableCell className="text-right">
+                        <Input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          defaultValue={advance > 0 ? advance : ""}
+                          placeholder="0.00"
+                          disabled={payout.status === "paid"}
+                          className="h-8 text-right"
+                          onBlur={async (e) => {
+                            const newVal = Number(e.target.value) || 0;
+                            if (newVal === advance) return;
+                            const { error } = await supabase
+                              .from("commission_payouts")
+                              .update({ advance_amount: newVal } as any)
+                              .eq("id", payout.id);
+                            if (error) { toast.error("Failed to save advance"); return; }
+                            toast.success("Advance updated");
+                            queryClient.invalidateQueries({ queryKey: ["accounting-payouts"] });
+                          }}
+                        />
+                      </TableCell>
+                      <TableCell className="text-right font-medium">{formatCurrency(net)}</TableCell>
                       <TableCell>{payout.payout_date ? format(new Date(payout.payout_date + "T00:00:00"), "MMM d, yyyy") : format(new Date(), "MMM d, yyyy")}</TableCell>
                       <TableCell>{statusBadge(payout.status)}</TableCell>
                       <TableCell className="text-right space-x-1">
@@ -480,7 +521,8 @@ const CommissionPrep = ({ onBack }: CommissionPrepProps) => {
                         )}
                       </TableCell>
                     </TableRow>
-                  ))}
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>
