@@ -38,7 +38,7 @@ const ReadyToPayDialog = ({ open, onOpenChange, closings, onNavigate }: ReadyToP
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [creating, setCreating] = useState(false);
-  const [advances, setAdvances] = useState<Record<string, string>>({});
+  
 
   // Group selected closings by agent
   const byAgent = closings.reduce<Record<string, Closing[]>>((acc, c) => {
