@@ -25,6 +25,7 @@ const CommissionPrep = ({ onBack }: CommissionPrepProps) => {
   const queryClient = useQueryClient();
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [creating, setCreating] = useState(false);
+  const [advance, setAdvance] = useState<string>("");
 
   // Get closings that are linked to unpaid payouts (i.e. actually marked "Ready to Pay")
   const { data: readyClosings = [] } = useQuery({
