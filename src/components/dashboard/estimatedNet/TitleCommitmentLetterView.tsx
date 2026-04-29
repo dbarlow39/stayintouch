@@ -269,10 +269,10 @@ const TitleCommitmentLetterView = ({ propertyData, propertyId, onBack, onEdit, o
                 <>
                   <p className="mb-4">Hi {sellerFirstNames},</p>
                   <p className="mb-4">
-                    The title company has completed the first phase of the title work required to sell your home known as the Title Commitment. The primary reason for this search is to make sure there are no crazy liens on your property, if there are the title company will be reaching out to you to start the process of cleaning them up.
+                    The title company has completed the first phase of the title work required to sell your home known as the Title Commitment. The primary reason for this search is to make sure there are no crazy liens on your property, if there were the title company will be reaching out to you to start the process of cleaning them up.
                   </p>
                   <p className="mb-4">
-                    I did take a quick look and everything appears to be in good shape and so no worries at this point. In the mean time don't take out any new loans or put the house up as collateral in a poker game. . . LOL, but really we have had those situations arise.
+                    I did take a quick look and everything appears to be in good shape and so no worries at this point. In the meantime, don't take out any new loans or put the house up as collateral in a poker game. . . LOL, but really we have had those situations arise.
                   </p>
                   <p className="mb-4">
                     Long story short is everything is progressing just the way it should. Let me know if you have any questions.
