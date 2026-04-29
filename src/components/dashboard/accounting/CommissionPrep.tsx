@@ -446,9 +446,7 @@ const CommissionPrep = ({ onBack }: CommissionPrepProps) => {
                    <TableRow>
                      <TableHead>Agent</TableHead>
                      <TableHead>Property</TableHead>
-                     <TableHead className="text-right">Gross</TableHead>
-                     <TableHead className="text-right w-32">Advance</TableHead>
-                     <TableHead className="text-right">Net Check</TableHead>
+                     <TableHead className="text-right">Amount</TableHead>
                      <TableHead>Date</TableHead>
                      <TableHead>Status</TableHead>
                      <TableHead></TableHead>
@@ -456,37 +454,12 @@ const CommissionPrep = ({ onBack }: CommissionPrepProps) => {
                 </TableHeader>
                 <TableBody>
                   {payouts.map(payout => {
-                    const advance = Number((payout as any).advance_amount || 0);
                     const gross = Number(payout.total_amount);
-                    const net = Math.max(0, gross - advance);
                     return (
                     <TableRow key={payout.id}>
                      <TableCell className="font-medium">{payout.agent_name}</TableCell>
                       <TableCell className="text-sm text-muted-foreground">{getPayoutProperties(payout.id)}</TableCell>
                       <TableCell className="text-right">{formatCurrency(gross)}</TableCell>
-                      <TableCell className="text-right">
-                        <Input
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          defaultValue={advance > 0 ? advance : ""}
-                          placeholder="0.00"
-                          disabled={payout.status === "paid"}
-                          className="h-8 text-right"
-                          onBlur={async (e) => {
-                            const newVal = Number(e.target.value) || 0;
-                            if (newVal === advance) return;
-                            const { error } = await supabase
-                              .from("commission_payouts")
-                              .update({ advance_amount: newVal } as any)
-                              .eq("id", payout.id);
-                            if (error) { toast.error("Failed to save advance"); return; }
-                            toast.success("Advance updated");
-                            queryClient.invalidateQueries({ queryKey: ["accounting-payouts"] });
-                          }}
-                        />
-                      </TableCell>
-                      <TableCell className="text-right font-medium">{formatCurrency(net)}</TableCell>
                       <TableCell>{payout.payout_date ? format(new Date(payout.payout_date + "T00:00:00"), "MMM d, yyyy") : format(new Date(), "MMM d, yyyy")}</TableCell>
                       <TableCell>{statusBadge(payout.status)}</TableCell>
                       <TableCell className="text-right space-x-1">

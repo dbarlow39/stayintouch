@@ -4,6 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Printer } from "lucide-react";
@@ -36,6 +38,7 @@ const ReadyToPayDialog = ({ open, onOpenChange, closings, onNavigate }: ReadyToP
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [creating, setCreating] = useState(false);
+  const [advances, setAdvances] = useState<Record<string, string>>({});
 
   // Group selected closings by agent
   const byAgent = closings.reduce<Record<string, Closing[]>>((acc, c) => {
@@ -52,14 +55,16 @@ const ReadyToPayDialog = ({ open, onOpenChange, closings, onNavigate }: ReadyToP
     try {
       for (const [agentName, agentClosings] of agents) {
         const totalPayout = agentClosings.reduce((sum, c) => sum + Number(c.agent_share), 0);
+        const advanceAmount = Number(advances[agentName]) || 0;
 
         const { data: payout, error } = await supabase.from("commission_payouts").insert({
           agent_id: agentClosings[0].agent_id,
           agent_name: agentName,
           total_amount: totalPayout,
+          advance_amount: advanceAmount,
           status: "approved",
           created_by: user.id,
-        }).select().single();
+        } as any).select().single();
         if (error) throw error;
 
         const links = agentClosings.map(c => ({
@@ -132,6 +137,20 @@ const ReadyToPayDialog = ({ open, onOpenChange, closings, onNavigate }: ReadyToP
                   Includes {formatCurrency(bonus)} Caliber Title Bonus (separate line item on check)
                 </p>
               )}
+
+              <div className="mt-3 flex items-center gap-3 max-w-xs">
+                <Label htmlFor={`advance-${agentName}`} className="text-sm whitespace-nowrap">Advance Pay</Label>
+                <Input
+                  id={`advance-${agentName}`}
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  placeholder="0.00"
+                  value={advances[agentName] || ""}
+                  onChange={(e) => setAdvances(prev => ({ ...prev, [agentName]: e.target.value }))}
+                  className="h-9 text-right"
+                />
+              </div>
             </div>
           );
         })}
