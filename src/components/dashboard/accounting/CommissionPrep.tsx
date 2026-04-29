@@ -222,6 +222,14 @@ const CommissionPrep = ({ onBack }: CommissionPrepProps) => {
         .eq("full_name", agentName)
         .maybeSingle();
 
+      // Fetch advance amount for this payout
+      const { data: payoutRow } = await supabase
+        .from("commission_payouts")
+        .select("advance_amount")
+        .eq("id", payoutId)
+        .maybeSingle();
+      const advance = Number((payoutRow as any)?.advance_amount || 0);
+
       // Build line items: each property + bonus if applicable
       const lineItems: CheckLineItem[] = [];
       const propertyNames: string[] = [];
@@ -234,7 +242,7 @@ const CommissionPrep = ({ onBack }: CommissionPrepProps) => {
         }
       });
 
-      // Calculate YTD: sum all paid/approved payouts for this agent this year
+      // Calculate YTD: sum all paid/approved payouts for this agent this year (gross — advances do not reduce income)
       const yearStart = new Date().getFullYear() + "-01-01";
       const { data: ytdPayouts } = await supabase
         .from("commission_payouts")
@@ -252,9 +260,11 @@ const CommissionPrep = ({ onBack }: CommissionPrepProps) => {
       await supabase.from("commission_payouts").update({ check_number: checkNumber }).eq("id", payoutId);
       queryClient.invalidateQueries({ queryKey: ["accounting-payouts"] });
 
+      const netCheckAmount = Math.max(0, totalAmount - advance);
+
       generateCheckPdf({
         date: today,
-        totalAmount: totalAmount,
+        totalAmount: netCheckAmount,
         agentName: agentName,
         agentAddress: agentData?.home_address || "",
         agentCityStateZip: agentData ? `${agentData.city || ""}, ${agentData.state || ""} ${agentData.zip || ""}` : "",
@@ -262,6 +272,7 @@ const CommissionPrep = ({ onBack }: CommissionPrepProps) => {
         lineItems,
         ytdTotal,
         checkNumber,
+        advanceAmount: advance,
       });
 
       toast.success("Check PDF generated.");
