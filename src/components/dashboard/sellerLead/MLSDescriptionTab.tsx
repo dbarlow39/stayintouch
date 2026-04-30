@@ -13,6 +13,7 @@ interface Props {
   initialDescription?: string | null;
   initialClaude?: string | null;
   initialFinal?: string | null;
+  initialNotes?: string | null;
 }
 
 const MAX_CHARS = 1000;
