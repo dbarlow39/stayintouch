@@ -380,6 +380,22 @@ const MLSDescriptionTab = ({ leadId, initialDescription, initialClaude, initialF
               <div className="text-sm text-muted-foreground italic">Loading work sheet facts...</div>
             )}
           </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="mls-notes" className="text-sm font-semibold">
+              Points of interest & emphasis
+            </Label>
+            <p className="text-xs text-muted-foreground">
+              Add anything you want each AI to highlight or weave into the description (e.g. "fully renovated kitchen in 2024", "walkable to downtown", "emphasize the backyard oasis"). Saves automatically.
+            </p>
+            <Textarea
+              id="mls-notes"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              rows={4}
+              placeholder="e.g. New roof in 2023. Highlight the corner lot. Buyer agents love the school district."
+            />
+          </div>
         </CardContent>
       </Card>
 
