@@ -292,11 +292,28 @@ const EditClosingForm = ({ closingId, onBack }: EditClosingFormProps) => {
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
                 <Input
                   type="text"
-                  inputMode="numeric"
+                  inputMode="decimal"
                   className="pl-7"
-                  value={form.sale_price ? Number(String(form.sale_price).replace(/,/g, "")).toLocaleString("en-US") : ""}
+                  value={(() => {
+                    const raw = String(form.sale_price).replace(/,/g, "");
+                    if (!raw) return "";
+                    if (/\.$/.test(raw) || /\.\d{0,2}$/.test(raw)) {
+                      const [intPart, decPart] = raw.split(".");
+                      const intNum = Number(intPart);
+                      const intFmt = isNaN(intNum) ? intPart : intNum.toLocaleString("en-US");
+                      return decPart !== undefined ? `${intFmt}.${decPart}` : intFmt;
+                    }
+                    const num = Number(raw);
+                    return isNaN(num) ? raw : num.toLocaleString("en-US");
+                  })()}
                   onChange={e => {
-                    const raw = e.target.value.replace(/[^0-9]/g, "");
+                    let raw = e.target.value.replace(/[^0-9.]/g, "");
+                    const firstDot = raw.indexOf(".");
+                    if (firstDot !== -1) {
+                      raw = raw.slice(0, firstDot + 1) + raw.slice(firstDot + 1).replace(/\./g, "");
+                      const [i, d] = raw.split(".");
+                      raw = i + "." + (d ?? "").slice(0, 2);
+                    }
                     update("sale_price", raw);
                   }}
                   placeholder="0"
@@ -309,15 +326,28 @@ const EditClosingForm = ({ closingId, onBack }: EditClosingFormProps) => {
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
                 <Input
                   type="text"
-                  inputMode="numeric"
+                  inputMode="decimal"
                   className="pl-7"
                   value={(() => {
-                    const raw = form.total_check || (calculatedCheck > 0 ? String(calculatedCheck) : "");
-                    const num = parseFloat(String(raw).replace(/,/g, ""));
-                    return num ? num.toLocaleString("en-US") : "";
+                    const raw = String(form.total_check || (calculatedCheck > 0 ? String(calculatedCheck) : "")).replace(/,/g, "");
+                    if (!raw) return "";
+                    if (/\.$/.test(raw) || /\.\d{0,2}$/.test(raw)) {
+                      const [intPart, decPart] = raw.split(".");
+                      const intNum = Number(intPart);
+                      const intFmt = isNaN(intNum) ? intPart : intNum.toLocaleString("en-US");
+                      return decPart !== undefined ? `${intFmt}.${decPart}` : intFmt;
+                    }
+                    const num = Number(raw);
+                    return isNaN(num) ? raw : num.toLocaleString("en-US");
                   })()}
                   onChange={e => {
-                    const raw = e.target.value.replace(/[^0-9.]/g, "");
+                    let raw = e.target.value.replace(/[^0-9.]/g, "");
+                    const firstDot = raw.indexOf(".");
+                    if (firstDot !== -1) {
+                      raw = raw.slice(0, firstDot + 1) + raw.slice(firstDot + 1).replace(/\./g, "");
+                      const [i, d] = raw.split(".");
+                      raw = i + "." + (d ?? "").slice(0, 2);
+                    }
                     update("total_check", raw);
                   }}
                   placeholder="Auto-calculated"
@@ -326,7 +356,7 @@ const EditClosingForm = ({ closingId, onBack }: EditClosingFormProps) => {
             </div>
             <div className="space-y-2">
               <Label>Admin Fee</Label>
-              <Input type="number" value={form.admin_fee} onChange={e => update("admin_fee", e.target.value)} />
+              <Input type="number" step="0.01" value={form.admin_fee} onChange={e => update("admin_fee", e.target.value)} />
             </div>
             <div className="space-y-2">
               <Label>Total Commission</Label>
@@ -370,6 +400,7 @@ const EditClosingForm = ({ closingId, onBack }: EditClosingFormProps) => {
                 <Label className="text-sm text-muted-foreground">Amount:</Label>
                 <Input
                   type="number"
+                  step="0.01"
                   value={form.caliber_title_amount}
                   onChange={e => update("caliber_title_amount", e.target.value)}
                   className="w-28"
