@@ -1446,6 +1446,8 @@ export type Database = {
           lot_size_sqft: number | null
           market_value: number | null
           mls_description: string | null
+          mls_description_claude: string | null
+          mls_description_final: string | null
           notes: string | null
           owner_name: string | null
           phone: string | null
@@ -1478,6 +1480,8 @@ export type Database = {
           lot_size_sqft?: number | null
           market_value?: number | null
           mls_description?: string | null
+          mls_description_claude?: string | null
+          mls_description_final?: string | null
           notes?: string | null
           owner_name?: string | null
           phone?: string | null
@@ -1510,6 +1514,8 @@ export type Database = {
           lot_size_sqft?: number | null
           market_value?: number | null
           mls_description?: string | null
+          mls_description_claude?: string | null
+          mls_description_final?: string | null
           notes?: string | null
           owner_name?: string | null
           phone?: string | null

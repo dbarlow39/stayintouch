@@ -413,7 +413,12 @@ const SellerLeadDetail = () => {
           </div>
         ) : activeTab === "mls-description" && lead ? (
           <div className="flex-1 overflow-auto p-6">
-            <MLSDescriptionTab leadId={lead.id} initialDescription={(lead as any).mls_description} />
+            <MLSDescriptionTab
+              leadId={lead.id}
+              initialDescription={(lead as any).mls_description}
+              initialClaude={(lead as any).mls_description_claude}
+              initialFinal={(lead as any).mls_description_final}
+            />
           </div>
         ) : (
           <main className="flex-1 px-6 py-8 max-w-3xl">
