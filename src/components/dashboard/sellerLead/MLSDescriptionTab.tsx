@@ -334,10 +334,36 @@ const MLSDescriptionTab = ({ leadId, initialDescription, initialClaude, initialF
             Write MLS Description
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
           <p className="text-sm text-muted-foreground">
             Generate two AI-written MLS descriptions side by side, then merge the strongest elements of both into one final version. All three are saved automatically and persist between visits. Stays under 1,000 characters and avoids em dashes.
           </p>
+          <div className="rounded-md border bg-muted/30 p-3">
+            <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+              Work Sheet facts the AI will consider
+            </div>
+            {facts ? (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-2 text-sm">
+                {[
+                  ["Address", facts.address],
+                  ["City", facts.city],
+                  ["State", facts.state],
+                  ["Zip", facts.zip],
+                  ["Bedrooms", facts.bedrooms],
+                  ["Bathrooms", facts.bathrooms],
+                  ["Square Footage", facts.sqft],
+                  ["Year Built", facts.year_built],
+                ].map(([label, value]) => (
+                  <div key={label as string}>
+                    <div className="text-xs text-muted-foreground">{label}</div>
+                    <div className="font-medium">{value ? String(value) : <span className="text-muted-foreground italic">—</span>}</div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-sm text-muted-foreground italic">Loading work sheet facts...</div>
+            )}
+          </div>
         </CardContent>
       </Card>
 
