@@ -300,6 +300,9 @@ const SellerLeadDetail = () => {
           zip: formData.zip || null,
           notes: formData.notes || null,
           status: "A",
+          mls_description: lead.mls_description || null,
+          mls_description_claude: lead.mls_description_claude || null,
+          mls_description_final: lead.mls_description_final || null,
         })
         .select("id")
         .single();
