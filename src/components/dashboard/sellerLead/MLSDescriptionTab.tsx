@@ -246,6 +246,9 @@ const MLSDescriptionTab = ({ leadId, initialDescription, initialClaude, initialF
   } | null>(null);
   const notesSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const notesLoadedRef = useRef(false);
+  const skipNextNotesSaveRef = useRef(false);
+  const [suggestingPoints, setSuggestingPoints] = useState(false);
+  const [pointsAreSuggestion, setPointsAreSuggestion] = useState(false);
 
   useEffect(() => { setGemini(initialDescription || ""); }, [initialDescription, leadId]);
   useEffect(() => { setClaude(initialClaude || ""); }, [initialClaude, leadId]);
@@ -255,6 +258,10 @@ const MLSDescriptionTab = ({ leadId, initialDescription, initialClaude, initialF
   // Debounced auto-save for the notes field
   useEffect(() => {
     if (!notesLoadedRef.current) return;
+    if (skipNextNotesSaveRef.current) {
+      skipNextNotesSaveRef.current = false;
+      return;
+    }
     if (notesSaveTimer.current) clearTimeout(notesSaveTimer.current);
     notesSaveTimer.current = setTimeout(async () => {
       const { error } = await supabase.from("leads").update({ mls_description_notes: notes || null } as any).eq("id", leadId);
@@ -262,6 +269,76 @@ const MLSDescriptionTab = ({ leadId, initialDescription, initialClaude, initialF
     }, 800);
     return () => { if (notesSaveTimer.current) clearTimeout(notesSaveTimer.current); };
   }, [notes, leadId]);
+
+  // Auto-suggest points of interest from the work sheet's AI Summary
+  // whenever the notes box is empty (including after the user clears it).
+  useEffect(() => {
+    if (!notesLoadedRef.current) return;
+    if (notes.trim().length > 0) return;
+    if (suggestingPoints) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+        const { data: lead } = await supabase
+          .from("leads")
+          .select("address")
+          .eq("id", leadId)
+          .eq("agent_id", user.id)
+          .maybeSingle();
+        if (!lead?.address) return;
+
+        const { data: insp } = await supabase
+          .from("inspections")
+          .select("id")
+          .eq("user_id", user.id)
+          .ilike("property_address", `%${lead.address}%`)
+          .order("updated_at", { ascending: false })
+          .limit(1);
+        const inspectionId = insp?.[0]?.id;
+        if (!inspectionId) return;
+
+        const { data: trans } = await supabase
+          .from("audio_transcriptions")
+          .select("summary")
+          .eq("user_id", user.id)
+          .eq("inspection_id", inspectionId)
+          .eq("status", "completed")
+          .not("summary", "is", null)
+          .order("created_at", { ascending: false })
+          .limit(1);
+        const aiSummary: string | undefined = trans?.[0]?.summary;
+        if (!aiSummary || aiSummary.trim().length < 20) return;
+
+        if (cancelled) return;
+        setSuggestingPoints(true);
+
+        const { data: { session } } = await supabase.auth.getSession();
+        const token = session?.access_token;
+        const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/suggest-mls-points`;
+        const resp = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ aiSummary }),
+        });
+        if (!resp.ok) return;
+        const json = await resp.json();
+        const points: string = (json?.points || "").trim();
+        if (!points || cancelled) return;
+        // Set without triggering auto-save — only save once the user edits.
+        skipNextNotesSaveRef.current = true;
+        setPointsAreSuggestion(true);
+        setNotes(points);
+      } catch (e) {
+        console.error("auto-suggest points failed:", e);
+      } finally {
+        if (!cancelled) setSuggestingPoints(false);
+      }
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [notes, leadId, notesLoadedRef.current]);
 
   useEffect(() => {
     let cancelled = false;
