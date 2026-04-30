@@ -237,10 +237,64 @@ const MLSDescriptionTab = ({ leadId, initialDescription, initialClaude, initialF
   const [claude, setClaude] = useState(initialClaude || "");
   const [finalText, setFinalText] = useState(initialFinal || "");
   const [combiningWith, setCombiningWith] = useState<null | "gemini" | "claude">(null);
+  const [facts, setFacts] = useState<{
+    address?: string; city?: string; state?: string; zip?: string;
+    bedrooms?: string | number; bathrooms?: string | number;
+    sqft?: string | number; year_built?: string | number;
+  } | null>(null);
 
   useEffect(() => { setGemini(initialDescription || ""); }, [initialDescription, leadId]);
   useEffect(() => { setClaude(initialClaude || ""); }, [initialClaude, leadId]);
   useEffect(() => { setFinalText(initialFinal || ""); }, [initialFinal, leadId]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data: lead } = await supabase
+        .from("leads")
+        .select("address, city, state, zip, bedrooms, bathrooms, square_feet, year_built")
+        .eq("id", leadId)
+        .eq("agent_id", user.id)
+        .maybeSingle();
+      if (!lead) return;
+      let inspection: any = null;
+      if (lead.address) {
+        const { data } = await supabase
+          .from("inspections")
+          .select("inspection_data")
+          .eq("user_id", user.id)
+          .ilike("property_address", `%${lead.address}%`)
+          .order("updated_at", { ascending: false })
+          .limit(1);
+        inspection = data?.[0];
+      }
+      if (!inspection) {
+        const { data } = await supabase
+          .from("inspections")
+          .select("inspection_data")
+          .eq("user_id", user.id)
+          .order("updated_at", { ascending: false })
+          .limit(1);
+        inspection = data?.[0];
+      }
+      const propInfo = (inspection?.inspection_data as any)?.["property-info"] || {};
+      if (cancelled) return;
+      setFacts({
+        address: lead.address || propInfo.address,
+        city: lead.city || propInfo.city,
+        state: lead.state || propInfo.state,
+        zip: lead.zip || propInfo.zip,
+        bedrooms: (lead as any).bedrooms || propInfo.bedrooms,
+        bathrooms: (lead as any).bathrooms || propInfo.bathrooms,
+        sqft: (lead as any).square_feet || propInfo.sqft,
+        year_built: (lead as any).year_built || propInfo.yearBuilt,
+      });
+    })();
+    return () => { cancelled = true; };
+  }, [leadId]);
+
 
   const saveFinal = async (text: string) => {
     try {
@@ -280,10 +334,36 @@ const MLSDescriptionTab = ({ leadId, initialDescription, initialClaude, initialF
             Write MLS Description
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
           <p className="text-sm text-muted-foreground">
             Generate two AI-written MLS descriptions side by side, then merge the strongest elements of both into one final version. All three are saved automatically and persist between visits. Stays under 1,000 characters and avoids em dashes.
           </p>
+          <div className="rounded-md border bg-muted/30 p-3">
+            <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+              Work Sheet facts the AI will consider
+            </div>
+            {facts ? (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-2 text-sm">
+                {[
+                  ["Address", facts.address],
+                  ["City", facts.city],
+                  ["State", facts.state],
+                  ["Zip", facts.zip],
+                  ["Bedrooms", facts.bedrooms],
+                  ["Bathrooms", facts.bathrooms],
+                  ["Square Footage", facts.sqft],
+                  ["Year Built", facts.year_built],
+                ].map(([label, value]) => (
+                  <div key={label as string}>
+                    <div className="text-xs text-muted-foreground">{label}</div>
+                    <div className="font-medium">{value ? String(value) : <span className="text-muted-foreground italic">—</span>}</div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-sm text-muted-foreground italic">Loading work sheet facts...</div>
+            )}
+          </div>
         </CardContent>
       </Card>
 
