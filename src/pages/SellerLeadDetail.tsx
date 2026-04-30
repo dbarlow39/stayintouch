@@ -422,6 +422,7 @@ const SellerLeadDetail = () => {
               initialDescription={(lead as any).mls_description}
               initialClaude={(lead as any).mls_description_claude}
               initialFinal={(lead as any).mls_description_final}
+              initialNotes={(lead as any).mls_description_notes}
             />
           </div>
         ) : (
