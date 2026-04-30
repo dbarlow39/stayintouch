@@ -383,6 +383,7 @@ export type Database = {
           mls_description: string | null
           mls_description_claude: string | null
           mls_description_final: string | null
+          mls_description_notes: string | null
           mls_id: string | null
           notes: string | null
           phone: string | null
@@ -420,6 +421,7 @@ export type Database = {
           mls_description?: string | null
           mls_description_claude?: string | null
           mls_description_final?: string | null
+          mls_description_notes?: string | null
           mls_id?: string | null
           notes?: string | null
           phone?: string | null
@@ -457,6 +459,7 @@ export type Database = {
           mls_description?: string | null
           mls_description_claude?: string | null
           mls_description_final?: string | null
+          mls_description_notes?: string | null
           mls_id?: string | null
           notes?: string | null
           phone?: string | null
@@ -1457,6 +1460,7 @@ export type Database = {
           mls_description: string | null
           mls_description_claude: string | null
           mls_description_final: string | null
+          mls_description_notes: string | null
           notes: string | null
           owner_name: string | null
           phone: string | null
@@ -1491,6 +1495,7 @@ export type Database = {
           mls_description?: string | null
           mls_description_claude?: string | null
           mls_description_final?: string | null
+          mls_description_notes?: string | null
           notes?: string | null
           owner_name?: string | null
           phone?: string | null
@@ -1525,6 +1530,7 @@ export type Database = {
           mls_description?: string | null
           mls_description_claude?: string | null
           mls_description_final?: string | null
+          mls_description_notes?: string | null
           notes?: string | null
           owner_name?: string | null
           phone?: string | null

@@ -95,7 +95,12 @@ export async function buildWorkSheetContext(supabase: any, user: any, leadId: st
     property_type: lead.property_type,
   };
 
-  const factsText = `PROPERTY FACTS:\n${JSON.stringify(facts, null, 2)}\n\nAI SUMMARY OF WORK SHEET:\n${summary || "(none)"}\n\nFULL TRANSCRIPTION:\n${transcription || "(none)"}\n\nINSPECTION SECTION NOTES:\n${JSON.stringify(inspection.inspection_data, null, 2).slice(0, 8000)}\n\nNow write the MLS description. Remember: under 1000 characters, no em dashes, evocative storytelling, end with an imagined call to action.`;
+  const userNotes = (lead as any).mls_description_notes?.trim();
+  const notesBlock = userNotes
+    ? `\n\nAGENT'S POINTS OF INTEREST & EMPHASIS (HIGH PRIORITY — weave these into the narrative naturally):\n${userNotes}\n`
+    : "";
+
+  const factsText = `PROPERTY FACTS:\n${JSON.stringify(facts, null, 2)}${notesBlock}\n\nAI SUMMARY OF WORK SHEET:\n${summary || "(none)"}\n\nFULL TRANSCRIPTION:\n${transcription || "(none)"}\n\nINSPECTION SECTION NOTES:\n${JSON.stringify(inspection.inspection_data, null, 2).slice(0, 8000)}\n\nNow write the MLS description. Remember: under 1000 characters, no em dashes, evocative storytelling, end with an imagined call to action.`;
 
   return { factsText, allPhotos };
 }

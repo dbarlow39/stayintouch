@@ -303,6 +303,7 @@ const SellerLeadDetail = () => {
           mls_description: lead.mls_description || null,
           mls_description_claude: lead.mls_description_claude || null,
           mls_description_final: lead.mls_description_final || null,
+          mls_description_notes: (lead as any).mls_description_notes || null,
         })
         .select("id")
         .single();
@@ -421,6 +422,7 @@ const SellerLeadDetail = () => {
               initialDescription={(lead as any).mls_description}
               initialClaude={(lead as any).mls_description_claude}
               initialFinal={(lead as any).mls_description_final}
+              initialNotes={(lead as any).mls_description_notes}
             />
           </div>
         ) : (

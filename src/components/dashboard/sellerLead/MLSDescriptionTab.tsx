@@ -13,6 +13,7 @@ interface Props {
   initialDescription?: string | null;
   initialClaude?: string | null;
   initialFinal?: string | null;
+  initialNotes?: string | null;
 }
 
 const MAX_CHARS = 1000;
@@ -231,21 +232,36 @@ const ColumnPanel = ({ leadId, config, value, setValue, customActions, showGener
   );
 };
 
-const MLSDescriptionTab = ({ leadId, initialDescription, initialClaude, initialFinal }: Props) => {
+const MLSDescriptionTab = ({ leadId, initialDescription, initialClaude, initialFinal, initialNotes }: Props) => {
   const { toast } = useToast();
   const [gemini, setGemini] = useState(initialDescription || "");
   const [claude, setClaude] = useState(initialClaude || "");
   const [finalText, setFinalText] = useState(initialFinal || "");
+  const [notes, setNotes] = useState(initialNotes || "");
   const [combiningWith, setCombiningWith] = useState<null | "gemini" | "claude">(null);
   const [facts, setFacts] = useState<{
     address?: string; city?: string; state?: string; zip?: string;
     bedrooms?: string | number; bathrooms?: string | number;
     sqft?: string | number; year_built?: string | number;
   } | null>(null);
+  const notesSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const notesLoadedRef = useRef(false);
 
   useEffect(() => { setGemini(initialDescription || ""); }, [initialDescription, leadId]);
   useEffect(() => { setClaude(initialClaude || ""); }, [initialClaude, leadId]);
   useEffect(() => { setFinalText(initialFinal || ""); }, [initialFinal, leadId]);
+  useEffect(() => { setNotes(initialNotes || ""); notesLoadedRef.current = true; }, [initialNotes, leadId]);
+
+  // Debounced auto-save for the notes field
+  useEffect(() => {
+    if (!notesLoadedRef.current) return;
+    if (notesSaveTimer.current) clearTimeout(notesSaveTimer.current);
+    notesSaveTimer.current = setTimeout(async () => {
+      const { error } = await supabase.from("leads").update({ mls_description_notes: notes || null } as any).eq("id", leadId);
+      if (error) toast({ title: "Couldn't save notes", description: error.message, variant: "destructive" });
+    }, 800);
+    return () => { if (notesSaveTimer.current) clearTimeout(notesSaveTimer.current); };
+  }, [notes, leadId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -313,7 +329,7 @@ const MLSDescriptionTab = ({ leadId, initialDescription, initialClaude, initialF
     setFinalText("");
     let acc = "";
     try {
-      await streamFromFunction("combine-mls-descriptions", { gemini, claude, model }, (chunk) => {
+      await streamFromFunction("combine-mls-descriptions", { gemini, claude, model, notes }, (chunk) => {
         acc += chunk;
         setFinalText(acc);
       });
@@ -363,6 +379,22 @@ const MLSDescriptionTab = ({ leadId, initialDescription, initialClaude, initialF
             ) : (
               <div className="text-sm text-muted-foreground italic">Loading work sheet facts...</div>
             )}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="mls-notes" className="text-sm font-semibold">
+              Points of interest & emphasis
+            </Label>
+            <p className="text-xs text-muted-foreground">
+              Add anything you want each AI to highlight or weave into the description (e.g. "fully renovated kitchen in 2024", "walkable to downtown", "emphasize the backyard oasis"). Saves automatically.
+            </p>
+            <Textarea
+              id="mls-notes"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              rows={4}
+              placeholder="e.g. New roof in 2023. Highlight the corner lot. Buyer agents love the school district."
+            />
           </div>
         </CardContent>
       </Card>
