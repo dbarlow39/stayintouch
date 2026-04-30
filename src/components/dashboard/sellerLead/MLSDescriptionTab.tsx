@@ -5,20 +5,87 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Sparkles, Wand2, Copy, Loader2, Save } from "lucide-react";
+import { Sparkles, Wand2, Copy, Loader2, Save, Combine } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface Props {
   leadId: string;
   initialDescription?: string | null;
-  onSaved?: (text: string) => void;
+  initialClaude?: string | null;
+  initialFinal?: string | null;
 }
 
 const MAX_CHARS = 1000;
 
-const MLSDescriptionTab = ({ leadId, initialDescription, onSaved }: Props) => {
+type ColumnConfig = {
+  title: string;
+  subtitle: string;
+  generateFn: string;
+  tweakFn: string;
+  column: "mls_description" | "mls_description_claude" | "mls_description_final";
+  accent: string;
+};
+
+async function streamFromFunction(
+  fnName: string,
+  body: any,
+  onDelta: (s: string) => void,
+) {
+  const { data: { session } } = await supabase.auth.getSession();
+  const token = session?.access_token;
+  const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/${fnName}`;
+  const resp = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    body: JSON.stringify(body),
+  });
+  if (!resp.ok || !resp.body) {
+    let msg = `Request failed (${resp.status})`;
+    try { const j = await resp.json(); msg = j.error || msg; } catch {}
+    throw new Error(msg);
+  }
+  const reader = resp.body.getReader();
+  const decoder = new TextDecoder();
+  let buf = "";
+  let done = false;
+  while (!done) {
+    const { done: d, value } = await reader.read();
+    if (d) break;
+    buf += decoder.decode(value, { stream: true });
+    let nl: number;
+    while ((nl = buf.indexOf("\n")) !== -1) {
+      let line = buf.slice(0, nl);
+      buf = buf.slice(nl + 1);
+      if (line.endsWith("\r")) line = line.slice(0, -1);
+      if (!line.startsWith("data: ")) continue;
+      const json = line.slice(6).trim();
+      if (json === "[DONE]") { done = true; break; }
+      try {
+        const p = JSON.parse(json);
+        const c = p.choices?.[0]?.delta?.content;
+        if (c) onDelta(c);
+      } catch {
+        buf = line + "\n" + buf;
+        break;
+      }
+    }
+  }
+}
+
+interface ColumnPanelProps {
+  leadId: string;
+  config: ColumnConfig;
+  value: string;
+  setValue: (s: string) => void;
+  // Custom generation handler (used by the Final column for combine actions);
+  // when omitted we use config.generateFn.
+  customActions?: React.ReactNode;
+  showGenerate?: boolean;
+  disabled?: boolean;
+}
+
+const ColumnPanel = ({ leadId, config, value, setValue, customActions, showGenerate = true, disabled = false }: ColumnPanelProps) => {
   const { toast } = useToast();
-  const [description, setDescription] = useState(initialDescription || "");
   const [generating, setGenerating] = useState(false);
   const [tweaking, setTweaking] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -26,66 +93,32 @@ const MLSDescriptionTab = ({ leadId, initialDescription, onSaved }: Props) => {
   const [tweakInstruction, setTweakInstruction] = useState("");
   const dirtyRef = useRef(false);
 
-  useEffect(() => {
-    setDescription(initialDescription || "");
-  }, [initialDescription, leadId]);
-
-  const charCount = description.length;
+  const charCount = value.length;
   const overLimit = charCount > MAX_CHARS;
 
-  const streamFromFunction = async (fnName: string, body: any, onDelta: (s: string) => void) => {
-    const { data: { session } } = await supabase.auth.getSession();
-    const token = session?.access_token;
-    const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/${fnName}`;
-    const resp = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify(body),
-    });
-    if (!resp.ok || !resp.body) {
-      let msg = `Request failed (${resp.status})`;
-      try { const j = await resp.json(); msg = j.error || msg; } catch {}
-      throw new Error(msg);
-    }
-    const reader = resp.body.getReader();
-    const decoder = new TextDecoder();
-    let buf = "";
-    let done = false;
-    while (!done) {
-      const { done: d, value } = await reader.read();
-      if (d) break;
-      buf += decoder.decode(value, { stream: true });
-      let nl: number;
-      while ((nl = buf.indexOf("\n")) !== -1) {
-        let line = buf.slice(0, nl);
-        buf = buf.slice(nl + 1);
-        if (line.endsWith("\r")) line = line.slice(0, -1);
-        if (!line.startsWith("data: ")) continue;
-        const json = line.slice(6).trim();
-        if (json === "[DONE]") { done = true; break; }
-        try {
-          const p = JSON.parse(json);
-          const c = p.choices?.[0]?.delta?.content;
-          if (c) onDelta(c);
-        } catch {
-          buf = line + "\n" + buf;
-          break;
-        }
-      }
+  const saveValue = async (text: string) => {
+    setSaving(true);
+    try {
+      const { error } = await supabase.from("leads").update({ [config.column]: text }).eq("id", leadId);
+      if (error) throw error;
+      dirtyRef.current = false;
+    } catch (e: any) {
+      toast({ title: "Save failed", description: e.message, variant: "destructive" });
+    } finally {
+      setSaving(false);
     }
   };
 
   const handleGenerate = async () => {
     setGenerating(true);
-    setDescription("");
+    setValue("");
     let acc = "";
     try {
-      await streamFromFunction("generate-mls-description", { leadId }, (chunk) => {
+      await streamFromFunction(config.generateFn, { leadId }, (chunk) => {
         acc += chunk;
-        setDescription(acc);
+        setValue(acc);
       });
-      // Auto-save
-      await saveDescription(acc);
+      await saveValue(acc);
     } catch (e: any) {
       toast({ title: "Generation failed", description: e.message, variant: "destructive" });
     } finally {
@@ -96,104 +129,83 @@ const MLSDescriptionTab = ({ leadId, initialDescription, onSaved }: Props) => {
   const handleTweak = async () => {
     if (!tweakInstruction.trim()) return;
     setTweaking(true);
+    const original = value;
     let acc = "";
-    const original = description;
     try {
-      setDescription("");
-      await streamFromFunction("tweak-mls-description", { currentText: original, instruction: tweakInstruction }, (chunk) => {
+      setValue("");
+      await streamFromFunction(config.tweakFn, { currentText: original, instruction: tweakInstruction }, (chunk) => {
         acc += chunk;
-        setDescription(acc);
+        setValue(acc);
       });
       setTweakOpen(false);
       setTweakInstruction("");
-      await saveDescription(acc);
+      await saveValue(acc);
     } catch (e: any) {
       toast({ title: "Tweak failed", description: e.message, variant: "destructive" });
-      setDescription(original);
+      setValue(original);
     } finally {
       setTweaking(false);
     }
   };
 
-  const saveDescription = async (text: string) => {
-    setSaving(true);
-    try {
-      const { error } = await supabase.from("leads").update({ mls_description: text }).eq("id", leadId);
-      if (error) throw error;
-      dirtyRef.current = false;
-      onSaved?.(text);
-    } catch (e: any) {
-      toast({ title: "Save failed", description: e.message, variant: "destructive" });
-    } finally {
-      setSaving(false);
-    }
-  };
-
   const handleCopy = async () => {
-    await navigator.clipboard.writeText(description);
+    await navigator.clipboard.writeText(value);
     toast({ title: "Copied to clipboard" });
   };
 
+  const busy = generating || tweaking;
+
   return (
-    <div className="max-w-3xl space-y-4">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-primary" />
-            Write MLS Description
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <p className="text-sm text-muted-foreground">
-            Generate a compelling MLS description using your Residential Work Sheet's AI summary, transcription, and photos. Stays under 1,000 characters and avoids em dashes. Saved automatically and persists between visits.
-          </p>
-
-          <div className="flex flex-wrap gap-2">
-            <Button onClick={handleGenerate} disabled={generating || tweaking} className="bg-emerald-600 hover:bg-emerald-700">
+    <Card className="flex flex-col">
+      <CardHeader className="pb-3">
+        <CardTitle className="flex items-center gap-2 text-base">
+          <Sparkles className={`w-4 h-4 ${config.accent}`} />
+          {config.title}
+        </CardTitle>
+        <p className="text-xs text-muted-foreground">{config.subtitle}</p>
+      </CardHeader>
+      <CardContent className="space-y-3 flex-1 flex flex-col">
+        <div className="flex flex-wrap gap-2">
+          {showGenerate && (
+            <Button onClick={handleGenerate} disabled={busy || disabled} size="sm" className="bg-emerald-600 hover:bg-emerald-700">
               {generating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-              {description ? "Regenerate" : "Generate MLS Description"}
+              {value ? "Regenerate" : "Generate"}
             </Button>
-            <Button onClick={() => setTweakOpen(true)} disabled={!description || generating || tweaking} variant="outline">
-              <Wand2 className="w-4 h-4" />
-              Tweak
-            </Button>
-            <Button onClick={handleCopy} disabled={!description} variant="outline">
-              <Copy className="w-4 h-4" />
-              Copy
-            </Button>
-            <Button
-              onClick={() => saveDescription(description)}
-              disabled={!description || saving || generating || tweaking}
-              variant="outline"
-            >
-              {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-              Save
-            </Button>
-          </div>
+          )}
+          {customActions}
+          <Button onClick={() => setTweakOpen(true)} disabled={!value || busy} size="sm" variant="outline">
+            <Wand2 className="w-4 h-4" /> Tweak
+          </Button>
+          <Button onClick={handleCopy} disabled={!value} size="sm" variant="outline">
+            <Copy className="w-4 h-4" /> Copy
+          </Button>
+          <Button onClick={() => saveValue(value)} disabled={!value || saving || busy} size="sm" variant="outline">
+            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Save
+          </Button>
+        </div>
 
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label>MLS Description</Label>
-              <span className={`text-xs font-medium ${overLimit ? "text-destructive" : "text-muted-foreground"}`}>
-                {charCount} / {MAX_CHARS}
-              </span>
-            </div>
-            <Textarea
-              value={description}
-              onChange={(e) => { setDescription(e.target.value); dirtyRef.current = true; }}
-              onBlur={() => { if (dirtyRef.current) saveDescription(description); }}
-              rows={14}
-              placeholder="Click 'Generate MLS Description' to get started, then edit or use 'Tweak' to refine."
-              className={overLimit ? "border-destructive focus-visible:ring-destructive" : ""}
-            />
+        <div className="space-y-2 flex-1 flex flex-col">
+          <div className="flex items-center justify-between">
+            <Label className="text-xs">MLS Description</Label>
+            <span className={`text-xs font-medium ${overLimit ? "text-destructive" : "text-muted-foreground"}`}>
+              {charCount} / {MAX_CHARS}
+            </span>
           </div>
-        </CardContent>
-      </Card>
+          <Textarea
+            value={value}
+            onChange={(e) => { setValue(e.target.value); dirtyRef.current = true; }}
+            onBlur={() => { if (dirtyRef.current) saveValue(value); }}
+            rows={16}
+            placeholder={busy ? "Generating..." : "Click Generate to begin."}
+            className={`flex-1 ${overLimit ? "border-destructive focus-visible:ring-destructive" : ""}`}
+          />
+        </div>
+      </CardContent>
 
       <Dialog open={tweakOpen} onOpenChange={setTweakOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Tweak MLS Description</DialogTitle>
+            <DialogTitle>Tweak {config.title}</DialogTitle>
             <DialogDescription>
               Tell the AI what to add, remove, or change. It will revise the current description while keeping the tone.
             </DialogDescription>
@@ -204,18 +216,143 @@ const MLSDescriptionTab = ({ leadId, initialDescription, onSaved }: Props) => {
               value={tweakInstruction}
               onChange={(e) => setTweakInstruction(e.target.value)}
               rows={4}
-              placeholder='e.g. "Add a sentence about the finished basement" or "Remove the part about the backyard" or "Make it shorter and punchier"'
+              placeholder='e.g. "Add a sentence about the finished basement" or "Make it shorter"'
             />
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setTweakOpen(false)} disabled={tweaking}>Cancel</Button>
             <Button onClick={handleTweak} disabled={tweaking || !tweakInstruction.trim()} className="bg-emerald-600 hover:bg-emerald-700">
-              {tweaking ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wand2 className="w-4 h-4" />}
-              Apply Tweak
+              {tweaking ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wand2 className="w-4 h-4" />} Apply
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+    </Card>
+  );
+};
+
+const MLSDescriptionTab = ({ leadId, initialDescription, initialClaude, initialFinal }: Props) => {
+  const { toast } = useToast();
+  const [gemini, setGemini] = useState(initialDescription || "");
+  const [claude, setClaude] = useState(initialClaude || "");
+  const [finalText, setFinalText] = useState(initialFinal || "");
+  const [combiningWith, setCombiningWith] = useState<null | "gemini" | "claude">(null);
+
+  useEffect(() => { setGemini(initialDescription || ""); }, [initialDescription, leadId]);
+  useEffect(() => { setClaude(initialClaude || ""); }, [initialClaude, leadId]);
+  useEffect(() => { setFinalText(initialFinal || ""); }, [initialFinal, leadId]);
+
+  const saveFinal = async (text: string) => {
+    try {
+      await supabase.from("leads").update({ mls_description_final: text }).eq("id", leadId);
+    } catch (e: any) {
+      toast({ title: "Save failed", description: e.message, variant: "destructive" });
+    }
+  };
+
+  const handleCombine = async (model: "gemini" | "claude") => {
+    if (!gemini && !claude) {
+      toast({ title: "Generate at least one description first", description: "You need a Gemini or Claude version (ideally both) before combining.", variant: "destructive" });
+      return;
+    }
+    setCombiningWith(model);
+    setFinalText("");
+    let acc = "";
+    try {
+      await streamFromFunction("combine-mls-descriptions", { gemini, claude, model }, (chunk) => {
+        acc += chunk;
+        setFinalText(acc);
+      });
+      await saveFinal(acc);
+    } catch (e: any) {
+      toast({ title: "Combine failed", description: e.message, variant: "destructive" });
+    } finally {
+      setCombiningWith(null);
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2">
+            <Sparkles className="w-5 h-5 text-primary" />
+            Write MLS Description
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground">
+            Generate two AI-written MLS descriptions side by side, then merge the strongest elements of both into one final version. All three are saved automatically and persist between visits. Stays under 1,000 characters and avoids em dashes.
+          </p>
+        </CardContent>
+      </Card>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <ColumnPanel
+          leadId={leadId}
+          config={{
+            title: "Gemini 2.5 Pro",
+            subtitle: "Google's flagship multimodal model. Reads all photos + work sheet.",
+            generateFn: "generate-mls-description",
+            tweakFn: "tweak-mls-description",
+            column: "mls_description",
+            accent: "text-blue-600",
+          }}
+          value={gemini}
+          setValue={setGemini}
+        />
+
+        <ColumnPanel
+          leadId={leadId}
+          config={{
+            title: "Claude Sonnet 4.5",
+            subtitle: "Anthropic's storytelling specialist. Reads up to 20 photos + work sheet.",
+            generateFn: "generate-mls-description-claude",
+            tweakFn: "tweak-mls-description-claude",
+            column: "mls_description_claude",
+            accent: "text-orange-600",
+          }}
+          value={claude}
+          setValue={setClaude}
+        />
+
+        <ColumnPanel
+          leadId={leadId}
+          config={{
+            title: "Combined Final",
+            subtitle: "Merge the best of both into one polished version.",
+            generateFn: "combine-mls-descriptions",
+            tweakFn: "tweak-mls-description",
+            column: "mls_description_final",
+            accent: "text-emerald-600",
+          }}
+          value={finalText}
+          setValue={setFinalText}
+          showGenerate={false}
+          customActions={
+            <>
+              <Button
+                onClick={() => handleCombine("gemini")}
+                disabled={combiningWith !== null || (!gemini && !claude)}
+                size="sm"
+                className="bg-emerald-600 hover:bg-emerald-700"
+              >
+                {combiningWith === "gemini" ? <Loader2 className="w-4 h-4 animate-spin" /> : <Combine className="w-4 h-4" />}
+                Combine w/ Gemini
+              </Button>
+              <Button
+                onClick={() => handleCombine("claude")}
+                disabled={combiningWith !== null || (!gemini && !claude)}
+                size="sm"
+                className="bg-emerald-600 hover:bg-emerald-700"
+              >
+                {combiningWith === "claude" ? <Loader2 className="w-4 h-4 animate-spin" /> : <Combine className="w-4 h-4" />}
+                Combine w/ Claude
+              </Button>
+            </>
+          }
+        />
+      </div>
     </div>
   );
 };

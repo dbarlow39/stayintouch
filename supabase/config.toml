@@ -116,3 +116,12 @@ verify_jwt = false
 
 [functions.tweak-mls-description]
 verify_jwt = false
+
+[functions.generate-mls-description-claude]
+verify_jwt = false
+
+[functions.tweak-mls-description-claude]
+verify_jwt = false
+
+[functions.combine-mls-descriptions]
+verify_jwt = false
