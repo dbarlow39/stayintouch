@@ -465,12 +465,22 @@ const MLSDescriptionTab = ({ leadId, initialDescription, initialClaude, initialF
             <p className="text-xs text-muted-foreground">
               Add anything you want each AI to highlight or weave into the description (e.g. "fully renovated kitchen in 2024", "walkable to downtown", "emphasize the backyard oasis"). Saves automatically.
             </p>
+            {suggestingPoints && (
+              <p className="text-xs text-muted-foreground italic flex items-center gap-1">
+                <Loader2 className="w-3 h-3 animate-spin" /> Pulling suggestions from your Work Sheet AI Summary...
+              </p>
+            )}
+            {pointsAreSuggestion && !suggestingPoints && notes.trim().length > 0 && (
+              <p className="text-xs text-emerald-700 italic">
+                Suggested from your Work Sheet AI Summary. Edit, add to, or clear to regenerate.
+              </p>
+            )}
             <Textarea
               id="mls-notes"
               value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              rows={4}
-              placeholder="e.g. New roof in 2023. Highlight the corner lot. Buyer agents love the school district."
+              onChange={(e) => { setNotes(e.target.value); setPointsAreSuggestion(false); }}
+              rows={6}
+              placeholder={suggestingPoints ? "Looking for points of interest..." : "e.g. New roof in 2023. Highlight the corner lot. Buyer agents love the school district."}
             />
           </div>
         </CardContent>
