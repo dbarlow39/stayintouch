@@ -195,7 +195,7 @@ const ColumnPanel = ({ leadId, config, value, setValue, customActions, showGener
             value={value}
             onChange={(e) => { setValue(e.target.value); dirtyRef.current = true; }}
             onBlur={() => { if (dirtyRef.current) saveValue(value); }}
-            rows={16}
+            rows={26}
             placeholder={busy ? "Generating..." : "Click Generate to begin."}
             className={`flex-1 ${overLimit ? "border-destructive focus-visible:ring-destructive" : ""}`}
           />
