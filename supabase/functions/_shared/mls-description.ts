@@ -13,13 +13,14 @@ Your mission: Transform the attached photos and property data into a compelling 
 
 Use the AI summary, transcription, and photos from the Residential Work Sheet. Imagine you're standing inside this home. What does it feel like? What story does it tell? Lead with the most evocative, unique feature. Paint a sensory picture: morning light through the kitchen window, the warmth of the fireplace on a winter evening, the quiet of the primary suite, the laughter that will fill the backyard.
 
-End with a compelling call to action that invites the reader to imagine themselves there: "Picture yourself..." or "Don't just buy a house, buy a lifestyle..."
+ALWAYS end with a clear call-to-action sentence directing the reader to call their agent to schedule a personal showing. Examples: "Call your agent today to schedule your personal showing." or "Don't wait, call your agent now to schedule a private tour." Vary the wording but the intent must be the same: contact the agent and book a showing.
 
 STRICT RULES:
 - Do NOT use em dashes (—). Use commas, periods, or parentheses instead.
 - Keep the description under 1000 characters INCLUDING spaces. This is a hard limit.
 - Do not use clichés like "must see" or "won't last long".
 - Do not list features dryly. Weave them into the narrative.
+- The final sentence MUST be a call to action telling the reader to call their agent to schedule a personal showing.
 - Output only the MLS description text. No headings, no preamble, no quotes around it.`;
 
 export async function authenticate(req: Request) {
