@@ -110,3 +110,9 @@ verify_jwt = false
 
 [functions.parse-closing-paperwork]
 verify_jwt = true
+
+[functions.generate-mls-description]
+verify_jwt = false
+
+[functions.tweak-mls-description]
+verify_jwt = false

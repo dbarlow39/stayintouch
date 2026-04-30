@@ -21,7 +21,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { ArrowLeft, Save, Trash2, Loader2, Asterisk, Zap, FileText, BarChart3, GitBranch, DollarSign, ClipboardList, UserCheck, Mail } from "lucide-react";
+import { ArrowLeft, Save, Trash2, Loader2, Asterisk, Zap, FileText, BarChart3, GitBranch, DollarSign, ClipboardList, UserCheck, Mail, Pencil } from "lucide-react";
 import PhoneCallTextLink from "@/components/PhoneCallTextLink";
 import { openEmailClient } from "@/utils/emailClientUtils";
 import { useToast } from "@/hooks/use-toast";
@@ -30,6 +30,7 @@ import logo from "@/assets/logo.jpg";
 import LeadEstimatedNet from "@/components/dashboard/estimatedNet/LeadEstimatedNet";
 import ResidentialWorkSheetTab from "@/components/dashboard/ResidentialWorkSheetTab";
 import MarketAnalysisTab from "@/components/dashboard/sellerLead/MarketAnalysisTab";
+import MLSDescriptionTab from "@/components/dashboard/sellerLead/MLSDescriptionTab";
 
 const statusColors: Record<string, string> = {
   new: "bg-primary/10 text-primary border-primary/20",
@@ -344,6 +345,7 @@ const SellerLeadDetail = () => {
     { id: "market-analysis", label: "Market Analysis", icon: BarChart3 },
     { id: "estimated-net", label: "Estimated Net", icon: DollarSign },
     { id: "residential", label: "Residential Work Sheet", icon: ClipboardList },
+    { id: "mls-description", label: "Write MLS Description", icon: Pencil },
     { id: "pipeline", label: "Pipeline", icon: GitBranch },
   ];
 
@@ -408,6 +410,10 @@ const SellerLeadDetail = () => {
         ) : activeTab === "residential" && lead ? (
           <div className="flex-1 overflow-auto p-6">
             <ResidentialWorkSheetTab lead={lead} />
+          </div>
+        ) : activeTab === "mls-description" && lead ? (
+          <div className="flex-1 overflow-auto p-6">
+            <MLSDescriptionTab leadId={lead.id} initialDescription={(lead as any).mls_description} />
           </div>
         ) : (
           <main className="flex-1 px-6 py-8 max-w-3xl">
