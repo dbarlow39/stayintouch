@@ -329,7 +329,7 @@ const MLSDescriptionTab = ({ leadId, initialDescription, initialClaude, initialF
     setFinalText("");
     let acc = "";
     try {
-      await streamFromFunction("combine-mls-descriptions", { gemini, claude, model }, (chunk) => {
+      await streamFromFunction("combine-mls-descriptions", { gemini, claude, model, notes }, (chunk) => {
         acc += chunk;
         setFinalText(acc);
       });
