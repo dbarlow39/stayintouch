@@ -14,7 +14,7 @@ STRICT RULES:
 - Do NOT use em dashes (—). Use commas, periods, or parentheses instead.
 - Keep the final description under 1000 characters INCLUDING spaces. This is a hard limit.
 - Do not use clichés like "must see" or "won't last long".
-- End with a compelling call to action that invites the reader to imagine themselves there.
+- ALWAYS end with a clear call-to-action sentence directing the reader to call their agent to schedule a personal showing (e.g. "Call your agent today to schedule your personal showing." or "Don't wait, call your agent now to book a private tour."). Vary the wording but the intent must always be: contact the agent and book a showing.
 - Output only the combined MLS description text. No headings, no preamble, no quotes around it, no explanations.`;
 
 function sseChunk(text: string): string {
