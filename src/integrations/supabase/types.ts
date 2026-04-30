@@ -380,6 +380,9 @@ export type Database = {
           listing_date: string | null
           location: string | null
           lock_box: string | null
+          mls_description: string | null
+          mls_description_claude: string | null
+          mls_description_final: string | null
           mls_id: string | null
           notes: string | null
           phone: string | null
@@ -414,6 +417,9 @@ export type Database = {
           listing_date?: string | null
           location?: string | null
           lock_box?: string | null
+          mls_description?: string | null
+          mls_description_claude?: string | null
+          mls_description_final?: string | null
           mls_id?: string | null
           notes?: string | null
           phone?: string | null
@@ -448,6 +454,9 @@ export type Database = {
           listing_date?: string | null
           location?: string | null
           lock_box?: string | null
+          mls_description?: string | null
+          mls_description_claude?: string | null
+          mls_description_final?: string | null
           mls_id?: string | null
           notes?: string | null
           phone?: string | null
