@@ -232,21 +232,36 @@ const ColumnPanel = ({ leadId, config, value, setValue, customActions, showGener
   );
 };
 
-const MLSDescriptionTab = ({ leadId, initialDescription, initialClaude, initialFinal }: Props) => {
+const MLSDescriptionTab = ({ leadId, initialDescription, initialClaude, initialFinal, initialNotes }: Props) => {
   const { toast } = useToast();
   const [gemini, setGemini] = useState(initialDescription || "");
   const [claude, setClaude] = useState(initialClaude || "");
   const [finalText, setFinalText] = useState(initialFinal || "");
+  const [notes, setNotes] = useState(initialNotes || "");
   const [combiningWith, setCombiningWith] = useState<null | "gemini" | "claude">(null);
   const [facts, setFacts] = useState<{
     address?: string; city?: string; state?: string; zip?: string;
     bedrooms?: string | number; bathrooms?: string | number;
     sqft?: string | number; year_built?: string | number;
   } | null>(null);
+  const notesSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const notesLoadedRef = useRef(false);
 
   useEffect(() => { setGemini(initialDescription || ""); }, [initialDescription, leadId]);
   useEffect(() => { setClaude(initialClaude || ""); }, [initialClaude, leadId]);
   useEffect(() => { setFinalText(initialFinal || ""); }, [initialFinal, leadId]);
+  useEffect(() => { setNotes(initialNotes || ""); notesLoadedRef.current = true; }, [initialNotes, leadId]);
+
+  // Debounced auto-save for the notes field
+  useEffect(() => {
+    if (!notesLoadedRef.current) return;
+    if (notesSaveTimer.current) clearTimeout(notesSaveTimer.current);
+    notesSaveTimer.current = setTimeout(async () => {
+      const { error } = await supabase.from("leads").update({ mls_description_notes: notes || null } as any).eq("id", leadId);
+      if (error) toast({ title: "Couldn't save notes", description: error.message, variant: "destructive" });
+    }, 800);
+    return () => { if (notesSaveTimer.current) clearTimeout(notesSaveTimer.current); };
+  }, [notes, leadId]);
 
   useEffect(() => {
     let cancelled = false;
