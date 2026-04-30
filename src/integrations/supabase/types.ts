@@ -1445,6 +1445,7 @@ export type Database = {
           lead_type: string
           lot_size_sqft: number | null
           market_value: number | null
+          mls_description: string | null
           notes: string | null
           owner_name: string | null
           phone: string | null
@@ -1476,6 +1477,7 @@ export type Database = {
           lead_type?: string
           lot_size_sqft?: number | null
           market_value?: number | null
+          mls_description?: string | null
           notes?: string | null
           owner_name?: string | null
           phone?: string | null
@@ -1507,6 +1509,7 @@ export type Database = {
           lead_type?: string
           lot_size_sqft?: number | null
           market_value?: number | null
+          mls_description?: string | null
           notes?: string | null
           owner_name?: string | null
           phone?: string | null
