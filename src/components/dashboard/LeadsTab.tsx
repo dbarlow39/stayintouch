@@ -299,12 +299,20 @@ const LeadsTab = () => {
     createMutation.mutate(formData);
   };
 
+  const [innerTab, setInnerTab] = useState("lead-list");
+
   return (
-    <Tabs defaultValue="lead-list" className="space-y-6">
+    <Tabs value={innerTab} onValueChange={setInnerTab} className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-semibold">Seller Lead CRM</h3>
-          <p className="text-sm text-muted-foreground">Track seller leads with automated follow-ups</p>
+          <button
+            type="button"
+            onClick={() => setInnerTab("lead-list")}
+            className="text-left hover:opacity-80 transition-opacity"
+          >
+            <h3 className="text-lg font-semibold">Seller Lead CRM</h3>
+            <p className="text-sm text-muted-foreground">Track seller leads with automated follow-ups</p>
+          </button>
         </div>
         <TabsList>
           <TabsTrigger value="lead-list">
