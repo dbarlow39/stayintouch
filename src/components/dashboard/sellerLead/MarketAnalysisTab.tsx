@@ -141,10 +141,15 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
         const leadAddr = normalize(lead.address);
         if (!leadAddr) return;
 
-        // Build a loose ilike pattern from the key words
+        // Build a loose ilike pattern: street number + first street-name word.
+        // Avoids failures from typos like "Pontious" vs "Pontius" or "Road" vs "Rd".
         const words = leadAddr.split(' ').filter((w: string) => w.length > 1);
         if (words.length === 0) return;
-        const pattern = `%${words.join('%')}%`;
+        const leadNumber = leadAddr.match(/^\d+/)?.[0];
+        const firstWord = words.find((w) => !/^\d+$/.test(w));
+        const pattern = leadNumber && firstWord
+          ? `%${leadNumber}%${firstWord.slice(0, 4)}%`
+          : `%${words.slice(0, 2).join('%')}%`;
 
         const { data, error } = await supabase
           .from("inspections")
@@ -157,9 +162,8 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
         if (error || !data || data.length === 0) return;
 
         const inspection = data[0];
-        // Verify loose match: check that at least the street number matches
+        // Verify: street number must match
         const inspAddr = normalize(inspection.property_address);
-        const leadNumber = leadAddr.match(/^\d+/)?.[0];
         const inspNumber = inspAddr.match(/^\d+/)?.[0];
         if (leadNumber && inspNumber && leadNumber !== inspNumber) return;
 
