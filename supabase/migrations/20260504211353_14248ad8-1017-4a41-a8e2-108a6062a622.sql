@@ -1,0 +1,1 @@
+ALTER TABLE public.closings ADD COLUMN IF NOT EXISTS paperwork_na jsonb NOT NULL DEFAULT '{}'::jsonb;

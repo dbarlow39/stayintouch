@@ -14,7 +14,7 @@ import { toast } from "sonner";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useAgentsList } from "./useAgentsList";
 import ClosingPaperworkUpload, { type PaperworkFile } from "./ClosingPaperworkUpload";
-import ClosingPaperworkChecklist, { type ChecklistState } from "./ClosingPaperworkChecklist";
+import ClosingPaperworkChecklist, { type ChecklistState, type ChecklistNAState } from "./ClosingPaperworkChecklist";
 import ClosingNotificationDialog from "./ClosingNotificationDialog";
 
 interface EditClosingFormProps {
@@ -32,6 +32,7 @@ const EditClosingForm = ({ closingId, onBack }: EditClosingFormProps) => {
   const [representation, setRepresentation] = useState<"seller" | "buyer" | null>(null);
   const [builtBefore1978, setBuiltBefore1978] = useState(false);
   const [checklist, setChecklist] = useState<ChecklistState>({});
+  const [naState, setNAState] = useState<ChecklistNAState>({});
   const initialReceivedRef = useRef<{ paperwork: boolean; check: boolean } | null>(null);
   const [notifyDialog, setNotifyDialog] = useState<{ open: boolean; paperwork: boolean; check: boolean; agentEmail: string; agentName: string; address: string }>({
     open: false, paperwork: false, check: false, agentEmail: "", agentName: "", address: "",
@@ -107,6 +108,10 @@ const EditClosingForm = ({ closingId, onBack }: EditClosingFormProps) => {
         setBuiltBefore1978(!!built_before_1978);
         setChecklist(rest as ChecklistState);
       }
+      const savedNA = (closing as any).paperwork_na;
+      if (savedNA && typeof savedNA === "object") {
+        setNAState(savedNA as ChecklistNAState);
+      }
     }
   }, [closing]);
 
@@ -162,6 +167,7 @@ const EditClosingForm = ({ closingId, onBack }: EditClosingFormProps) => {
         paperwork_files: paperworkFiles as any,
         representation: representation,
         paperwork_checklist: { ...checklist, built_before_1978: builtBefore1978 } as any,
+        paperwork_na: naState as any,
       }).eq("id", closingId);
       if (error) throw error;
       toast.success("Closing updated successfully.");
@@ -481,6 +487,8 @@ const EditClosingForm = ({ closingId, onBack }: EditClosingFormProps) => {
             onBuiltBefore1978Change={setBuiltBefore1978}
             checklist={checklist}
             onChange={setChecklist}
+            naState={naState}
+            onNAChange={setNAState}
           />
 
           <div className="space-y-2">

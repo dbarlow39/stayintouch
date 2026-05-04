@@ -598,6 +598,7 @@ export type Database = {
           paid: boolean
           paperwork_checklist: Json
           paperwork_files: Json
+          paperwork_na: Json
           paperwork_status: string
           property_address: string
           representation: string | null
@@ -627,6 +628,7 @@ export type Database = {
           paid?: boolean
           paperwork_checklist?: Json
           paperwork_files?: Json
+          paperwork_na?: Json
           paperwork_status?: string
           property_address: string
           representation?: string | null
@@ -656,6 +658,7 @@ export type Database = {
           paid?: boolean
           paperwork_checklist?: Json
           paperwork_files?: Json
+          paperwork_na?: Json
           paperwork_status?: string
           property_address?: string
           representation?: string | null
