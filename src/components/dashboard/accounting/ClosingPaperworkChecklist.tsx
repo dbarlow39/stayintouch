@@ -131,24 +131,35 @@ const ClosingPaperworkChecklist = ({
         </div>
       </div>
 
-      <ul className="space-y-2 pt-2">
+      <div className="grid grid-cols-[auto_auto_1fr] gap-x-3 items-center pt-2 pb-1 text-xs text-muted-foreground">
+        <span className="w-4" />
+        <span className="text-center font-medium">N/A</span>
+        <span />
+      </div>
+      <ul className="space-y-2">
         {items.map(item => {
           const isNA = !!naState[item.key];
           const isChecked = !!checklist[item.key];
           return (
             <Fragment key={item.key}>
-              <li className="flex items-start gap-3">
-                <div className="flex items-center gap-1.5 pt-0.5">
-                  <Checkbox
-                    id={`chk-${item.key}`}
-                    checked={isChecked}
-                    onCheckedChange={c => toggle(item.key, !!c)}
-                    disabled={isNA}
-                  />
-                </div>
+              <li className="grid grid-cols-[auto_auto_1fr] gap-x-3 items-start">
+                <Checkbox
+                  id={`chk-${item.key}`}
+                  checked={isChecked}
+                  onCheckedChange={c => toggle(item.key, !!c)}
+                  disabled={isNA}
+                  className="mt-0.5"
+                />
+                <Checkbox
+                  id={`na-${item.key}`}
+                  checked={isNA}
+                  onCheckedChange={c => toggleNA(item.key, !!c)}
+                  disabled={isChecked}
+                  className="mt-0.5 justify-self-center"
+                />
                 <label
                   htmlFor={`chk-${item.key}`}
-                  className="text-sm cursor-pointer leading-tight flex-1"
+                  className="text-sm cursor-pointer leading-tight"
                 >
                   <span className={isChecked || isNA ? "line-through text-muted-foreground" : ""}>
                     {item.label}
@@ -158,18 +169,6 @@ const ClosingPaperworkChecklist = ({
                       {item.hint}
                     </span>
                   )}
-                </label>
-                <label
-                  htmlFor={`na-${item.key}`}
-                  className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer pt-0.5 whitespace-nowrap"
-                >
-                  <Checkbox
-                    id={`na-${item.key}`}
-                    checked={isNA}
-                    onCheckedChange={c => toggleNA(item.key, !!c)}
-                    disabled={isChecked}
-                  />
-                  N/A
                 </label>
               </li>
               {item.key === "residential_property_disclosure" && (
