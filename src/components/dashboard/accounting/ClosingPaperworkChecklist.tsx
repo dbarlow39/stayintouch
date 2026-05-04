@@ -15,6 +15,7 @@ export type ChecklistKey =
   | "settlement_statement";
 
 export type ChecklistState = Partial<Record<ChecklistKey, boolean>>;
+export type ChecklistNAState = Partial<Record<ChecklistKey, boolean>>;
 
 interface Props {
   representation: "seller" | "buyer" | null;
@@ -22,6 +23,8 @@ interface Props {
   onBuiltBefore1978Change: (v: boolean) => void;
   checklist: ChecklistState;
   onChange: (next: ChecklistState) => void;
+  naState?: ChecklistNAState;
+  onNAChange?: (next: ChecklistNAState) => void;
 }
 
 interface Item {
@@ -36,6 +39,8 @@ const ClosingPaperworkChecklist = ({
   onBuiltBefore1978Change,
   checklist,
   onChange,
+  naState = {},
+  onNAChange,
 }: Props) => {
   const items: Item[] = [
     { key: "settlement_statement", label: "Settlement Statement" },
@@ -82,10 +87,22 @@ const ClosingPaperworkChecklist = ({
     });
   }
 
-  const toggle = (key: ChecklistKey, value: boolean) =>
+  const toggle = (key: ChecklistKey, value: boolean) => {
     onChange({ ...checklist, [key]: value });
+    if (value && naState[key] && onNAChange) {
+      onNAChange({ ...naState, [key]: false });
+    }
+  };
 
-  const completed = items.filter(i => checklist[i.key]).length;
+  const toggleNA = (key: ChecklistKey, value: boolean) => {
+    if (!onNAChange) return;
+    onNAChange({ ...naState, [key]: value });
+    if (value && checklist[key]) {
+      onChange({ ...checklist, [key]: false });
+    }
+  };
+
+  const completed = items.filter(i => checklist[i.key] || naState[i.key]).length;
   const total = items.length;
   const allDone = completed === total;
 
@@ -95,7 +112,7 @@ const ClosingPaperworkChecklist = ({
         <div>
           <Label className="text-sm font-semibold">Required Closing Documents</Label>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Confirm each required document is present and signed. The AI will pre-check items it finds.
+            Confirm each required document is present and signed, or mark N/A. The AI will pre-check items it finds.
           </p>
         </div>
         <div
@@ -115,43 +132,61 @@ const ClosingPaperworkChecklist = ({
       </div>
 
       <ul className="space-y-2 pt-2">
-        {items.map(item => (
-          <Fragment key={item.key}>
-            <li className="flex items-start gap-2">
-              <Checkbox
-                id={`chk-${item.key}`}
-                checked={!!checklist[item.key]}
-                onCheckedChange={c => toggle(item.key, !!c)}
-                className="mt-0.5"
-              />
-              <label
-                htmlFor={`chk-${item.key}`}
-                className="text-sm cursor-pointer leading-tight"
-              >
-                <span className={checklist[item.key] ? "line-through text-muted-foreground" : ""}>
-                  {item.label}
-                </span>
-                {item.hint && (
-                  <span className="block text-xs text-muted-foreground mt-0.5">
-                    {item.hint}
+        {items.map(item => {
+          const isNA = !!naState[item.key];
+          const isChecked = !!checklist[item.key];
+          return (
+            <Fragment key={item.key}>
+              <li className="flex items-start gap-3">
+                <div className="flex items-center gap-1.5 pt-0.5">
+                  <Checkbox
+                    id={`chk-${item.key}`}
+                    checked={isChecked}
+                    onCheckedChange={c => toggle(item.key, !!c)}
+                    disabled={isNA}
+                  />
+                </div>
+                <label
+                  htmlFor={`chk-${item.key}`}
+                  className="text-sm cursor-pointer leading-tight flex-1"
+                >
+                  <span className={isChecked || isNA ? "line-through text-muted-foreground" : ""}>
+                    {item.label}
                   </span>
-                )}
-              </label>
-            </li>
-            {item.key === "residential_property_disclosure" && (
-              <li className="flex items-center gap-2 list-none -ml-0">
-                <Checkbox
-                  id="built-before-1978"
-                  checked={builtBefore1978}
-                  onCheckedChange={c => onBuiltBefore1978Change(!!c)}
-                />
-                <label htmlFor="built-before-1978" className="text-sm cursor-pointer">
-                  Lead Paint Disclosure
+                  {item.hint && (
+                    <span className="block text-xs text-muted-foreground mt-0.5">
+                      {item.hint}
+                    </span>
+                  )}
+                </label>
+                <label
+                  htmlFor={`na-${item.key}`}
+                  className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer pt-0.5 whitespace-nowrap"
+                >
+                  <Checkbox
+                    id={`na-${item.key}`}
+                    checked={isNA}
+                    onCheckedChange={c => toggleNA(item.key, !!c)}
+                    disabled={isChecked}
+                  />
+                  N/A
                 </label>
               </li>
-            )}
-          </Fragment>
-        ))}
+              {item.key === "residential_property_disclosure" && (
+                <li className="flex items-center gap-2 list-none -ml-0">
+                  <Checkbox
+                    id="built-before-1978"
+                    checked={builtBefore1978}
+                    onCheckedChange={c => onBuiltBefore1978Change(!!c)}
+                  />
+                  <label htmlFor="built-before-1978" className="text-sm cursor-pointer">
+                    Lead Paint Disclosure
+                  </label>
+                </li>
+              )}
+            </Fragment>
+          );
+        })}
       </ul>
     </div>
   );
