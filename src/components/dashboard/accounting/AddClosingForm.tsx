@@ -14,7 +14,7 @@ import { toast } from "sonner";
 import { useAgentsList } from "./useAgentsList";
 import { GooglePlacesAddressInput } from "@/components/dashboard/residential/GooglePlacesAddressInput";
 import ClosingPaperworkUpload, { type PaperworkFile } from "./ClosingPaperworkUpload";
-import ClosingPaperworkChecklist, { type ChecklistState } from "./ClosingPaperworkChecklist";
+import ClosingPaperworkChecklist, { type ChecklistState, type ChecklistNAState } from "./ClosingPaperworkChecklist";
 import ClosingNotificationDialog from "./ClosingNotificationDialog";
 
 interface AddClosingFormProps {
@@ -39,6 +39,7 @@ const AddClosingForm = ({ onBack }: AddClosingFormProps) => {
   const [representation, setRepresentation] = useState<"seller" | "buyer" | null>(null);
   const [builtBefore1978, setBuiltBefore1978] = useState(false);
   const [checklist, setChecklist] = useState<ChecklistState>({});
+  const [naState, setNAState] = useState<ChecklistNAState>({});
   const [notifyDialog, setNotifyDialog] = useState<{ open: boolean; paperwork: boolean; check: boolean; agentEmail: string; agentName: string; address: string }>({
     open: false, paperwork: false, check: false, agentEmail: "", agentName: "", address: "",
   });
@@ -349,6 +350,7 @@ const AddClosingForm = ({ onBack }: AddClosingFormProps) => {
         paperwork_files: paperworkFiles as any,
         representation: representation,
         paperwork_checklist: { ...checklist, built_before_1978: builtBefore1978 } as any,
+        paperwork_na: naState as any,
         created_by: user.id,
       });
       if (error) throw error;
@@ -434,6 +436,8 @@ const AddClosingForm = ({ onBack }: AddClosingFormProps) => {
             onBuiltBefore1978Change={setBuiltBefore1978}
             checklist={checklist}
             onChange={setChecklist}
+            naState={naState}
+            onNAChange={setNAState}
           />
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
