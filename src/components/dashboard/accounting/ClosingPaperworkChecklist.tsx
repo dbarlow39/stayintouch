@@ -169,29 +169,6 @@ const ClosingPaperworkChecklist = ({
                   )}
                 </label>
               </li>
-              {item.key === "residential_property_disclosure" && !builtBefore1978 && (
-                <li className="grid grid-cols-[auto_auto_1fr] gap-x-3 items-start list-none">
-                  <Checkbox
-                    id="built-before-1978"
-                    checked={builtBefore1978}
-                    onCheckedChange={c => onBuiltBefore1978Change(!!c)}
-                    disabled={!!naState["lead_based_paint_disclosure"]}
-                    className="mt-0.5"
-                  />
-                  <Checkbox
-                    id="na-lead_based_paint_disclosure"
-                    checked={!!naState["lead_based_paint_disclosure"]}
-                    onCheckedChange={c => toggleNA("lead_based_paint_disclosure", !!c)}
-                    disabled={builtBefore1978}
-                    className="mt-0.5 justify-self-center"
-                  />
-                  <label htmlFor="built-before-1978" className="text-sm cursor-pointer leading-tight">
-                    <span className={builtBefore1978 || naState["lead_based_paint_disclosure"] ? "line-through text-muted-foreground" : ""}>
-                      Lead Paint Disclosure
-                    </span>
-                  </label>
-                </li>
-              )}
             </Fragment>
           );
         })}
