@@ -183,15 +183,32 @@ const LeadClosingCostsView = ({ propertyData, propertyId, onBack, onEdit, onNavi
   const handleDownloadPDF = async () => {
     const html2canvas = (await import('html2canvas')).default;
     const { jsPDF } = await import('jspdf');
-    
+
     const element = document.getElementById('lead-closing-costs-content');
     if (!element) return;
-    
-    const canvas = await html2canvas(element, {
-      scale: 2,
-      useCORS: true,
-      logging: false,
-    });
+
+    // Clone off-screen and strip everything that should not be in the PDF
+    // (intro textarea, closing textarea, "Thanks", agent name, and signature block).
+    const clone = element.cloneNode(true) as HTMLElement;
+    clone.querySelectorAll('[data-pdf-exclude]').forEach((el) => el.remove());
+    clone.querySelectorAll('textarea').forEach((el) => el.remove());
+
+    const wrapper = document.createElement('div');
+    wrapper.style.cssText = 'position: fixed; left: -10000px; top: 0; width: 800px; background: #ffffff;';
+    wrapper.appendChild(clone);
+    document.body.appendChild(wrapper);
+
+    let canvas: HTMLCanvasElement;
+    try {
+      canvas = await html2canvas(clone, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#ffffff',
+      });
+    } finally {
+      document.body.removeChild(wrapper);
+    }
     
     const imgData = canvas.toDataURL('image/png');
     const pdf = new jsPDF('p', 'mm', 'a4');
