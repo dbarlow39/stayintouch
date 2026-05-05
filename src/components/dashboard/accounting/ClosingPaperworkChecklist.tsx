@@ -63,13 +63,11 @@ const ClosingPaperworkChecklist = ({
     },
   ];
 
-  if (builtBefore1978) {
-    items.push({
-      key: "lead_based_paint_disclosure",
-      label: "Lead Paint Disclosure",
-      hint: "Required for homes built prior to 1978.",
-    });
-  }
+  items.push({
+    key: "lead_based_paint_disclosure",
+    label: "Lead Paint Disclosure",
+    hint: "Required for homes built prior to 1978. Mark N/A if not applicable.",
+  });
 
   if (representation === "seller") {
     items.push({
