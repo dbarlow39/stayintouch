@@ -77,7 +77,7 @@ const TOOL = {
           signed_contract: { type: "boolean", description: "A purchase contract / Residential Real Estate Purchase Agreement that has been signed AND dated by the parties." },
           representation_agreement: { type: "boolean", description: "Either the Exclusive Right to Sell listing agreement OR the Buyer Representation/Agency Agreement." },
           residential_property_disclosure: { type: "boolean", description: "Residential Property Disclosure Form." },
-          lead_based_paint_disclosure: { type: "boolean", description: "Disclosure of Information on Lead-Based Paint and/or Lead-Based Paint Hazards." },
+          lead_based_paint_disclosure: { type: "boolean", description: "Set TRUE if any page contains the form titled 'Disclosure of Information on Lead-Based Paint and/or Lead-Based Paint Hazards' (or substantially similar). This form typically includes a 'Lead Warning Statement', a 'Seller's Disclosure' section with checkboxes (a)(i)/(ii) and (b)(i)/(ii), a 'Purchaser's Acknowledgment' section, an 'Agent's Acknowledgment' section, and a 'Certification of Accuracy' with signatures. Mark TRUE whenever this form is present, signed or unsigned, regardless of whether the home was built before 1978." },
           affiliated_business_arrangement: { type: "boolean", description: "Affiliated Business Arrangement Disclosure Statement (ABA)." },
           home_inspection: { type: "boolean", description: "Evidence the buyer obtained a home inspection (inspection report, inspection response/remedy form, or inspection waiver)." },
           settlement_statement: { type: "boolean", description: "Closing Disclosure (CD), ALTA Settlement Statement, or HUD-1." },
