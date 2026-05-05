@@ -506,7 +506,7 @@ const LeadClosingCostsView = ({ propertyData, propertyId, onBack, onEdit, onNavi
               </div>
 
               {/* Closing & Agent Signature */}
-              <div className="mt-8 pt-4">
+              <div className="mt-8 pt-4" data-pdf-exclude>
                 <textarea
                   className="w-full text-foreground bg-background border border-border rounded-md p-3 text-sm resize-y focus:outline-none focus:ring-2 focus:ring-ring mb-2"
                   rows={3}
