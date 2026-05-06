@@ -309,9 +309,13 @@ const SellerLeadDetail = () => {
         .single();
       if (insertError) throw insertError;
 
-      // Keep the lead row so the Residential Work Sheet, Market Analysis, and
-      // Pre-Listing Pack remain accessible from the Client Detail modal.
-      // The Client Detail modal locates the lead via best-effort address match.
+      // Delete the original seller lead now that it's been converted to a client.
+      const { error: deleteError } = await supabase
+        .from("leads")
+        .delete()
+        .eq("id", lead.id)
+        .eq("agent_id", user.id);
+      if (deleteError) throw deleteError;
 
       queryClient.invalidateQueries({ queryKey: ["leads"] });
       queryClient.invalidateQueries({ queryKey: ["clients"] });
