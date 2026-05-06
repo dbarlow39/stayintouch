@@ -1180,7 +1180,7 @@ const ClientsTab = ({ onSelectClientForEstimate }: ClientsTabProps) => {
                 <TableHead>Email</TableHead>
                 <TableHead>Cell #</TableHead>
                 <TableHead>Showings</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead className="text-right sticky right-0 bg-background z-10 shadow-[-4px_0_6px_-4px_rgba(0,0,0,0.1)]">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
