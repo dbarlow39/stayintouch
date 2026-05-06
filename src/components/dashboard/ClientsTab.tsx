@@ -1258,14 +1258,15 @@ const ClientsTab = ({ onSelectClientForEstimate }: ClientsTabProps) => {
                       })()
                     ) : "—"}
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="max-w-[180px] truncate">
                     {client.email ? (
                       <a 
                         href={getEmailLink(client.email)}
                         onClick={(e) => e.stopPropagation()}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-primary hover:underline"
+                        className="text-primary hover:underline truncate block"
+                        title={client.email}
                       >
                         {client.email}
                       </a>
