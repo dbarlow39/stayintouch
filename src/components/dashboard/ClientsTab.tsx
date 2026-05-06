@@ -1279,7 +1279,7 @@ const ClientsTab = ({ onSelectClientForEstimate }: ClientsTabProps) => {
                       </PhoneCallTextLink>
                     ) : "—"}
                   </TableCell>
-                  <TableCell>{client.showings_to_date ?? "—"}</TableCell>
+                  <TableCell className="w-16 text-center">{client.showings_to_date ?? "—"}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
                       <Button 
