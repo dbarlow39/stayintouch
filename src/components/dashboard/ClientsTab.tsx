@@ -1279,7 +1279,7 @@ const ClientsTab = ({ onSelectClientForEstimate }: ClientsTabProps) => {
                     ) : "—"}
                   </TableCell>
                   <TableCell>{client.showings_to_date ?? "—"}</TableCell>
-                  <TableCell className="text-right sticky right-0 bg-background z-10 shadow-[-4px_0_6px_-4px_rgba(0,0,0,0.1)]">
+                  <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
                       <Button 
                         variant="ghost" 
