@@ -321,11 +321,11 @@ const EstimatedNetTab = ({ selectedClient, onClearSelectedClient, navigateToProp
       
       if (error) throw error;
       
-      // Sort by street name (excluding the street number)
+      // Sort by closing date ascending (earliest first); blanks at bottom
       return (data as EstimatedNetProperty[]).sort((a, b) => {
-        const nameA = extractStreetName(a.street_address || '');
-        const nameB = extractStreetName(b.street_address || '');
-        return nameA.localeCompare(nameB);
+        const aDate = a.closing_date ? new Date(a.closing_date).getTime() : Infinity;
+        const bDate = b.closing_date ? new Date(b.closing_date).getTime() : Infinity;
+        return aDate - bDate;
       });
     },
     enabled: !!user,
