@@ -972,6 +972,7 @@ const EstimatedNetTab = ({ selectedClient, onClearSelectedClient, navigateToProp
             <TableRow>
               <TableHead>Client</TableHead>
               <TableHead>Address</TableHead>
+              <TableHead>Closing Date</TableHead>
               <TableHead className="text-right">Offer Price</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
@@ -990,6 +991,14 @@ const EstimatedNetTab = ({ selectedClient, onClearSelectedClient, navigateToProp
                 </TableCell>
                 <TableCell>
                   {estimate.street_address}, {estimate.city}
+                </TableCell>
+                <TableCell>
+                  {estimate.closing_date
+                    ? (() => {
+                        const [y, m, d] = estimate.closing_date.split('-');
+                        return `${m}/${d}/${y}`;
+                      })()
+                    : '—'}
                 </TableCell>
                 <TableCell className="text-right">
                   {formatCurrency(estimate.offer_price)}
