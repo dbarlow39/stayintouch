@@ -998,7 +998,18 @@ const EstimatedNetTab = ({ selectedClient, onClearSelectedClient, navigateToProp
                         const [y, m, d] = estimate.closing_date.split('-');
                         return `${m}/${d}/${y}`;
                       })()
-                    : '—'}
+                    : (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleEditEstimate(estimate.id);
+                          }}
+                          className="text-destructive underline hover:opacity-80"
+                        >
+                          Add closing date
+                        </button>
+                      )}
                 </TableCell>
                 <TableCell className="text-right">
                   {formatCurrency(estimate.offer_price)}
