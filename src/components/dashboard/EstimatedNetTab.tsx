@@ -321,11 +321,11 @@ const EstimatedNetTab = ({ selectedClient, onClearSelectedClient, navigateToProp
       
       if (error) throw error;
       
-      // Sort by street name (excluding the street number)
+      // Sort by closing date ascending (earliest first); blanks at bottom
       return (data as EstimatedNetProperty[]).sort((a, b) => {
-        const nameA = extractStreetName(a.street_address || '');
-        const nameB = extractStreetName(b.street_address || '');
-        return nameA.localeCompare(nameB);
+        const aDate = a.closing_date ? new Date(a.closing_date).getTime() : Infinity;
+        const bDate = b.closing_date ? new Date(b.closing_date).getTime() : Infinity;
+        return aDate - bDate;
       });
     },
     enabled: !!user,
@@ -972,6 +972,7 @@ const EstimatedNetTab = ({ selectedClient, onClearSelectedClient, navigateToProp
             <TableRow>
               <TableHead>Client</TableHead>
               <TableHead>Address</TableHead>
+              <TableHead>Closing Date</TableHead>
               <TableHead className="text-right">Offer Price</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
@@ -990,6 +991,14 @@ const EstimatedNetTab = ({ selectedClient, onClearSelectedClient, navigateToProp
                 </TableCell>
                 <TableCell>
                   {estimate.street_address}, {estimate.city}
+                </TableCell>
+                <TableCell>
+                  {estimate.closing_date
+                    ? (() => {
+                        const [y, m, d] = estimate.closing_date.split('-');
+                        return `${m}/${d}/${y}`;
+                      })()
+                    : '—'}
                 </TableCell>
                 <TableCell className="text-right">
                   {formatCurrency(estimate.offer_price)}
