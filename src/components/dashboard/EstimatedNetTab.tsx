@@ -937,8 +937,8 @@ const EstimatedNetTab = ({ selectedClient, onClearSelectedClient, navigateToProp
     );
   }
 
-  const activeEstimates = estimates.filter(e => (e.deal_status || 'active') === 'active');
-  const closedEstimates = estimates.filter(e => e.deal_status === 'closed');
+  const activeEstimates = estimates.filter(e => (e.deal_status || 'active') === 'active' && !!e.closing_date);
+  const closedEstimates = estimates.filter(e => e.deal_status === 'closed' && !!e.closing_date);
 
   const renderEstimateTable = (items: typeof estimates, isClosed = false) => {
     if (items.length === 0) {
