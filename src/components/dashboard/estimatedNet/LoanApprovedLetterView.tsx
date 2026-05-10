@@ -4,11 +4,12 @@ import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PropertyData } from "@/types/estimatedNet";
 import { filterNavForRepType } from "@/utils/navigationUtils";
-import { ArrowLeft, List, Mail, Calendar, FileText, Copy, DollarSign, ClipboardList, Settings, Home, Bell, Edit } from "lucide-react";
+import { ArrowLeft, List, Mail, Calendar, FileText, Copy, DollarSign, ClipboardList, Settings, Home, Bell } from "lucide-react";
 import { EmailClient, EMAIL_CLIENT_OPTIONS, getEmailClientPreference, setEmailClientPreference, getEmailLink } from "@/utils/emailClientUtils";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import logo from "@/assets/logo.jpg";
+import { format } from "date-fns";
 
 interface LoanApprovedLetterViewProps {
   propertyData: PropertyData;
@@ -26,6 +27,7 @@ const LoanApprovedLetterView = ({ propertyData, propertyId, onBack, onEdit, onNa
   const [agentFullName, setAgentFullName] = useState("");
   const [agentPhone, setAgentPhone] = useState("");
   const [agentBio, setAgentBio] = useState("");
+  const [letterVariant, setLetterVariant] = useState<"homeowner" | "professional">("homeowner");
 
   useEffect(() => {
     const fetchAgentProfile = async () => {
@@ -59,20 +61,32 @@ const LoanApprovedLetterView = ({ propertyData, propertyId, onBack, onEdit, onNa
     ? propertyData.name.split(/\s*(?:&|and)\s*/i).map(n => n.trim().split(' ')[0]).join(' & ')
     : "there";
 
-  // Buyer full name(s)
-  const buyerFullName = [propertyData.buyerName1, propertyData.buyerName2]
-    .filter(Boolean)
-    .join(' & ') || "the buyer";
+  // Buyer agent first name
+  const buyerAgentFirstName = propertyData.agentName
+    ? propertyData.agentName.trim().split(' ')[0]
+    : "";
 
-  // Full address
+  // Lending officer first name
+  const lendingOfficerFirstName = propertyData.lendingOfficer
+    ? propertyData.lendingOfficer.trim().split(' ')[0]
+    : "";
+
+  const lenderGreeting = [buyerAgentFirstName, lendingOfficerFirstName].filter(Boolean).join(' & ') || "there";
+
+  const buyerNames = [propertyData.buyerName1, propertyData.buyerName2].filter(Boolean).join(' & ') || "the Buyers";
+
   const fullAddress = [
     propertyData.streetAddress,
     propertyData.city,
     propertyData.state && propertyData.zip ? `${propertyData.state} ${propertyData.zip}` : propertyData.state || propertyData.zip
   ].filter(Boolean).join(', ');
 
-  const copyAndEmail = async (contentId: string, subject: string, recipients: string) => {
-    const content = document.getElementById(contentId);
+  const closingDateFormatted = propertyData.closingDate
+    ? (() => { try { return format(new Date(propertyData.closingDate), 'MMMM d, yyyy'); } catch { return propertyData.closingDate; } })()
+    : "TBD";
+
+  const handleCopyToClipboard = async () => {
+    const content = document.getElementById('loan-approved-letter-content');
     if (!content) return;
 
     try {
@@ -128,6 +142,12 @@ const LoanApprovedLetterView = ({ propertyData, propertyId, onBack, onEdit, onNa
         description: "Opening your email client...",
       });
 
+      const subject = letterVariant === "homeowner"
+        ? `Loan Approved — ${propertyData.streetAddress}`
+        : `Loan Approval Update — ${propertyData.streetAddress}`;
+      const recipients = letterVariant === "homeowner"
+        ? (propertyData.sellerEmail || "")
+        : ([propertyData.agentEmail, propertyData.lendingOfficerEmail].filter(Boolean).join(','));
       const link = getEmailLink(recipients, emailClient, subject);
       window.open(link, '_blank');
     } catch (error) {
@@ -138,12 +158,6 @@ const LoanApprovedLetterView = ({ propertyData, propertyId, onBack, onEdit, onNa
         variant: "destructive",
       });
     }
-  };
-
-  const handleCopySellerLetter = () => {
-    const subject = `Loan Approved — ${propertyData.streetAddress}`;
-    const recipients = propertyData.sellerEmail || "";
-    copyAndEmail('loan-approved-seller-letter-content', subject, recipients);
   };
 
   const navigationItems = [
@@ -160,6 +174,20 @@ const LoanApprovedLetterView = ({ propertyData, propertyId, onBack, onEdit, onNa
     { label: "Loan Approved", icon: FileText, onClick: () => {}, active: true },
   ];
   const displayNavItems = filterNavForRepType(navigationItems, propertyData.representationType);
+
+  const signature = agentBio ? (
+    /<[a-z][\s\S]*>/i.test(agentBio) ? (
+      <div className="mb-4 [&_img]:max-w-full [&_img]:h-auto" dangerouslySetInnerHTML={{ __html: agentBio.replace(/<P>/gi, '<br><br>') }} />
+    ) : (
+      <p className="mb-4 whitespace-pre-line">{agentBio}</p>
+    )
+  ) : (
+    <>
+      <p className="mb-0">{agentFullName}</p>
+      <p className="mb-0">cell: {agentPhone}</p>
+      <p className="mb-4">email: {agentEmail}</p>
+    </>
+  );
 
   return (
     <div className="flex w-full min-h-[600px]">
@@ -197,18 +225,43 @@ const LoanApprovedLetterView = ({ propertyData, propertyId, onBack, onEdit, onNa
       </aside>
 
       <div className="flex-1 py-8 px-4">
-        {/* Letter: To Seller/Homeowner */}
-        <div className="max-w-4xl mx-auto" id="loan-approved-seller-letter-content">
+        <div className="max-w-4xl mx-auto" id="loan-approved-letter-content">
           <div className="flex items-center justify-between mb-8 print:mb-4">
             <div className="flex items-center gap-3">
               <img src={logo} alt="Sell for 1 Percent" className="h-16 w-auto print:h-12" />
               <div>
-                <h1 className="text-3xl font-bold text-foreground">Loan Approved</h1>
-                <p className="text-muted-foreground">Notice to {propertyData.name || "Homeowner"}</p>
+                <h1 className="text-3xl font-bold text-foreground">
+                  {letterVariant === "homeowner" ? "Loan Approved" : "Loan Approval Update"}
+                </h1>
+                <p className="text-muted-foreground">
+                  {letterVariant === "homeowner"
+                    ? `Notice to ${propertyData.name || "Homeowner"}`
+                    : `Notice to Buyer's Agent & Lender`}
+                </p>
               </div>
             </div>
             <div className="flex gap-2 print:hidden no-pdf">
-              <Button onClick={handleCopySellerLetter} size="lg" className="copy-email-btn bg-emerald-600 hover:bg-emerald-700 text-white">
+              <div className="flex rounded-md border overflow-hidden mr-2">
+                <Button
+                  variant={letterVariant === "homeowner" ? "default" : "ghost"}
+                  size="sm"
+                  className="rounded-none"
+                  onClick={() => setLetterVariant("homeowner")}
+                  type="button"
+                >
+                  Homeowner
+                </Button>
+                <Button
+                  variant={letterVariant === "professional" ? "default" : "ghost"}
+                  size="sm"
+                  className="rounded-none"
+                  onClick={() => setLetterVariant("professional")}
+                  type="button"
+                >
+                  Lender & Agent
+                </Button>
+              </div>
+              <Button onClick={handleCopyToClipboard} size="lg" className="copy-email-btn bg-emerald-600 hover:bg-emerald-700 text-white">
                 <Copy className="mr-2 h-4 w-4" />
                 Copy & Email
               </Button>
@@ -217,27 +270,29 @@ const LoanApprovedLetterView = ({ propertyData, propertyId, onBack, onEdit, onNa
 
           <Card className="p-8 mb-6 print:shadow-none">
             <div className="prose prose-lg max-w-none text-foreground">
-              <p className="mb-4">Hi {sellerFirstNames},</p>
-              <p className="mb-4">
-                Great news! The buyer's loan for {fullAddress} has been approved by {propertyData.lenderName || "the lender"}. This is a major milestone in the transaction and means we are on track for a smooth closing.
-              </p>
-              <p className="mb-4">
-                The next steps will be to receive the Clear to Close and finalize any remaining details before closing day. I'll keep you updated as things progress.
-              </p>
-              <p className="mb-4">Please don't hesitate to reach out if you have any questions.</p>
-              <p className="mb-4">Thanks</p>
-              <p className="mb-4">{agentFirstName}</p>
-              {agentBio ? (
-                /<[a-z][\s\S]*>/i.test(agentBio) ? (
-                  <div className="mb-4 [&_img]:max-w-full [&_img]:h-auto" dangerouslySetInnerHTML={{ __html: agentBio.replace(/<P>/gi, '<br><br>') }} />
-                ) : (
-                  <p className="mb-4 whitespace-pre-line">{agentBio}</p>
-                )
+              {letterVariant === "homeowner" ? (
+                <>
+                  <p className="mb-4">Hi {sellerFirstNames},</p>
+                  <p className="mb-4">
+                    Great news! The buyer's loan for {fullAddress} has been approved by {propertyData.lenderName || "the lender"}. This is a major milestone in the transaction and means we are on track for a smooth closing.
+                  </p>
+                  <p className="mb-4">
+                    The next steps will be to receive the Clear to Close and finalize any remaining details before closing day. I'll keep you updated as things progress.
+                  </p>
+                  <p className="mb-4">Please don't hesitate to reach out if you have any questions.</p>
+                  <p className="mb-4">Thanks</p>
+                  <p className="mb-4">{agentFirstName}</p>
+                  {signature}
+                </>
               ) : (
                 <>
-                  <p className="mb-0">{agentFullName}</p>
-                  <p className="mb-0">cell: {agentPhone}</p>
-                  <p className="mb-4">email: {agentEmail}</p>
+                  <p className="mb-4">Hi {lenderGreeting},</p>
+                  <p className="mb-4">
+                    In regard to {buyerNames} and the property located at {fullAddress} that we have in contract. I wanted to get an update on the buyer's loan approval to be sure we are on track for the scheduled closing coming up on {closingDateFormatted}. If you would let me know.
+                  </p>
+                  <p className="mb-4">Thanks</p>
+                  <p className="mb-4">{agentFirstName}</p>
+                  {signature}
                 </>
               )}
             </div>
