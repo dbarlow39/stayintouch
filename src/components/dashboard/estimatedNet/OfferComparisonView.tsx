@@ -271,7 +271,7 @@ const OfferComparisonView = ({ groupKey, onBack }: OfferComparisonViewProps) => 
         <table className="w-full border-collapse text-sm mb-6">
           <thead>
             <tr>
-              <th className="border border-border bg-muted text-left p-2 w-48">Field</th>
+              <th className="border border-border bg-muted text-left p-2 w-48"></th>
               {rows.map((r, i) => (
                 <th key={r.id} className="border border-border bg-muted text-left p-2">
                   {r.offer_label || `Offer #${i + 1}`}
