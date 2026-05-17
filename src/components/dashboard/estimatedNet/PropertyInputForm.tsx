@@ -106,7 +106,9 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
    titleEmail: "polaris@titlefirst.com",
     adminFee: 499,
     appliances: "",
-    notes: ""
+    notes: "",
+    escalationCap: undefined,
+    appraisalGap: undefined,
   });
   const [propertyMatches, setPropertyMatches] = useState<any[]>([]);
   const [selectedPropertyId, setSelectedPropertyId] = useState<string>("");
@@ -551,6 +553,8 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
           adminFee: Number(data.admin_fee),
           appliances: data.appliances || "",
           notes: data.notes || "",
+          escalationCap: (data as any).escalation_cap != null ? Number((data as any).escalation_cap) : undefined,
+          appraisalGap: (data as any).appraisal_gap != null ? Number((data as any).appraisal_gap) : undefined,
         };
 
         setFormData(nextFormData);
@@ -711,6 +715,8 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
         appliances: dataToSave.appliances,
          notes: dataToSave.notes,
          representation_type: representationTypeRef.current,
+         escalation_cap: dataToSave.escalationCap != null && !Number.isNaN(Number(dataToSave.escalationCap)) ? Number(dataToSave.escalationCap) : null,
+         appraisal_gap: dataToSave.appraisalGap != null && !Number.isNaN(Number(dataToSave.appraisalGap)) ? Number(dataToSave.appraisalGap) : null,
        };
 
       if (currentPropertyId) {
@@ -804,6 +810,8 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
         appliances: formData.appliances,
          notes: formData.notes,
          representation_type: representationTypeRef.current,
+         escalation_cap: formData.escalationCap != null && !Number.isNaN(Number(formData.escalationCap)) ? Number(formData.escalationCap) : null,
+         appraisal_gap: formData.appraisalGap != null && !Number.isNaN(Number(formData.appraisalGap)) ? Number(formData.appraisalGap) : null,
        };
 
       let savedId: string;
@@ -1706,6 +1714,34 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
                   type="number"
                   value={formData.closingCost || ""}
                   onChange={(e) => updateField("closingCost", parseFloat(e.target.value) || 0)}
+                  className="pl-7"
+                  placeholder="0"
+                />
+              </div>
+            </div>
+            <div>
+              <Label htmlFor="escalationCap">Escalation Cap</Label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                <Input
+                  id="escalationCap"
+                  type="number"
+                  value={formData.escalationCap ?? ""}
+                  onChange={(e) => updateField("escalationCap", e.target.value === "" ? undefined : parseFloat(e.target.value))}
+                  className="pl-7"
+                  placeholder="0"
+                />
+              </div>
+            </div>
+            <div>
+              <Label htmlFor="appraisalGap">Appraisal Gap</Label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                <Input
+                  id="appraisalGap"
+                  type="number"
+                  value={formData.appraisalGap ?? ""}
+                  onChange={(e) => updateField("appraisalGap", e.target.value === "" ? undefined : parseFloat(e.target.value))}
                   className="pl-7"
                   placeholder="0"
                 />
