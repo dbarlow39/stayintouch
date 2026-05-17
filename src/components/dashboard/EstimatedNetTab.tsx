@@ -1020,22 +1020,38 @@ const EstimatedNetTab = ({ selectedClient, onClearSelectedClient, navigateToProp
 
   const activeEstimates = estimates.filter(e => (e.deal_status || 'active') === 'active');
   const closedEstimates = estimates.filter(e => e.deal_status === 'closed');
+  const archivedEstimates = estimates.filter(e => e.deal_status === 'archived_offer');
 
-  const renderEstimateTable = (items: typeof estimates, isClosed = false) => {
+  // Map of groupKey (parent_offer_id or row.id) -> sibling estimates including self
+  const groupSiblingsMap = (() => {
+    const map = new Map<string, typeof estimates>();
+    for (const e of estimates) {
+      const key = (e as any).parent_offer_id || e.id;
+      if (!map.has(key)) map.set(key, [] as any);
+      map.get(key)!.push(e);
+    }
+    return map;
+  })();
+
+  const renderEstimateTable = (items: typeof estimates, mode: 'active' | 'closed' | 'archived' = 'active') => {
+    const isClosed = mode === 'closed';
+    const isArchived = mode === 'archived';
     if (items.length === 0) {
       return (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
             <FileText className="h-12 w-12 text-muted-foreground mb-4" />
             <h3 className="text-lg font-medium mb-2">
-              {isClosed ? "No closed deals" : "No estimates yet"}
+              {isClosed ? "No closed deals" : isArchived ? "No archived offers" : "No estimates yet"}
             </h3>
             <p className="text-muted-foreground text-center mb-4">
               {isClosed
                 ? "Deals you mark as sold will appear here."
+                : isArchived
+                ? "Offers you didn't accept will be archived here for reference."
                 : "Create your first estimated net sheet to calculate seller proceeds."}
             </p>
-            {!isClosed && (
+            {!isClosed && !isArchived && (
               <Button onClick={handleNewEstimate}>
                 <Plus className="mr-2 h-4 w-4" />
                 Create Estimate
@@ -1059,9 +1075,14 @@ const EstimatedNetTab = ({ selectedClient, onClearSelectedClient, navigateToProp
             </TableRow>
           </TableHeader>
           <TableBody>
-            {items.map((estimate) => (
-              <TableRow 
-                key={estimate.id} 
+            {items.map((estimate) => {
+              const groupKey = (estimate as any).parent_offer_id || estimate.id;
+              const siblings = groupSiblingsMap.get(groupKey) || [];
+              const hasSiblings = siblings.length > 1;
+              const offerLabel = (estimate as any).offer_label as string | undefined;
+              return (
+              <TableRow
+                key={estimate.id}
                 className="cursor-pointer hover:bg-muted/50"
                 onClick={() => handleEditEstimate(estimate.id)}
               >
@@ -1069,6 +1090,11 @@ const EstimatedNetTab = ({ selectedClient, onClearSelectedClient, navigateToProp
                   {estimate.representation_type === 'buyer'
                     ? [estimate.buyer_name_1, estimate.buyer_name_2].filter(Boolean).join(' & ') || estimate.name
                     : estimate.name}
+                  {hasSiblings && (
+                    <span className="ml-2 inline-block rounded bg-primary/10 px-2 py-0.5 text-xs text-primary">
+                      {offerLabel || 'Offer #1'}
+                    </span>
+                  )}
                 </TableCell>
                 <TableCell>
                   {estimate.street_address}, {estimate.city}
@@ -1100,6 +1126,7 @@ const EstimatedNetTab = ({ selectedClient, onClearSelectedClient, navigateToProp
                     <Button
                       variant="ghost"
                       size="icon"
+                      title="Edit"
                       onClick={(e) => {
                         e.stopPropagation();
                         handleEditEstimate(estimate.id);
@@ -1107,7 +1134,46 @@ const EstimatedNetTab = ({ selectedClient, onClearSelectedClient, navigateToProp
                     >
                       <Edit className="h-4 w-4" />
                     </Button>
-                    {!isClosed && (
+                    {!isClosed && !isArchived && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        title="Add another offer"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleAddOffer(estimate.id);
+                        }}
+                      >
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                    )}
+                    {hasSiblings && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        title="Compare offers"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setCompareGroupId(groupKey);
+                        }}
+                      >
+                        <GitCompare className="h-4 w-4" />
+                      </Button>
+                    )}
+                    {hasSiblings && !isClosed && !isArchived && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        title="Accept this offer"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleAcceptOffer(estimate.id);
+                        }}
+                      >
+                        <Award className="h-4 w-4 text-amber-600" />
+                      </Button>
+                    )}
+                    {!isClosed && !isArchived && (
                       <Button
                         variant="ghost"
                         size="icon"
@@ -1136,6 +1202,7 @@ const EstimatedNetTab = ({ selectedClient, onClearSelectedClient, navigateToProp
                     <Button
                       variant="ghost"
                       size="icon"
+                      title="Delete"
                       onClick={(e) => {
                         e.stopPropagation();
                         setDeleteId(estimate.id);
@@ -1146,7 +1213,8 @@ const EstimatedNetTab = ({ selectedClient, onClearSelectedClient, navigateToProp
                   </div>
                 </TableCell>
               </TableRow>
-            ))}
+              );
+            })}
           </TableBody>
         </Table>
       </Card>
@@ -1182,7 +1250,7 @@ const EstimatedNetTab = ({ selectedClient, onClearSelectedClient, navigateToProp
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
         </div>
       ) : (
-        <Tabs value={dealTab} onValueChange={(v) => setDealTab(v as 'active' | 'closed')}>
+        <Tabs value={dealTab} onValueChange={(v) => setDealTab(v as 'active' | 'closed' | 'archived')}>
           <TabsList>
             <TabsTrigger value="active">
               Active ({activeEstimates.length})
@@ -1190,12 +1258,18 @@ const EstimatedNetTab = ({ selectedClient, onClearSelectedClient, navigateToProp
             <TabsTrigger value="closed">
               Closed ({closedEstimates.length})
             </TabsTrigger>
+            <TabsTrigger value="archived">
+              Archived Offers ({archivedEstimates.length})
+            </TabsTrigger>
           </TabsList>
           <TabsContent value="active" className="mt-4">
-            {renderEstimateTable(activeEstimates)}
+            {renderEstimateTable(activeEstimates, 'active')}
           </TabsContent>
           <TabsContent value="closed" className="mt-4">
-            {renderEstimateTable(closedEstimates, true)}
+            {renderEstimateTable(closedEstimates, 'closed')}
+          </TabsContent>
+          <TabsContent value="archived" className="mt-4">
+            {renderEstimateTable(archivedEstimates, 'archived')}
           </TabsContent>
         </Tabs>
       )}
