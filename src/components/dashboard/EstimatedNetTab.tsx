@@ -79,7 +79,8 @@ const EstimatedNetTab = ({ selectedClient, onClearSelectedClient, navigateToProp
   const [currentPropertyData, setCurrentPropertyData] = useState<PropertyData | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [markSoldId, setMarkSoldId] = useState<string | null>(null);
-  const [dealTab, setDealTab] = useState<'active' | 'closed'>('active');
+  const [dealTab, setDealTab] = useState<'active' | 'closed' | 'archived'>('active');
+  const [compareGroupId, setCompareGroupId] = useState<string | null>(null);
   const [initialClient, setInitialClient] = useState<SelectedClientForEstimate | null>(null);
   const [pendingPropertyNav, setPendingPropertyNav] = useState<{ id: string; view: ViewState } | null>(null);
 
