@@ -64,6 +64,8 @@ export interface ContractExtractedData {
   sellerEmail?: string | null;
   inContract?: string | null;
   finalWalkThrough?: string | null;
+  escalationCap?: number | null;
+  appraisalGap?: number | null;
 }
 
 interface PropertyDocument {

@@ -1051,6 +1051,12 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
     if (data.buyerAgentEmail) {
       updates.agentEmail = data.buyerAgentEmail;
     }
+    if (data.escalationCap != null && !Number.isNaN(Number(data.escalationCap))) {
+      updates.escalationCap = Number(data.escalationCap);
+    }
+    if (data.appraisalGap != null && !Number.isNaN(Number(data.appraisalGap))) {
+      updates.appraisalGap = Number(data.appraisalGap);
+    }
 
     // Update the form data with new values using functional update to get latest state
     // IMPORTANT: We use a Promise-based approach to ensure we save the ACTUAL committed state
