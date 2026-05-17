@@ -682,7 +682,86 @@ const EstimatedNetTab = ({ selectedClient, onClearSelectedClient, navigateToProp
     }
   };
 
+  // Add another offer on the same property — duplicates the row, links via parent_offer_id
+  const handleAddOffer = async (sourceId: string) => {
+    if (!user) return;
+    const sourceEstimate = estimates.find((e) => e.id === sourceId);
+    if (!sourceEstimate) return;
+    // Determine the offer group: original is the row with no parent_offer_id
+    const parentId = (sourceEstimate as any).parent_offer_id || sourceEstimate.id;
+    const siblings = estimates.filter(
+      (e) => e.id === parentId || (e as any).parent_offer_id === parentId,
+    );
+    const nextNumber = siblings.length + 1;
+    const label = window.prompt(`Label for this offer?`, `Offer #${nextNumber}`);
+    if (label === null) return;
+
+    // Load full source row
+    const { data: source, error: loadErr } = await supabase
+      .from("estimated_net_properties")
+      .select("*")
+      .eq("id", sourceId)
+      .single();
+    if (loadErr || !source) {
+      toast({ title: "Error", description: loadErr?.message || "Could not load offer", variant: "destructive" });
+      return;
+    }
+    const { id: _id, created_at: _c, updated_at: _u, ...copy } = source as any;
+    const insertRow = {
+      ...copy,
+      parent_offer_id: parentId,
+      offer_label: label || `Offer #${nextNumber}`,
+      deal_status: "active",
+    };
+    const { data: inserted, error } = await supabase
+      .from("estimated_net_properties")
+      .insert(insertRow)
+      .select("id")
+      .single();
+    if (error) {
+      toast({ title: "Error adding offer", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: "Offer added", description: `${label || `Offer #${nextNumber}`} created.` });
+    queryClient.invalidateQueries({ queryKey: ["estimated-net-properties"] });
+    if (inserted) handleEditEstimate(inserted.id);
+  };
+
+  // Accept an offer: this becomes active, siblings archived
+  const handleAcceptOffer = async (winnerId: string) => {
+    const winner = estimates.find((e) => e.id === winnerId);
+    if (!winner) return;
+    const parentId = (winner as any).parent_offer_id || winner.id;
+    const siblingIds = estimates
+      .filter((e) => (e.id === parentId || (e as any).parent_offer_id === parentId) && e.id !== winnerId)
+      .map((e) => e.id);
+    try {
+      const { error: w } = await supabase
+        .from("estimated_net_properties")
+        .update({ deal_status: "active" })
+        .eq("id", winnerId);
+      if (w) throw w;
+      if (siblingIds.length > 0) {
+        const { error: s } = await supabase
+          .from("estimated_net_properties")
+          .update({ deal_status: "archived_offer" })
+          .in("id", siblingIds);
+        if (s) throw s;
+      }
+      toast({ title: "Offer accepted", description: "Other offers moved to Archived." });
+      queryClient.invalidateQueries({ queryKey: ["estimated-net-properties"] });
+    } catch (e: any) {
+      toast({ title: "Error accepting offer", description: e.message, variant: "destructive" });
+    }
+  };
+
   // Render based on current view state
+  if (compareGroupId) {
+    return (
+      <OfferComparisonView groupKey={compareGroupId} onBack={() => setCompareGroupId(null)} />
+    );
+  }
+
   if (viewState === 'upcoming-closings') {
     return (
       <UpcomingClosingsView onBack={handleBackToList} />
