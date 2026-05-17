@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, FileText, Trash2, Edit, Calendar, CheckCircle, Undo2 } from "lucide-react";
+import { Plus, FileText, Trash2, Edit, Calendar, CheckCircle, Undo2, Copy, GitCompare, Award } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
@@ -32,6 +32,7 @@ import AdResultsLetterView from "./estimatedNet/AdResultsLetterView";
 import PropertyNotesView from "./estimatedNet/PropertyNotesView";
 import ClientSelectionView from "./estimatedNet/ClientSelectionView";
 import UpcomingClosingsView from "./estimatedNet/UpcomingClosingsView";
+import OfferComparisonView from "./estimatedNet/OfferComparisonView";
 import ContractNoticesSection from "./ContractNoticesSection";
 import {
   AlertDialog,
