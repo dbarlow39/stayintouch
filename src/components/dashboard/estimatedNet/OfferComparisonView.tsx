@@ -4,7 +4,7 @@ import { Card } from "@/components/ui/card";
 import { ArrowLeft, Download, Save } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { formatCurrency } from "@/utils/estimatedNetCalculations";
+import { calculateClosingCosts, formatCurrency } from "@/utils/estimatedNetCalculations";
 
 interface OfferComparisonViewProps {
   groupKey: string;
@@ -70,7 +70,27 @@ const OfferComparisonView = ({ groupKey, onBack }: OfferComparisonViewProps) => 
   const fields: FieldDef[] = useMemo(
     () => [
       { key: "offer_price", label: "Price", type: "currency", column: "offer_price", read: (r) => r.offer_price },
-      { key: "estimated_net", label: "Net to Seller", type: "currency", column: "estimated_net", read: (r) => r.estimated_net },
+      { key: "estimated_net", label: "Net to Seller", type: "currency", column: null, read: (r) => {
+        try {
+          return calculateClosingCosts({
+            offerPrice: Number(r.offer_price) || 0,
+            listingAgentCommission: Number(r.listing_agent_commission) || 0,
+            buyerAgentCommission: Number(r.buyer_agent_commission) || 0,
+            annualTaxes: Number(r.annual_taxes) || 0,
+            taxDaysDueThisYear: Number(r.tax_days_due_this_year) || 0,
+            daysFirstHalfTaxes: Number(r.days_first_half_taxes) || 0,
+            daysSecondHalfTaxes: Number(r.days_second_half_taxes) || 0,
+            firstHalfPaid: !!r.first_half_paid,
+            secondHalfPaid: !!r.second_half_paid,
+            firstMortgage: Number(r.first_mortgage) || 0,
+            secondMortgage: Number(r.second_mortgage) || 0,
+            closingCost: Number(r.closing_cost) || 0,
+            homeWarranty: Number(r.home_warranty) || 0,
+            homeWarrantyCompany: r.home_warranty_company || "",
+            adminFee: Number(r.admin_fee) || 0,
+          } as any).estimatedNet;
+        } catch { return null; }
+      } },
       { key: "lender_name", label: "Lender", type: "text", column: "lender_name", read: (r) => r.lender_name },
       {
         key: "cash_fin",
