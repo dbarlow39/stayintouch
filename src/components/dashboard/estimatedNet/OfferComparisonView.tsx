@@ -316,9 +316,6 @@ const OfferComparisonView = ({ groupKey, onBack }: OfferComparisonViewProps) => 
                     {r.deal_status === "archived_offer" && (
                       <span className="ml-2 text-xs text-gray-500">(archived)</span>
                     )}
-                    {r.deal_status === "active" && rows.length > 1 && (
-                      <span className="ml-2 text-xs text-green-700">(accepted)</span>
-                    )}
                   </th>
                 ))}
               </tr>
