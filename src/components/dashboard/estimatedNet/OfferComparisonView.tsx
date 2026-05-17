@@ -278,9 +278,6 @@ const OfferComparisonView = ({ groupKey, onBack }: OfferComparisonViewProps) => 
                   {r.deal_status === "archived_offer" && (
                     <span className="ml-2 text-xs text-muted-foreground">(archived)</span>
                   )}
-                  {r.deal_status === "active" && rows.length > 1 && (
-                    <span className="ml-2 text-xs text-emerald-700">(accepted)</span>
-                  )}
                 </th>
               ))}
             </tr>
@@ -303,7 +300,6 @@ const OfferComparisonView = ({ groupKey, onBack }: OfferComparisonViewProps) => 
             ))}
           </tbody>
         </table>
-
         {/* Read-only formatted snapshot used for the PDF render */}
         <div className="text-xs text-muted-foreground mb-2">PDF Preview:</div>
         <div ref={tableRef} className="bg-white text-black p-4">
@@ -319,9 +315,6 @@ const OfferComparisonView = ({ groupKey, onBack }: OfferComparisonViewProps) => 
                     {r.offer_label || `Offer #${i + 1}`}
                     {r.deal_status === "archived_offer" && (
                       <span className="ml-2 text-xs text-gray-500">(archived)</span>
-                    )}
-                    {r.deal_status === "active" && rows.length > 1 && (
-                      <span className="ml-2 text-xs text-green-700">(accepted)</span>
                     )}
                   </th>
                 ))}
