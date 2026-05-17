@@ -4,7 +4,7 @@ import { Card } from "@/components/ui/card";
 import { ArrowLeft, Download, Save } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { formatCurrency } from "@/utils/estimatedNetCalculations";
+import { calculateClosingCosts, formatCurrency } from "@/utils/estimatedNetCalculations";
 
 interface OfferComparisonViewProps {
   groupKey: string;
