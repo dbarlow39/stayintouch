@@ -78,6 +78,10 @@ export interface PropertyData {
   appliances: string;
   notes: string;
   representationType?: string;
+
+  // Multiple-offer comparison fields
+  escalationCap?: number;
+  appraisalGap?: number;
 }
 
 export interface ClosingCostData {
