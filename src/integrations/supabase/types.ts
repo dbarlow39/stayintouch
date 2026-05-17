@@ -979,6 +979,7 @@ export type Database = {
           annual_taxes: number
           appliances: string | null
           appraisal_contingency: boolean | null
+          appraisal_gap: number | null
           buyer_agent_commission: number
           buyer_cell_phone: string | null
           buyer_email: string | null
@@ -994,6 +995,7 @@ export type Database = {
           deal_status: string
           deposit: number
           deposit_collection: string | null
+          escalation_cap: number | null
           final_walk_through: string | null
           first_half_paid: boolean
           first_mortgage: number
@@ -1014,7 +1016,9 @@ export type Database = {
           loan_commitment: string | null
           name: string
           notes: string | null
+          offer_label: string | null
           offer_price: number
+          parent_offer_id: string | null
           possession: string | null
           pre_approval_days: number | null
           remedy_period_days: number | null
@@ -1044,6 +1048,7 @@ export type Database = {
           annual_taxes?: number
           appliances?: string | null
           appraisal_contingency?: boolean | null
+          appraisal_gap?: number | null
           buyer_agent_commission?: number
           buyer_cell_phone?: string | null
           buyer_email?: string | null
@@ -1059,6 +1064,7 @@ export type Database = {
           deal_status?: string
           deposit?: number
           deposit_collection?: string | null
+          escalation_cap?: number | null
           final_walk_through?: string | null
           first_half_paid?: boolean
           first_mortgage?: number
@@ -1079,7 +1085,9 @@ export type Database = {
           loan_commitment?: string | null
           name: string
           notes?: string | null
+          offer_label?: string | null
           offer_price?: number
+          parent_offer_id?: string | null
           possession?: string | null
           pre_approval_days?: number | null
           remedy_period_days?: number | null
@@ -1109,6 +1117,7 @@ export type Database = {
           annual_taxes?: number
           appliances?: string | null
           appraisal_contingency?: boolean | null
+          appraisal_gap?: number | null
           buyer_agent_commission?: number
           buyer_cell_phone?: string | null
           buyer_email?: string | null
@@ -1124,6 +1133,7 @@ export type Database = {
           deal_status?: string
           deposit?: number
           deposit_collection?: string | null
+          escalation_cap?: number | null
           final_walk_through?: string | null
           first_half_paid?: boolean
           first_mortgage?: number
@@ -1144,7 +1154,9 @@ export type Database = {
           loan_commitment?: string | null
           name?: string
           notes?: string | null
+          offer_label?: string | null
           offer_price?: number
+          parent_offer_id?: string | null
           possession?: string | null
           pre_approval_days?: number | null
           remedy_period_days?: number | null
@@ -1171,6 +1183,13 @@ export type Database = {
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "estimated_net_properties_parent_offer_id_fkey"
+            columns: ["parent_offer_id"]
+            isOneToOne: false
+            referencedRelation: "estimated_net_properties"
             referencedColumns: ["id"]
           },
         ]
