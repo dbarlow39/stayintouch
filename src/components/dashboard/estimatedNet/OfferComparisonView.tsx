@@ -300,46 +300,6 @@ const OfferComparisonView = ({ groupKey, onBack }: OfferComparisonViewProps) => 
             ))}
           </tbody>
         </table>
-
-        {/* Read-only formatted snapshot used for the PDF render */}
-        <div className="text-xs text-muted-foreground mb-2">PDF Preview:</div>
-        <div ref={tableRef} className="bg-white text-black p-4">
-          <h3 className="text-lg font-bold mb-3">
-            Offer Comparison — {rows[0]?.street_address}, {rows[0]?.city}
-          </h3>
-          <table className="w-full border-collapse text-sm">
-            <thead>
-              <tr>
-                <th className="border border-gray-400 bg-gray-100 text-left p-2 w-48">Field</th>
-                {rows.map((r, i) => (
-                  <th key={r.id} className="border border-gray-400 bg-gray-100 text-left p-2">
-                    {r.offer_label || `Offer #${i + 1}`}
-                    {r.deal_status === "archived_offer" && (
-                      <span className="ml-2 text-xs text-gray-500">(archived)</span>
-                    )}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {fields.map((f) => (
-              <tr key={f.key}>
-                <td className="border border-border p-2 font-semibold bg-muted/40">{f.label}</td>
-                {rows.map((r) => (
-                  <td key={r.id} className="border border-border p-1 align-top">
-                    <input
-                      type="text"
-                      value={displayValue(f, r)}
-                      onChange={(e) => setOverride(r.id, f.key, e.target.value)}
-                      className="w-full px-2 py-1 bg-transparent focus:outline-none focus:ring-1 focus:ring-emerald-500 rounded"
-                    />
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-
         {/* Read-only formatted snapshot used for the PDF render */}
         <div className="text-xs text-muted-foreground mb-2">PDF Preview:</div>
         <div ref={tableRef} className="bg-white text-black p-4">
