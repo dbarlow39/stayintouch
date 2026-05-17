@@ -70,6 +70,7 @@ const OfferComparisonView = ({ groupKey, onBack }: OfferComparisonViewProps) => 
   const fields: FieldDef[] = useMemo(
     () => [
       { key: "offer_price", label: "Price", type: "currency", column: "offer_price", read: (r) => r.offer_price },
+      { key: "estimated_net", label: "Net to Seller", type: "currency", column: "estimated_net", read: (r) => r.estimated_net },
       { key: "lender_name", label: "Lender", type: "text", column: "lender_name", read: (r) => r.lender_name },
       {
         key: "cash_fin",
