@@ -202,6 +202,8 @@ Extract these fields (return null if not found):
 - sellerPhone: Seller's phone number
 - sellerEmail: Seller's email
 - finalWalkThrough: Final walk-through date or terms
+- escalationCap: Scan the ENTIRE contract AND any attached addenda for an "Escalation Clause" or "Escalation Addendum". If present, extract the MAXIMUM/CAP purchase price the buyer will escalate to (the ceiling — NOT the escalation increment, and NOT the original offer price). Return as a plain number (no $ or commas). Return null if there is no escalation language anywhere in the document.
+- appraisalGap: Scan the ENTIRE contract AND any attached addenda for "Appraisal Gap" language (sometimes called "Appraisal Gap Coverage" or "Appraisal Shortfall"). Extract the DOLLAR AMOUNT the buyer agrees to cover above the appraised value if the appraisal comes in low. Return as a plain number (no $ or commas). Return null if there is no appraisal gap language anywhere in the document.
 
 NOTE: Do NOT extract lender information (lenderName, lendingOfficer, lendingOfficerPhone, lendingOfficerEmail) - that comes from pre-approval letters, not contracts.
 
