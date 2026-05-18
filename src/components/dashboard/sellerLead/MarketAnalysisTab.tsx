@@ -702,11 +702,14 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
     <div className="space-y-6">
       <div>
         <h3 className="text-lg font-semibold mb-1">Market Analysis</h3>
-        {(lead?.first_name || lead?.last_name || lead?.address) && (
+        {(lead?.first_name || lead?.last_name) && (
+          <p className="text-sm font-medium text-foreground">
+            {`${lead?.first_name || ""} ${lead?.last_name || ""}`.trim()}
+          </p>
+        )}
+        {lead?.address && (
           <p className="text-sm font-medium text-foreground mb-1">
-            {[`${lead?.first_name || ""} ${lead?.last_name || ""}`.trim(), lead?.address]
-              .filter(Boolean)
-              .join(" — ")}
+            {lead.address}
           </p>
         )}
         <p className="text-sm text-muted-foreground">
