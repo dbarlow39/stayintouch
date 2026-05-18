@@ -350,9 +350,9 @@ const SellerLeadDetail = () => {
   const sidebarTabs = [
     { id: "details", label: "Lead Details", icon: FileText },
     { id: "pre-listing", label: "Pre-Listing Pack", icon: FileText },
+    { id: "residential", label: "Residential Work Sheet", icon: ClipboardList },
     { id: "market-analysis", label: "Market Analysis", icon: BarChart3 },
     { id: "estimated-net", label: "Estimated Net", icon: DollarSign },
-    { id: "residential", label: "Residential Work Sheet", icon: ClipboardList },
     { id: "mls-description", label: "Write MLS Description", icon: Pencil },
     { id: "pipeline", label: "Pipeline", icon: GitBranch },
   ];
