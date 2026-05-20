@@ -14,7 +14,7 @@ interface CheckData {
   agentCityStateZip: string;
   propertyNames: string;
   lineItems: CheckLineItem[];
-  ytdTotal: number;
+  ytdTotal?: number;
   memo?: string;
   checkNumber?: string;
   advanceAmount?: number;
