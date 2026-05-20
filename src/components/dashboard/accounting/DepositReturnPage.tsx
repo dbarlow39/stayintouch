@@ -152,7 +152,7 @@ const DepositReturnPage = ({ onBack }: DepositReturnPageProps) => {
       agentCityStateZip: "",
       propertyNames: chk.property_address ? `Return of Deposit for: ${chk.property_address}` : "Return of Deposit",
       lineItems: [{ amount, label: "Return of Deposit" }],
-      ytdTotal: ytdMap.get(chk.id) || amount,
+      
       checkNumber: chk.check_number || undefined,
     });
   };
