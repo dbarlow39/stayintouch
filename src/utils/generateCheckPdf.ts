@@ -14,7 +14,7 @@ interface CheckData {
   agentCityStateZip: string;
   propertyNames: string;
   lineItems: CheckLineItem[];
-  ytdTotal: number;
+  ytdTotal?: number;
   memo?: string;
   checkNumber?: string;
   advanceAmount?: number;
@@ -135,11 +135,13 @@ export const generateCheckPdf = (data: CheckData) => {
 
   y += 14;
 
-  // YTD Total
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(12);
-  doc.text(formatCurrency(data.ytdTotal), leftMargin + 60, y, { align: "right" });
-  doc.text("YTD", leftMargin + 80, y);
+  // YTD Total (omitted when not provided, e.g. deposit return checks)
+  if (data.ytdTotal !== undefined) {
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(12);
+    doc.text(formatCurrency(data.ytdTotal), leftMargin + 60, y, { align: "right" });
+    doc.text("YTD", leftMargin + 80, y);
+  }
 
   // Save
   const fileName = `Commission_Check_${data.agentName.replace(/\s+/g, "_")}_${data.date.replace(/[\s,]+/g, "_")}.pdf`;
