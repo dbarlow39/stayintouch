@@ -557,9 +557,33 @@ export function AudioRecorder({ inspectionId, userId }: AudioRecorderProps) {
                 {failedRecordings.map((recording) => (
                   <div key={recording.id} className="flex items-center justify-between bg-muted p-2 rounded-md">
                     <span className="text-xs text-muted-foreground">{new Date(recording.created_at).toLocaleString()}</span>
-                    <Button size="sm" variant="outline" onClick={() => retryTranscription(recording)} disabled={retryingId !== null} className="gap-1">
-                      {retryingId === recording.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <RotateCcw className="h-3 w-3" />}Retry
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      <Button size="sm" variant="secondary" onClick={async () => {
+                        try {
+                          const paths = recording.audio_file_path.includes(",")
+                            ? recording.audio_file_path.split(",").map(p => p.trim())
+                            : [recording.audio_file_path];
+                          const blobs: Blob[] = [];
+                          for (const path of paths) {
+                            const { data, error } = await supabase.storage.from("audio-recordings").download(path);
+                            if (error) throw error;
+                            blobs.push(data);
+                          }
+                          const combined = new Blob(blobs, { type: "audio/webm" });
+                          const url = URL.createObjectURL(combined);
+                          const a = document.createElement("a");
+                          a.href = url; a.download = `recording-${recording.id}.webm`;
+                          document.body.appendChild(a); a.click(); document.body.removeChild(a);
+                          URL.revokeObjectURL(url);
+                          toast.success("Audio downloaded!");
+                        } catch (err) { console.error(err); toast.error("Failed to download audio"); }
+                      }} className="gap-1">
+                        <Download className="h-3 w-3" />Download
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => retryTranscription(recording)} disabled={retryingId !== null} className="gap-1">
+                        {retryingId === recording.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <RotateCcw className="h-3 w-3" />}Retry
+                      </Button>
+                    </div>
                   </div>
                 ))}
               </div>
