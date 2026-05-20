@@ -580,12 +580,53 @@ export function AudioRecorder({ inspectionId, userId }: AudioRecorderProps) {
                       }} className="gap-1">
                         <Download className="h-3 w-3" />Download
                       </Button>
+                      <Button size="sm" variant="secondary" asChild className="gap-1">
+                        <label className="cursor-pointer">
+                          <Upload className="h-3 w-3" />Upload Transcript
+                          <input
+                            type="file"
+                            accept=".txt,text/plain"
+                            className="hidden"
+                            onChange={async (e) => {
+                              const file = e.target.files?.[0];
+                              e.target.value = "";
+                              if (!file) return;
+                              try {
+                                toast.info("Uploading transcript...");
+                                const text = await file.text();
+                                if (!text.trim()) throw new Error("File is empty");
+                                const { error: updErr } = await supabase
+                                  .from("audio_transcriptions")
+                                  .update({ transcription: text, status: "transcribed" })
+                                  .eq("id", recording.id);
+                                if (updErr) throw updErr;
+                                toast.info("Generating AI summary...");
+                                const { data: summaryData, error: summaryError } = await supabase.functions.invoke(
+                                  "summarize-transcription",
+                                  { body: { transcriptionId: recording.id, transcription: text } }
+                                );
+                                if (summaryError) throw new Error(summaryError.message);
+                                setTranscription(text);
+                                setSummary(summaryData?.summary ?? null);
+                                setCurrentTranscriptionId(recording.id);
+                                setStatus("completed");
+                                await loadFailedRecordings();
+                                toast.success("Transcript uploaded and summary generated!");
+                              } catch (err: any) {
+                                console.error(err);
+                                toast.error(`Failed: ${err.message || "Unknown error"}`);
+                              }
+                            }}
+                          />
+                        </label>
+                      </Button>
                       <Button size="sm" variant="outline" onClick={() => retryTranscription(recording)} disabled={retryingId !== null} className="gap-1">
                         {retryingId === recording.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <RotateCcw className="h-3 w-3" />}Retry
                       </Button>
                     </div>
                   </div>
                 ))}
+
               </div>
             </div>
           )}
