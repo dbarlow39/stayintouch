@@ -144,7 +144,9 @@ const ClosedReferralLetterView = ({ propertyData, propertyId, onBack, onEdit, on
       });
 
       const subject = `Thank You - ${propertyData.streetAddress}`;
-      const recipients = propertyData.sellerEmail || "";
+      const recipients = isBuyer
+        ? (propertyData.buyerEmail || propertyData.sellerEmail || "")
+        : (propertyData.sellerEmail || "");
       const link = getEmailLink(recipients, emailClient, subject);
       window.open(link, '_blank');
     } catch (error) {
@@ -159,6 +161,7 @@ const ClosedReferralLetterView = ({ propertyData, propertyId, onBack, onEdit, on
 
   const clientFirstNames = propertyData.name?.split(/\s*(?:&|and|,)\s*/i).map(n => n.split(' ')[0]).join(' & ') || "there";
   const streetOnly = propertyData.streetAddress?.replace(/,.*$/, '').trim() || "";
+  const isBuyer = propertyData.representationType === 'buyer';
 
   const navigationItems = [
     { label: "Back", icon: ArrowLeft, onClick: onBack },
@@ -234,34 +237,62 @@ const ClosedReferralLetterView = ({ propertyData, propertyId, onBack, onEdit, on
             <div className="prose prose-lg max-w-none text-foreground">
               <p className="mb-4">Hi {clientFirstNames},</p>
 
+              {isBuyer ? (
+                <>
+                  <p className="mb-4">
+                    I wanted to take a moment to thank you for trusting me (and my team) to help you buy your new home at {propertyData.streetAddress}. It was truly a pleasure working with you, from our initial conversations and showings through the negotiations and all the way to a successful closing.
+                  </p>
 
-              <p className="mb-4">
-                I wanted to take a moment to thank you for trusting me (and my team) to help sell your home on {streetOnly}. It was truly a pleasure working with you, from our initial conversations through the negotiations and all the way to a successful closing.
-              </p>
+                  <p className="mb-4">
+                    We're constantly working to refine and improve our service, so if there was anything big or small that we could have done better, or any area where you felt we fell short of your expectations, please don't hesitate to let me know. Your honest feedback is incredibly valuable and helps us continue to grow our business.
+                  </p>
 
-              <p className="mb-4">
-                I know you chose to work with us in part because of our discounted commission structure. Even with the reduced rate, my goal is always to deliver the same (or better!) level of service, expertise, and dedication that any full-commission agent would provide and hopefully even exceed expectations.
-              </p>
+                  <p className="mb-4">
+                    A huge part of our business comes from referrals from wonderful clients like you. If you're ever in a position to recommend our services to friends, family, or colleagues who might be thinking about buying or selling, we would greatly appreciate the referral. It means the world to us and allows us to keep offering great value to more people.
+                  </p>
 
-              <p className="mb-4">
-                We're constantly working to refine and improve our service, so if there was anything big or small that we could have done better, or any area where you felt we fell short of your expectations, please don't hesitate to let me know. Your honest feedback is incredibly valuable and helps us continue to grow our business.
-              </p>
+                  <p className="mb-4">
+                    If you would take just a minute to leave us a 5 Star Review, I would greatly appreciate it! It helps other home buyers discover us and make informed choices. Here's the direct link to make it easy:{" "}
+                    <a href="https://g.page/r/CZRBJf_Jk1KkEB0/review" target="_blank" rel="noopener noreferrer" className="text-primary underline">
+                      Leave a 5 Star Google Review.
+                    </a>
+                  </p>
 
-              <p className="mb-4">
-                A huge part of our business comes from referrals from wonderful clients like you. If you're ever in a position to recommend our services to friends, family, or colleagues who might be thinking about buying or selling, we would appreciate the referral. It means the world to us and allows us to keep offering great value to more people.
-              </p>
+                  <p className="mb-4">
+                    Thank you again for choosing us and for making this such a positive experience. Wishing you all the best as you settle into your new home. Please stay in touch, and know I'm here if you ever need real estate advice or help in the future.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className="mb-4">
+                    I wanted to take a moment to thank you for trusting me (and my team) to help sell your home on {streetOnly}. It was truly a pleasure working with you, from our initial conversations through the negotiations and all the way to a successful closing.
+                  </p>
 
-              <p className="mb-4">
-                If you would take just a minute to share a 5 Star Review us I would greatly appreciate it!  It helps other homeowners discover us and make informed choices. Here's the direct link to make it easy:{" "}
-                <a href="https://g.page/r/CZRBJf_Jk1KkEB0/review" target="_blank" rel="noopener noreferrer" className="text-primary underline">
-                  Leave a 5 Star Google Review.
-                </a>
-                {" "}Of course, if the service wasn't quite what you expected in any way, please reach out to me directly so I can understand how to do better next time, your input is always welcome and appreciated.
-              </p>
+                  <p className="mb-4">
+                    I know you chose to work with us in part because of our discounted commission structure. Even with the reduced rate, my goal is always to deliver the same (or better!) level of service, expertise, and dedication that any full-commission agent would provide and hopefully even exceed expectations.
+                  </p>
 
-              <p className="mb-4">
-                Thank you again for choosing us and for making this such a positive experience. Wishing you all the best in your new home and beyond, please stay in touch, and know I'm here if you ever need real estate advice or help in the future.
-              </p>
+                  <p className="mb-4">
+                    We're constantly working to refine and improve our service, so if there was anything big or small that we could have done better, or any area where you felt we fell short of your expectations, please don't hesitate to let me know. Your honest feedback is incredibly valuable and helps us continue to grow our business.
+                  </p>
+
+                  <p className="mb-4">
+                    A huge part of our business comes from referrals from wonderful clients like you. If you're ever in a position to recommend our services to friends, family, or colleagues who might be thinking about buying or selling, we would appreciate the referral. It means the world to us and allows us to keep offering great value to more people.
+                  </p>
+
+                  <p className="mb-4">
+                    If you would take just a minute to share a 5 Star Review us I would greatly appreciate it!  It helps other homeowners discover us and make informed choices. Here's the direct link to make it easy:{" "}
+                    <a href="https://g.page/r/CZRBJf_Jk1KkEB0/review" target="_blank" rel="noopener noreferrer" className="text-primary underline">
+                      Leave a 5 Star Google Review.
+                    </a>
+                    {" "}Of course, if the service wasn't quite what you expected in any way, please reach out to me directly so I can understand how to do better next time, your input is always welcome and appreciated.
+                  </p>
+
+                  <p className="mb-4">
+                    Thank you again for choosing us and for making this such a positive experience. Wishing you all the best in your new home and beyond, please stay in touch, and know I'm here if you ever need real estate advice or help in the future.
+                  </p>
+                </>
+              )}
 
               <p className="mb-4">Thanks</p>
               <p className="mb-4">{agentFirstName}</p>
