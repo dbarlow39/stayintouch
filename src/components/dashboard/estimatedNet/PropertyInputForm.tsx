@@ -851,11 +851,8 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
         taxDaysDueThisYear: taxDaysDue,
       };
 
-      if (representationType === 'buyer') {
-        toast({ title: "Deal saved successfully" });
-      } else {
-        onSave(savedId, updatedFormData, navigationTarget);
-      }
+      toast({ title: "Deal saved successfully" });
+      onSave(savedId, updatedFormData, navigationTarget);
     } catch (error: any) {
       toast({
         title: "Error saving property",
