@@ -849,6 +849,7 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
       const updatedFormData = {
         ...formData,
         taxDaysDueThisYear: taxDaysDue,
+        representationType: representationTypeRef.current,
       };
 
       toast({ title: "Deal saved successfully" });
