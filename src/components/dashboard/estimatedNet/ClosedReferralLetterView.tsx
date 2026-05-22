@@ -159,9 +159,14 @@ const ClosedReferralLetterView = ({ propertyData, propertyId, onBack, onEdit, on
     }
   };
 
-  const clientFirstNames = propertyData.name?.split(/\s*(?:&|and|,)\s*/i).map(n => n.split(' ')[0]).join(' & ') || "there";
-  const streetOnly = propertyData.streetAddress?.replace(/,.*$/, '').trim() || "";
   const isBuyer = propertyData.representationType === 'buyer';
+  const nameSource = isBuyer
+    ? [propertyData.buyerName1, propertyData.buyerName2].filter(Boolean).join(' & ')
+    : (propertyData.name || '');
+  const clientFirstNames = nameSource
+    ? nameSource.split(/\s*(?:&|and|,)\s*/i).map(n => n.trim().split(' ')[0]).filter(Boolean).join(' & ')
+    : "there";
+  const streetOnly = propertyData.streetAddress?.replace(/,.*$/, '').trim() || "";
 
   const navigationItems = [
     { label: "Back", icon: ArrowLeft, onClick: onBack },
