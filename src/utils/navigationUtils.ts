@@ -9,6 +9,6 @@ export const filterNavForRepType = <T extends { label: string }>(
 ): T[] => {
   if (representationType !== 'buyer') return navigationItems;
   
-  const allowedLabels = ['Back', 'Back to Property Info', 'My Properties'];
+  const allowedLabels = ['Back', 'Back to Property Info', 'My Properties', 'Notices'];
   return navigationItems.filter(item => allowedLabels.includes(item.label));
 };
