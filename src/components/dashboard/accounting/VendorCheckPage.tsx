@@ -129,8 +129,14 @@ const VendorCheckPage = ({ vendorId, vendorName, vendorAddress, vendorAttention,
 
   const totalPayments = payments.reduce((sum, p) => sum + Number(p.amount), 0);
 
-  // Build YTD running totals (ascending by date)
-  const sortedForYtd = [...payments].sort((a, b) => a.payment_date.localeCompare(b.payment_date));
+  // Build YTD running totals (ascending by date, then by check number)
+  const sortedForYtd = [...payments].sort((a, b) => {
+    const d = a.payment_date.localeCompare(b.payment_date);
+    if (d !== 0) return d;
+    const an = parseInt(a.check_number || "0", 10) || 0;
+    const bn = parseInt(b.check_number || "0", 10) || 0;
+    return an - bn;
+  });
   let runningTotal = 0;
   const ytdMap = new Map<string, number>();
   for (const p of sortedForYtd) {
