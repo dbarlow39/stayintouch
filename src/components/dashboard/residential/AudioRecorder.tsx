@@ -23,7 +23,7 @@ type RecordingStatus = "idle" | "recording" | "uploading" | "transcribing" | "su
 // How often to cut a new chunk and upload it (60 seconds — ~480 KB per segment at 64 kbps)
 const CHUNK_INTERVAL_MS = 60 * 1000;
 
-export function AudioRecorder({ inspectionId, userId }: AudioRecorderProps) {
+export function AudioRecorder({ inspectionId, userId, onInspectionCreated, getPropertyAddress }: AudioRecorderProps) {
   const [status, setStatus] = useState<RecordingStatus>("idle");
   const [recordingTime, setRecordingTime] = useState(0);
   const [transcription, setTranscription] = useState<string | null>(null);
