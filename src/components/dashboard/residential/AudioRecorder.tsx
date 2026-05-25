@@ -475,17 +475,34 @@ export function AudioRecorder({ inspectionId, userId, onInspectionCreated, getPr
       setAudioFilePaths(allPaths);
       toast.success(`${allPaths.length} chunk(s) uploaded successfully`);
 
-      const { data: transcriptionRecord, error: dbError } = await supabase
-        .from("audio_transcriptions")
-        .insert({
-          user_id: userId,
-          inspection_id: inspectionId || null,
-          audio_file_path: allPaths.join(","),
-          duration_seconds: recordingTime,
-          status: "pending"
-        })
-        .select().single();
-      if (dbError) throw new Error(`Database error: ${dbError.message}`);
+      // Reuse the live row created at startRecording (or create one if somehow missing).
+      let transcriptionRecord: { id: string };
+      const liveId = liveTranscriptionIdRef.current;
+      if (liveId) {
+        const { error: updErr } = await supabase
+          .from("audio_transcriptions")
+          .update({
+            audio_file_path: allPaths.join(","),
+            duration_seconds: recordingTime,
+            status: "pending",
+          })
+          .eq("id", liveId);
+        if (updErr) throw new Error(`Database error: ${updErr.message}`);
+        transcriptionRecord = { id: liveId };
+      } else {
+        const { data: inserted, error: dbError } = await supabase
+          .from("audio_transcriptions")
+          .insert({
+            user_id: userId,
+            inspection_id: inspectionId || liveInspectionIdRef.current || null,
+            audio_file_path: allPaths.join(","),
+            duration_seconds: recordingTime,
+            status: "pending"
+          })
+          .select().single();
+        if (dbError) throw new Error(`Database error: ${dbError.message}`);
+        transcriptionRecord = inserted;
+      }
       setCurrentTranscriptionId(transcriptionRecord.id);
 
       setStatus("transcribing");
