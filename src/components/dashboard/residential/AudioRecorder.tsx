@@ -464,25 +464,6 @@ export function AudioRecorder({ inspectionId, userId, onInspectionCreated, getPr
     }
   };
 
-  const stopRecording = async () => {
-    if (mediaRecorderRef.current && status === "recording") {
-      if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
-      if (chunkIntervalRef.current) { clearInterval(chunkIntervalRef.current); chunkIntervalRef.current = null; }
-
-      isRecordingRef.current = false;
-
-      const finalChunkPromise = new Promise<void>(resolve => {
-        finalChunkResolveRef.current = resolve;
-      });
-
-      if (mediaRecorderRef.current.state === "recording") mediaRecorderRef.current.stop();
-
-      await finalChunkPromise;
-
-      if (streamRef.current) streamRef.current.getTracks().forEach(track => track.stop());
-      await processRecording();
-    }
-  };
 
   const processRecording = async () => {
     try {
