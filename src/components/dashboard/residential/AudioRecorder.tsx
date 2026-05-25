@@ -300,6 +300,23 @@ export function AudioRecorder({ inspectionId, userId, onInspectionCreated, getPr
           return null;
         }
         setUploadedChunks(prev => prev + 1);
+        // Immediately persist this chunk path to the live audio_transcriptions row
+        // so a crash/navigation mid-recording still leaves a recoverable, linked record.
+        const txId = liveTranscriptionIdRef.current;
+        if (txId) {
+          const allPaths = [...uploadedPathsRef.current, fileName];
+          const elapsed = recordingStartTimeRef.current
+            ? Math.floor((Date.now() - recordingStartTimeRef.current) / 1000)
+            : 0;
+          try {
+            await supabase
+              .from("audio_transcriptions")
+              .update({ audio_file_path: allPaths.join(","), duration_seconds: elapsed })
+              .eq("id", txId);
+          } catch (e) {
+            console.warn("Failed to persist chunk path to DB:", e);
+          }
+        }
         return fileName;
       } catch (error) {
         console.error(`Chunk upload attempt ${attempt + 1} error:`, error);
