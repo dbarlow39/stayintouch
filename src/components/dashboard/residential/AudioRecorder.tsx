@@ -14,6 +14,8 @@ interface FailedRecording {
 interface AudioRecorderProps {
   inspectionId?: string;
   userId: string;
+  onInspectionCreated?: (id: string) => void;
+  getPropertyAddress?: () => string;
 }
 
 type RecordingStatus = "idle" | "recording" | "uploading" | "transcribing" | "summarizing" | "completed" | "error";
@@ -21,7 +23,7 @@ type RecordingStatus = "idle" | "recording" | "uploading" | "transcribing" | "su
 // How often to cut a new chunk and upload it (60 seconds — ~480 KB per segment at 64 kbps)
 const CHUNK_INTERVAL_MS = 60 * 1000;
 
-export function AudioRecorder({ inspectionId, userId }: AudioRecorderProps) {
+export function AudioRecorder({ inspectionId, userId, onInspectionCreated, getPropertyAddress }: AudioRecorderProps) {
   const [status, setStatus] = useState<RecordingStatus>("idle");
   const [recordingTime, setRecordingTime] = useState(0);
   const [transcription, setTranscription] = useState<string | null>(null);
@@ -46,6 +48,9 @@ export function AudioRecorder({ inspectionId, userId }: AudioRecorderProps) {
   const isRecordingRef = useRef(false);
   const finalChunkResolveRef = useRef<(() => void) | null>(null);
   const isSavingChunkRef = useRef(false);
+  const liveTranscriptionIdRef = useRef<string | null>(null);
+  const liveInspectionIdRef = useRef<string | null>(null);
+  const recordingStartTimeRef = useRef<number>(0);
 
   useEffect(() => {
     loadFailedRecordings();
@@ -295,6 +300,23 @@ export function AudioRecorder({ inspectionId, userId }: AudioRecorderProps) {
           return null;
         }
         setUploadedChunks(prev => prev + 1);
+        // Immediately persist this chunk path to the live audio_transcriptions row
+        // so a crash/navigation mid-recording still leaves a recoverable, linked record.
+        const txId = liveTranscriptionIdRef.current;
+        if (txId) {
+          const allPaths = [...uploadedPathsRef.current, fileName];
+          const elapsed = recordingStartTimeRef.current
+            ? Math.floor((Date.now() - recordingStartTimeRef.current) / 1000)
+            : 0;
+          try {
+            await supabase
+              .from("audio_transcriptions")
+              .update({ audio_file_path: allPaths.join(","), duration_seconds: elapsed })
+              .eq("id", txId);
+          } catch (e) {
+            console.warn("Failed to persist chunk path to DB:", e);
+          }
+        }
         return fileName;
       } catch (error) {
         console.error(`Chunk upload attempt ${attempt + 1} error:`, error);
@@ -348,6 +370,47 @@ export function AudioRecorder({ inspectionId, userId }: AudioRecorderProps) {
 
   const startRecording = async () => {
     try {
+      // STEP 1: Ensure we have an inspection row to link audio to.
+      // If the worksheet hasn't been saved yet, create a minimal inspection now so
+      // chunks are always linked even if the browser crashes mid-recording.
+      let effectiveInspectionId = inspectionId || liveInspectionIdRef.current;
+      if (!effectiveInspectionId) {
+        const propAddr = getPropertyAddress?.()?.trim() || "Untitled Property";
+        const { data: newInsp, error: inspErr } = await supabase
+          .from("inspections")
+          .insert({ user_id: userId, property_address: propAddr, inspection_data: {}, photos: {} })
+          .select("id")
+          .single();
+        if (inspErr || !newInsp) {
+          toast.error("Could not create work sheet for recording. Save the work sheet first.");
+          return;
+        }
+        effectiveInspectionId = newInsp.id;
+        liveInspectionIdRef.current = effectiveInspectionId;
+        onInspectionCreated?.(effectiveInspectionId);
+      }
+
+      // STEP 2: Create the audio_transcriptions row BEFORE recording starts.
+      // Chunks will be appended to audio_file_path as they upload, so any failure
+      // mid-recording still leaves a recoverable, properly-linked record.
+      const { data: txRow, error: txErr } = await supabase
+        .from("audio_transcriptions")
+        .insert({
+          user_id: userId,
+          inspection_id: effectiveInspectionId,
+          audio_file_path: "",
+          duration_seconds: 0,
+          status: "recording",
+        })
+        .select("id")
+        .single();
+      if (txErr || !txRow) {
+        toast.error("Could not initialize recording. Please try again.");
+        return;
+      }
+      liveTranscriptionIdRef.current = txRow.id;
+      setCurrentTranscriptionId(txRow.id);
+
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: { echoCancellation: true, noiseSuppression: true, sampleRate: 44100 }
       });
@@ -358,6 +421,7 @@ export function AudioRecorder({ inspectionId, userId }: AudioRecorderProps) {
       setUploadedChunks(0);
       chunksRef.current = [];
       isSavingChunkRef.current = false;
+      recordingStartTimeRef.current = Date.now();
 
       createNewRecorder();
 
@@ -400,6 +464,7 @@ export function AudioRecorder({ inspectionId, userId }: AudioRecorderProps) {
     }
   };
 
+
   const processRecording = async () => {
     try {
       setStatus("uploading");
@@ -410,17 +475,34 @@ export function AudioRecorder({ inspectionId, userId }: AudioRecorderProps) {
       setAudioFilePaths(allPaths);
       toast.success(`${allPaths.length} chunk(s) uploaded successfully`);
 
-      const { data: transcriptionRecord, error: dbError } = await supabase
-        .from("audio_transcriptions")
-        .insert({
-          user_id: userId,
-          inspection_id: inspectionId || null,
-          audio_file_path: allPaths.join(","),
-          duration_seconds: recordingTime,
-          status: "pending"
-        })
-        .select().single();
-      if (dbError) throw new Error(`Database error: ${dbError.message}`);
+      // Reuse the live row created at startRecording (or create one if somehow missing).
+      let transcriptionRecord: { id: string };
+      const liveId = liveTranscriptionIdRef.current;
+      if (liveId) {
+        const { error: updErr } = await supabase
+          .from("audio_transcriptions")
+          .update({
+            audio_file_path: allPaths.join(","),
+            duration_seconds: recordingTime,
+            status: "pending",
+          })
+          .eq("id", liveId);
+        if (updErr) throw new Error(`Database error: ${updErr.message}`);
+        transcriptionRecord = { id: liveId };
+      } else {
+        const { data: inserted, error: dbError } = await supabase
+          .from("audio_transcriptions")
+          .insert({
+            user_id: userId,
+            inspection_id: inspectionId || liveInspectionIdRef.current || null,
+            audio_file_path: allPaths.join(","),
+            duration_seconds: recordingTime,
+            status: "pending"
+          })
+          .select().single();
+        if (dbError) throw new Error(`Database error: ${dbError.message}`);
+        transcriptionRecord = inserted;
+      }
       setCurrentTranscriptionId(transcriptionRecord.id);
 
       setStatus("transcribing");
@@ -508,6 +590,8 @@ export function AudioRecorder({ inspectionId, userId }: AudioRecorderProps) {
     setStatus("idle"); setRecordingTime(0); setTranscription(null); setSummary(null);
     setAudioFilePaths([]); setUploadedChunks(0);
     chunksRef.current = []; uploadedPathsRef.current = []; chunkIndexRef.current = 0;
+    liveTranscriptionIdRef.current = null;
+    setCurrentTranscriptionId(null);
   };
 
   const getStatusMessage = () => {

@@ -504,7 +504,15 @@ const ResidentialWorkSheetTab = ({ lead }: ResidentialWorkSheetTabProps) => {
               />
               {section.id === 'property-info' && user && (
                 <div className="mt-4">
-                  <AudioRecorder inspectionId={currentInspectionId || undefined} userId={user.id} />
+                  <AudioRecorder
+                    inspectionId={currentInspectionId || undefined}
+                    userId={user.id}
+                    onInspectionCreated={(id) => {
+                      setCurrentInspectionId(id);
+                      if (lead) sessionStorage.setItem(`inspection-lead-${lead.id}`, id);
+                    }}
+                    getPropertyAddress={() => inspectionDataRef.current?.["property-info"]?.address || ""}
+                  />
                 </div>
               )}
             </div>
