@@ -14,6 +14,8 @@ interface FailedRecording {
 interface AudioRecorderProps {
   inspectionId?: string;
   userId: string;
+  onInspectionCreated?: (id: string) => void;
+  getPropertyAddress?: () => string;
 }
 
 type RecordingStatus = "idle" | "recording" | "uploading" | "transcribing" | "summarizing" | "completed" | "error";
