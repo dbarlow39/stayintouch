@@ -590,6 +590,8 @@ export function AudioRecorder({ inspectionId, userId, onInspectionCreated, getPr
     setStatus("idle"); setRecordingTime(0); setTranscription(null); setSummary(null);
     setAudioFilePaths([]); setUploadedChunks(0);
     chunksRef.current = []; uploadedPathsRef.current = []; chunkIndexRef.current = 0;
+    liveTranscriptionIdRef.current = null;
+    setCurrentTranscriptionId(null);
   };
 
   const getStatusMessage = () => {
