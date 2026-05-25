@@ -48,6 +48,9 @@ export function AudioRecorder({ inspectionId, userId, onInspectionCreated, getPr
   const isRecordingRef = useRef(false);
   const finalChunkResolveRef = useRef<(() => void) | null>(null);
   const isSavingChunkRef = useRef(false);
+  const liveTranscriptionIdRef = useRef<string | null>(null);
+  const liveInspectionIdRef = useRef<string | null>(null);
+  const recordingStartTimeRef = useRef<number>(0);
 
   useEffect(() => {
     loadFailedRecordings();
