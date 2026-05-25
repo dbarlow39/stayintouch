@@ -282,6 +282,7 @@ Deno.serve(async (req) => {
 
           for (const [idx, pageData] of results.entries()) {
             const pageListings = pageData?.D?.Results || [];
+            const totalRows = Number(pageData?.D?.Pagination?.TotalRows ?? NaN);
             if (pageListings.length === 0) { scanDone = true; break; }
 
             for (const item of pageListings) {
@@ -294,8 +295,11 @@ Deno.serve(async (req) => {
                 if (matchedIds.length >= wantedCount) { scanDone = true; break; }
               }
             }
-            console.log(`[${label}] Scan page ${pages[idx]}: ${pageListings.length} listings, ${matchedIds.length} matched`);
-            if (pageListings.length < perPage) { scanDone = true; break; }
+            console.log(`[${label}] Scan page ${pages[idx]}: ${pageListings.length} listings (TotalRows=${isFinite(totalRows) ? totalRows : 'n/a'}), ${matchedIds.length} matched`);
+            // Only treat as end-of-data when server confirms we've reached TotalRows.
+            // A short page alone is NOT a reliable end-of-data signal from Spark — it caused 64 listings
+            // to be silently dropped on 5/25/26 when an early page returned partial results.
+            if (isFinite(totalRows) && pages[idx] * perPage >= totalRows) { scanDone = true; break; }
             if (scanDone) break;
           }
           startPage += SCAN_PARALLEL;
@@ -361,6 +365,9 @@ Deno.serve(async (req) => {
           if (Array.isArray(cacheData?.[0]?.listings)) cachedCount = cacheData[0].listings.length;
         }
 
+        if (cachedCount > 0 && transformed.length < Math.floor(cachedCount * 0.5)) {
+          throw new Error(`[verify] Count dropped >50% (${transformed.length} vs cached ${cachedCount}). Aborting sync — likely MLS partial response.`);
+        }
         if (cachedCount > 0 && transformed.length < cachedCount) {
           console.log(`[verify] Count dropped (${transformed.length} < ${cachedCount}). Running confirmation re-scan...`);
           const confirm = await performFullSync('scan-2');
