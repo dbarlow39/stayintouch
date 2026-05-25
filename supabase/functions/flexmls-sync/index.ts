@@ -411,6 +411,74 @@ Deno.serve(async (req) => {
           }
         } catch {}
 
+        // ─── TWO-STRIKE REMOVAL GUARD ───
+        // A listing must be missing from TWO consecutive sync pulls before it's actually
+        // removed from the cache. First miss → park in listings_pending_removal and keep
+        // it in the cache. Second miss → allow removal to proceed.
+        try {
+          const pendingRes = await fetch(
+            `${supabaseUrl}/rest/v1/listings_pending_removal?select=mls_number,cached_listing`,
+            { headers: dbHeaders }
+          );
+          const pendingRows: { mls_number: string; cached_listing: any }[] =
+            pendingRes.ok ? await pendingRes.json() : [];
+          const pendingSet = new Set(pendingRows.map(r => r.mls_number));
+
+          const transformedMlsSet = new Set(transformed.map((l: any) => l.mlsNumber));
+          const prevMlsSet = new Set(previousListings.map((l: any) => l.mlsNumber));
+
+          // First-miss listings: in cache, missing from new pull, NOT yet pending.
+          // Park them and re-inject into transformed so the cache write keeps them.
+          const newlyMissing: any[] = [];
+          for (const cached of previousListings) {
+            if (!transformedMlsSet.has(cached.mlsNumber) && !pendingSet.has(cached.mlsNumber)) {
+              newlyMissing.push(cached);
+              transformed.push(cached);
+            }
+          }
+          if (newlyMissing.length > 0) {
+            const rows = newlyMissing.map(l => ({
+              mls_number: l.mlsNumber,
+              cached_listing: l,
+              first_missed_at: new Date().toISOString(),
+            }));
+            await fetch(`${supabaseUrl}/rest/v1/listings_pending_removal`, {
+              method: 'POST',
+              headers: { ...dbHeaders, 'Prefer': 'resolution=merge-duplicates,return=minimal' },
+              body: JSON.stringify(rows),
+            });
+            console.log(`[two-strike] Parked ${newlyMissing.length} first-miss listing(s) in pending_removal; kept in cache.`);
+          }
+
+          // Listings that reappeared: clear from pending.
+          const reappeared = pendingRows
+            .filter(r => transformedMlsSet.has(r.mls_number))
+            .map(r => r.mls_number);
+          if (reappeared.length > 0) {
+            await fetch(
+              `${supabaseUrl}/rest/v1/listings_pending_removal?mls_number=in.(${reappeared.join(',')})`,
+              { method: 'DELETE', headers: { ...dbHeaders, 'Prefer': 'return=minimal' } }
+            );
+            console.log(`[two-strike] Cleared ${reappeared.length} reappeared listing(s) from pending_removal.`);
+          }
+
+          // Listings missing for a second consecutive pull: clear from pending so they
+          // can be properly removed by the downstream change-detection logic.
+          const confirmedGone = pendingRows
+            .filter(r => !transformedMlsSet.has(r.mls_number) && prevMlsSet.has(r.mls_number))
+            .map(r => r.mls_number);
+          if (confirmedGone.length > 0) {
+            await fetch(
+              `${supabaseUrl}/rest/v1/listings_pending_removal?mls_number=in.(${confirmedGone.join(',')})`,
+              { method: 'DELETE', headers: { ...dbHeaders, 'Prefer': 'return=minimal' } }
+            );
+            console.log(`[two-strike] Confirmed removal of ${confirmedGone.length} listing(s) after two consecutive misses.`);
+          }
+        } catch (e) {
+          console.log('[two-strike] Guard failed (continuing with normal flow):', e);
+        }
+
+
         // Fetch recently removed listings from memory (last 24hrs)
         let recentlyRemoved: Map<string, any> = new Map();
         try {
