@@ -365,8 +365,8 @@ Deno.serve(async (req) => {
           if (Array.isArray(cacheData?.[0]?.listings)) cachedCount = cacheData[0].listings.length;
         }
 
-        if (cachedCount > 0 && transformed.length < Math.floor(cachedCount * 0.5)) {
-          throw new Error(`[verify] Count dropped >50% (${transformed.length} vs cached ${cachedCount}). Aborting sync — likely MLS partial response.`);
+        if (cachedCount > 0 && (cachedCount - transformed.length) > 7) {
+          throw new Error(`[verify] More than 7 listings missing (${transformed.length} vs cached ${cachedCount}). Aborting sync — likely MLS partial response.`);
         }
         if (cachedCount > 0 && transformed.length < cachedCount) {
           console.log(`[verify] Count dropped (${transformed.length} < ${cachedCount}). Running confirmation re-scan...`);
