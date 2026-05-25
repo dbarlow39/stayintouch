@@ -1628,6 +1628,24 @@ export type Database = {
         }
         Relationships: []
       }
+      listings_pending_removal: {
+        Row: {
+          cached_listing: Json
+          first_missed_at: string
+          mls_number: string
+        }
+        Insert: {
+          cached_listing: Json
+          first_missed_at?: string
+          mls_number: string
+        }
+        Update: {
+          cached_listing?: Json
+          first_missed_at?: string
+          mls_number?: string
+        }
+        Relationships: []
+      }
       market_analysis_files: {
         Row: {
           agent_id: string
