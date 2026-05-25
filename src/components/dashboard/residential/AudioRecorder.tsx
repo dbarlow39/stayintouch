@@ -370,6 +370,47 @@ export function AudioRecorder({ inspectionId, userId, onInspectionCreated, getPr
 
   const startRecording = async () => {
     try {
+      // STEP 1: Ensure we have an inspection row to link audio to.
+      // If the worksheet hasn't been saved yet, create a minimal inspection now so
+      // chunks are always linked even if the browser crashes mid-recording.
+      let effectiveInspectionId = inspectionId || liveInspectionIdRef.current;
+      if (!effectiveInspectionId) {
+        const propAddr = getPropertyAddress?.()?.trim() || "Untitled Property";
+        const { data: newInsp, error: inspErr } = await supabase
+          .from("inspections")
+          .insert({ user_id: userId, property_address: propAddr, inspection_data: {}, photos: {} })
+          .select("id")
+          .single();
+        if (inspErr || !newInsp) {
+          toast.error("Could not create work sheet for recording. Save the work sheet first.");
+          return;
+        }
+        effectiveInspectionId = newInsp.id;
+        liveInspectionIdRef.current = effectiveInspectionId;
+        onInspectionCreated?.(effectiveInspectionId);
+      }
+
+      // STEP 2: Create the audio_transcriptions row BEFORE recording starts.
+      // Chunks will be appended to audio_file_path as they upload, so any failure
+      // mid-recording still leaves a recoverable, properly-linked record.
+      const { data: txRow, error: txErr } = await supabase
+        .from("audio_transcriptions")
+        .insert({
+          user_id: userId,
+          inspection_id: effectiveInspectionId,
+          audio_file_path: "",
+          duration_seconds: 0,
+          status: "recording",
+        })
+        .select("id")
+        .single();
+      if (txErr || !txRow) {
+        toast.error("Could not initialize recording. Please try again.");
+        return;
+      }
+      liveTranscriptionIdRef.current = txRow.id;
+      setCurrentTranscriptionId(txRow.id);
+
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: { echoCancellation: true, noiseSuppression: true, sampleRate: 44100 }
       });
@@ -380,6 +421,7 @@ export function AudioRecorder({ inspectionId, userId, onInspectionCreated, getPr
       setUploadedChunks(0);
       chunksRef.current = [];
       isSavingChunkRef.current = false;
+      recordingStartTimeRef.current = Date.now();
 
       createNewRecorder();
 
@@ -399,6 +441,26 @@ export function AudioRecorder({ inspectionId, userId, onInspectionCreated, getPr
     } catch (error) {
       console.error("Failed to start recording:", error);
       toast.error("Failed to access microphone. Please check permissions.");
+    }
+  };
+
+  const stopRecording = async () => {
+    if (mediaRecorderRef.current && status === "recording") {
+      if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
+      if (chunkIntervalRef.current) { clearInterval(chunkIntervalRef.current); chunkIntervalRef.current = null; }
+
+      isRecordingRef.current = false;
+
+      const finalChunkPromise = new Promise<void>(resolve => {
+        finalChunkResolveRef.current = resolve;
+      });
+
+      if (mediaRecorderRef.current.state === "recording") mediaRecorderRef.current.stop();
+
+      await finalChunkPromise;
+
+      if (streamRef.current) streamRef.current.getTracks().forEach(track => track.stop());
+      await processRecording();
     }
   };
 
