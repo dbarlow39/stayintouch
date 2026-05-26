@@ -294,7 +294,7 @@ const AppraisalLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavig
                    <p className="mb-4">Hey {sellerFirstNames},</p>
 
                    <p className="mb-4">
-                     The appraisal has been scheduled for your home. Nothing for you to do, the appraiser will only be at the house for about 20 minutes, they'll do a walk through, take some pictures and then the real work for the appraiser begins.
+                     The appraisal has been requested for your home, this is good news! It means everything is progressing right along as expected. Once you confirm the request there is nothing for you to do, the appraiser will only be at the house for about 20 minutes, they'll do a walk through, take some pictures and then the real work for the appraiser begins.
                    </p>
 
                    <p className="mb-4">
@@ -302,7 +302,11 @@ const AppraisalLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavig
                    </p>
 
                    <p className="mb-4">
-                     If you are still living in the property, you do not need to leave like you would for a showing or a home inspection. I would only caution not to get to chatty with the appraiser about all of the things you have done to the house, what you think adds $1000's of value to home may actually be looked as a negative. Only answer questions the appraiser ask is the best way to handle it while still being friendly.
+                     If you are still living in the property, you do not need to leave like you would for a showing or the home inspection. I would only caution not to get to chatty with the appraiser about all of the things you have done to the house, what you think adds $1000's of value to home may actually be looked as a negative.
+                   </p>
+
+                   <p className="mb-4">
+                     If you are home let the appraiser in and let them do their job, there is no need for you to walk the house with them. Only answer questions the appraiser ask is the best way to handle it while still being friendly.
                    </p>
 
                    <p className="mb-4">Let me know if you have any questions.</p>
