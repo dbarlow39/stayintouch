@@ -250,7 +250,7 @@ const AppraisalLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavig
                <img src={logo} alt="Sell for 1 Percent" className="h-16 w-auto print:h-12" />
                <div>
                  <h1 className="text-3xl font-bold text-foreground">
-                   {letterVariant === "homeowner" ? "Appraisal Scheduled" : "Appraisal Ordered"}
+                   {letterVariant === "homeowner" ? "Appraisal Requested" : "Appraisal Ordered"}
                  </h1>
                  <p className="text-muted-foreground">
                    {letterVariant === "homeowner"
