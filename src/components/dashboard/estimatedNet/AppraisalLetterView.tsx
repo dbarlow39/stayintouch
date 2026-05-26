@@ -146,7 +146,7 @@ const AppraisalLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavig
       });
 
       const subject = letterVariant === "homeowner"
-        ? `Appraisal Scheduled - ${propertyData.streetAddress}`
+        ? `Appraisal Requested - ${propertyData.streetAddress}`
         : `Appraisal Ordered for ${propertyData.streetAddress}`;
       const recipients = letterVariant === "homeowner"
         ? (propertyData.sellerEmail || "")
