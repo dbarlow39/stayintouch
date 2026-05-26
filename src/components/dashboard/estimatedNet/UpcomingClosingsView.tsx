@@ -168,8 +168,7 @@ const UpcomingClosingsView = ({ onBack }: UpcomingClosingsViewProps) => {
         `)
         .eq("agent_id", user!.id)
         .not("closing_date", "is", null)
-        .not("in_contract", "is", null)
-        .not("client_id", "is", null);
+        .not("in_contract", "is", null);
 
       if (error) throw error;
       return data as ClosingData[];
