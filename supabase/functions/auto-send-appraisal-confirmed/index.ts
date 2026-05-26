@@ -8,7 +8,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const KEYWORD = "APPRAISAL CONFIRMED";
+const KEYWORD = "APPRAISAL REQUESTED FYI";
 const MAX_SOURCE_AGE_DAYS = 7;
 const PUBLIC_LOGO_URL = 'https://ujhohggsvijjqoatvwnl.supabase.co/storage/v1/object/public/email-assets/logo.jpg';
 
@@ -49,7 +49,7 @@ serve(async (req) => {
 
     // Gate 1: Subject must contain keyword (case-insensitive)
     if (!subject || !subject.toUpperCase().includes(KEYWORD)) {
-      return jsonResponse({ skipped: true, reason: "Subject does not contain APPRAISAL CONFIRMED" });
+      return jsonResponse({ skipped: true, reason: "Subject does not contain APPRAISAL REQUESTED FYI" });
     }
 
     // Gate 2: Dedupe - check auto_email_log for this gmail_message_id + keyword
@@ -116,16 +116,7 @@ serve(async (req) => {
       }
     }
 
-    // Gate 7: "Presented by" name should match agent profile name (if found in body)
-    if (parsed.presentedBy) {
-      const agentNameLower = (agentProfile.full_name || `${agentProfile.first_name || ""} ${agentProfile.last_name || ""}`).trim().toLowerCase();
-      const presentedByLower = parsed.presentedBy.toLowerCase();
-      if (agentNameLower && !presentedByLower.includes(agentNameLower) && !agentNameLower.includes(presentedByLower)) {
-        await sendAgentNotification(supabase, agentBccEmail, `"Presented by" name "${parsed.presentedBy}" does not match agent name "${agentProfile.full_name}". This may be a co-broker email forwarded to your inbox.`, subject, parsed, null);
-        await logSkip(supabase, agent_id, gmail_message_id, subject, `"Presented by" name mismatch (got "${parsed.presentedBy}", expected "${agentProfile.full_name}")`, parsed);
-        return jsonResponse({ skipped: true, reason: "Presented-by name mismatch" });
-      }
-    }
+    // Gate 7 removed: subject keyword + address match + date/time gates already validate the email.
 
     // Gate 8: Match to client (by MLS ID first, then by address)
     const subjStreetPart = extractStreetPart(parsed.subjectAddress);
@@ -241,7 +232,7 @@ function parseAppraisalConfirmedEmail(subject: string, rawBody: string): ParsedA
   let subjectAddress: string | null = null;
   let appraisalDateTime: string | null = null;
 
-  const pipeMatch = subject.match(/APPRAISAL\s+CONFIRMED\s*[\|\-:]\s*(.+)/i);
+  const pipeMatch = subject.match(/APPRAISAL\s+REQUESTED\s+FYI\s*[\|\-:]\s*(.+)/i);
   if (pipeMatch) {
     const rest = pipeMatch[1].trim();
     // Date/time pattern: "Thu, 4/23 1:30 PM" or "4/23/26 1:30 PM" etc.
