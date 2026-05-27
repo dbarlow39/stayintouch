@@ -47,116 +47,74 @@ serve(async (req) => {
 
     console.log(`[${VERSION}] Triggered for message ${gmail_message_id}, subject: "${subject?.substring(0, 80)}"`);
 
-    // Gate 1: Subject must contain keyword (case-insensitive)
-    if (!subject || !subject.toUpperCase().includes(KEYWORD)) {
-      await logSkip(supabase, agent_id, gmail_message_id, subject || "", "Subject does not contain APPRAISAL REQUESTED FYI", {});
-      return jsonResponse({ skipped: true, reason: "Subject does not contain APPRAISAL REQUESTED FYI" });
+    // Param 1: Sender must be callcenter@showingtime.com
+    if (!from_email || !from_email.toLowerCase().includes("callcenter@showingtime.com")) {
+      await logSkip(supabase, agent_id, gmail_message_id, subject || "", `Sender is not callcenter@showingtime.com (was: ${from_email})`, {});
+      return jsonResponse({ skipped: true, reason: "Wrong sender" });
     }
 
-    // Gate 2: Dedupe - check auto_email_log for this gmail_message_id + keyword
+    // Param 2: Subject must contain APPRAISAL REQUESTED FYI
+    if (!subject || !subject.toUpperCase().includes(KEYWORD)) {
+      await logSkip(supabase, agent_id, gmail_message_id, subject || "", "Subject does not contain APPRAISAL REQUESTED FYI", {});
+      return jsonResponse({ skipped: true, reason: "Wrong subject" });
+    }
+
+    // Dedupe
     const { data: existingLog } = await supabase
       .from("auto_email_log")
       .select("id, status")
       .eq("gmail_message_id", gmail_message_id)
       .eq("keyword", KEYWORD)
       .maybeSingle();
-
     if (existingLog) {
       console.log(`Already processed: ${existingLog.id} (status: ${existingLog.status})`);
       return jsonResponse({ skipped: true, reason: "Already processed" });
     }
 
-    // Gate 3: Source email must be < 7 days old
-    const receivedDate = new Date(received_at);
-    const ageDays = (Date.now() - receivedDate.getTime()) / (1000 * 60 * 60 * 24);
-    if (ageDays > MAX_SOURCE_AGE_DAYS) {
-      await logSkip(supabase, agent_id, gmail_message_id, subject, `Source email is ${Math.round(ageDays)} days old (max ${MAX_SOURCE_AGE_DAYS})`, {});
-      return jsonResponse({ skipped: true, reason: "Source email too old" });
-    }
-
-    // Parse the email
+    // Parse the email (date/time/appraiser still needed for outgoing email body)
     const parsed = parseAppraisalConfirmedEmail(subject, raw_body);
     console.log(`Parsed:`, JSON.stringify(parsed, null, 2));
 
-    // Get agent profile for "presented by" check + signature + BCC
+    // Agent profile
     const { data: agentProfile } = await supabase
       .from("profiles")
       .select("id, email, preferred_email, first_name, last_name, full_name, cell_phone, bio")
       .eq("id", agent_id)
       .single();
-
     if (!agentProfile) {
       await logSkip(supabase, agent_id, gmail_message_id, subject, "Agent profile not found", parsed);
       return jsonResponse({ skipped: true, reason: "Agent profile not found" });
     }
-
     const agentBccEmail = agentProfile.preferred_email || agentProfile.email;
 
-    // Gate 4: Address must be present in subject
-    if (!parsed.subjectAddress) {
-      await sendAgentNotification(supabase, agentBccEmail, "Could not parse property address from subject line", subject, parsed, null);
-      await logSkip(supabase, agent_id, gmail_message_id, subject, "Could not parse address from subject", parsed);
+    // Param 3: Match client by street number + first street-name word (suffix ignored)
+    const subjStreetPart = parsed.subjectAddress ? extractStreetPart(parsed.subjectAddress) : "";
+    const tokens = subjStreetPart.toLowerCase().trim().split(/\s+/);
+    const subjNum = tokens[0] || "";
+    const subjName = (tokens[1] || "").replace(/[^a-z0-9]/g, "");
+
+    if (!subjNum || !subjName) {
+      await sendAgentNotification(supabase, agentBccEmail, "Could not parse street number and name from subject", subject, parsed, null);
+      await logSkip(supabase, agent_id, gmail_message_id, subject, "Could not parse street number/name from subject", parsed);
       return jsonResponse({ skipped: true, reason: "No address in subject" });
     }
 
-    // Gate 5: Appraisal date/time must be present in subject
-    if (!parsed.appraisalDateTime) {
-      await sendAgentNotification(supabase, agentBccEmail, "Could not parse appraisal date/time from subject line", subject, parsed, null);
-      await logSkip(supabase, agent_id, gmail_message_id, subject, "Could not parse appraisal date/time", parsed);
-      return jsonResponse({ skipped: true, reason: "No date/time in subject" });
-    }
-
-    // Gate 6: Cross-validate - subject address should appear in body
-    if (parsed.bodyAddress) {
-      const subjStreet = extractStreetPart(parsed.subjectAddress).toLowerCase();
-      const bodyAddrLower = parsed.bodyAddress.toLowerCase();
-      if (subjStreet && !bodyAddrLower.includes(subjStreet)) {
-        await sendAgentNotification(supabase, agentBccEmail, `Address mismatch: subject "${parsed.subjectAddress}" does not match body "${parsed.bodyAddress}"`, subject, parsed, null);
-        await logSkip(supabase, agent_id, gmail_message_id, subject, "Address in subject does not match body", parsed);
-        return jsonResponse({ skipped: true, reason: "Address mismatch between subject and body" });
-      }
-    }
-
-    // Gate 7 removed: subject keyword + address match + date/time gates already validate the email.
-
-    // Gate 8: Match to client (by MLS ID first, then by address)
-    const subjStreetPart = extractStreetPart(parsed.subjectAddress);
     const { data: agentClients } = await supabase
       .from("clients")
-      .select("id, first_name, last_name, email, mls_id, street_number, street_name, city, state, zip")
+      .select("id, first_name, last_name, email, street_number, street_name, city, state, zip")
       .eq("agent_id", agent_id);
 
-    let matchedClient: any = null;
-    let matchReason = "";
-
-    // Try MLS ID first
-    if (parsed.mlsId && agentClients) {
-      matchedClient = agentClients.find((c: any) => c.mls_id && c.mls_id.toLowerCase().trim() === parsed.mlsId!.toLowerCase().trim());
-      if (matchedClient) matchReason = `MLS ID ${parsed.mlsId}`;
-    }
-
-    // Try address loose match
-    if (!matchedClient && agentClients) {
-      const subjStreetLower = subjStreetPart.toLowerCase().trim();
-      const matches = agentClients.filter((c: any) => {
-        if (!c.street_number || !c.street_name) return false;
-        const clientAddr = `${c.street_number} ${c.street_name}`.toLowerCase().trim();
-        return subjStreetLower.includes(clientAddr) || clientAddr === subjStreetLower;
-      });
-
-      if (matches.length === 1) {
-        matchedClient = matches[0];
-        matchReason = `address "${subjStreetPart}"`;
-      } else if (matches.length > 1) {
-        await sendAgentNotification(supabase, agentBccEmail, `Multiple clients (${matches.length}) match address "${subjStreetPart}". Please send manually to avoid sending to the wrong client.`, subject, parsed, null);
-        await logSkip(supabase, agent_id, gmail_message_id, subject, `Ambiguous: ${matches.length} clients matched address`, parsed);
-        return jsonResponse({ skipped: true, reason: "Multiple matching clients" });
-      }
-    }
+    const matchedClient: any = (agentClients || []).find((c: any) => {
+      if (!c.street_number || !c.street_name) return false;
+      const cNum = String(c.street_number).toLowerCase().trim();
+      const cName = String(c.street_name).toLowerCase().trim().split(/\s+/)[0].replace(/[^a-z0-9]/g, "");
+      return cNum === subjNum && cName === subjName;
+    });
+    const matchReason = matchedClient ? `address "${subjNum} ${subjName}"` : "";
 
     if (!matchedClient) {
-      await sendAgentNotification(supabase, agentBccEmail, `No client record matches MLS ID "${parsed.mlsId || "(none)"}" or address "${subjStreetPart}". Add the client to your CRM, then send manually.`, subject, parsed, null);
-      await logSkip(supabase, agent_id, gmail_message_id, subject, `No client matched (MLS: ${parsed.mlsId}, address: ${subjStreetPart})`, parsed);
+      await sendAgentNotification(supabase, agentBccEmail, `No client matches "${subjNum} ${subjName}". Add the client to your CRM, then send manually.`, subject, parsed, null);
+      await logSkip(supabase, agent_id, gmail_message_id, subject, `No client matched "${subjNum} ${subjName}"`, parsed);
       return jsonResponse({ skipped: true, reason: "No matching client" });
     }
 
