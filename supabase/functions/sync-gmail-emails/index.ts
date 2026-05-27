@@ -791,7 +791,7 @@ async function syncAgentEmails(
         try {
           const subjectUpper = subject.toUpperCase();
           const autoTriggers: Array<{ keyword: string; functionName: string }> = [
-            { keyword: "APPRAISAL CONFIRMED", functionName: "auto-send-appraisal-confirmed" },
+            { keyword: "APPRAISAL REQUESTED FYI", functionName: "auto-send-appraisal-confirmed" },
           ];
           for (const trigger of autoTriggers) {
             if (subjectUpper.includes(trigger.keyword)) {
