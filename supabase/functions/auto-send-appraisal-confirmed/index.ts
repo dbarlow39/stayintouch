@@ -49,6 +49,7 @@ serve(async (req) => {
 
     // Gate 1: Subject must contain keyword (case-insensitive)
     if (!subject || !subject.toUpperCase().includes(KEYWORD)) {
+      await logSkip(supabase, agent_id, gmail_message_id, subject || "", "Subject does not contain APPRAISAL REQUESTED FYI", {});
       return jsonResponse({ skipped: true, reason: "Subject does not contain APPRAISAL REQUESTED FYI" });
     }
 
@@ -227,7 +228,7 @@ serve(async (req) => {
 function parseAppraisalConfirmedEmail(subject: string, rawBody: string): ParsedAppraisalEmail {
   const cleanBody = stripHtml(rawBody);
 
-  // Subject format: "APPRAISAL CONFIRMED | 6121 Preve Ridge Drive, New Albany, OH 43054 Thu, 4/23 1:30 PM"
+  // Subject format: "APPRAISAL REQUESTED FYI | 6121 Preve Ridge Drive, New Albany, OH 43054 Thu, 4/23 1:30 PM"
   // Extract everything after the pipe
   let subjectAddress: string | null = null;
   let appraisalDateTime: string | null = null;
@@ -457,7 +458,7 @@ async function sendAgentNotification(
     <tr><td align="center">
       <table width="640" cellpadding="0" cellspacing="0" style="max-width: 640px; width: 100%; background: #ffffff; border-radius: 12px; border: 1px solid #e5e7eb;">
         <tr><td style="padding: 24px 32px; background: #fef3c7; border-bottom: 1px solid #fde68a; border-radius: 12px 12px 0 0;">
-          <h2 style="margin: 0; color: #92400e; font-size: 20px;">⚠️ Auto-email skipped: APPRAISAL CONFIRMED</h2>
+          <h2 style="margin: 0; color: #92400e; font-size: 20px;">⚠️ Auto-email skipped: APPRAISAL REQUESTED FYI</h2>
           <p style="margin: 8px 0 0; color: #78350f; font-size: 14px;">No email was sent to the client. Please review and send manually if appropriate.</p>
         </td></tr>
         <tr><td style="padding: 24px 32px; color: #374151; line-height: 1.6;">
@@ -494,7 +495,7 @@ async function sendAgentNotification(
       body: JSON.stringify({
         from: "Sellfor1Percent Auto-Email <updates@resend.sellfor1percent.com>",
         to: [agentEmail],
-        subject: `⚠️ Auto-email skipped: APPRAISAL CONFIRMED for ${parsed.subjectAddress || "(unknown)"}`,
+        subject: `⚠️ Auto-email skipped: APPRAISAL REQUESTED FYI for ${parsed.subjectAddress || "(unknown)"}`,
         html,
       }),
     });
