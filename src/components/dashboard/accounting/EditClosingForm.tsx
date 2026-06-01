@@ -28,6 +28,7 @@ const EditClosingForm = ({ closingId, onBack }: EditClosingFormProps) => {
   const { data: agentOptions = [] } = useAgentsList();
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [parsingPaperwork, setParsingPaperwork] = useState(false);
   const [paperworkFiles, setPaperworkFiles] = useState<PaperworkFile[]>([]);
   const [representation, setRepresentation] = useState<"seller" | "buyer" | null>(null);
   const [builtBefore1978, setBuiltBefore1978] = useState(false);
