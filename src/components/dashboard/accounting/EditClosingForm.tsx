@@ -141,6 +141,16 @@ const EditClosingForm = ({ closingId, onBack }: EditClosingFormProps) => {
   const handlePaperworkUploaded = async (newFiles: PaperworkFile[]) => {
     if (newFiles.length === 0) return;
     setForm(prev => ({ ...prev, paperwork_received: true }));
+    const nextFiles = [...paperworkFiles, ...newFiles];
+    setPaperworkFiles(nextFiles);
+    try {
+      await supabase.from("closings").update({
+        paperwork_files: nextFiles as any,
+        paperwork_status: "received",
+      }).eq("id", closingId);
+    } catch (e) {
+      console.error("Failed to persist paperwork files immediately:", e);
+    }
     setParsingPaperwork(true);
     try {
       const signedUrls: string[] = [];
