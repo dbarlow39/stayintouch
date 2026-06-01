@@ -474,11 +474,8 @@ const EditClosingForm = ({ closingId, onBack }: EditClosingFormProps) => {
             folderId={closingId}
             files={paperworkFiles}
             onChange={setPaperworkFiles}
-            onUpload={(newFiles) => {
-              if (newFiles.length > 0) {
-                setForm(prev => ({ ...prev, paperwork_received: true }));
-              }
-            }}
+            onUpload={handlePaperworkUploaded}
+            parsing={parsingPaperwork}
             representation={representation}
           />
 
