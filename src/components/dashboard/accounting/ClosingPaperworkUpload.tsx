@@ -48,18 +48,21 @@ const ClosingPaperworkUpload = ({ folderId, files, onChange, onUpload, parsing, 
   };
 
   const handleFiles = async (fileList: FileList | null) => {
+    const resetInput = () => { if (inputRef.current) inputRef.current.value = ""; };
+
     if (!representation) {
       toast.error("Please select a Representation (Seller or Buyer) before uploading documents.");
-      if (inputRef.current) inputRef.current.value = "";
+      resetInput();
       return;
     }
-    if (!fileList || fileList.length === 0) return;
+    if (!fileList || fileList.length === 0) { resetInput(); return; }
     const selected = Array.from(fileList);
 
     // Filter to PDFs only
     const pdfs = selected.filter(f => f.type === "application/pdf" || f.name.toLowerCase().endsWith(".pdf"));
     if (pdfs.length === 0) {
       toast.error("Only PDF files are allowed.");
+      resetInput();
       return;
     }
     if (pdfs.length < selected.length) {
@@ -69,6 +72,7 @@ const ClosingPaperworkUpload = ({ folderId, files, onChange, onUpload, parsing, 
     const oversize = pdfs.filter(f => f.size > MAX_SIZE_MB * 1024 * 1024);
     if (oversize.length > 0) {
       toast.error(`These files exceed ${MAX_SIZE_MB}MB: ${oversize.map(f => f.name).join(", ")}`);
+      resetInput();
       return;
     }
 
@@ -77,7 +81,7 @@ const ClosingPaperworkUpload = ({ folderId, files, onChange, onUpload, parsing, 
     try {
       for (const file of pdfs) {
         // Duplicate check: same filename + byte size already attached to any closing
-        const { data: dupes } = await supabase
+        const { data: dupes, error: dupeErr } = await supabase
           .from("closings")
           .select("id, property_address, paperwork_files")
           .filter(
@@ -85,6 +89,10 @@ const ClosingPaperworkUpload = ({ folderId, files, onChange, onUpload, parsing, 
             "cs",
             JSON.stringify([{ name: file.name, size: file.size }])
           );
+        if (dupeErr) {
+          console.error("Duplicate check failed:", dupeErr);
+          // Don't block the upload on a check failure — just log and continue.
+        }
         if (dupes && dupes.length > 0) {
           const addr = (dupes[0] as any).property_address || "another closing";
           toast.error(`Skipped ${file.name} — already uploaded to closing: ${addr}`);
