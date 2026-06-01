@@ -76,6 +76,21 @@ const ClosingPaperworkUpload = ({ folderId, files, onChange, onUpload, parsing, 
     const uploaded: PaperworkFile[] = [];
     try {
       for (const file of pdfs) {
+        // Duplicate check: same filename + byte size already attached to any closing
+        const { data: dupes } = await supabase
+          .from("closings")
+          .select("id, property_address, paperwork_files")
+          .filter(
+            "paperwork_files",
+            "cs",
+            JSON.stringify([{ name: file.name, size: file.size }])
+          );
+        if (dupes && dupes.length > 0) {
+          const addr = (dupes[0] as any).property_address || "another closing";
+          toast.error(`Skipped ${file.name} — already uploaded to closing: ${addr}`);
+          continue;
+        }
+
         const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
         const path = `${folderId}/${Date.now()}-${safeName}`;
         const { error } = await supabase.storage
@@ -93,6 +108,7 @@ const ClosingPaperworkUpload = ({ folderId, files, onChange, onUpload, parsing, 
           scan_status: "pending",
         });
       }
+
       if (uploaded.length > 0) {
         onChange([...files, ...uploaded]);
         toast.success(`Uploaded ${uploaded.length} file(s).`);
