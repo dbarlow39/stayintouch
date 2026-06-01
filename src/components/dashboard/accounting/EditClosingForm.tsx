@@ -138,6 +138,55 @@ const EditClosingForm = ({ closingId, onBack }: EditClosingFormProps) => {
       setForm(prev => ({ ...prev, agent_split_pct: value, company_split_pct: String(100 - num) }));
     }
   };
+  const handlePaperworkUploaded = async (newFiles: PaperworkFile[]) => {
+    if (newFiles.length === 0) return;
+    setForm(prev => ({ ...prev, paperwork_received: true }));
+    setParsingPaperwork(true);
+    try {
+      const signedUrls: string[] = [];
+      for (const f of newFiles) {
+        const { data, error } = await supabase.storage
+          .from("closing-paperwork")
+          .createSignedUrl(f.path, 60 * 5);
+        if (!error && data?.signedUrl) signedUrls.push(data.signedUrl);
+      }
+      if (signedUrls.length === 0) return;
+
+      const { data, error } = await supabase.functions.invoke("parse-closing-paperwork", {
+        body: { signed_urls: signedUrls, representation },
+      });
+      if (error) {
+        console.error("parse-closing-paperwork error:", error);
+        return;
+      }
+      const ext = (data as any)?.extracted as Record<string, any> | undefined;
+      if (!ext) return;
+
+      const detected = ext.checklist_detected as Record<string, boolean> | undefined;
+      let detectedCount = 0;
+      if (detected && typeof detected === "object") {
+        setChecklist(prev => {
+          const merged = { ...prev };
+          for (const [k, v] of Object.entries(detected)) {
+            if (v === true) { (merged as any)[k] = true; detectedCount++; }
+          }
+          return merged;
+        });
+      }
+      if (ext.built_before_1978 === true) setBuiltBefore1978(true);
+
+      if (detectedCount > 0) {
+        toast.success(`Auto-detected ${detectedCount} checklist item(s) from paperwork.`);
+      } else {
+        toast.info("Paperwork scanned — no checklist items detected.");
+      }
+    } catch (e) {
+      console.error("Auto-fill failed:", e);
+    } finally {
+      setParsingPaperwork(false);
+    }
+  };
+
 
   const handleSave = async () => {
     if (!user || !form.agent_name || !form.property_address || !form.closing_date) {
