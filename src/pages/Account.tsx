@@ -334,12 +334,26 @@ const Account = () => {
   const handleSyncPaperwork = async () => {
     setIsPaperworkSyncing(true);
     try {
-      const { data, error } = await supabase.functions.invoke("sync-paperwork-to-dropbox", {});
-      if (error) throw error;
-      toast({
-        title: "Paperwork Sync Complete",
-        description: `Created ${data?.created ?? 0} closing(s), skipped ${data?.skipped ?? 0} existing, ${data?.dropbox_failures ?? 0} Dropbox upload failure(s).`,
+      const { data, error } = await supabase.functions.invoke("sync-paperwork-to-dropbox", {
+        body: { mode: "backfill" },
       });
+      if (error) throw error;
+      if (data?.backfill_complete) {
+        toast({
+          title: "Backfill Complete",
+          description: `Scanned ${data?.scanned_total ?? 0} messages. Created ${data?.created ?? 0} closing(s) this run.`,
+        });
+      } else if (data?.remaining) {
+        toast({
+          title: "More to Sync",
+          description: `Processed ${data?.processed ?? 0} this run (${data?.scanned_total ?? 0}/${data?.total_cap ?? 2500} scanned). Click Sync again to continue.`,
+        });
+      } else {
+        toast({
+          title: "Paperwork Sync Complete",
+          description: `Created ${data?.created ?? 0} closing(s), skipped ${data?.skipped ?? 0} existing, ${data?.dropbox_failures ?? 0} Dropbox upload failure(s).`,
+        });
+      }
     } catch (err) {
       console.error("Paperwork sync error:", err);
       toast({
