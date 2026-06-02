@@ -185,6 +185,16 @@ const EditClosingForm = ({ closingId, onBack }: EditClosingFormProps) => {
       }
       if (ext.built_before_1978 === true) setBuiltBefore1978(true);
 
+      // Caliber Title Bonus auto-detection
+      const titleCompany = typeof ext.title_company === "string" ? ext.title_company : "";
+      const caliberDetected = ext.caliber_title_detected === true || /caliber/i.test(titleCompany);
+      if (caliberDetected) {
+        setForm(prev => ({ ...prev, caliber_title_bonus: true }));
+      } else if (titleCompany && !/caliber/i.test(titleCompany)) {
+        setForm(prev => ({ ...prev, caliber_title_bonus: false }));
+        toast.info(`Title company detected: ${titleCompany} — Caliber Bonus unchecked.`);
+      }
+
       if (detectedCount > 0) {
         toast.success(`Auto-detected ${detectedCount} checklist item(s) from paperwork.`);
       } else {
