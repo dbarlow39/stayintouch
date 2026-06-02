@@ -321,6 +321,17 @@ const AddClosingForm = ({ onBack }: AddClosingFormProps) => {
         setBuiltBefore1978(true);
       }
 
+      // Caliber Title Bonus auto-detection
+      const titleCompany = typeof ext.title_company === "string" ? ext.title_company : "";
+      const caliberDetected = ext.caliber_title_detected === true || /caliber/i.test(titleCompany);
+      if (caliberDetected) {
+        setForm(prev => ({ ...prev, caliber_title_bonus: true }));
+        filled.push("Caliber Title Bonus");
+      } else if (titleCompany && !/caliber/i.test(titleCompany)) {
+        setForm(prev => ({ ...prev, caliber_title_bonus: false }));
+        filled.push(`title company (${titleCompany})`);
+      }
+
       if (filled.length > 0) {
         toast.success(`Auto-filled from paperwork: ${filled.join(", ")}.`);
       } else {
