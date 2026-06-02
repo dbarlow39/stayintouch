@@ -264,19 +264,32 @@ def process_email(access_token, agent_id, agent_name, email):
         log("  No files saved, skipping closing creation.")
         return
 
-    # Parse with AI
+    # Parse with AI - retry until we get usable data (queue gate)
     extracted = {}
     if signed_urls:
-        log(f"  Parsing {len(signed_urls)} PDF(s) with AI...")
-        pr = call_fn("parse-closing-paperwork", access_token, {
-            "signed_urls": signed_urls,
-            "representation": "seller",
-        })
-        if pr.ok:
-            extracted = pr.json().get("extracted", {}) or {}
-            log(f"  Parsed fields: {list(extracted.keys())}")
-        else:
-            log(f"  Parse FAIL ({pr.status_code}): {pr.text[:200]} - continuing with stub")
+        required = ("city", "sale_price", "closing_date")
+        backoffs = [0, 10, 30, 60, 120]  # 5 attempts total
+        got_complete = False
+        for attempt, wait_s in enumerate(backoffs, start=1):
+            if wait_s:
+                log(f"  Waiting {wait_s}s before parse retry {attempt}/{len(backoffs)}...")
+                time.sleep(wait_s)
+            log(f"  Parsing {len(signed_urls)} PDF(s) with AI (attempt {attempt}/{len(backoffs)})...")
+            pr = call_fn("parse-closing-paperwork", access_token, {
+                "signed_urls": signed_urls,
+                "representation": "seller",
+            })
+            snippet = (pr.text or "")[:300].replace("\n", " ")
+            log(f"    Parse HTTP {pr.status_code}: {snippet}")
+            if pr.ok:
+                extracted = pr.json().get("extracted", {}) or {}
+                missing = [k for k in required if not extracted.get(k)]
+                log(f"    Parsed fields: {list(extracted.keys())} | missing={missing}")
+                if not missing:
+                    got_complete = True
+                    break
+        if not got_complete:
+            log("  All parse retries exhausted - proceeding with whatever was extracted.")
 
     # Build closing row
     closing_date_str = extracted.get("closing_date")
