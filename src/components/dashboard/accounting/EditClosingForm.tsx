@@ -262,9 +262,17 @@ const EditClosingForm = ({ closingId, onBack }: EditClosingFormProps) => {
   const handleDelete = async () => {
     setDeleting(true);
     try {
-      const { error } = await supabase.from("closings").delete().eq("id", closingId);
+      const { data, error } = await supabase.functions.invoke("delete-closing-paperwork", {
+        body: { closing_id: closingId },
+      });
       if (error) throw error;
-      toast.success("Closing deleted.");
+      if (data?.dropbox_error) {
+        toast.warning(`Closing deleted, but Dropbox cleanup failed: ${data.dropbox_error}`);
+      } else if (data?.dropbox_deleted) {
+        toast.success("Closing deleted from app and Dropbox.");
+      } else {
+        toast.success("Closing deleted.");
+      }
       queryClient.invalidateQueries({ queryKey: ["accounting-closings-summary"] });
       onBack();
     } catch (err: any) {
