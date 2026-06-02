@@ -165,6 +165,8 @@ Deno.serve(async (req) => {
           "Only include fields you find with high confidence. Leave anything unknown blank. " +
           "For property_address return ONLY the street number and street name (do NOT include city/state/zip). " +
           "For closing_date use YYYY-MM-DD. For sale_price return a plain number with no symbols or commas. " +
+          "For listing_agent_name and buyer_agent_name, ALWAYS check the FIRST PAGE of the closing package for fields labeled 'Seller's Agent:' and 'Buyer's Agent:' — these are typically typed or handwritten on lines and are the most reliable source. " +
+          "For caliber_title_detected, scan every page (headers/footers especially) for the text 'Caliber Title' or the Caliber shield logo and set TRUE if present. Also populate title_company with whatever title company name you find. " +
           "ALSO populate checklist_detected by scanning every page across every PDF and marking each document type TRUE only when you can clearly identify a copy of that document (signed or unsigned). " +
           "If you can determine the year the home was built (from disclosures or settlement docs), set built_before_1978 = true when the year is before 1978; otherwise omit that field.",
       },
