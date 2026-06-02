@@ -907,6 +907,30 @@ export type Database = {
         }
         Relationships: []
       }
+      dropbox_sync_cursor: {
+        Row: {
+          agent_id: string
+          backfill_complete: boolean
+          messages_scanned: number
+          next_page_token: string | null
+          updated_at: string
+        }
+        Insert: {
+          agent_id: string
+          backfill_complete?: boolean
+          messages_scanned?: number
+          next_page_token?: string | null
+          updated_at?: string
+        }
+        Update: {
+          agent_id?: string
+          backfill_complete?: boolean
+          messages_scanned?: number
+          next_page_token?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       dropbox_tokens: {
         Row: {
           access_token: string
