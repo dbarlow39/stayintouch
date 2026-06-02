@@ -1,14 +1,4 @@
 project_id = "ujhohggsvijjqoatvwnl"
 
-[functions.get-audio-signed-url]
+[functions.cleanup-deleted-closings]
 verify_jwt = false
-
-[functions.dropbox-oauth-callback]
-verify_jwt = false
-
-[functions.retry-dropbox-uploads]
-verify_jwt = false
-
-[functions.sync-paperwork-to-dropbox]
-verify_jwt = false
-
