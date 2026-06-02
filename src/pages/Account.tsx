@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Save, User, Mail, RefreshCw, CheckCircle, XCircle, Settings, KeyRound, Lock, Download } from "lucide-react";
+import { ArrowLeft, Save, User, Mail, RefreshCw, CheckCircle, XCircle, Settings, KeyRound, Lock, Download, FolderSync } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { EmailClient, EMAIL_CLIENT_OPTIONS, getEmailClientPreference, setEmailClientPreference } from "@/utils/emailClientUtils";
@@ -81,7 +81,23 @@ const Account = () => {
     enabled: !!user,
   });
 
+  // Query Dropbox connection status
+  const { data: dropboxToken, isLoading: dropboxLoading, refetch: refetchDropbox } = useQuery({
+    queryKey: ["dropbox-token", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("dropbox_tokens")
+        .select("account_email, updated_at")
+        .eq("agent_id", user!.id)
+        .maybeSingle();
+      if (error && error.code !== "PGRST116") throw error;
+      return data;
+    },
+    enabled: !!user,
+  });
+
   const [isSyncing, setIsSyncing] = useState(false);
+  const [isPaperworkSyncing, setIsPaperworkSyncing] = useState(false);
   const [emailClient, setEmailClientState] = useState<EmailClient>(getEmailClientPreference);
   const [inviteCode, setInviteCode] = useState("");
   const [inviteCodeLoading, setInviteCodeLoading] = useState(false);
@@ -287,6 +303,55 @@ const Account = () => {
       setIsSyncing(false);
     }
   };
+
+  const handleConnectDropbox = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke("dropbox-auth-url", {
+        body: { agent_id: user!.id },
+      });
+      if (error || !data?.auth_url) {
+        throw new Error(error?.message || "Failed to get Dropbox auth URL");
+      }
+      window.open(data.auth_url, "dropbox-oauth", "width=500,height=600");
+      const handleMessage = (event: MessageEvent) => {
+        if (event.data?.type === "dropbox-oauth-success") {
+          refetchDropbox();
+          toast({ title: "Dropbox Connected!", description: `Connected ${event.data.email || "account"}` });
+          window.removeEventListener("message", handleMessage);
+        }
+      };
+      window.addEventListener("message", handleMessage);
+    } catch (err) {
+      console.error("Dropbox connect error:", err);
+      toast({
+        title: "Connection Failed",
+        description: err instanceof Error ? err.message : "Could not start Dropbox connection",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleSyncPaperwork = async () => {
+    setIsPaperworkSyncing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("sync-paperwork-to-dropbox", {});
+      if (error) throw error;
+      toast({
+        title: "Paperwork Sync Complete",
+        description: `Created ${data?.created ?? 0} closing(s), skipped ${data?.skipped ?? 0} existing, ${data?.dropbox_failures ?? 0} Dropbox upload failure(s).`,
+      });
+    } catch (err) {
+      console.error("Paperwork sync error:", err);
+      toast({
+        title: "Sync Failed",
+        description: err instanceof Error ? err.message : "Unknown error",
+        variant: "destructive",
+      });
+    } finally {
+      setIsPaperworkSyncing(false);
+    }
+  };
+
 
   // Populate form when profile loads
   useEffect(() => {
@@ -595,6 +660,65 @@ const Account = () => {
                 <p className="text-xs text-muted-foreground">
                   This will allow the app to read your emails to log client communications and extract ShowingTime feedback automatically.
                 </p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Dropbox Integration Card */}
+        <Card className="shadow-medium animate-fade-in mt-6">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <FolderSync className="w-5 h-5" />
+              Dropbox Integration
+            </CardTitle>
+            <CardDescription>
+              Connect Dropbox to auto-save Compiled Paperwork PDFs to /Closed Deals on every sync.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {dropboxLoading ? (
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <RefreshCw className="w-4 h-4 animate-spin" />
+                Checking connection...
+              </div>
+            ) : dropboxToken ? (
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 text-primary">
+                  <CheckCircle className="w-5 h-5" />
+                  <span>Connected{dropboxToken.account_email ? <> as <strong>{dropboxToken.account_email}</strong></> : null}</span>
+                </div>
+                <div className="flex gap-2 flex-wrap">
+                  <Button
+                    onClick={handleSyncPaperwork}
+                    disabled={isPaperworkSyncing}
+                    className="bg-emerald-600 hover:bg-emerald-700"
+                  >
+                    {isPaperworkSyncing ? (
+                      <><RefreshCw className="w-4 h-4 mr-2 animate-spin" />Syncing Paperwork...</>
+                    ) : (
+                      <><FolderSync className="w-4 h-4 mr-2" />Sync Compiled Paperwork Now</>
+                    )}
+                  </Button>
+                  <Button onClick={handleConnectDropbox} variant="ghost" size="sm">
+                    Reconnect
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Scans last 90 days of Gmail for "Compiled Paperwork" emails, creates closing rows,
+                  uploads PDFs to Dropbox. Failed uploads retry automatically every hour.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <XCircle className="w-5 h-5" />
+                  <span>Dropbox not connected</span>
+                </div>
+                <Button onClick={handleConnectDropbox} className="bg-emerald-600 hover:bg-emerald-700">
+                  <FolderSync className="w-4 h-4 mr-2" />
+                  Connect Dropbox
+                </Button>
               </div>
             )}
           </CardContent>
