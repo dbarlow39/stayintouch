@@ -304,6 +304,55 @@ const Account = () => {
     }
   };
 
+  const handleConnectDropbox = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke("dropbox-auth-url", {
+        body: { agent_id: user!.id },
+      });
+      if (error || !data?.auth_url) {
+        throw new Error(error?.message || "Failed to get Dropbox auth URL");
+      }
+      window.open(data.auth_url, "dropbox-oauth", "width=500,height=600");
+      const handleMessage = (event: MessageEvent) => {
+        if (event.data?.type === "dropbox-oauth-success") {
+          refetchDropbox();
+          toast({ title: "Dropbox Connected!", description: `Connected ${event.data.email || "account"}` });
+          window.removeEventListener("message", handleMessage);
+        }
+      };
+      window.addEventListener("message", handleMessage);
+    } catch (err) {
+      console.error("Dropbox connect error:", err);
+      toast({
+        title: "Connection Failed",
+        description: err instanceof Error ? err.message : "Could not start Dropbox connection",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleSyncPaperwork = async () => {
+    setIsPaperworkSyncing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("sync-paperwork-to-dropbox", {});
+      if (error) throw error;
+      toast({
+        title: "Paperwork Sync Complete",
+        description: `Created ${data?.created ?? 0} closing(s), skipped ${data?.skipped ?? 0} existing, ${data?.dropbox_failures ?? 0} Dropbox upload failure(s).`,
+      });
+    } catch (err) {
+      console.error("Paperwork sync error:", err);
+      toast({
+        title: "Sync Failed",
+        description: err instanceof Error ? err.message : "Unknown error",
+        variant: "destructive",
+      });
+    } finally {
+      setIsPaperworkSyncing(false);
+    }
+  };
+
+
   // Populate form when profile loads
   useEffect(() => {
     if (profile) {
