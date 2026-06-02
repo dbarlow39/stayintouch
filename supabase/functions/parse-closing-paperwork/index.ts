@@ -61,9 +61,13 @@ const TOOL = {
       buyer_names: { type: "string", description: "Comma-separated buyer full names." },
       seller_names: { type: "string", description: "Comma-separated seller full names." },
       lender_name: { type: "string" },
-      title_company: { type: "string" },
-      listing_agent_name: { type: "string", description: "Listing/seller agent full name." },
-      buyer_agent_name: { type: "string", description: "Buyer/selling agent full name." },
+      title_company: { type: "string", description: "Full name of the title company handling closing (e.g. 'Caliber Title Agency LLC')." },
+      caliber_title_detected: {
+        type: "boolean",
+        description: "Set TRUE if ANY page of the paperwork shows 'Caliber Title' / 'Caliber Title Agency' (text), or the Caliber shield logo (three overlapping shields with 'CALIBER' across the front and 'TITLE AGENCY LLC' beneath). Check headers, footers, the ABA / Affiliated Business Arrangement form, settlement statements, and the first page especially. Otherwise omit.",
+      },
+      listing_agent_name: { type: "string", description: "Listing/seller agent full name. PRIORITIZE the value typed/written on the 'Seller's Agent:' line on page 1 of the closing package. Also check signature blocks, 'Listing Brokerage', 'Listing Broker', and the agent line on the Agency Disclosure / Settlement Statement." },
+      buyer_agent_name: { type: "string", description: "Buyer/selling agent full name. PRIORITIZE the value typed/written on the 'Buyer's Agent:' line on page 1 of the closing package. Also check signature blocks, 'Selling Brokerage', 'Cooperating Broker', and the agent line on the Agency Disclosure / Settlement Statement. If multiple names are present (e.g. 'Shayne Boyd/Rhiannon Ferrari'), keep them joined as-is." },
       built_before_1978: {
         type: "boolean",
         description: "True ONLY if the paperwork explicitly states the home was built before 1978 (e.g. on the Lead Based Paint Disclosure or Residential Property Disclosure year-built field). Otherwise omit.",
