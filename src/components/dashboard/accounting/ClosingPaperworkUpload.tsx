@@ -40,21 +40,12 @@ const ClosingPaperworkUpload = ({ folderId, files, onChange, onUpload, parsing, 
   const [uploading, setUploading] = useState(false);
 
   const handleSelect = () => {
-    if (!representation) {
-      toast.error("Please select a Representation (Seller or Buyer) before uploading documents.");
-      return;
-    }
     inputRef.current?.click();
   };
 
   const handleFiles = async (fileList: FileList | null) => {
     const resetInput = () => { if (inputRef.current) inputRef.current.value = ""; };
 
-    if (!representation) {
-      toast.error("Please select a Representation (Seller or Buyer) before uploading documents.");
-      resetInput();
-      return;
-    }
     if (!fileList || fileList.length === 0) { resetInput(); return; }
     const selected = Array.from(fileList);
 
