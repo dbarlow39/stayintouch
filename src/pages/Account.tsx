@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Save, User, Mail, RefreshCw, CheckCircle, XCircle, Settings, KeyRound, Lock, Download } from "lucide-react";
+import { ArrowLeft, Save, User, Mail, RefreshCw, CheckCircle, XCircle, Settings, KeyRound, Lock, Download, FolderSync } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { EmailClient, EMAIL_CLIENT_OPTIONS, getEmailClientPreference, setEmailClientPreference } from "@/utils/emailClientUtils";
@@ -81,7 +81,23 @@ const Account = () => {
     enabled: !!user,
   });
 
+  // Query Dropbox connection status
+  const { data: dropboxToken, isLoading: dropboxLoading, refetch: refetchDropbox } = useQuery({
+    queryKey: ["dropbox-token", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("dropbox_tokens")
+        .select("account_email, updated_at")
+        .eq("agent_id", user!.id)
+        .maybeSingle();
+      if (error && error.code !== "PGRST116") throw error;
+      return data;
+    },
+    enabled: !!user,
+  });
+
   const [isSyncing, setIsSyncing] = useState(false);
+  const [isPaperworkSyncing, setIsPaperworkSyncing] = useState(false);
   const [emailClient, setEmailClientState] = useState<EmailClient>(getEmailClientPreference);
   const [inviteCode, setInviteCode] = useState("");
   const [inviteCodeLoading, setInviteCodeLoading] = useState(false);
