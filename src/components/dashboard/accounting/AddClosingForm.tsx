@@ -251,7 +251,7 @@ const AddClosingForm = ({ onBack }: AddClosingFormProps) => {
       }
 
       const { data, error } = await supabase.functions.invoke("parse-closing-paperwork", {
-        body: { signed_urls: signedUrls, representation },
+        body: { signed_urls: signedUrls },
       });
       if (error) {
         console.error("parse-closing-paperwork error:", error);
@@ -279,15 +279,19 @@ const AddClosingForm = ({ onBack }: AddClosingFormProps) => {
           filled.push("sale price");
         }
 
-        const candidates = [ext.listing_agent_name, ext.buyer_agent_name].filter(Boolean) as string[];
-        for (const candidate of candidates) {
-          const lower = candidate.toLowerCase().trim();
+        const sides: Array<{ name: string; side: "seller" | "buyer" }> = [];
+        if (ext.listing_agent_name) sides.push({ name: String(ext.listing_agent_name), side: "seller" });
+        if (ext.buyer_agent_name) sides.push({ name: String(ext.buyer_agent_name), side: "buyer" });
+        let detectedRep: "seller" | "buyer" | null = null;
+        for (const { name, side } of sides) {
+          const lower = name.toLowerCase().trim();
           const exact = agentOptions.find(a => a.full_name.toLowerCase() === lower);
-          if (exact) { next.agent_name = exact.full_name; filled.push("agent"); break; }
+          if (exact) { next.agent_name = exact.full_name; detectedRep = side; filled.push(`agent (${side})`); break; }
           const lastName = lower.split(/\s+/).pop() || "";
           const byLast = agentOptions.find(a => a.full_name.toLowerCase().split(/\s+/).pop() === lastName);
-          if (byLast) { next.agent_name = byLast.full_name; filled.push("agent"); break; }
+          if (byLast) { next.agent_name = byLast.full_name; detectedRep = side; filled.push(`agent (${side})`); break; }
         }
+        if (detectedRep) setTimeout(() => setRepresentation(detectedRep), 0);
         return next;
       });
 
@@ -394,32 +398,15 @@ const AddClosingForm = ({ onBack }: AddClosingFormProps) => {
           <CardDescription>Enter the closing details. We'll calculate the split for you.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="space-y-2">
+          <div className="space-y-1">
             <Label>Representation</Label>
-            <div className="flex flex-wrap items-center gap-6">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <Checkbox
-                  checked={representation === "seller"}
-                  onCheckedChange={(checked) =>
-                    setRepresentation(checked ? "seller" : null)
-                  }
-                />
-                <span className="text-sm">Representing Seller</span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <Checkbox
-                  checked={representation === "buyer"}
-                  onCheckedChange={(checked) =>
-                    setRepresentation(checked ? "buyer" : null)
-                  }
-                />
-                <span className="text-sm">Representing Buyer</span>
-              </label>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Select one — this tells the AI which paperwork set to expect in the upload.
+            <p className="text-sm">
+              {representation === "seller" && <span className="font-medium">Representing Seller</span>}
+              {representation === "buyer" && <span className="font-medium">Representing Buyer</span>}
+              {!representation && <span className="text-muted-foreground">Not yet detected — auto-detected from uploaded paperwork.</span>}
             </p>
           </div>
+
 
           <ClosingPaperworkUpload
             folderId={folderId}
