@@ -378,6 +378,7 @@ def process_email(access_token, agent_id, agent_name, email):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--login", action="store_true")
+    parser.add_argument("--limit", type=int, default=0, help="Process at most N emails (0 = no limit)")
     args = parser.parse_args()
 
     if args.login:
@@ -395,6 +396,9 @@ def main():
         sys.exit(1)
     emails = r.json().get("emails", [])
     log(f"Found {len(emails)} matching Gmail message(s).")
+    if args.limit > 0 and len(emails) > args.limit:
+        log(f"Limiting to first {args.limit} of {len(emails)} for this run.")
+        emails = emails[:args.limit]
 
     for idx, email in enumerate(emails):
         if idx > 0:
