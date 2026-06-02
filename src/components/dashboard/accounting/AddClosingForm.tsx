@@ -291,6 +291,15 @@ const AddClosingForm = ({ onBack }: AddClosingFormProps) => {
           const byLast = agentOptions.find(a => a.full_name.toLowerCase().split(/\s+/).pop() === lastName);
           if (byLast) { next.agent_name = byLast.full_name; detectedRep = side; filled.push(`agent (${side})`); break; }
         }
+        // Fallback: if no agent matched the dropdown but we extracted at least one side,
+        // still set representation so the user knows what the AI saw.
+        if (!detectedRep && sides.length > 0) {
+          const ourSide = sides.find(s => s.side === "seller") || sides[0];
+          detectedRep = ourSide.side;
+          setTimeout(() => {
+            toast.info(`Detected ${ourSide.side === "seller" ? "Seller's" : "Buyer's"} Agent "${ourSide.name}" — not in your agents list. Please pick the agent manually.`);
+          }, 0);
+        }
         if (detectedRep) setTimeout(() => setRepresentation(detectedRep), 0);
         return next;
       });
@@ -310,6 +319,17 @@ const AddClosingForm = ({ onBack }: AddClosingFormProps) => {
       }
       if (ext.built_before_1978 === true) {
         setBuiltBefore1978(true);
+      }
+
+      // Caliber Title Bonus auto-detection
+      const titleCompany = typeof ext.title_company === "string" ? ext.title_company : "";
+      const caliberDetected = ext.caliber_title_detected === true || /caliber/i.test(titleCompany);
+      if (caliberDetected) {
+        setForm(prev => ({ ...prev, caliber_title_bonus: true }));
+        filled.push("Caliber Title Bonus");
+      } else if (titleCompany && !/caliber/i.test(titleCompany)) {
+        setForm(prev => ({ ...prev, caliber_title_bonus: false }));
+        filled.push(`title company (${titleCompany})`);
       }
 
       if (filled.length > 0) {
