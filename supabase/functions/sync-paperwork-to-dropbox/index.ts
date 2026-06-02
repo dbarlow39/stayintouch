@@ -2,11 +2,12 @@
 // parses with parse-closing-paperwork, creates closing rows, AND uploads PDFs to
 // Dropbox at /Closed Deals/<address>/<filename>.pdf.
 //
-// Dedup:
-//   - App row dedup: skip if a closing with the same agent_id + normalized address
-//     already exists. (Closings cannot be duplicated by this function.)
-//   - Dropbox dedup: closings row tracks dropbox_upload_status + dropbox_file_path.
-//     Dropbox upload uses mode:"add" so re-uploading is safe (returns conflict → treated as success).
+// Modes:
+//   - "backfill" (manual button): walks Gmail page-by-page via dropbox_sync_cursor,
+//     capped at 2500 messages total (BACKFILL_TOTAL_CAP). Processes up to `limit`
+//     messages per invocation (default 8) or until max_runtime_ms (default 120000).
+//   - "incremental" (default; cron 7am/7pm): no cursor; Gmail query restricted to
+//     newer_than:7d; limit default 100; intended to catch new emails.
 
 import { createClient } from "npm:@supabase/supabase-js@2";
 
@@ -23,6 +24,7 @@ const GOOGLE_CLIENT_SECRET = Deno.env.get("GOOGLE_CLIENT_SECRET")!;
 const DROPBOX_APP_KEY = Deno.env.get("DROPBOX_APP_KEY")!;
 const DROPBOX_APP_SECRET = Deno.env.get("DROPBOX_APP_SECRET")!;
 const DROPBOX_BASE = "/Closed Deals";
+const BACKFILL_TOTAL_CAP = 2500;
 
 function normalizeAddr(s: string): string {
   return (s || "").toLowerCase().replace(/[^a-z0-9]+/g, "");
@@ -150,7 +152,6 @@ async function uploadToDropbox(
     return { ok: true, path: j.path_lower || dbxPath };
   }
   const txt = await r.text();
-  // Treat existing-file conflict as success (already uploaded)
   if (txt.includes("path/conflict")) {
     return { ok: true, path: dbxPath };
   }
@@ -171,67 +172,164 @@ async function signedUrl(serviceClient: any, path: string): Promise<string | nul
   return data?.signedUrl || null;
 }
 
-Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
-  try {
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+// Resolve agent_id from request: prefer JWT in Authorization header (manual button),
+// else accept body.agent_id (cron with service-role key).
+async function resolveAgentId(req: Request, body: any): Promise<string | null> {
+  const authHeader = req.headers.get("Authorization");
+  if (authHeader?.startsWith("Bearer ")) {
     const userClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       global: { headers: { Authorization: authHeader } },
     });
-    const { data: claims, error: cErr } = await userClient.auth.getClaims(
+    const { data: claims } = await userClient.auth.getClaims(
       authHeader.replace("Bearer ", "")
     );
-    if (cErr || !claims?.claims) {
+    if (claims?.claims?.sub) return claims.claims.sub as string;
+  }
+  if (typeof body?.agent_id === "string") return body.agent_id;
+  return null;
+}
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  try {
+    const body = await req.json().catch(() => ({}));
+    const mode: "backfill" | "incremental" = body?.mode === "backfill" ? "backfill" : "incremental";
+    const limit: number = Math.max(1, Math.min(200, body?.limit ?? (mode === "backfill" ? 8 : 100)));
+    const maxRuntimeMs: number = Math.max(10_000, Math.min(140_000, body?.max_runtime_ms ?? 120_000));
+
+    const serviceClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+    // For cron: agent_id passed in body. For manual: JWT.
+    let agentId = await resolveAgentId(req, body);
+
+    // Cron convenience: if no agent_id supplied, iterate all agents who have Dropbox connected.
+    if (!agentId && mode === "incremental") {
+      const { data: agents } = await serviceClient
+        .from("dropbox_tokens").select("agent_id");
+      const ids = (agents || []).map((a: any) => a.agent_id);
+      const results: any[] = [];
+      for (const id of ids) {
+        try {
+          const r = await runForAgent(serviceClient, id, "incremental", limit, maxRuntimeMs);
+          results.push({ agent_id: id, ...r });
+        } catch (e) {
+          results.push({ agent_id: id, error: String(e) });
+        }
+      }
+      return new Response(JSON.stringify({ ok: true, mode, agents: results }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (!agentId) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    const agentId = claims.claims.sub as string;
 
-    const serviceClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    const result = await runForAgent(serviceClient, agentId, mode, limit, maxRuntimeMs);
+    return new Response(JSON.stringify({ ok: true, mode, ...result }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  } catch (e) {
+    console.error("sync-paperwork-to-dropbox error:", e);
+    return new Response(
+      JSON.stringify({ error: e instanceof Error ? e.message : "Unknown" }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+});
 
-    // Resolve agent display name
-    let agentName = "Unknown";
-    {
-      const { data: prof } = await serviceClient
-        .from("profiles").select("full_name").eq("id", agentId).maybeSingle();
-      if (prof?.full_name) agentName = prof.full_name;
+async function runForAgent(
+  serviceClient: any,
+  agentId: string,
+  mode: "backfill" | "incremental",
+  limit: number,
+  maxRuntimeMs: number,
+) {
+  const startedAt = Date.now();
+
+  // Agent display name
+  let agentName = "Unknown";
+  {
+    const { data: prof } = await serviceClient
+      .from("profiles").select("full_name").eq("id", agentId).maybeSingle();
+    if (prof?.full_name) agentName = prof.full_name;
+  }
+
+  const gmailToken = await getGmailAccessToken(serviceClient, agentId);
+  const dbxToken = await getDropboxAccessToken(serviceClient, agentId);
+
+  // Dedup set
+  const { data: existingClosings } = await serviceClient
+    .from("closings").select("property_address").eq("agent_id", agentId);
+  const existingSet = new Set(
+    (existingClosings || []).map((c: any) => normalizeAddr(c.property_address || ""))
+  );
+
+  // Cursor (backfill mode only)
+  let cursor: any = null;
+  if (mode === "backfill") {
+    const { data } = await serviceClient
+      .from("dropbox_sync_cursor").select("*").eq("agent_id", agentId).maybeSingle();
+    cursor = data || { agent_id: agentId, next_page_token: null, messages_scanned: 0, backfill_complete: false };
+    if (cursor.backfill_complete || cursor.messages_scanned >= BACKFILL_TOTAL_CAP) {
+      return {
+        processed: 0, scanned_total: cursor.messages_scanned,
+        remaining: false, backfill_complete: true, details: [],
+      };
     }
+  }
 
-    const gmailToken = await getGmailAccessToken(serviceClient, agentId);
-    const dbxToken = await getDropboxAccessToken(serviceClient, agentId);
+  // Gmail query
+  const baseQuery = mode === "backfill"
+    ? 'subject:"Compiled Paperwork" has:attachment'
+    : 'subject:"Compiled Paperwork" newer_than:7d has:attachment';
 
-    // Load existing closings for dedup (normalized address set)
-    const { data: existingClosings } = await serviceClient
-      .from("closings").select("property_address").eq("agent_id", agentId);
-    const existingSet = new Set(
-      (existingClosings || []).map((c: any) => normalizeAddr(c.property_address || ""))
-    );
+  const summary: any[] = [];
+  let createdCount = 0;
+  let skippedCount = 0;
+  let dbxFailCount = 0;
+  let processedThisRun = 0;
+  let scannedThisRun = 0;
+  let pageToken: string | null = mode === "backfill" ? (cursor?.next_page_token || null) : null;
+  let outOfTime = false;
+  let hitLimit = false;
+  let exhausted = false;
 
-    // List Gmail messages
-    const q = encodeURIComponent('subject:"Compiled Paperwork" newer_than:90d has:attachment');
-    const listRes = await fetch(
-      `https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=200&q=${q}`,
-      { headers: { Authorization: `Bearer ${gmailToken}` } },
-    );
+  outer: while (true) {
+    const url = new URL("https://gmail.googleapis.com/gmail/v1/users/me/messages");
+    url.searchParams.set("maxResults", String(mode === "backfill" ? 50 : 100));
+    url.searchParams.set("q", baseQuery);
+    if (pageToken) url.searchParams.set("pageToken", pageToken);
+
+    const listRes = await fetch(url.toString(), {
+      headers: { Authorization: `Bearer ${gmailToken}` },
+    });
     if (!listRes.ok) {
       const t = await listRes.text();
       throw new Error(`Gmail list failed: ${listRes.status} ${t.slice(0, 200)}`);
     }
     const listData = await listRes.json();
     const messages = listData.messages || [];
+    const nextPage: string | null = listData.nextPageToken || null;
 
-    const summary: any[] = [];
-    let createdCount = 0;
-    let skippedCount = 0;
-    let dbxFailCount = 0;
+    if (messages.length === 0) {
+      exhausted = !nextPage;
+      pageToken = nextPage;
+      if (!nextPage) break;
+      continue;
+    }
 
     for (const m of messages) {
+      if (Date.now() - startedAt >= maxRuntimeMs) { outOfTime = true; break outer; }
+      if (processedThisRun >= limit) { hitLimit = true; break outer; }
+      if (mode === "backfill" && (cursor.messages_scanned + scannedThisRun) >= BACKFILL_TOTAL_CAP) {
+        exhausted = true; break outer;
+      }
+
+      scannedThisRun++;
+
       try {
         const msgRes = await fetch(
           `https://gmail.googleapis.com/gmail/v1/users/me/messages/${m.id}?format=full`,
@@ -253,7 +351,8 @@ Deno.serve(async (req) => {
         const attachments = findPdfParts(msg.payload);
         if (attachments.length === 0) continue;
 
-        // Download + upload to storage
+        processedThisRun++;
+
         const folderId = crypto.randomUUID();
         const paperworkFiles: any[] = [];
         const signedUrls: string[] = [];
@@ -278,7 +377,6 @@ Deno.serve(async (req) => {
           const su = await signedUrl(serviceClient, storagePath);
           if (su) signedUrls.push(su);
 
-          // Upload to Dropbox
           const dbxPath = `${dropboxFolder}/${fname}`;
           const up = await uploadToDropbox(dbxToken, dbxPath, bytes);
           if (up.ok) {
@@ -291,14 +389,13 @@ Deno.serve(async (req) => {
 
         if (paperworkFiles.length === 0) continue;
 
-        // Parse PDFs with AI
         let extracted: any = {};
         if (signedUrls.length > 0) {
           try {
             const pr = await fetch(`${SUPABASE_URL}/functions/v1/parse-closing-paperwork`, {
               method: "POST",
               headers: {
-                Authorization: authHeader,
+                Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
                 apikey: SUPABASE_ANON_KEY,
                 "Content-Type": "application/json",
               },
@@ -310,7 +407,6 @@ Deno.serve(async (req) => {
           }
         }
 
-        // Validate closing_date
         let closingDate = extracted.closing_date;
         if (!closingDate || !/^\d{4}-\d{2}-\d{2}$/.test(closingDate)) {
           closingDate = new Date().toISOString().slice(0, 10);
@@ -353,22 +449,42 @@ Deno.serve(async (req) => {
       }
     }
 
-    return new Response(
-      JSON.stringify({
-        ok: true,
-        scanned: messages.length,
-        created: createdCount,
-        skipped: skippedCount,
-        dropbox_failures: dbxFailCount,
-        details: summary,
-      }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
-  } catch (e) {
-    console.error("sync-paperwork-to-dropbox error:", e);
-    return new Response(
-      JSON.stringify({ error: e instanceof Error ? e.message : "Unknown" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    pageToken = nextPage;
+    if (!nextPage) { exhausted = true; break; }
   }
-});
+
+  // Persist cursor for backfill
+  if (mode === "backfill") {
+    const newScanned = (cursor.messages_scanned || 0) + scannedThisRun;
+    const done = exhausted || newScanned >= BACKFILL_TOTAL_CAP;
+    await serviceClient.from("dropbox_sync_cursor").upsert({
+      agent_id: agentId,
+      next_page_token: done ? null : pageToken,
+      messages_scanned: newScanned,
+      backfill_complete: done,
+      updated_at: new Date().toISOString(),
+    });
+    return {
+      processed: processedThisRun,
+      created: createdCount,
+      skipped: skippedCount,
+      dropbox_failures: dbxFailCount,
+      scanned_this_run: scannedThisRun,
+      scanned_total: newScanned,
+      total_cap: BACKFILL_TOTAL_CAP,
+      remaining: !done && (outOfTime || hitLimit || !!pageToken),
+      backfill_complete: done,
+      details: summary,
+    };
+  }
+
+  return {
+    processed: processedThisRun,
+    created: createdCount,
+    skipped: skippedCount,
+    dropbox_failures: dbxFailCount,
+    scanned_this_run: scannedThisRun,
+    remaining: outOfTime || hitLimit,
+    details: summary,
+  };
+}
