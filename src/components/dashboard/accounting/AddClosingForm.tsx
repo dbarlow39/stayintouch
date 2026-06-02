@@ -283,14 +283,13 @@ const AddClosingForm = ({ onBack }: AddClosingFormProps) => {
         if (ext.listing_agent_name) sides.push({ name: String(ext.listing_agent_name), side: "seller" });
         if (ext.buyer_agent_name) sides.push({ name: String(ext.buyer_agent_name), side: "buyer" });
         let detectedRep: "seller" | "buyer" | null = null;
-        let matchedToDropdown = false;
         for (const { name, side } of sides) {
           const lower = name.toLowerCase().trim();
           const exact = agentOptions.find(a => a.full_name.toLowerCase() === lower);
-          if (exact) { next.agent_name = exact.full_name; detectedRep = side; matchedToDropdown = true; filled.push(`agent (${side})`); break; }
+          if (exact) { next.agent_name = exact.full_name; detectedRep = side; filled.push(`agent (${side})`); break; }
           const lastName = lower.split(/\s+/).pop() || "";
           const byLast = agentOptions.find(a => a.full_name.toLowerCase().split(/\s+/).pop() === lastName);
-          if (byLast) { next.agent_name = byLast.full_name; detectedRep = side; matchedToDropdown = true; filled.push(`agent (${side})`); break; }
+          if (byLast) { next.agent_name = byLast.full_name; detectedRep = side; filled.push(`agent (${side})`); break; }
         }
         // Fallback: if no agent matched the dropdown but we extracted at least one side,
         // still set representation so the user knows what the AI saw.
