@@ -85,9 +85,31 @@ const ClosingPaperworkUpload = ({ folderId, files, onChange, onUpload, parsing, 
           // Don't block the upload on a check failure — just log and continue.
         }
         if (dupes && dupes.length > 0) {
-          const addr = (dupes[0] as any).property_address || "another closing";
-          toast.error(`Skipped ${file.name} — already uploaded to closing: ${addr}`);
-          continue;
+          // Verify the referenced storage object actually exists before blocking.
+          // Stale metadata (file deleted from storage but still in paperwork_files JSON)
+          // should not prevent re-upload.
+          let realDuplicate: any = null;
+          for (const row of dupes as any[]) {
+            const match = (row.paperwork_files || []).find(
+              (pf: any) => pf?.name === file.name && pf?.size === file.size
+            );
+            if (!match?.path) continue;
+            const slash = match.path.lastIndexOf("/");
+            const dir = slash >= 0 ? match.path.slice(0, slash) : "";
+            const base = slash >= 0 ? match.path.slice(slash + 1) : match.path;
+            const { data: listed } = await supabase.storage
+              .from("closing-paperwork")
+              .list(dir, { search: base, limit: 1 });
+            if (listed && listed.some((o: any) => o.name === base)) {
+              realDuplicate = row;
+              break;
+            }
+          }
+          if (realDuplicate) {
+            const addr = realDuplicate.property_address || "another closing";
+            toast.error(`Skipped ${file.name} — already uploaded to closing: ${addr}`);
+            continue;
+          }
         }
 
         const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
