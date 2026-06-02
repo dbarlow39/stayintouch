@@ -301,16 +301,64 @@ def process_email(access_token, agent_id, agent_name, email):
     except Exception:
         closing_date_str = date.today().isoformat()
 
+    # Commission math — mirrors AddClosingForm.tsx exactly
+    try:
+        sale_price = float(extracted.get("sale_price") or 0)
+    except Exception:
+        sale_price = 0.0
+    total_check = (max(sale_price * 0.01, 2250.0) + 499.0) if sale_price > 0 else 0.0
+    admin_fee = 499.0
+    company_split_pct = 40.0
+    agent_split_pct = 60.0
+    total_commission_net = total_check - admin_fee if total_check > 0 else 0.0
+    company_share = total_commission_net * (company_split_pct / 100.0)
+    agent_share = total_commission_net * (agent_split_pct / 100.0)
+
+    # Caliber Title bonus detection
+    title_company = (extracted.get("title_company") or "")
+    caliber_detected = (
+        extracted.get("caliber_title_detected") is True
+        or bool(re.search(r"caliber", str(title_company), re.IGNORECASE))
+    )
+
+    # Paperwork checklist (merge AI-detected items with built_before_1978 flag)
+    checklist_detected = extracted.get("checklist_detected") or {}
+    if not isinstance(checklist_detected, dict):
+        checklist_detected = {}
+    paperwork_checklist = {**checklist_detected, "built_before_1978": bool(extracted.get("built_before_1978"))}
+
+    # Representation — Compiled Paperwork emails are always seller-side
+    representation = "seller"
+    if extracted.get("listing_agent_name"):
+        representation = "seller"
+    elif extracted.get("buyer_agent_name") and not extracted.get("listing_agent_name"):
+        representation = "buyer"
+
+    # Prefer listing agent name from paperwork over the logged-in user
+    row_agent_name = extracted.get("listing_agent_name") or agent_name
+
     row = {
         "agent_id": agent_id,
-        "agent_name": agent_name,
+        "agent_name": row_agent_name,
         "created_by": agent_id,
         "property_address": extracted.get("property_address") or address,
         "city": extracted.get("city"),
         "state": extracted.get("state") or "OH",
         "zip": extracted.get("zip"),
         "closing_date": closing_date_str,
-        "sale_price": extracted.get("sale_price") or 0,
+        "sale_price": sale_price,
+        "total_commission": total_check,
+        "admin_fee": admin_fee,
+        "company_split_pct": company_split_pct,
+        "agent_split_pct": agent_split_pct,
+        "company_share": company_share,
+        "agent_share": agent_share,
+        "caliber_title_bonus": caliber_detected,
+        "caliber_title_amount": 150,
+        "representation": representation,
+        "paperwork_checklist": paperwork_checklist,
+        "paperwork_na": {},
+        "status": "pending",
         "paperwork_files": paperwork_files,
         "paperwork_status": "received",
         "notes": f"Auto-imported from Gmail '{email['subject']}' on {datetime.now().date().isoformat()}",
