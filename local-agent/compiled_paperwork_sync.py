@@ -348,7 +348,10 @@ def main():
     emails = r.json().get("emails", [])
     log(f"Found {len(emails)} matching Gmail message(s).")
 
-    for email in emails:
+    for idx, email in enumerate(emails):
+        if idx > 0:
+            log("Pausing 5s before next closing in queue...")
+            time.sleep(5)
         try:
             process_email(token, agent_id, agent_name, email)
         except Exception as e:
