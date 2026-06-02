@@ -27,7 +27,10 @@ const DROPBOX_BASE = "/Closed Deals";
 const BACKFILL_TOTAL_CAP = 2500;
 
 function normalizeAddr(s: string): string {
-  return (s || "").toLowerCase().replace(/[^a-z0-9]+/g, "");
+  let n = (s || "").toLowerCase();
+  // Strip common street-type suffixes so "Ave"/"Avenue", "Dr"/"Drive" collapse to the same key
+  n = n.replace(/\b(avenue|ave|drive|dr|street|st|road|rd|boulevard|blvd|court|ct|lane|ln|place|pl|way|circle|cir|terrace|ter|parkway|pkwy|highway|hwy|trail|trl|square|sq)\b/g, "");
+  return n.replace(/[^a-z0-9]+/g, "");
 }
 
 function safeFileName(name: string): string {
@@ -430,6 +433,14 @@ async function runForAgent(
         };
         Object.keys(row).forEach((k) => row[k] === null && delete row[k]);
 
+        // Second-pass dedup: parsed address may normalize differently than subject address
+        const finalNorm = normalizeAddr(row.property_address);
+        if (finalNorm !== norm && existingSet.has(finalNorm)) {
+          skippedCount++;
+          summary.push({ address: row.property_address, status: "skipped_exists_after_parse" });
+          continue;
+        }
+
         const { error: insErr } = await serviceClient.from("closings").insert(row);
         if (insErr) {
           summary.push({ address, status: "closing_insert_failed", error: insErr.message });
@@ -438,6 +449,7 @@ async function runForAgent(
         createdCount++;
         if (!dbxOk) dbxFailCount++;
         existingSet.add(norm);
+        existingSet.add(finalNorm);
         summary.push({
           address,
           status: dbxOk ? "created_and_uploaded" : "created_dbx_failed",
