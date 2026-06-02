@@ -1,4 +1,1 @@
 project_id = "ujhohggsvijjqoatvwnl"
-
-[functions.cleanup-deleted-closings]
-verify_jwt = false
