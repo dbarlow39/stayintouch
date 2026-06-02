@@ -279,15 +279,19 @@ const AddClosingForm = ({ onBack }: AddClosingFormProps) => {
           filled.push("sale price");
         }
 
-        const candidates = [ext.listing_agent_name, ext.buyer_agent_name].filter(Boolean) as string[];
-        for (const candidate of candidates) {
-          const lower = candidate.toLowerCase().trim();
+        const sides: Array<{ name: string; side: "seller" | "buyer" }> = [];
+        if (ext.listing_agent_name) sides.push({ name: String(ext.listing_agent_name), side: "seller" });
+        if (ext.buyer_agent_name) sides.push({ name: String(ext.buyer_agent_name), side: "buyer" });
+        let detectedRep: "seller" | "buyer" | null = null;
+        for (const { name, side } of sides) {
+          const lower = name.toLowerCase().trim();
           const exact = agentOptions.find(a => a.full_name.toLowerCase() === lower);
-          if (exact) { next.agent_name = exact.full_name; filled.push("agent"); break; }
+          if (exact) { next.agent_name = exact.full_name; detectedRep = side; filled.push(`agent (${side})`); break; }
           const lastName = lower.split(/\s+/).pop() || "";
           const byLast = agentOptions.find(a => a.full_name.toLowerCase().split(/\s+/).pop() === lastName);
-          if (byLast) { next.agent_name = byLast.full_name; filled.push("agent"); break; }
+          if (byLast) { next.agent_name = byLast.full_name; detectedRep = side; filled.push(`agent (${side})`); break; }
         }
+        if (detectedRep) setTimeout(() => setRepresentation(detectedRep), 0);
         return next;
       });
 
