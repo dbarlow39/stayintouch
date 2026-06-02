@@ -27,7 +27,10 @@ const DROPBOX_BASE = "/Closed Deals";
 const BACKFILL_TOTAL_CAP = 2500;
 
 function normalizeAddr(s: string): string {
-  return (s || "").toLowerCase().replace(/[^a-z0-9]+/g, "");
+  let n = (s || "").toLowerCase();
+  // Strip common street-type suffixes so "Ave"/"Avenue", "Dr"/"Drive" collapse to the same key
+  n = n.replace(/\b(avenue|ave|drive|dr|street|st|road|rd|boulevard|blvd|court|ct|lane|ln|place|pl|way|circle|cir|terrace|ter|parkway|pkwy|highway|hwy|trail|trl|square|sq)\b/g, "");
+  return n.replace(/[^a-z0-9]+/g, "");
 }
 
 function safeFileName(name: string): string {
