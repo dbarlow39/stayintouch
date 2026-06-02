@@ -251,7 +251,7 @@ const AddClosingForm = ({ onBack }: AddClosingFormProps) => {
       }
 
       const { data, error } = await supabase.functions.invoke("parse-closing-paperwork", {
-        body: { signed_urls: signedUrls, representation },
+        body: { signed_urls: signedUrls },
       });
       if (error) {
         console.error("parse-closing-paperwork error:", error);
