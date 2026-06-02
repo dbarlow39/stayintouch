@@ -593,6 +593,8 @@ export type Database = {
           company_split_pct: number
           created_at: string
           created_by: string
+          dropbox_file_path: string | null
+          dropbox_upload_status: string
           id: string
           notes: string | null
           paid: boolean
@@ -623,6 +625,8 @@ export type Database = {
           company_split_pct?: number
           created_at?: string
           created_by: string
+          dropbox_file_path?: string | null
+          dropbox_upload_status?: string
           id?: string
           notes?: string | null
           paid?: boolean
@@ -653,6 +657,8 @@ export type Database = {
           company_split_pct?: number
           created_at?: string
           created_by?: string
+          dropbox_file_path?: string | null
+          dropbox_upload_status?: string
           id?: string
           notes?: string | null
           paid?: boolean
@@ -897,6 +903,39 @@ export type Database = {
           notes?: string | null
           payee_name?: string
           property_address?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      dropbox_tokens: {
+        Row: {
+          access_token: string
+          account_email: string | null
+          agent_id: string
+          created_at: string
+          expires_at: string
+          id: string
+          refresh_token: string
+          updated_at: string
+        }
+        Insert: {
+          access_token: string
+          account_email?: string | null
+          agent_id: string
+          created_at?: string
+          expires_at: string
+          id?: string
+          refresh_token: string
+          updated_at?: string
+        }
+        Update: {
+          access_token?: string
+          account_email?: string | null
+          agent_id?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          refresh_token?: string
           updated_at?: string
         }
         Relationships: []
