@@ -333,27 +333,45 @@ const Account = () => {
 
   const handleSyncPaperwork = async () => {
     setIsPaperworkSyncing(true);
+    let totalCreated = 0;
+    let totalSkipped = 0;
+    let totalDbxFail = 0;
+    let lastScanned = 0;
+    const MAX_ITERATIONS = 100;
     try {
-      const { data, error } = await supabase.functions.invoke("sync-paperwork-to-dropbox", {
-        body: { mode: "backfill" },
-      });
-      if (error) throw error;
-      if (data?.backfill_complete) {
-        toast({
-          title: "Backfill Complete",
-          description: `Scanned ${data?.scanned_total ?? 0} messages. Created ${data?.created ?? 0} closing(s) this run.`,
+      for (let i = 0; i < MAX_ITERATIONS; i++) {
+        const { data, error } = await supabase.functions.invoke("sync-paperwork-to-dropbox", {
+          body: { mode: "backfill" },
         });
-      } else if (data?.remaining) {
+        if (error) throw error;
+        totalCreated += data?.created ?? 0;
+        totalSkipped += data?.skipped ?? 0;
+        totalDbxFail += data?.dropbox_failures ?? 0;
+        lastScanned = data?.scanned_total ?? lastScanned;
+
+        if (data?.backfill_complete) {
+          toast({
+            title: "Backfill Complete",
+            description: `Scanned ${lastScanned} messages. Created ${totalCreated}, skipped ${totalSkipped}, ${totalDbxFail} upload failure(s).`,
+          });
+          return;
+        }
+        if (!data?.remaining) {
+          toast({
+            title: "Paperwork Sync Complete",
+            description: `Created ${totalCreated} closing(s), skipped ${totalSkipped}, ${totalDbxFail} Dropbox upload failure(s).`,
+          });
+          return;
+        }
         toast({
-          title: "More to Sync",
-          description: `Processed ${data?.processed ?? 0} this run (${data?.scanned_total ?? 0}/${data?.total_cap ?? 2500} scanned). Click Sync again to continue.`,
-        });
-      } else {
-        toast({
-          title: "Paperwork Sync Complete",
-          description: `Created ${data?.created ?? 0} closing(s), skipped ${data?.skipped ?? 0} existing, ${data?.dropbox_failures ?? 0} Dropbox upload failure(s).`,
+          title: "Syncing…",
+          description: `Created ${totalCreated} so far (${lastScanned} scanned). Continuing…`,
         });
       }
+      toast({
+        title: "Sync Paused",
+        description: `Hit safety cap. Created ${totalCreated} so far. Click Sync again to resume.`,
+      });
     } catch (err) {
       console.error("Paperwork sync error:", err);
       toast({
