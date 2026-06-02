@@ -415,6 +415,17 @@ async function runForAgent(
           closingDate = new Date().toISOString().slice(0, 10);
         }
 
+        const salePrice = Number(extracted.sale_price) || 0;
+        const calculatedCheck = salePrice > 0 ? Math.max(salePrice * 0.01, 2250) + 499 : 0;
+        const adminFee = 499;
+        const totalCommission = Math.max(calculatedCheck - adminFee, 0);
+        const companyPct = 40;
+        const agentPct = 60;
+        const companyShare = totalCommission * (companyPct / 100);
+        const agentShare = totalCommission * (agentPct / 100);
+        const caliberDetected = extracted.caliber_title_detected === true
+          || /caliber/i.test(String(extracted.title_company || ""));
+
         const row: any = {
           agent_id: agentId,
           agent_name: agentName,
@@ -424,14 +435,28 @@ async function runForAgent(
           state: extracted.state || "OH",
           zip: extracted.zip || null,
           closing_date: closingDate,
-          sale_price: extracted.sale_price || 0,
+          sale_price: salePrice,
+          total_commission: totalCommission,
+          admin_fee: adminFee,
+          company_split_pct: companyPct,
+          agent_split_pct: agentPct,
+          company_share: companyShare,
+          agent_share: agentShare,
+          caliber_title_bonus: caliberDetected,
+          caliber_title_amount: caliberDetected ? 150 : 0,
+          representation: "seller",
           paperwork_files: paperworkFiles,
           paperwork_status: "received",
+          paperwork_checklist: {
+            ...(extracted.checklist_detected || {}),
+            built_before_1978: extracted.built_before_1978 === true,
+          },
           notes: `Auto-imported from Gmail '${subject}' on ${new Date().toISOString().slice(0, 10)}`,
           dropbox_upload_status: dbxOk ? "uploaded" : "failed",
           dropbox_file_path: firstDbxPath,
         };
         Object.keys(row).forEach((k) => row[k] === null && delete row[k]);
+
 
         // Second-pass dedup: parsed address may normalize differently than subject address
         const finalNorm = normalizeAddr(row.property_address);

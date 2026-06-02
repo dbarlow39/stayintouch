@@ -163,6 +163,7 @@ Deno.serve(async (req) => {
           reprNote + " " +
           "Extract the following fields and call extract_closing_fields exactly once. " +
           "Only include fields you find with high confidence. Leave anything unknown blank. " +
+          "ALWAYS populate city, state, zip, sale_price, and closing_date — check page 1 of the Purchase Contract, the Settlement Statement / Closing Disclosure, and any property-description addenda. These are required. " +
           "For property_address return ONLY the street number and street name (do NOT include city/state/zip). " +
           "For closing_date use YYYY-MM-DD. For sale_price return a plain number with no symbols or commas. " +
           "For listing_agent_name and buyer_agent_name, ALWAYS check the FIRST PAGE of the closing package for fields labeled 'Seller's Agent:' and 'Buyer's Agent:' — these are typically typed or handwritten on lines and are the most reliable source. " +
@@ -182,7 +183,8 @@ Deno.serve(async (req) => {
       },
       body: JSON.stringify({
         model: "claude-sonnet-4-5",
-        max_tokens: 1024,
+        max_tokens: 4096,
+
         tools: [TOOL],
         tool_choice: { type: "tool", name: "extract_closing_fields" },
         messages: [{ role: "user", content: userContent }],
