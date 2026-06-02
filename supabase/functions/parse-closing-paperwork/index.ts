@@ -56,7 +56,7 @@ const TOOL = {
       city: { type: "string" },
       state: { type: "string", description: "Two-letter state code, e.g. OH" },
       zip: { type: "string" },
-      closing_date: { type: "string", description: "YYYY-MM-DD format only." },
+      closing_date: { type: "string", description: "YYYY-MM-DD format. CRITICAL: This MUST come from the 'Settlement Date:' line on page 1 of the ALTA Settlement Statement - Combined (or the equivalent Closing Disclosure 'Closing Date' / HUD-1 settlement date). Do NOT use the Purchase Contract's target/anticipated closing date — only the actual settlement date from the title company's settlement statement." },
       sale_price: { type: "number", description: "Final sale/purchase price in USD as a number, no symbols." },
       buyer_names: { type: "string", description: "Comma-separated buyer full names." },
       seller_names: { type: "string", description: "Comma-separated seller full names." },
@@ -164,8 +164,10 @@ Deno.serve(async (req) => {
           "Extract the following fields and call extract_closing_fields exactly once. " +
           "Only include fields you find with high confidence. Leave anything unknown blank. " +
           "ALWAYS populate city, state, zip, sale_price, and closing_date — check page 1 of the Purchase Contract, the Settlement Statement / Closing Disclosure, and any property-description addenda. These are required. " +
+          "For closing_date, ALWAYS look first at the ALTA Settlement Statement - Combined (page 1, 'Settlement Date:' line, typically near a 'Disbursement Date:' line). If that document is present, its Settlement Date is the actual closing date and OVERRIDES any date written in the Purchase Contract. Only fall back to the Closing Disclosure 'Closing Date' or HUD-1 settlement date if no ALTA is present. " +
           "For property_address return ONLY the street number and street name (do NOT include city/state/zip). " +
           "For closing_date use YYYY-MM-DD. For sale_price return a plain number with no symbols or commas. " +
+
           "For listing_agent_name and buyer_agent_name, ALWAYS check the FIRST PAGE of the closing package for fields labeled 'Seller's Agent:' and 'Buyer's Agent:' — these are typically typed or handwritten on lines and are the most reliable source. " +
           "For caliber_title_detected, scan every page (headers/footers especially) for the text 'Caliber Title' or the Caliber shield logo and set TRUE if present. Also populate title_company with whatever title company name you find. " +
           "ALSO populate checklist_detected by scanning every page across every PDF and marking each document type TRUE only when you can clearly identify a copy of that document (signed or unsigned). " +
