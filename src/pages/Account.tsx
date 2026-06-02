@@ -665,6 +665,65 @@ const Account = () => {
           </CardContent>
         </Card>
 
+        {/* Dropbox Integration Card */}
+        <Card className="shadow-medium animate-fade-in mt-6">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <FolderSync className="w-5 h-5" />
+              Dropbox Integration
+            </CardTitle>
+            <CardDescription>
+              Connect Dropbox to auto-save Compiled Paperwork PDFs to /Closed Deals on every sync.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {dropboxLoading ? (
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <RefreshCw className="w-4 h-4 animate-spin" />
+                Checking connection...
+              </div>
+            ) : dropboxToken ? (
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 text-primary">
+                  <CheckCircle className="w-5 h-5" />
+                  <span>Connected{dropboxToken.account_email ? <> as <strong>{dropboxToken.account_email}</strong></> : null}</span>
+                </div>
+                <div className="flex gap-2 flex-wrap">
+                  <Button
+                    onClick={handleSyncPaperwork}
+                    disabled={isPaperworkSyncing}
+                    className="bg-emerald-600 hover:bg-emerald-700"
+                  >
+                    {isPaperworkSyncing ? (
+                      <><RefreshCw className="w-4 h-4 mr-2 animate-spin" />Syncing Paperwork...</>
+                    ) : (
+                      <><FolderSync className="w-4 h-4 mr-2" />Sync Compiled Paperwork Now</>
+                    )}
+                  </Button>
+                  <Button onClick={handleConnectDropbox} variant="ghost" size="sm">
+                    Reconnect
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Scans last 90 days of Gmail for "Compiled Paperwork" emails, creates closing rows,
+                  uploads PDFs to Dropbox. Failed uploads retry automatically every hour.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <XCircle className="w-5 h-5" />
+                  <span>Dropbox not connected</span>
+                </div>
+                <Button onClick={handleConnectDropbox} className="bg-emerald-600 hover:bg-emerald-700">
+                  <FolderSync className="w-4 h-4 mr-2" />
+                  Connect Dropbox
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
         {/* Email Client Preference Card */}
         <Card className="shadow-medium animate-fade-in mt-6">
           <CardHeader>
