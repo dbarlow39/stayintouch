@@ -360,7 +360,7 @@ async function runForAgent(
 
     for (const m of messages) {
       if (Date.now() - startedAt >= maxRuntimeMs) { outOfTime = true; break outer; }
-      if (processedThisRun >= limit) { hitLimit = true; break outer; }
+      if (createdCount >= limit) { hitLimit = true; break outer; }
       if (mode === "backfill" && (cursor.messages_scanned + scannedThisRun) >= BACKFILL_TOTAL_CAP) {
         exhausted = true; break outer;
       }
