@@ -201,6 +201,7 @@ Deno.serve(async (req) => {
     const maxRuntimeMs: number = Math.max(10_000, Math.min(140_000, body?.max_runtime_ms ?? 30_000));
 
     const serviceClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    const userAuthHeader = req.headers.get("Authorization");
 
     // For cron: agent_id passed in body. For manual: JWT.
     let agentId = await resolveAgentId(req, body);
@@ -213,7 +214,7 @@ Deno.serve(async (req) => {
       const results: any[] = [];
       for (const id of ids) {
         try {
-          const r = await runForAgent(serviceClient, id, "incremental", limit, maxRuntimeMs);
+          const r = await runForAgent(serviceClient, id, "incremental", limit, maxRuntimeMs, null);
           results.push({ agent_id: id, ...r });
         } catch (e) {
           results.push({ agent_id: id, error: String(e) });
@@ -230,7 +231,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const result = await runForAgent(serviceClient, agentId, mode, limit, maxRuntimeMs);
+    const result = await runForAgent(serviceClient, agentId, mode, limit, maxRuntimeMs, userAuthHeader);
     return new Response(JSON.stringify({ ok: true, mode, ...result }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
@@ -249,6 +250,7 @@ async function runForAgent(
   mode: "backfill" | "incremental",
   limit: number,
   maxRuntimeMs: number,
+  userAuthHeader: string | null,
 ) {
   const startedAt = Date.now();
 
@@ -402,7 +404,6 @@ async function runForAgent(
         let extracted: any = {};
         if (signedUrls.length > 0) {
           try {
-            const userAuthHeader = req.headers.get("Authorization");
             const pr = await fetch(`${SUPABASE_URL}/functions/v1/parse-closing-paperwork`, {
               method: "POST",
               headers: {
