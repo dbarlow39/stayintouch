@@ -333,44 +333,20 @@ const Account = () => {
 
   const handleSyncPaperwork = async () => {
     setIsPaperworkSyncing(true);
-    let totalCreated = 0;
-    let totalSkipped = 0;
-    let totalDbxFail = 0;
-    let lastScanned = 0;
-    const MAX_ITERATIONS = 100;
     try {
-      for (let i = 0; i < MAX_ITERATIONS; i++) {
-        const { data, error } = await supabase.functions.invoke("sync-paperwork-to-dropbox", {
-          body: { mode: "backfill" },
-        });
-        if (error) throw error;
-        totalCreated += data?.created ?? 0;
-        totalSkipped += data?.skipped ?? 0;
-        totalDbxFail += data?.dropbox_failures ?? 0;
-        lastScanned = data?.scanned_total ?? lastScanned;
-
-        if (data?.backfill_complete) {
-          toast({
-            title: "Backfill Complete",
-            description: `Scanned ${lastScanned} messages. Created ${totalCreated}, skipped ${totalSkipped}, ${totalDbxFail} upload failure(s).`,
-          });
-          return;
-        }
-        if (!data?.remaining) {
-          toast({
-            title: "Paperwork Sync Complete",
-            description: `Created ${totalCreated} closing(s), skipped ${totalSkipped}, ${totalDbxFail} Dropbox upload failure(s).`,
-          });
-          return;
-        }
-        toast({
-          title: "Syncing…",
-          description: `Created ${totalCreated} so far (${lastScanned} scanned). Continuing…`,
-        });
-      }
+      const { data, error } = await supabase.functions.invoke("sync-paperwork-to-dropbox", {
+        body: { mode: "backfill", limit: 1 },
+      });
+      if (error) throw error;
+      const created = data?.created ?? 0;
+      const skipped = data?.skipped ?? 0;
+      const dbxFail = data?.dropbox_failures ?? 0;
+      const scanned = data?.scanned_total ?? 0;
+      const remaining = data?.remaining ?? 0;
+      const complete = data?.backfill_complete ?? false;
       toast({
-        title: "Sync Paused",
-        description: `Hit safety cap. Created ${totalCreated} so far. Click Sync again to resume.`,
+        title: complete ? "Backfill Complete" : "Single-Email Test Done",
+        description: `Created ${created}, skipped ${skipped}, ${dbxFail} upload failure(s). Scanned ${scanned}. Remaining: ${remaining}.`,
       });
     } catch (err) {
       console.error("Paperwork sync error:", err);
