@@ -465,9 +465,16 @@ async function runForAgent(
         const caliberDetected = extracted.caliber_title_detected === true
           || /caliber/i.test(String(extracted.title_company || ""));
 
+        // Prefer parsed listing agent (seller representation); fall back to buyer agent, then logged-in profile name
+        const matchedAgentName =
+          matchAgent(extracted.listing_agent_name) ||
+          matchAgent(extracted.buyer_agent_name) ||
+          matchAgent(agentName) ||
+          agentName;
+
         const row: any = {
           agent_id: agentId,
-          agent_name: agentName,
+          agent_name: matchedAgentName,
           created_by: agentId,
           property_address: extracted.property_address || address,
           city: extracted.city || null,
