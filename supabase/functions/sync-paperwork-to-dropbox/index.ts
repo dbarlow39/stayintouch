@@ -427,6 +427,7 @@ async function runForAgent(
         if (paperworkFiles.length === 0) continue;
 
         let extracted: any = {};
+        let parseOk = false;
         if (signedUrls.length > 0) {
           try {
             const pr = await fetch(`${SUPABASE_URL}/functions/v1/parse-closing-paperwork`, {
@@ -440,6 +441,7 @@ async function runForAgent(
             });
             if (pr.ok) {
               extracted = (await pr.json()).extracted || {};
+              parseOk = extracted && Object.keys(extracted).length > 0;
             } else {
               const errText = await pr.text().catch(() => "");
               console.warn(`parse-closing-paperwork ${pr.status}: ${errText}`);
@@ -447,6 +449,13 @@ async function runForAgent(
           } catch (e) {
             console.warn("parse-closing-paperwork failed:", e);
           }
+        }
+
+        // Do NOT create a closing row from a failed/empty parse — let the next sync retry
+        // instead of inserting fallback rows with $0, blank city/zip, and wrong agent.
+        if (!parseOk) {
+          summary.push({ address, status: "parse_failed_will_retry" });
+          continue;
         }
 
         let closingDate = extracted.closing_date;
