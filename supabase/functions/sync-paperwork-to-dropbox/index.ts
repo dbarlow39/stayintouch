@@ -402,16 +402,22 @@ async function runForAgent(
         let extracted: any = {};
         if (signedUrls.length > 0) {
           try {
+            const userAuthHeader = req.headers.get("Authorization");
             const pr = await fetch(`${SUPABASE_URL}/functions/v1/parse-closing-paperwork`, {
               method: "POST",
               headers: {
-                Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+                Authorization: userAuthHeader || `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
                 apikey: SUPABASE_ANON_KEY,
                 "Content-Type": "application/json",
               },
               body: JSON.stringify({ signed_urls: signedUrls, representation: "seller" }),
             });
-            if (pr.ok) extracted = (await pr.json()).extracted || {};
+            if (pr.ok) {
+              extracted = (await pr.json()).extracted || {};
+            } else {
+              const errText = await pr.text().catch(() => "");
+              console.warn(`parse-closing-paperwork ${pr.status}: ${errText}`);
+            }
           } catch (e) {
             console.warn("parse-closing-paperwork failed:", e);
           }
