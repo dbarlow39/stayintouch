@@ -13,7 +13,7 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const DROPBOX_APP_KEY = Deno.env.get("DROPBOX_APP_KEY")!;
 const DROPBOX_APP_SECRET = Deno.env.get("DROPBOX_APP_SECRET")!;
-const DROPBOX_BASE = "/Closed Deals";
+const DROPBOX_BASE = "/0 Sell for 1 Percent/Closed Deals";
 
 function safeFileName(name: string): string {
   let n = (name || "document.pdf").replace(/[^a-zA-Z0-9._-]/g, "_");
@@ -103,7 +103,7 @@ Deno.serve(async (req) => {
     const dbxToken = dbxTokenCache[row.agent_id];
     if (!dbxToken) { skipCount++; continue; }
 
-    const folder = `${DROPBOX_BASE}/${safeFolderName(row.property_address || "Unknown")}`;
+    const folder = DROPBOX_BASE;
     let allOk = true;
     let firstPath: string | null = null;
 

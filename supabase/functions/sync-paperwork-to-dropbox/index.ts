@@ -23,7 +23,7 @@ const GOOGLE_CLIENT_ID = Deno.env.get("GOOGLE_CLIENT_ID")!;
 const GOOGLE_CLIENT_SECRET = Deno.env.get("GOOGLE_CLIENT_SECRET")!;
 const DROPBOX_APP_KEY = Deno.env.get("DROPBOX_APP_KEY")!;
 const DROPBOX_APP_SECRET = Deno.env.get("DROPBOX_APP_SECRET")!;
-const DROPBOX_BASE = "/Closed Deals";
+const DROPBOX_BASE = "/0 Sell for 1 Percent/Closed Deals";
 const BACKFILL_TOTAL_CAP = 2500;
 
 function normalizeAddr(s: string): string {
@@ -393,7 +393,7 @@ async function runForAgent(
         const folderId = crypto.randomUUID();
         const paperworkFiles: any[] = [];
         const signedUrls: string[] = [];
-        const dropboxFolder = `${DROPBOX_BASE}/${safeFolderName(address)}`;
+        const dropboxFolder = DROPBOX_BASE;
         let dbxOk = true;
         let firstDbxPath: string | null = null;
 

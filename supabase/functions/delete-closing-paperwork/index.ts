@@ -152,24 +152,9 @@ Deno.serve(async (req) => {
       }
     }
 
-    // 3. Delete Dropbox folder (parent of first file path)
-    if (row.dropbox_file_path) {
-      const folder = row.dropbox_file_path.replace(/\/[^/]+$/, "");
-      if (folder && folder !== row.dropbox_file_path) {
-        try {
-          const dbxToken = await getDropboxAccessToken(admin, row.agent_id);
-          const dbxRes = await deleteDropboxPath(dbxToken, folder);
-          if (dbxRes.ok) {
-            result.dropbox_deleted = true;
-            result.dropbox_folder = folder;
-          } else {
-            result.dropbox_error = dbxRes.error;
-          }
-        } catch (e) {
-          result.dropbox_error = e instanceof Error ? e.message : String(e);
-        }
-      }
-    }
+    // 3. Dropbox deletion intentionally disabled — never delete files or folders from Dropbox.
+    result.dropbox_deleted = false;
+    result.dropbox_skipped = true;
 
     // 4. Delete the closing row
     const { error: delErr } = await admin.from("closings").delete().eq("id", closing_id);
