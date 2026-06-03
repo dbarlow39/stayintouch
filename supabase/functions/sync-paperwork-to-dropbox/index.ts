@@ -265,6 +265,31 @@ async function runForAgent(
   const gmailToken = await getGmailAccessToken(serviceClient, agentId);
   const dbxToken = await getDropboxAccessToken(serviceClient, agentId);
 
+  // Load accounting agents for name matching against parsed PDF agent names
+  const { data: agentsList } = await serviceClient
+    .from("agents").select("full_name");
+  const agentNames: string[] = (agentsList || []).map((a: any) => a.full_name).filter(Boolean);
+  const normName = (s: string) => (s || "").toLowerCase().replace(/[^a-z]+/g, "");
+  function matchAgent(name?: string | null): string | null {
+    if (!name) return null;
+    const target = normName(name);
+    if (!target) return null;
+    // Exact normalized match
+    for (const n of agentNames) if (normName(n) === target) return n;
+    // First+last token match (handles "Dave" vs "David", nicknames, middle names)
+    const targetTokens = name.toLowerCase().split(/\s+/).filter(Boolean);
+    const lastTarget = targetTokens[targetTokens.length - 1];
+    for (const n of agentNames) {
+      const nTokens = n.toLowerCase().split(/\s+/);
+      const lastN = nTokens[nTokens.length - 1];
+      if (lastTarget && lastN === lastTarget) {
+        // last names match; require first-name initial match to disambiguate
+        if (!targetTokens[0] || !nTokens[0] || targetTokens[0][0] === nTokens[0][0]) return n;
+      }
+    }
+    return null;
+  }
+
   // Dedup set: existing closings + Sold clients (status = 'S')
   const { data: existingClosings } = await serviceClient
     .from("closings").select("property_address").eq("agent_id", agentId);
