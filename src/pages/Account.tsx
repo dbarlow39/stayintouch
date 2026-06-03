@@ -344,9 +344,14 @@ const Account = () => {
       const scanned = data?.scanned_total ?? 0;
       const remaining = data?.remaining ?? 0;
       const complete = data?.backfill_complete ?? false;
+      const details: Array<{ address?: string; status?: string }> = data?.details ?? [];
+      const processed = details
+        .filter((d) => d.address)
+        .map((d) => `• ${d.address} (${d.status})`)
+        .join("\n");
       toast({
         title: complete ? "Backfill Complete" : "Single-Email Test Done",
-        description: `Created ${created}, skipped ${skipped}, ${dbxFail} upload failure(s). Scanned ${scanned}. Remaining: ${remaining}.`,
+        description: `${processed || "No matching emails this run."}\n\nCreated ${created}, skipped ${skipped}, ${dbxFail} upload failure(s). Scanned ${scanned}. Remaining: ${remaining}.`,
       });
     } catch (err) {
       console.error("Paperwork sync error:", err);
