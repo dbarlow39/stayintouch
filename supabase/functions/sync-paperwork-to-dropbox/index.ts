@@ -358,6 +358,11 @@ async function runForAgent(
       continue;
     }
 
+    // Advance cursor BEFORE processing this page so a mid-page break (time/limit)
+    // still resumes on the NEXT page on the next run, instead of re-scanning the
+    // same head messages forever.
+    pageToken = nextPage;
+
     for (const m of messages) {
       if (Date.now() - startedAt >= maxRuntimeMs) { outOfTime = true; break outer; }
       if (createdCount >= limit) { hitLimit = true; break outer; }
@@ -541,7 +546,6 @@ async function runForAgent(
       }
     }
 
-    pageToken = nextPage;
     if (!nextPage) { exhausted = true; break; }
   }
 
