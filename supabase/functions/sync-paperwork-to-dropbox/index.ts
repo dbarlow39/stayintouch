@@ -546,7 +546,6 @@ async function runForAgent(
       }
     }
 
-    pageToken = nextPage;
     if (!nextPage) { exhausted = true; break; }
   }
 
