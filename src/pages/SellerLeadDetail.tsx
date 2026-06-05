@@ -309,13 +309,10 @@ const SellerLeadDetail = () => {
         .single();
       if (insertError) throw insertError;
 
-      // Delete the original seller lead now that it's been converted to a client.
-      const { error: deleteError } = await supabase
-        .from("leads")
-        .delete()
-        .eq("id", lead.id)
-        .eq("agent_id", user.id);
-      if (deleteError) throw deleteError;
+      // Preserve the original seller lead so ClientDetail can still look it up
+      // by agent_id + address to surface Market Analysis, Residential Work Sheet,
+      // audio, photos, and MLS descriptions on the new client.
+
 
       queryClient.invalidateQueries({ queryKey: ["leads"] });
       queryClient.invalidateQueries({ queryKey: ["clients"] });
