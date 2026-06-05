@@ -704,7 +704,7 @@ const SellerLeadDetail = () => {
           <AlertDialogHeader>
             <AlertDialogTitle>Convert Lead to Client</AlertDialogTitle>
             <AlertDialogDescription>
-              This will create a new active client from <strong>{formData.first_name} {formData.last_name}</strong> and permanently delete this seller lead. This action cannot be undone.
+              This will create a new active client from <strong>{formData.first_name} {formData.last_name}</strong>. The seller lead record is preserved so the Residential Work Sheet and Market Analysis remain accessible from the new client.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="text-sm space-y-1 py-2 text-muted-foreground">
