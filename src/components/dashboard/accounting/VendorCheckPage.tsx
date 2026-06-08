@@ -27,6 +27,9 @@ interface PaymentFormData {
   payment_date: string;
   description: string;
   notes: string;
+  payee_name: string;
+  payee_address: string;
+  payee_city_state_zip: string;
 }
 
 const emptyPaymentForm: PaymentFormData = {
@@ -35,7 +38,11 @@ const emptyPaymentForm: PaymentFormData = {
   payment_date: new Date().toISOString().split("T")[0],
   description: "",
   notes: "",
+  payee_name: "",
+  payee_address: "",
+  payee_city_state_zip: "",
 };
+
 
 const VendorCheckPage = ({ vendorId, vendorName, vendorAddress, vendorAttention, vendorCityStateZip, onBack }: VendorCheckPageProps) => {
   const { user } = useAuth();
