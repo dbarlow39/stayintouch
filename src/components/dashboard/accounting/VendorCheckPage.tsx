@@ -145,6 +145,10 @@ const VendorCheckPage = ({ vendorId, vendorName, vendorAddress, vendorAttention,
       toast.error("Amount is required");
       return;
     }
+    if (isMisc && !form.payee_name.trim()) {
+      toast.error("Pay To (payee name) is required for MISC checks");
+      return;
+    }
     addPaymentMutation.mutate(form);
   };
 
@@ -168,22 +172,33 @@ const VendorCheckPage = ({ vendorId, vendorName, vendorAddress, vendorAttention,
     ytdMap.set(p.id, runningTotal);
   }
 
+  // For MISC ledger rows, extract payee name from description prefix "Pay To: {name}"
+  const parseMiscPayee = (desc: string | null): { payee: string; rest: string } => {
+    if (!desc) return { payee: "", rest: "" };
+    const m = desc.match(/^Pay To:\s*([^—]+?)(?:\s+—\s+(.*))?$/);
+    if (!m) return { payee: "", rest: desc };
+    return { payee: m[1].trim(), rest: (m[2] || "").trim() };
+  };
+
   const reprintCheckPdf = (payment: typeof payments[0]) => {
     const dateStr = format(new Date(payment.payment_date + "T00:00:00"), "MMMM d, yyyy");
     const amount = Number(payment.amount);
+    const parsed = isMisc ? parseMiscPayee(payment.description) : { payee: "", rest: payment.description || "" };
+    const useMisc = isMisc && parsed.payee;
     generateCheckPdf({
       date: dateStr,
       totalAmount: amount,
-      agentName: vendorName,
-      agentAddress: vendorAddress,
-      agentAttention: vendorAttention || undefined,
-      agentCityStateZip: vendorCityStateZip,
-      propertyNames: payment.description || "",
-      lineItems: [{ amount, label: payment.description || "Payment" }],
+      agentName: useMisc ? parsed.payee : vendorName,
+      agentAddress: useMisc ? "" : vendorAddress,
+      agentAttention: useMisc ? undefined : (vendorAttention || undefined),
+      agentCityStateZip: useMisc ? "" : vendorCityStateZip,
+      propertyNames: (useMisc ? parsed.rest : payment.description) || "",
+      lineItems: [{ amount, label: (useMisc ? parsed.rest : payment.description) || "Payment" }],
       ytdTotal: ytdMap.get(payment.id) || amount,
       memo: payment.notes || undefined,
     });
   };
+
 
   return (
     <div className="space-y-4">
