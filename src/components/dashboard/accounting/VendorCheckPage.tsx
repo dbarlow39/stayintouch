@@ -49,6 +49,9 @@ const VendorCheckPage = ({ vendorId, vendorName, vendorAddress, vendorAttention,
   const queryClient = useQueryClient();
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState<PaymentFormData>(emptyPaymentForm);
+  const isMisc = vendorName.trim().toUpperCase() === "MISC";
+
+
 
   const { data: payments = [] } = useQuery({
     queryKey: ["vendor-payments", vendorId],
