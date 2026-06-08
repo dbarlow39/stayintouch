@@ -77,30 +77,43 @@ const VendorCheckPage = ({ vendorId, vendorName, vendorAddress, vendorAttention,
         // Update counter to match manual entry so future checks increment from here
         await setCheckNumber(parseInt(checkNum, 10));
       }
+      // For MISC vendor, store payee name in description so the ledger row tracks who got the check.
+      const descriptionToSave = isMisc
+        ? (data.payee_name ? `Pay To: ${data.payee_name}${data.description ? ` — ${data.description}` : ""}` : data.description)
+        : (data.description || null);
       const { error } = await supabase.from("vendor_payments").insert({
         vendor_id: vendorId,
         created_by: user!.id,
         amount: parseFloat(data.amount),
         check_number: checkNum || null,
         payment_date: data.payment_date,
-        description: data.description || null,
+        description: descriptionToSave || null,
         notes: data.notes || null,
       });
       if (error) throw error;
-      return { amount: parseFloat(data.amount), payment_date: data.payment_date, description: data.description, check_number: checkNum };
+      return {
+        amount: parseFloat(data.amount),
+        payment_date: data.payment_date,
+        description: data.description,
+        check_number: checkNum,
+        payee_name: data.payee_name,
+        payee_address: data.payee_address,
+        payee_city_state_zip: data.payee_city_state_zip,
+      };
     },
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["vendor-payments", vendorId] });
 
       // Generate check PDF immediately
       const dateStr = format(new Date(result.payment_date + "T00:00:00"), "MMMM d, yyyy");
+      const useMisc = isMisc && result.payee_name;
       generateCheckPdf({
         date: dateStr,
         totalAmount: result.amount,
-        agentName: vendorName,
-        agentAddress: vendorAddress,
-        agentAttention: vendorAttention || undefined,
-        agentCityStateZip: vendorCityStateZip,
+        agentName: useMisc ? result.payee_name : vendorName,
+        agentAddress: useMisc ? result.payee_address : vendorAddress,
+        agentAttention: useMisc ? undefined : (vendorAttention || undefined),
+        agentCityStateZip: useMisc ? result.payee_city_state_zip : vendorCityStateZip,
         propertyNames: result.description || "",
         lineItems: [{ amount: result.amount, label: result.description || "Payment" }],
         ytdTotal: payments.reduce((sum, p) => sum + Number(p.amount), 0) + result.amount,
@@ -113,6 +126,7 @@ const VendorCheckPage = ({ vendorId, vendorName, vendorAddress, vendorAttention,
     },
     onError: () => toast.error("Failed to record payment"),
   });
+
 
   const deletePaymentMutation = useMutation({
     mutationFn: async (id: string) => {
