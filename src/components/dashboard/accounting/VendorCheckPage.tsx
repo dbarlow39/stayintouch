@@ -27,6 +27,9 @@ interface PaymentFormData {
   payment_date: string;
   description: string;
   notes: string;
+  payee_name: string;
+  payee_address: string;
+  payee_city_state_zip: string;
 }
 
 const emptyPaymentForm: PaymentFormData = {
@@ -35,13 +38,20 @@ const emptyPaymentForm: PaymentFormData = {
   payment_date: new Date().toISOString().split("T")[0],
   description: "",
   notes: "",
+  payee_name: "",
+  payee_address: "",
+  payee_city_state_zip: "",
 };
+
 
 const VendorCheckPage = ({ vendorId, vendorName, vendorAddress, vendorAttention, vendorCityStateZip, onBack }: VendorCheckPageProps) => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState<PaymentFormData>(emptyPaymentForm);
+  const isMisc = vendorName.trim().toUpperCase() === "MISC";
+
+
 
   const { data: payments = [] } = useQuery({
     queryKey: ["vendor-payments", vendorId],
@@ -67,30 +77,43 @@ const VendorCheckPage = ({ vendorId, vendorName, vendorAddress, vendorAttention,
         // Update counter to match manual entry so future checks increment from here
         await setCheckNumber(parseInt(checkNum, 10));
       }
+      // For MISC vendor, store payee name in description so the ledger row tracks who got the check.
+      const descriptionToSave = isMisc
+        ? (data.payee_name ? `Pay To: ${data.payee_name}${data.description ? ` — ${data.description}` : ""}` : data.description)
+        : (data.description || null);
       const { error } = await supabase.from("vendor_payments").insert({
         vendor_id: vendorId,
         created_by: user!.id,
         amount: parseFloat(data.amount),
         check_number: checkNum || null,
         payment_date: data.payment_date,
-        description: data.description || null,
+        description: descriptionToSave || null,
         notes: data.notes || null,
       });
       if (error) throw error;
-      return { amount: parseFloat(data.amount), payment_date: data.payment_date, description: data.description, check_number: checkNum };
+      return {
+        amount: parseFloat(data.amount),
+        payment_date: data.payment_date,
+        description: data.description,
+        check_number: checkNum,
+        payee_name: data.payee_name,
+        payee_address: data.payee_address,
+        payee_city_state_zip: data.payee_city_state_zip,
+      };
     },
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["vendor-payments", vendorId] });
 
       // Generate check PDF immediately
       const dateStr = format(new Date(result.payment_date + "T00:00:00"), "MMMM d, yyyy");
+      const useMisc = isMisc && result.payee_name;
       generateCheckPdf({
         date: dateStr,
         totalAmount: result.amount,
-        agentName: vendorName,
-        agentAddress: vendorAddress,
-        agentAttention: vendorAttention || undefined,
-        agentCityStateZip: vendorCityStateZip,
+        agentName: useMisc ? result.payee_name : vendorName,
+        agentAddress: useMisc ? result.payee_address : vendorAddress,
+        agentAttention: useMisc ? undefined : (vendorAttention || undefined),
+        agentCityStateZip: useMisc ? result.payee_city_state_zip : vendorCityStateZip,
         propertyNames: result.description || "",
         lineItems: [{ amount: result.amount, label: result.description || "Payment" }],
         ytdTotal: payments.reduce((sum, p) => sum + Number(p.amount), 0) + result.amount,
@@ -103,6 +126,7 @@ const VendorCheckPage = ({ vendorId, vendorName, vendorAddress, vendorAttention,
     },
     onError: () => toast.error("Failed to record payment"),
   });
+
 
   const deletePaymentMutation = useMutation({
     mutationFn: async (id: string) => {
@@ -119,6 +143,10 @@ const VendorCheckPage = ({ vendorId, vendorName, vendorAddress, vendorAttention,
   const handleSave = () => {
     if (!form.amount || parseFloat(form.amount) <= 0) {
       toast.error("Amount is required");
+      return;
+    }
+    if (isMisc && !form.payee_name.trim()) {
+      toast.error("Pay To (payee name) is required for MISC checks");
       return;
     }
     addPaymentMutation.mutate(form);
@@ -144,22 +172,33 @@ const VendorCheckPage = ({ vendorId, vendorName, vendorAddress, vendorAttention,
     ytdMap.set(p.id, runningTotal);
   }
 
+  // For MISC ledger rows, extract payee name from description prefix "Pay To: {name}"
+  const parseMiscPayee = (desc: string | null): { payee: string; rest: string } => {
+    if (!desc) return { payee: "", rest: "" };
+    const m = desc.match(/^Pay To:\s*([^—]+?)(?:\s+—\s+(.*))?$/);
+    if (!m) return { payee: "", rest: desc };
+    return { payee: m[1].trim(), rest: (m[2] || "").trim() };
+  };
+
   const reprintCheckPdf = (payment: typeof payments[0]) => {
     const dateStr = format(new Date(payment.payment_date + "T00:00:00"), "MMMM d, yyyy");
     const amount = Number(payment.amount);
+    const parsed = isMisc ? parseMiscPayee(payment.description) : { payee: "", rest: payment.description || "" };
+    const useMisc = isMisc && parsed.payee;
     generateCheckPdf({
       date: dateStr,
       totalAmount: amount,
-      agentName: vendorName,
-      agentAddress: vendorAddress,
-      agentAttention: vendorAttention || undefined,
-      agentCityStateZip: vendorCityStateZip,
-      propertyNames: payment.description || "",
-      lineItems: [{ amount, label: payment.description || "Payment" }],
+      agentName: useMisc ? parsed.payee : vendorName,
+      agentAddress: useMisc ? "" : vendorAddress,
+      agentAttention: useMisc ? undefined : (vendorAttention || undefined),
+      agentCityStateZip: useMisc ? "" : vendorCityStateZip,
+      propertyNames: (useMisc ? parsed.rest : payment.description) || "",
+      lineItems: [{ amount, label: (useMisc ? parsed.rest : payment.description) || "Payment" }],
       ytdTotal: ytdMap.get(payment.id) || amount,
       memo: payment.notes || undefined,
     });
   };
+
 
   return (
     <div className="space-y-4">
@@ -199,10 +238,27 @@ const VendorCheckPage = ({ vendorId, vendorName, vendorAddress, vendorAttention,
             <Label className="text-xs">Payment Date</Label>
             <Input type="date" value={form.payment_date} onChange={(e) => setForm({ ...form, payment_date: e.target.value })} />
           </div>
+          {isMisc && (
+            <>
+              <div className="space-y-1.5 sm:col-span-2">
+                <Label className="text-xs">Pay To (Payee Name) *</Label>
+                <Input value={form.payee_name} onChange={(e) => setForm({ ...form, payee_name: e.target.value })} placeholder="John Smith" />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Payee Address</Label>
+                <Input value={form.payee_address} onChange={(e) => setForm({ ...form, payee_address: e.target.value })} placeholder="123 Main St" />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Payee City, State Zip</Label>
+                <Input value={form.payee_city_state_zip} onChange={(e) => setForm({ ...form, payee_city_state_zip: e.target.value })} placeholder="Columbus, OH 43215" />
+              </div>
+            </>
+          )}
           <div className="space-y-1.5">
             <Label className="text-xs">Description / Memo</Label>
             <Input value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Monthly service" />
           </div>
+
           <div className="space-y-1.5 sm:col-span-2">
             <Label className="text-xs">Memo</Label>
             <Input value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} placeholder="Optional memo" />
