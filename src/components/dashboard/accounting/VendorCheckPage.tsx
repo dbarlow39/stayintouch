@@ -238,10 +238,27 @@ const VendorCheckPage = ({ vendorId, vendorName, vendorAddress, vendorAttention,
             <Label className="text-xs">Payment Date</Label>
             <Input type="date" value={form.payment_date} onChange={(e) => setForm({ ...form, payment_date: e.target.value })} />
           </div>
+          {isMisc && (
+            <>
+              <div className="space-y-1.5 sm:col-span-2">
+                <Label className="text-xs">Pay To (Payee Name) *</Label>
+                <Input value={form.payee_name} onChange={(e) => setForm({ ...form, payee_name: e.target.value })} placeholder="John Smith" />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Payee Address</Label>
+                <Input value={form.payee_address} onChange={(e) => setForm({ ...form, payee_address: e.target.value })} placeholder="123 Main St" />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Payee City, State Zip</Label>
+                <Input value={form.payee_city_state_zip} onChange={(e) => setForm({ ...form, payee_city_state_zip: e.target.value })} placeholder="Columbus, OH 43215" />
+              </div>
+            </>
+          )}
           <div className="space-y-1.5">
             <Label className="text-xs">Description / Memo</Label>
             <Input value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Monthly service" />
           </div>
+
           <div className="space-y-1.5 sm:col-span-2">
             <Label className="text-xs">Memo</Label>
             <Input value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} placeholder="Optional memo" />
