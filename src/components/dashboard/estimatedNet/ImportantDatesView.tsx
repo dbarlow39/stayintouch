@@ -122,8 +122,9 @@ const ImportantDatesView = ({ propertyData, propertyId, onBack, onEdit, onNaviga
 
   const inspectionDeadline = calculateDate(propertyData.inContract || '', propertyData.inspectionDays || 0);
   const remedyDeadline = calculateDate(propertyData.inContract || '', (propertyData.inspectionDays || 0) + (propertyData.remedyPeriodDays || 0));
-  const utilitiesCallDate = calculateDate(propertyData.closingDate || '', -10);
-  const utilitiesShutoffDate = calculateDate(propertyData.closingDate || '', 1);
+  const utilitiesBaseDate = propertyData.possession || propertyData.closingDate || '';
+  const utilitiesCallDate = calculateDate(utilitiesBaseDate, -10);
+  const utilitiesShutoffDate = calculateDate(utilitiesBaseDate, 1);
   const changeAddressDate = calculateDate(propertyData.closingDate || '', -10);
 
   // File attachment helpers
