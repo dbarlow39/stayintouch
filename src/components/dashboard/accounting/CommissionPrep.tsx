@@ -508,6 +508,7 @@ const CommissionPrep = ({ onBack }: CommissionPrepProps) => {
                      <TableHead>Property</TableHead>
                      <TableHead className="text-right">Amount</TableHead>
                      <TableHead>Date</TableHead>
+                     <TableHead>Check #</TableHead>
                      <TableHead>Status</TableHead>
                      <TableHead></TableHead>
                   </TableRow>
