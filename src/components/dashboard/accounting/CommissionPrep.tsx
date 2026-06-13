@@ -257,12 +257,17 @@ const CommissionPrep = ({ onBack }: CommissionPrepProps) => {
 
       const today = format(new Date(), "MMMM d, yyyy");
 
-      // Get next check number and increment counter
-      const checkNumber = await getNextCheckNumber();
+      // Use existing check number if already assigned (e.g. manual override or prior print);
+      // otherwise pull next from the global counter and increment.
+      const existingCheckNumber = (payoutRow as any)?.check_number
+        ? String((payoutRow as any).check_number)
+        : null;
+      const checkNumber = existingCheckNumber || (await getNextCheckNumber());
 
-      // Save check number on the payout record
-      await supabase.from("commission_payouts").update({ check_number: checkNumber }).eq("id", payoutId);
-      queryClient.invalidateQueries({ queryKey: ["accounting-payouts"] });
+      if (!existingCheckNumber) {
+        await supabase.from("commission_payouts").update({ check_number: checkNumber }).eq("id", payoutId);
+        queryClient.invalidateQueries({ queryKey: ["accounting-payouts"] });
+      }
 
       const netCheckAmount = Math.max(0, totalAmount - advance);
 
