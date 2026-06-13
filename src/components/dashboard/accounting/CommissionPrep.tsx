@@ -522,6 +522,18 @@ const CommissionPrep = ({ onBack }: CommissionPrepProps) => {
                       <TableCell className="text-sm text-muted-foreground">{getPayoutProperties(payout.id)}</TableCell>
                       <TableCell className="text-right">{formatCurrency(gross)}</TableCell>
                       <TableCell>{payout.payout_date ? format(new Date(payout.payout_date + "T00:00:00"), "MMM d, yyyy") : format(new Date(), "MMM d, yyyy")}</TableCell>
+                      <TableCell>
+                        <Input
+                          type="number"
+                          defaultValue={(payout as any).check_number ?? ""}
+                          placeholder="—"
+                          className="h-8 w-24"
+                          onBlur={(e) => updateCheckNumber(payout.id, (payout as any).check_number ?? null, e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+                          }}
+                        />
+                      </TableCell>
                       <TableCell>{statusBadge(payout.status)}</TableCell>
                       <TableCell className="text-right space-x-1">
                         <Button variant="ghost" size="sm" onClick={() => handlePrintCheck(payout.id, payout.agent_name, Number(payout.total_amount))}>
