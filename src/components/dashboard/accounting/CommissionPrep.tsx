@@ -166,6 +166,35 @@ const CommissionPrep = ({ onBack }: CommissionPrepProps) => {
     }
   };
 
+  const updateCheckNumber = async (payoutId: string, currentValue: string | null, newValue: string) => {
+    const trimmed = newValue.trim();
+    if (!trimmed) return;
+    if (String(currentValue ?? "") === trimmed) return;
+    const parsed = parseInt(trimmed, 10);
+    if (isNaN(parsed) || parsed <= 0) {
+      toast.error("Check number must be a positive integer.");
+      return;
+    }
+    try {
+      const { error } = await supabase
+        .from("commission_payouts")
+        .update({ check_number: String(parsed) })
+        .eq("id", payoutId);
+      if (error) throw error;
+
+      // Bump the global counter forward only (never roll back)
+      const next = parseInt(await peekNextCheckNumber(), 10);
+      if (!isNaN(next) && parsed >= next) {
+        await setCheckNumber(parsed);
+      }
+
+      toast.success("Check number updated.");
+      queryClient.invalidateQueries({ queryKey: ["accounting-payouts"] });
+    } catch (err: any) {
+      toast.error(err.message || "Failed to update check number");
+    }
+  };
+
   const markPaid = async (payoutId: string) => {
     // Mark the payout as paid
     await supabase.from("commission_payouts").update({ status: "paid", payout_date: new Date().toISOString().split("T")[0] }).eq("id", payoutId);
