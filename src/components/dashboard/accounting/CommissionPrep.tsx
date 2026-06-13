@@ -14,7 +14,7 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { generateCheckPdf } from "@/utils/generateCheckPdf";
 import type { CheckLineItem } from "@/utils/generateCheckPdf";
-import { getNextCheckNumber } from "@/utils/checkNumberUtils";
+import { getNextCheckNumber, peekNextCheckNumber, setCheckNumber } from "@/utils/checkNumberUtils";
 
 interface CommissionPrepProps {
   onBack: () => void;
@@ -166,6 +166,35 @@ const CommissionPrep = ({ onBack }: CommissionPrepProps) => {
     }
   };
 
+  const updateCheckNumber = async (payoutId: string, currentValue: string | null, newValue: string) => {
+    const trimmed = newValue.trim();
+    if (!trimmed) return;
+    if (String(currentValue ?? "") === trimmed) return;
+    const parsed = parseInt(trimmed, 10);
+    if (isNaN(parsed) || parsed <= 0) {
+      toast.error("Check number must be a positive integer.");
+      return;
+    }
+    try {
+      const { error } = await supabase
+        .from("commission_payouts")
+        .update({ check_number: String(parsed) })
+        .eq("id", payoutId);
+      if (error) throw error;
+
+      // Bump the global counter forward only (never roll back)
+      const next = parseInt(await peekNextCheckNumber(), 10);
+      if (!isNaN(next) && parsed >= next) {
+        await setCheckNumber(parsed);
+      }
+
+      toast.success("Check number updated.");
+      queryClient.invalidateQueries({ queryKey: ["accounting-payouts"] });
+    } catch (err: any) {
+      toast.error(err.message || "Failed to update check number");
+    }
+  };
+
   const markPaid = async (payoutId: string) => {
     // Mark the payout as paid
     await supabase.from("commission_payouts").update({ status: "paid", payout_date: new Date().toISOString().split("T")[0] }).eq("id", payoutId);
@@ -226,10 +255,10 @@ const CommissionPrep = ({ onBack }: CommissionPrepProps) => {
         .eq("full_name", agentName)
         .maybeSingle();
 
-      // Fetch advance amount for this payout
+      // Fetch advance amount + existing check number for this payout
       const { data: payoutRow } = await supabase
         .from("commission_payouts")
-        .select("advance_amount")
+        .select("advance_amount, check_number")
         .eq("id", payoutId)
         .maybeSingle();
       const advance = Number((payoutRow as any)?.advance_amount || 0);
@@ -257,12 +286,17 @@ const CommissionPrep = ({ onBack }: CommissionPrepProps) => {
 
       const today = format(new Date(), "MMMM d, yyyy");
 
-      // Get next check number and increment counter
-      const checkNumber = await getNextCheckNumber();
+      // Use existing check number if already assigned (e.g. manual override or prior print);
+      // otherwise pull next from the global counter and increment.
+      const existingCheckNumber = (payoutRow as any)?.check_number
+        ? String((payoutRow as any).check_number)
+        : null;
+      const checkNumber = existingCheckNumber || (await getNextCheckNumber());
 
-      // Save check number on the payout record
-      await supabase.from("commission_payouts").update({ check_number: checkNumber }).eq("id", payoutId);
-      queryClient.invalidateQueries({ queryKey: ["accounting-payouts"] });
+      if (!existingCheckNumber) {
+        await supabase.from("commission_payouts").update({ check_number: checkNumber }).eq("id", payoutId);
+        queryClient.invalidateQueries({ queryKey: ["accounting-payouts"] });
+      }
 
       const netCheckAmount = Math.max(0, totalAmount - advance);
 
@@ -474,6 +508,7 @@ const CommissionPrep = ({ onBack }: CommissionPrepProps) => {
                      <TableHead>Property</TableHead>
                      <TableHead className="text-right">Amount</TableHead>
                      <TableHead>Date</TableHead>
+                     <TableHead>Check #</TableHead>
                      <TableHead>Status</TableHead>
                      <TableHead></TableHead>
                   </TableRow>
@@ -487,6 +522,18 @@ const CommissionPrep = ({ onBack }: CommissionPrepProps) => {
                       <TableCell className="text-sm text-muted-foreground">{getPayoutProperties(payout.id)}</TableCell>
                       <TableCell className="text-right">{formatCurrency(gross)}</TableCell>
                       <TableCell>{payout.payout_date ? format(new Date(payout.payout_date + "T00:00:00"), "MMM d, yyyy") : format(new Date(), "MMM d, yyyy")}</TableCell>
+                      <TableCell>
+                        <Input
+                          type="number"
+                          defaultValue={(payout as any).check_number ?? ""}
+                          placeholder="—"
+                          className="h-8 w-24"
+                          onBlur={(e) => updateCheckNumber(payout.id, (payout as any).check_number ?? null, e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+                          }}
+                        />
+                      </TableCell>
                       <TableCell>{statusBadge(payout.status)}</TableCell>
                       <TableCell className="text-right space-x-1">
                         <Button variant="ghost" size="sm" onClick={() => handlePrintCheck(payout.id, payout.agent_name, Number(payout.total_amount))}>
