@@ -14,7 +14,7 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { generateCheckPdf } from "@/utils/generateCheckPdf";
 import type { CheckLineItem } from "@/utils/generateCheckPdf";
-import { getNextCheckNumber } from "@/utils/checkNumberUtils";
+import { getNextCheckNumber, peekNextCheckNumber, setCheckNumber } from "@/utils/checkNumberUtils";
 
 interface CommissionPrepProps {
   onBack: () => void;
