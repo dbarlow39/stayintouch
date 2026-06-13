@@ -226,10 +226,10 @@ const CommissionPrep = ({ onBack }: CommissionPrepProps) => {
         .eq("full_name", agentName)
         .maybeSingle();
 
-      // Fetch advance amount for this payout
+      // Fetch advance amount + existing check number for this payout
       const { data: payoutRow } = await supabase
         .from("commission_payouts")
-        .select("advance_amount")
+        .select("advance_amount, check_number")
         .eq("id", payoutId)
         .maybeSingle();
       const advance = Number((payoutRow as any)?.advance_amount || 0);
