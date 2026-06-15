@@ -49,9 +49,9 @@ interface ResidentialWorkSheetTabProps {
   client?: ClientData;
 }
 
-const ResidentialWorkSheetTab = ({ lead }: ResidentialWorkSheetTabProps) => {
+const ResidentialWorkSheetTab = ({ lead, client }: ResidentialWorkSheetTabProps) => {
   const { user } = useAuth();
-  const [view, setView] = useState<"list" | "form">(lead ? "form" : "list");
+  const [view, setView] = useState<"list" | "form">(lead || client ? "form" : "list");
   const [saving, setSaving] = useState(false);
   const [currentInspectionId, setCurrentInspectionId] = useState<string | null>(null);
   const [inspectionData, setInspectionData] = useState<Record<string, any>>({});
