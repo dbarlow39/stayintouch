@@ -731,17 +731,15 @@ const ClientDetailModal = ({ client, open, onClose, onClientUpdated }: ClientDet
               )}
 
               {activeTab === "residential" && (
-                linkedLead ? (
-                  <ResidentialWorkSheetTab lead={linkedLead as any} />
-                ) : (
-                  <div className="text-center py-16 text-muted-foreground">
-                    <ClipboardList className="h-10 w-10 mx-auto mb-3 opacity-50" />
-                    <h3 className="font-semibold text-foreground mb-1">No source lead found</h3>
-                    <p className="text-sm">
-                      The Residential Work Sheet is only available for clients converted from a Seller Lead.
-                    </p>
-                  </div>
-                )
+                <ResidentialWorkSheetTab
+                  lead={linkedLead as any}
+                  client={client ? {
+                    id: client.id,
+                    first_name: client.first_name,
+                    last_name: client.last_name,
+                    address: [(client as any).street_number, (client as any).street_name].filter(Boolean).join(" ").trim(),
+                  } : undefined}
+                />
               )}
             </ScrollArea>
           </div>

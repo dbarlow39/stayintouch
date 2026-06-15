@@ -647,17 +647,15 @@ const ClientDetail = () => {
               )}
 
               {activeTab === "residential-work-sheet" && (
-                linkedLead ? (
-                  <ResidentialWorkSheetTab lead={linkedLead as any} />
-                ) : (
-                  <div className="text-center py-16 border border-dashed rounded-lg">
-                    <ClipboardList className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
-                    <h3 className="font-semibold text-foreground mb-1">No source lead found</h3>
-                    <p className="text-sm text-muted-foreground">
-                      This client doesn't have a matching seller-lead record to load the Residential Work Sheet from.
-                    </p>
-                  </div>
-                )
+                <ResidentialWorkSheetTab
+                  lead={linkedLead as any}
+                  client={client ? {
+                    id: client.id,
+                    first_name: client.first_name,
+                    last_name: client.last_name,
+                    address: [client.street_number, client.street_name].filter(Boolean).join(" ").trim(),
+                  } : undefined}
+                />
               )}
             </div>
           </div>
