@@ -182,6 +182,65 @@ const ResidentialWorkSheetTab = ({ lead, client }: ResidentialWorkSheetTabProps)
     initForLead();
   }, [user, lead, leadLoaded, currentInspectionId]);
 
+  // When opened from a client (no source lead), look up worksheet by client_id, then by address
+  useEffect(() => {
+    if (!user || lead || !client || leadLoaded) return;
+    if (currentInspectionId) { setLeadLoaded(true); return; }
+
+    const initForClient = async () => {
+      // 1) Match by client_id
+      const { data: byClient } = await supabase
+        .from("inspections")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("client_id", client.id)
+        .limit(1);
+      if (byClient && byClient.length > 0) {
+        await handleLoad(byClient[0].id);
+        setLeadLoaded(true);
+        return;
+      }
+
+      // 2) Fallback: match by address
+      const address = client.address?.trim();
+      if (address) {
+        const words = address.toLowerCase().replace(/[^a-z0-9\s]/g, '').split(/\s+/).filter(Boolean);
+        const streetNumber = words[0] || '';
+        const loosePattern = `%${words.join('%')}%`;
+        const { data } = await supabase
+          .from("inspections")
+          .select("id, property_address")
+          .eq("user_id", user.id)
+          .ilike("property_address", loosePattern)
+          .limit(5);
+        const match = data?.find(r => {
+          const dbNum = r.property_address?.match(/\d+/)?.[0];
+          return dbNum === streetNumber;
+        }) || data?.[0];
+        if (match) {
+          await handleLoad(match.id);
+          // Link the orphaned worksheet to this client for future loads
+          await supabase.from("inspections").update({ client_id: client.id }).eq("id", match.id);
+          setLeadLoaded(true);
+          return;
+        }
+      }
+
+      // No worksheet — pre-fill new one from client data
+      setInspectionData({
+        'property-info': {
+          name: `${client.first_name || ''} ${client.last_name || ''}`.trim(),
+          address: address || '',
+        },
+      });
+      setCurrentInspectionId(null);
+      setView("form");
+      setLeadLoaded(true);
+    };
+
+    initForClient();
+  }, [user, lead, client, leadLoaded, currentInspectionId]);
+
   // Auto-save every 10 minutes when in form view
   // GUARD: Only auto-save if data has more than just property-info (prevents overwriting full data with partial pre-fill)
   useEffect(() => {
