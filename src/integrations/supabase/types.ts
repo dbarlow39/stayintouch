@@ -391,6 +391,7 @@ export type Database = {
           price: number | null
           showing_type: string | null
           showings_to_date: number | null
+          source_lead_id: string | null
           special_instructions: string | null
           state: string | null
           status: string | null
@@ -429,6 +430,7 @@ export type Database = {
           price?: number | null
           showing_type?: string | null
           showings_to_date?: number | null
+          source_lead_id?: string | null
           special_instructions?: string | null
           state?: string | null
           status?: string | null
@@ -467,6 +469,7 @@ export type Database = {
           price?: number | null
           showing_type?: string | null
           showings_to_date?: number | null
+          source_lead_id?: string | null
           special_instructions?: string | null
           state?: string | null
           status?: string | null
@@ -476,7 +479,15 @@ export type Database = {
           zillow_link?: string | null
           zip?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "clients_source_lead_id_fkey"
+            columns: ["source_lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       closing_checks: {
         Row: {
@@ -1447,33 +1458,54 @@ export type Database = {
       }
       inspections: {
         Row: {
+          client_id: string | null
           created_at: string
           id: string
           inspection_data: Json | null
+          lead_id: string | null
           photos: Json | null
           property_address: string
           updated_at: string
           user_id: string
         }
         Insert: {
+          client_id?: string | null
           created_at?: string
           id?: string
           inspection_data?: Json | null
+          lead_id?: string | null
           photos?: Json | null
           property_address?: string
           updated_at?: string
           user_id: string
         }
         Update: {
+          client_id?: string | null
           created_at?: string
           id?: string
           inspection_data?: Json | null
+          lead_id?: string | null
           photos?: Json | null
           property_address?: string
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "inspections_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inspections_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       lead_sequence_enrollments: {
         Row: {
@@ -1713,6 +1745,7 @@ export type Database = {
         Row: {
           agent_id: string
           analysis_json: Json | null
+          client_id: string | null
           created_at: string
           document_label: string | null
           file_name: string
@@ -1720,13 +1753,14 @@ export type Database = {
           file_type: string
           id: string
           inline_data: Json | null
-          lead_id: string
+          lead_id: string | null
           mime_type: string | null
           source_type: string
         }
         Insert: {
           agent_id: string
           analysis_json?: Json | null
+          client_id?: string | null
           created_at?: string
           document_label?: string | null
           file_name: string
@@ -1734,13 +1768,14 @@ export type Database = {
           file_type?: string
           id?: string
           inline_data?: Json | null
-          lead_id: string
+          lead_id?: string | null
           mime_type?: string | null
           source_type?: string
         }
         Update: {
           agent_id?: string
           analysis_json?: Json | null
+          client_id?: string | null
           created_at?: string
           document_label?: string | null
           file_name?: string
@@ -1748,11 +1783,18 @@ export type Database = {
           file_type?: string
           id?: string
           inline_data?: Json | null
-          lead_id?: string
+          lead_id?: string | null
           mime_type?: string | null
           source_type?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "market_analysis_files_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "market_analysis_files_lead_id_fkey"
             columns: ["lead_id"]
@@ -2778,9 +2820,11 @@ export type Database = {
       recover_inspection_data: {
         Args: { target_id: string }
         Returns: {
+          client_id: string | null
           created_at: string
           id: string
           inspection_data: Json | null
+          lead_id: string | null
           photos: Json | null
           property_address: string
           updated_at: string
