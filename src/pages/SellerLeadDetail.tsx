@@ -316,11 +316,12 @@ const SellerLeadDetail = () => {
         .from("market_analysis_files")
         .update({ client_id: newClient.id })
         .eq("lead_id", lead.id);
-      await supabase
-        .from("inspections")
+      await (supabase
+        .from("inspections") as any)
         .update({ client_id: newClient.id, lead_id: lead.id })
         .eq("agent_id", user.id)
         .eq("lead_id", lead.id);
+
 
 
 
