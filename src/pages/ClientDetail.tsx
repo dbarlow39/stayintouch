@@ -116,6 +116,20 @@ const ClientDetail = () => {
     queryKey: ["client-linked-lead", id, user?.id],
     queryFn: async () => {
       if (!client || !user) return null;
+
+      // Prefer the durable link saved at conversion time.
+      const sourceLeadId = (client as any).source_lead_id as string | null | undefined;
+      if (sourceLeadId) {
+        const { data: linked, error: linkedErr } = await supabase
+          .from("leads")
+          .select("*")
+          .eq("id", sourceLeadId)
+          .eq("agent_id", user.id)
+          .maybeSingle();
+        if (!linkedErr && linked) return linked;
+      }
+
+      // Fallback: legacy clients without source_lead_id — match by address/name.
       const fullAddress = [client.street_number, client.street_name]
         .filter(Boolean)
         .join(" ")
@@ -142,6 +156,7 @@ const ClientDetail = () => {
       }
       return data;
     },
+
     enabled: !!client && !!user,
   });
 
