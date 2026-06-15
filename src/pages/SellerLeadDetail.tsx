@@ -320,7 +320,9 @@ const SellerLeadDetail = () => {
         .from("inspections")
         .update({ client_id: newClient.id, lead_id: lead.id })
         .eq("agent_id", user.id)
-        .or(`lead_id.eq.${lead.id},and(lead_id.is.null,property_address.ilike.%${(formData.address || "").replace(/[%,()]/g, "")}%)`);
+        .eq("lead_id", lead.id);
+
+
 
 
 
