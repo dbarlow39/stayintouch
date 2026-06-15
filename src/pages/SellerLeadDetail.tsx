@@ -284,11 +284,12 @@ const SellerLeadDetail = () => {
       const streetNumber = addressParts.length > 1 ? addressParts[0] : null;
       const streetName = addressParts.length > 1 ? addressParts.slice(1).join(" ") : formData.address || null;
 
-      // Insert into clients table
+      // Insert into clients table with durable link back to the source seller lead
       const { data: newClient, error: insertError } = await supabase
         .from("clients")
         .insert({
           agent_id: user.id,
+          source_lead_id: lead.id,
           first_name: formData.first_name,
           last_name: formData.last_name,
           email: formData.email || null,
@@ -309,9 +310,19 @@ const SellerLeadDetail = () => {
         .single();
       if (insertError) throw insertError;
 
-      // Preserve the original seller lead so ClientDetail can still look it up
-      // by agent_id + address to surface Market Analysis, Residential Work Sheet,
-      // audio, photos, and MLS descriptions on the new client.
+      // Attach existing Market Analysis files and Residential Work Sheet rows
+      // to the new client so they survive even if the seller lead is later removed.
+      await supabase
+        .from("market_analysis_files")
+        .update({ client_id: newClient.id })
+        .eq("lead_id", lead.id);
+      await supabase
+        .from("inspections")
+        .update({ client_id: newClient.id, lead_id: lead.id })
+        .eq("agent_id", user.id)
+        .or(`lead_id.eq.${lead.id},and(lead_id.is.null,property_address.ilike.%${(formData.address || "").replace(/[%,()]/g, "")}%)`);
+
+
 
 
       queryClient.invalidateQueries({ queryKey: ["leads"] });
