@@ -37,8 +37,16 @@ interface LeadData {
   annual_taxes?: number | null;
 }
 
+interface ClientData {
+  id: string;
+  first_name?: string | null;
+  last_name?: string | null;
+  address?: string | null;
+}
+
 interface ResidentialWorkSheetTabProps {
   lead?: LeadData;
+  client?: ClientData;
 }
 
 const ResidentialWorkSheetTab = ({ lead }: ResidentialWorkSheetTabProps) => {
