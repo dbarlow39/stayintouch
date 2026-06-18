@@ -447,6 +447,116 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
     return docs;
   };
 
+  const refreshSavedMarketAnalysisFiles = async () => {
+    if (!lead?.id || !user?.id) return;
+    const { data: refreshed, error } = await supabase
+      .from("market_analysis_files")
+      .select("*")
+      .eq("lead_id", lead.id)
+      .eq("agent_id", user.id)
+      .order("created_at", { ascending: false });
+    if (error) throw error;
+    if (refreshed) setSavedFiles(refreshed);
+  };
+
+  const buildMarketAnalysisRows = (docsForRequest: any[], generatedAnalysis: any) => {
+    const fileRows = docsForRequest.map((doc: any) => {
+      const isInline = doc.filePath === "__database__";
+      return {
+        lead_id: lead.id,
+        agent_id: user!.id,
+        file_name: doc.name,
+        file_path: isInline ? null : doc.filePath,
+        file_type: "source_doc",
+        mime_type: doc.mimeType,
+        document_label: doc.name,
+        source_type: isInline ? "inline" : "storage",
+        inline_data: isInline
+          ? {
+              inspectionData: doc.inspectionData,
+              inspectionPhotos: doc.inspectionPhotos,
+              summaryText: doc.inspectionData?.summaryText,
+            }
+          : null,
+        analysis_json: null,
+      };
+    });
+
+    return [
+      ...fileRows,
+      {
+        lead_id: lead.id,
+        agent_id: user!.id,
+        file_name: "Market Analysis Data",
+        file_path: null,
+        file_type: "analysis_json",
+        mime_type: "application/json",
+        document_label: "Generated Analysis",
+        source_type: "storage",
+        inline_data: null,
+        analysis_json: generatedAnalysis,
+      },
+    ];
+  };
+
+  const replaceSavedMarketAnalysisFilesSafely = async (docsForRequest: any[], generatedAnalysis: any) => {
+    if (!user?.id || !lead?.id) return;
+
+    const { data: existingRows, error: existingError } = await supabase
+      .from("market_analysis_files")
+      .select("id")
+      .eq("lead_id", lead.id)
+      .eq("agent_id", user.id);
+    if (existingError) throw existingError;
+
+    const rowsToInsert = buildMarketAnalysisRows(docsForRequest, generatedAnalysis);
+    const { error: insertError } = await supabase.from("market_analysis_files").insert(rowsToInsert);
+    if (insertError) throw insertError;
+
+    const oldIds = (existingRows || []).map((row) => row.id).filter(Boolean);
+    if (oldIds.length > 0) {
+      const { error: deleteError } = await supabase
+        .from("market_analysis_files")
+        .delete()
+        .eq("agent_id", user.id)
+        .in("id", oldIds);
+      if (deleteError) console.error("Inserted new analysis, but failed to remove older file references:", deleteError);
+    }
+
+    await refreshSavedMarketAnalysisFiles();
+  };
+
+  const saveUpdatedMarketAnalysis = async (generatedAnalysis: any) => {
+    if (!user?.id || !lead?.id) return;
+
+    const { data: updatedRows, error: updateError } = await supabase
+      .from("market_analysis_files")
+      .update({ analysis_json: generatedAnalysis })
+      .eq("lead_id", lead.id)
+      .eq("agent_id", user.id)
+      .eq("file_type", "analysis_json")
+      .select("id");
+    if (updateError) throw updateError;
+
+    if (!updatedRows || updatedRows.length === 0) {
+      const { error: insertError } = await supabase.from("market_analysis_files").insert({
+        lead_id: lead.id,
+        agent_id: user.id,
+        file_name: "Market Analysis Data",
+        file_path: null,
+        file_type: "analysis_json",
+        mime_type: "application/json",
+        document_label: "Generated Analysis",
+        source_type: "storage",
+        inline_data: null,
+        analysis_json: generatedAnalysis,
+      });
+      if (insertError) throw insertError;
+    }
+
+    await refreshSavedMarketAnalysisFiles();
+  };
+
   // Generate final analysis with conversation context
   const handleFinalGenerate = async () => {
     setGenerating(true);
@@ -494,50 +604,7 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
       // Persist source document references and analysis JSON
       if (user && lead?.id) {
         try {
-          const fileRows: any[] = docsForRequest.map((doc: any) => {
-            const isInline = doc.filePath === "__database__";
-            return {
-              lead_id: lead.id,
-              agent_id: user.id,
-              file_name: doc.name,
-              file_path: isInline ? null : doc.filePath,
-              file_type: "source_doc",
-              mime_type: doc.mimeType,
-              document_label: doc.name,
-              source_type: isInline ? "inline" : "storage",
-              inline_data: isInline
-                ? {
-                    inspectionData: doc.inspectionData,
-                    inspectionPhotos: doc.inspectionPhotos,
-                    summaryText: doc.inspectionData?.summaryText,
-                  }
-                : null,
-            };
-          });
-          fileRows.push({
-            lead_id: lead.id,
-            agent_id: user.id,
-            file_name: "Market Analysis Data",
-            file_path: null,
-            file_type: "analysis_json",
-            mime_type: "application/json",
-            document_label: "Generated Analysis",
-            source_type: "storage",
-            inline_data: null,
-          });
-          await supabase.from("market_analysis_files").delete().eq("lead_id", lead.id);
-          const rowsToInsert = fileRows.map((row, i) => ({
-            ...row,
-            analysis_json: i === fileRows.length - 1 ? data.analysis : null,
-          }));
-          const { error: insertError } = await supabase.from("market_analysis_files").insert(rowsToInsert);
-          if (insertError) console.error("Failed to save file references:", insertError);
-          const { data: refreshed } = await supabase
-            .from("market_analysis_files")
-            .select("*")
-            .eq("lead_id", lead.id)
-            .order("created_at", { ascending: false });
-          if (refreshed) setSavedFiles(refreshed);
+          await replaceSavedMarketAnalysisFilesSafely(docsForRequest, data.analysis);
         } catch (persistErr) {
           console.error("Persistence error:", persistErr);
         }
@@ -661,11 +728,7 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
       // Persist updated analysis
       if (user && lead?.id) {
         try {
-          await supabase
-            .from("market_analysis_files")
-            .update({ analysis_json: data.analysis })
-            .eq("lead_id", lead.id)
-            .eq("file_type", "analysis_json");
+          await saveUpdatedMarketAnalysis(data.analysis);
         } catch (persistErr) {
           console.error("Persistence error:", persistErr);
         }
