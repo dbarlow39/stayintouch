@@ -95,6 +95,7 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
           .from("market_analysis_files")
           .select("*")
           .eq("lead_id", lead.id)
+          .eq("agent_id", user.id)
           .order("created_at", { ascending: false });
         if (!error && data) {
           setSavedFiles(data);
@@ -420,6 +421,7 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
       .from("market_analysis_files")
       .select("file_name, file_path, mime_type, file_type, source_type, inline_data")
       .eq("lead_id", lead.id)
+      .eq("agent_id", user.id)
       .eq("file_type", "source_doc");
     if (error || !data) return [];
     const docs = data
