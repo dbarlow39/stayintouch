@@ -37,7 +37,9 @@ import {
   Package,
   TrendingUp,
   ClipboardList,
-} from "lucide-react";
+  Sparkles,
+  Copy,
+
 import PhoneCallTextLink from "@/components/PhoneCallTextLink";
 import logo from "@/assets/logo.jpg";
 import ClientFeedbackPage from "@/components/dashboard/ClientFeedbackPage";
