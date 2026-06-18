@@ -585,6 +585,38 @@ serve(async (req) => {
     console.log("Closed comps count:", analysis.closedComps?.length);
     console.log("Bullseye price:", analysis.pricing?.bullseyePrice);
 
+    if (leadId) {
+      try {
+        const { data: updatedRows, error: updateError } = await supabase
+          .from("market_analysis_files")
+          .update({ analysis_json: analysis })
+          .eq("lead_id", leadId)
+          .eq("agent_id", authData.user.id)
+          .eq("file_type", "analysis_json")
+          .select("id");
+
+        if (updateError) throw updateError;
+
+        if (!updatedRows || updatedRows.length === 0) {
+          const { error: insertError } = await supabase.from("market_analysis_files").insert({
+            lead_id: leadId,
+            agent_id: authData.user.id,
+            file_name: "Market Analysis Data",
+            file_path: null,
+            file_type: "analysis_json",
+            mime_type: "application/json",
+            document_label: "Generated Analysis",
+            source_type: "storage",
+            inline_data: null,
+            analysis_json: analysis,
+          });
+          if (insertError) throw insertError;
+        }
+      } catch (persistError) {
+        console.error("Failed to persist generated market analysis:", persistError);
+      }
+    }
+
     return new Response(
       JSON.stringify({ analysis }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
