@@ -321,11 +321,8 @@ const SellerLeadDetail = () => {
         .update({ client_id: newClient.id, lead_id: lead.id })
         .eq("agent_id", user.id)
         .eq("lead_id", lead.id);
-
-
-
-
-
+      // Remove the source seller lead now that everything has been re-pointed to the client.
+      await supabase.from("leads").delete().eq("id", lead.id).eq("agent_id", user.id);
 
 
       queryClient.invalidateQueries({ queryKey: ["leads"] });
