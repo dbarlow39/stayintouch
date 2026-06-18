@@ -39,6 +39,8 @@ import {
   ClipboardList,
   Sparkles,
   Copy,
+} from "lucide-react";
+
 
 import PhoneCallTextLink from "@/components/PhoneCallTextLink";
 import logo from "@/assets/logo.jpg";
