@@ -586,6 +586,7 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
 
       const { data, error } = await supabase.functions.invoke("generate-market-analysis", {
         body: {
+          leadId: lead.id,
           documents: docsForRequest,
           agentNotes: combinedNotes || undefined,
           lowerPriceBracket: parsedLower,
@@ -711,6 +712,7 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
 
       const { data, error } = await supabase.functions.invoke("generate-market-analysis", {
         body: {
+          leadId: lead.id,
           documents: docsForRequest,
           agentNotes: tweakNotes,
           lowerPriceBracket: parsedLower,
