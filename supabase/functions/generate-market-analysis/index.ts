@@ -267,7 +267,7 @@ serve(async (req) => {
 
   try {
     const reqBody = await req.json();
-    const { documents, agentNotes, buyerNames } = reqBody;
+    const { documents, agentNotes, buyerNames, leadId } = reqBody;
     const toNum = (v: unknown): number => {
       if (v === null || v === undefined || v === "") return 0;
       const n = typeof v === "number" ? v : parseFloat(String(v).replace(/[$,\s]/g, ""));
@@ -294,6 +294,34 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const authHeader = req.headers.get("Authorization") || "";
+    const token = authHeader.replace("Bearer ", "").trim();
+    const { data: authData, error: authError } = token
+      ? await supabase.auth.getUser(token)
+      : { data: { user: null }, error: new Error("Missing authorization") } as any;
+
+    if (authError || !authData?.user) {
+      return new Response(
+        JSON.stringify({ error: "Authentication required" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (leadId) {
+      const { data: leadRow, error: leadError } = await supabase
+        .from("leads")
+        .select("id, agent_id")
+        .eq("id", leadId)
+        .eq("agent_id", authData.user.id)
+        .maybeSingle();
+
+      if (leadError || !leadRow) {
+        return new Response(
+          JSON.stringify({ error: "Lead not found for this agent" }),
+          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
 
     const userContent: any[] = [];
 
@@ -405,7 +433,7 @@ serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "claude-sonnet-4-5",
+        model: "claude-sonnet-4-5-20250929",
         max_tokens: 8192,
         system: SYSTEM_PROMPT,
         messages: [{ role: "user", content: userContent }],
@@ -433,6 +461,9 @@ serve(async (req) => {
     const data = await response.json();
     console.log("Claude usage:", JSON.stringify(data.usage));
     console.log("Claude stop_reason:", data.stop_reason);
+    if (data.stop_reason === "max_tokens") {
+      throw new Error("AI response was cut off before completion. Please reduce the documents or notes and try again.");
+    }
     const textBlock = data.content?.find((b: any) => b.type === "text");
     const rawContent = textBlock?.text?.trim() || "";
     console.log("Claude response length:", rawContent.length);
