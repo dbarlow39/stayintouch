@@ -662,6 +662,76 @@ const ClientDetail = () => {
                   } : undefined}
                 />
               )}
+
+              {activeTab === "mls-description" && (() => {
+                const c: any = client || {};
+                const finalText: string = c.mls_description_final || c.mls_description || c.mls_description_claude || "";
+                const gemini: string = c.mls_description || "";
+                const claude: string = c.mls_description_claude || "";
+                const notes: string = c.mls_description_notes || "";
+                const copy = (txt: string) => {
+                  if (!txt) return;
+                  navigator.clipboard.writeText(txt).then(
+                    () => toast.success("Copied to clipboard"),
+                    () => toast.error("Copy failed"),
+                  );
+                };
+                if (!finalText && !gemini && !claude && !notes) {
+                  return (
+                    <div className="text-center py-16 border border-dashed rounded-lg">
+                      <Sparkles className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
+                      <h3 className="font-semibold text-foreground mb-1">No MLS Description</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Generate one on the source seller lead before converting, and it will appear here.
+                      </p>
+                    </div>
+                  );
+                }
+                return (
+                  <div className="space-y-4">
+                    {finalText && (
+                      <Card className="p-4">
+                        <div className="flex items-center justify-between mb-2">
+                          <Label className="text-sm font-semibold">Final MLS Description</Label>
+                          <Button variant="outline" size="sm" onClick={() => copy(finalText)}>
+                            <Copy className="h-4 w-4 mr-1" /> Copy
+                          </Button>
+                        </div>
+                        <Textarea value={finalText} readOnly rows={8} className="font-mono text-sm" />
+                        <p className="text-xs text-muted-foreground mt-1">{finalText.length} characters</p>
+                      </Card>
+                    )}
+                    {gemini && gemini !== finalText && (
+                      <Card className="p-4">
+                        <div className="flex items-center justify-between mb-2">
+                          <Label className="text-sm font-semibold">Gemini Version</Label>
+                          <Button variant="outline" size="sm" onClick={() => copy(gemini)}>
+                            <Copy className="h-4 w-4 mr-1" /> Copy
+                          </Button>
+                        </div>
+                        <Textarea value={gemini} readOnly rows={6} className="font-mono text-sm" />
+                      </Card>
+                    )}
+                    {claude && claude !== finalText && (
+                      <Card className="p-4">
+                        <div className="flex items-center justify-between mb-2">
+                          <Label className="text-sm font-semibold">Claude Version</Label>
+                          <Button variant="outline" size="sm" onClick={() => copy(claude)}>
+                            <Copy className="h-4 w-4 mr-1" /> Copy
+                          </Button>
+                        </div>
+                        <Textarea value={claude} readOnly rows={6} className="font-mono text-sm" />
+                      </Card>
+                    )}
+                    {notes && (
+                      <Card className="p-4">
+                        <Label className="text-sm font-semibold">Agent Notes</Label>
+                        <Textarea value={notes} readOnly rows={4} className="mt-2 text-sm" />
+                      </Card>
+                    )}
+                  </div>
+                );
+              })()}
             </div>
           </div>
         </Card>
