@@ -418,7 +418,7 @@ const SuggestedTasksSection = () => {
               defaultOpen={false}
               onDismiss={(id) => dismissMutation.mutate(id)}
               onSnooze={(id) => snoozeMutation.mutate(id)}
-              onMarkAllRead={(ids) => markAllReadMutation.mutate(ids)}
+              onMarkAllRead={(ids) => markAllReadMutation.mutate({ ids, category: "ignore" })}
               onOpenEmail={openGmailEmail}
               isDismissing={dismissMutation.isPending}
               selectedIds={selectedDigestIds}
