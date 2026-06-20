@@ -51,9 +51,15 @@ const SuggestedTasksSection = () => {
 
   const bulkDismissSelected = () => {
     if (selectedDigestIds.size === 0) return;
+    if (!window.confirm(`Mark ${selectedDigestIds.size} selected item(s) as done? This cannot be undone.`)) return;
     markAllReadMutation.mutate(Array.from(selectedDigestIds), {
       onSuccess: () => setSelectedDigestIds(new Set()),
     });
+  };
+
+  const confirmClearAll = (category: TriageCategory, ids: string[]) => {
+    if (!window.confirm(`Clear ALL ${category.toUpperCase()} items? This will dismiss every pending item in this category and cannot be undone.`)) return;
+    markAllReadMutation.mutate({ ids, category });
   };
   // Fetch persisted suggestions with email data
   const { data: suggestions, isLoading, dataUpdatedAt } = useQuery({
