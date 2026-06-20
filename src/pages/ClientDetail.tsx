@@ -165,6 +165,45 @@ const ClientDetail = () => {
     enabled: !!client && !!user,
   });
 
+  // Auto-create a seller-lead source row from this client when one doesn't exist yet.
+  // Powers the "Create source lead" button on the Market Analysis / Residential Work Sheet / MLS Description tabs.
+  const createSourceLeadMutation = useMutation({
+    mutationFn: async () => {
+      if (!client || !user) throw new Error("Client not loaded");
+      const address = [client.street_number, client.street_name].filter(Boolean).join(" ").trim();
+      const { data: lead, error: insertErr } = await supabase
+        .from("leads")
+        .insert({
+          agent_id: user.id,
+          lead_type: "seller",
+          first_name: client.first_name || "",
+          last_name: client.last_name || "",
+          address: address || null,
+          city: client.city || null,
+          state: client.state || null,
+          zip: client.zip || null,
+          phone: (client as any).phone || null,
+          email: (client as any).email || null,
+        })
+        .select("id")
+        .single();
+      if (insertErr) throw insertErr;
+      const { error: updateErr } = await supabase
+        .from("clients")
+        .update({ source_lead_id: lead.id })
+        .eq("id", client.id);
+      if (updateErr) throw updateErr;
+      return lead.id;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["client-linked-lead", id] });
+      queryClient.invalidateQueries({ queryKey: ["client-detail", id] });
+      toast.success("Source seller lead created");
+    },
+    onError: (e: any) => toast.error("Failed to create source lead: " + (e?.message || "")),
+  });
+
+
   const addNoteMutation = useMutation({
     mutationFn: async (content: string) => {
       const { error } = await supabase.from("client_notes").insert({
