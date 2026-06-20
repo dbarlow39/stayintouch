@@ -198,12 +198,15 @@ const SuggestedTasksSection = () => {
   // Mark all as read/done
   const markAllReadMutation = useMutation({
     mutationFn: async (ids: string[]) => {
-      const { error } = await supabase
-        .from("suggested_tasks")
-        .update({ status: "dismissed" })
-        .in("id", ids);
-      
-      if (error) throw error;
+      const CHUNK = 200;
+      for (let i = 0; i < ids.length; i += CHUNK) {
+        const chunk = ids.slice(i, i + CHUNK);
+        const { error } = await supabase
+          .from("suggested_tasks")
+          .update({ status: "dismissed" })
+          .in("id", chunk);
+        if (error) throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["suggested-tasks"] });
