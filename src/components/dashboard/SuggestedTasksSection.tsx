@@ -51,9 +51,15 @@ const SuggestedTasksSection = () => {
 
   const bulkDismissSelected = () => {
     if (selectedDigestIds.size === 0) return;
+    if (!window.confirm(`Mark ${selectedDigestIds.size} selected item(s) as done? This cannot be undone.`)) return;
     markAllReadMutation.mutate(Array.from(selectedDigestIds), {
       onSuccess: () => setSelectedDigestIds(new Set()),
     });
+  };
+
+  const confirmClearAll = (category: TriageCategory, ids: string[]) => {
+    if (!window.confirm(`Clear ALL ${category.toUpperCase()} items? This will dismiss every pending item in this category and cannot be undone.`)) return;
+    markAllReadMutation.mutate({ ids, category });
   };
   // Fetch persisted suggestions with email data
   const { data: suggestions, isLoading, dataUpdatedAt } = useQuery({
@@ -377,7 +383,7 @@ const SuggestedTasksSection = () => {
               defaultOpen={true}
               onDismiss={(id) => dismissMutation.mutate(id)}
               onSnooze={(id) => snoozeMutation.mutate(id)}
-              onMarkAllRead={(ids) => markAllReadMutation.mutate({ ids, category: "urgent" })}
+              onMarkAllRead={(ids) => confirmClearAll("urgent", ids)}
               onOpenEmail={openGmailEmail}
               isDismissing={dismissMutation.isPending}
               selectedIds={selectedDigestIds}
@@ -390,7 +396,7 @@ const SuggestedTasksSection = () => {
               defaultOpen={true}
               onDismiss={(id) => dismissMutation.mutate(id)}
               onSnooze={(id) => snoozeMutation.mutate(id)}
-              onMarkAllRead={(ids) => markAllReadMutation.mutate({ ids, category: "important" })}
+              onMarkAllRead={(ids) => confirmClearAll("important", ids)}
               onOpenEmail={openGmailEmail}
               isDismissing={dismissMutation.isPending}
               selectedIds={selectedDigestIds}
@@ -404,7 +410,7 @@ const SuggestedTasksSection = () => {
                 defaultOpen={!hasUrgentOrImportant}
                 onDismiss={(id) => dismissMutation.mutate(id)}
                 onSnooze={(id) => snoozeMutation.mutate(id)}
-                onMarkAllRead={(ids) => markAllReadMutation.mutate({ ids, category: "fyi" })}
+                onMarkAllRead={(ids) => confirmClearAll("fyi", ids)}
                 onOpenEmail={openGmailEmail}
                 isDismissing={dismissMutation.isPending}
                 selectedIds={selectedDigestIds}
@@ -418,7 +424,7 @@ const SuggestedTasksSection = () => {
               defaultOpen={false}
               onDismiss={(id) => dismissMutation.mutate(id)}
               onSnooze={(id) => snoozeMutation.mutate(id)}
-              onMarkAllRead={(ids) => markAllReadMutation.mutate({ ids, category: "ignore" })}
+              onMarkAllRead={(ids) => confirmClearAll("ignore", ids)}
               onOpenEmail={openGmailEmail}
               isDismissing={dismissMutation.isPending}
               selectedIds={selectedDigestIds}
