@@ -197,8 +197,12 @@ const SuggestedTasksSection = () => {
 
   // Mark all as read/done
   const markAllReadMutation = useMutation({
-    mutationFn: async (ids: string[]) => {
+    mutationFn: async (input: string[] | { ids: string[]; category?: TriageCategory | null }) => {
       const CHUNK = 200;
+      const ids = Array.isArray(input) ? input : input.ids;
+      const category = Array.isArray(input) ? null : (input.category ?? null);
+
+      // First dismiss the ids passed in (already loaded in UI)
       for (let i = 0; i < ids.length; i += CHUNK) {
         const chunk = ids.slice(i, i + CHUNK);
         const { error } = await supabase
@@ -206,6 +210,41 @@ const SuggestedTasksSection = () => {
           .update({ status: "dismissed" })
           .in("id", chunk);
         if (error) throw error;
+      }
+
+      // Then keep paging the DB for any remaining pending rows in this
+      // category for this agent until none are left (handles >1000 rows).
+      if (category && user) {
+        const nowIso = new Date().toISOString();
+        // Hard safety cap to avoid runaway loops
+        for (let pass = 0; pass < 500; pass++) {
+          let query = supabase
+            .from("suggested_tasks")
+            .select("id")
+            .eq("agent_id", user.id)
+            .eq("status", "pending")
+            .or(`snoozed_until.is.null,snoozed_until.lte.${nowIso}`)
+            .limit(CHUNK);
+
+          if (category === "important") {
+            query = query.or("triage_category.eq.important,triage_category.is.null");
+          } else {
+            query = query.eq("triage_category", category);
+          }
+
+          const { data, error } = await query;
+          if (error) throw error;
+          if (!data || data.length === 0) break;
+
+          const nextIds = data.map((r: any) => r.id);
+          const { error: updErr } = await supabase
+            .from("suggested_tasks")
+            .update({ status: "dismissed" })
+            .in("id", nextIds);
+          if (updErr) throw updErr;
+
+          if (data.length < CHUNK) break;
+        }
       }
     },
     onSuccess: () => {
@@ -338,7 +377,7 @@ const SuggestedTasksSection = () => {
               defaultOpen={true}
               onDismiss={(id) => dismissMutation.mutate(id)}
               onSnooze={(id) => snoozeMutation.mutate(id)}
-              onMarkAllRead={(ids) => markAllReadMutation.mutate(ids)}
+              onMarkAllRead={(ids) => markAllReadMutation.mutate({ ids, category: "urgent" })}
               onOpenEmail={openGmailEmail}
               isDismissing={dismissMutation.isPending}
               selectedIds={selectedDigestIds}
@@ -351,7 +390,7 @@ const SuggestedTasksSection = () => {
               defaultOpen={true}
               onDismiss={(id) => dismissMutation.mutate(id)}
               onSnooze={(id) => snoozeMutation.mutate(id)}
-              onMarkAllRead={(ids) => markAllReadMutation.mutate(ids)}
+              onMarkAllRead={(ids) => markAllReadMutation.mutate({ ids, category: "important" })}
               onOpenEmail={openGmailEmail}
               isDismissing={dismissMutation.isPending}
               selectedIds={selectedDigestIds}
@@ -365,7 +404,7 @@ const SuggestedTasksSection = () => {
                 defaultOpen={!hasUrgentOrImportant}
                 onDismiss={(id) => dismissMutation.mutate(id)}
                 onSnooze={(id) => snoozeMutation.mutate(id)}
-                onMarkAllRead={(ids) => markAllReadMutation.mutate(ids)}
+                onMarkAllRead={(ids) => markAllReadMutation.mutate({ ids, category: "fyi" })}
                 onOpenEmail={openGmailEmail}
                 isDismissing={dismissMutation.isPending}
                 selectedIds={selectedDigestIds}
@@ -379,7 +418,7 @@ const SuggestedTasksSection = () => {
               defaultOpen={false}
               onDismiss={(id) => dismissMutation.mutate(id)}
               onSnooze={(id) => snoozeMutation.mutate(id)}
-              onMarkAllRead={(ids) => markAllReadMutation.mutate(ids)}
+              onMarkAllRead={(ids) => markAllReadMutation.mutate({ ids, category: "ignore" })}
               onOpenEmail={openGmailEmail}
               isDismissing={dismissMutation.isPending}
               selectedIds={selectedDigestIds}
