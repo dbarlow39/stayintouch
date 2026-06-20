@@ -50,6 +50,7 @@ import ClientEditForm from "@/components/dashboard/ClientEditForm";
 import ClientAnalysisView from "@/components/dashboard/weeklyUpdate/ClientAnalysisView";
 import ResidentialWorkSheetTab from "@/components/dashboard/ResidentialWorkSheetTab";
 import MarketAnalysisTab from "@/components/dashboard/sellerLead/MarketAnalysisTab";
+import MLSDescriptionTab from "@/components/dashboard/sellerLead/MLSDescriptionTab";
 
 interface ClientNote {
   id: string;
