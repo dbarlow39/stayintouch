@@ -50,6 +50,7 @@ import ClientEditForm from "@/components/dashboard/ClientEditForm";
 import ClientAnalysisView from "@/components/dashboard/weeklyUpdate/ClientAnalysisView";
 import ResidentialWorkSheetTab from "@/components/dashboard/ResidentialWorkSheetTab";
 import MarketAnalysisTab from "@/components/dashboard/sellerLead/MarketAnalysisTab";
+import MLSDescriptionTab from "@/components/dashboard/sellerLead/MLSDescriptionTab";
 
 interface ClientNote {
   id: string;
@@ -163,6 +164,45 @@ const ClientDetail = () => {
 
     enabled: !!client && !!user,
   });
+
+  // Auto-create a seller-lead source row from this client when one doesn't exist yet.
+  // Powers the "Create source lead" button on the Market Analysis / Residential Work Sheet / MLS Description tabs.
+  const createSourceLeadMutation = useMutation({
+    mutationFn: async () => {
+      if (!client || !user) throw new Error("Client not loaded");
+      const address = [client.street_number, client.street_name].filter(Boolean).join(" ").trim();
+      const { data: lead, error: insertErr } = await supabase
+        .from("leads")
+        .insert({
+          agent_id: user.id,
+          lead_type: "seller",
+          first_name: client.first_name || "",
+          last_name: client.last_name || "",
+          address: address || null,
+          city: client.city || null,
+          state: client.state || null,
+          zip: client.zip || null,
+          phone: (client as any).phone || null,
+          email: (client as any).email || null,
+        })
+        .select("id")
+        .single();
+      if (insertErr) throw insertErr;
+      const { error: updateErr } = await supabase
+        .from("clients")
+        .update({ source_lead_id: lead.id })
+        .eq("id", client.id);
+      if (updateErr) throw updateErr;
+      return lead.id;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["client-linked-lead", id] });
+      queryClient.invalidateQueries({ queryKey: ["client-detail", id] });
+      toast.success("Source seller lead created");
+    },
+    onError: (e: any) => toast.error("Failed to create source lead: " + (e?.message || "")),
+  });
+
 
   const addNoteMutation = useMutation({
     mutationFn: async (content: string) => {
@@ -637,101 +677,75 @@ const ClientDetail = () => {
                 </div>
               )}
 
-              {activeTab === "market-analysis" && (
-                linkedLead ? (
-                  <MarketAnalysisTab lead={linkedLead as any} />
-                ) : (
+              {(() => {
+                const NoSourceLeadEmpty = ({ icon: Icon, title, body }: { icon: any; title: string; body: string }) => (
                   <div className="text-center py-16 border border-dashed rounded-lg">
-                    <TrendingUp className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
-                    <h3 className="font-semibold text-foreground mb-1">No source lead found</h3>
-                    <p className="text-sm text-muted-foreground">
-                      This client doesn't have a matching seller-lead record to load Market Analysis from.
-                    </p>
-                  </div>
-                )
-              )}
-
-              {activeTab === "residential-work-sheet" && (
-                <ResidentialWorkSheetTab
-                  lead={linkedLead as any}
-                  client={client ? {
-                    id: client.id,
-                    first_name: client.first_name,
-                    last_name: client.last_name,
-                    address: [client.street_number, client.street_name].filter(Boolean).join(" ").trim(),
-                  } : undefined}
-                />
-              )}
-
-              {activeTab === "mls-description" && (() => {
-                const c: any = client || {};
-                const finalText: string = c.mls_description_final || c.mls_description || c.mls_description_claude || "";
-                const gemini: string = c.mls_description || "";
-                const claude: string = c.mls_description_claude || "";
-                const notes: string = c.mls_description_notes || "";
-                const copy = (txt: string) => {
-                  if (!txt) return;
-                  navigator.clipboard.writeText(txt).then(
-                    () => toast.success("Copied to clipboard"),
-                    () => toast.error("Copy failed"),
-                  );
-                };
-                if (!finalText && !gemini && !claude && !notes) {
-                  return (
-                    <div className="text-center py-16 border border-dashed rounded-lg">
-                      <Sparkles className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
-                      <h3 className="font-semibold text-foreground mb-1">No MLS Description</h3>
-                      <p className="text-sm text-muted-foreground">
-                        Generate one on the source seller lead before converting, and it will appear here.
-                      </p>
-                    </div>
-                  );
-                }
-                return (
-                  <div className="space-y-4">
-                    {finalText && (
-                      <Card className="p-4">
-                        <div className="flex items-center justify-between mb-2">
-                          <Label className="text-sm font-semibold">Final MLS Description</Label>
-                          <Button variant="outline" size="sm" onClick={() => copy(finalText)}>
-                            <Copy className="h-4 w-4 mr-1" /> Copy
-                          </Button>
-                        </div>
-                        <Textarea value={finalText} readOnly rows={8} className="font-mono text-sm" />
-                        <p className="text-xs text-muted-foreground mt-1">{finalText.length} characters</p>
-                      </Card>
-                    )}
-                    {gemini && gemini !== finalText && (
-                      <Card className="p-4">
-                        <div className="flex items-center justify-between mb-2">
-                          <Label className="text-sm font-semibold">Gemini Version</Label>
-                          <Button variant="outline" size="sm" onClick={() => copy(gemini)}>
-                            <Copy className="h-4 w-4 mr-1" /> Copy
-                          </Button>
-                        </div>
-                        <Textarea value={gemini} readOnly rows={6} className="font-mono text-sm" />
-                      </Card>
-                    )}
-                    {claude && claude !== finalText && (
-                      <Card className="p-4">
-                        <div className="flex items-center justify-between mb-2">
-                          <Label className="text-sm font-semibold">Claude Version</Label>
-                          <Button variant="outline" size="sm" onClick={() => copy(claude)}>
-                            <Copy className="h-4 w-4 mr-1" /> Copy
-                          </Button>
-                        </div>
-                        <Textarea value={claude} readOnly rows={6} className="font-mono text-sm" />
-                      </Card>
-                    )}
-                    {notes && (
-                      <Card className="p-4">
-                        <Label className="text-sm font-semibold">Agent Notes</Label>
-                        <Textarea value={notes} readOnly rows={4} className="mt-2 text-sm" />
-                      </Card>
-                    )}
+                    <Icon className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
+                    <h3 className="font-semibold text-foreground mb-1">{title}</h3>
+                    <p className="text-sm text-muted-foreground mb-4 max-w-md mx-auto">{body}</p>
+                    <Button
+                      onClick={() => createSourceLeadMutation.mutate()}
+                      disabled={createSourceLeadMutation.isPending}
+                    >
+                      {createSourceLeadMutation.isPending ? "Creating…" : "Create source lead from this client"}
+                    </Button>
                   </div>
                 );
+                return (
+                  <>
+                    {activeTab === "market-analysis" && (
+                      linkedLead ? (
+                        <MarketAnalysisTab lead={linkedLead as any} />
+                      ) : (
+                        <NoSourceLeadEmpty
+                          icon={TrendingUp}
+                          title="No source lead found"
+                          body="Market Analysis is powered by a seller-lead record. Create one from this client's info to get started."
+                        />
+                      )
+                    )}
+
+                    {activeTab === "residential-work-sheet" && (
+                      linkedLead ? (
+                        <ResidentialWorkSheetTab
+                          lead={linkedLead as any}
+                          client={client ? {
+                            id: client.id,
+                            first_name: client.first_name,
+                            last_name: client.last_name,
+                            address: [client.street_number, client.street_name].filter(Boolean).join(" ").trim(),
+                          } : undefined}
+                        />
+                      ) : (
+                        <NoSourceLeadEmpty
+                          icon={ClipboardList}
+                          title="No source lead found"
+                          body="The Residential Work Sheet is powered by a seller-lead record. Create one from this client's info to get started."
+                        />
+                      )
+                    )}
+
+                    {activeTab === "mls-description" && (
+                      linkedLead ? (
+                        <MLSDescriptionTab
+                          leadId={(linkedLead as any).id}
+                          initialDescription={(linkedLead as any).mls_description}
+                          initialClaude={(linkedLead as any).mls_description_claude}
+                          initialFinal={(linkedLead as any).mls_description_final}
+                          initialNotes={(linkedLead as any).mls_description_notes}
+                        />
+                      ) : (
+                        <NoSourceLeadEmpty
+                          icon={Sparkles}
+                          title="No source lead found"
+                          body="The MLS Description generator is powered by a seller-lead record. Create one from this client's info to generate descriptions from the Residential Work Sheet."
+                        />
+                      )
+                    )}
+                  </>
+                );
               })()}
+
             </div>
           </div>
         </Card>
