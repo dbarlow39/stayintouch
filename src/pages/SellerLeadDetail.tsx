@@ -321,8 +321,19 @@ const SellerLeadDetail = () => {
         .update({ client_id: newClient.id, lead_id: lead.id })
         .eq("agent_id", user.id)
         .eq("lead_id", lead.id);
-      // Remove the source seller lead now that everything has been re-pointed to the client.
-      await supabase.from("leads").delete().eq("id", lead.id).eq("agent_id", user.id);
+      // NOTE: We intentionally do NOT delete the source seller lead.
+      // The new client links back via source_lead_id, and the Residential Work Sheet,
+      // Market Analysis, and MLS Description tabs all resolve through that link.
+      // The lead is filtered out of the Seller Leads list (LeadsTab) once a client
+      // references it, so it disappears from that view automatically.
+      const convertedStamp = `Converted to client on ${new Date().toLocaleDateString()}`;
+      const newNotes = lead.notes ? `${lead.notes}\n\n${convertedStamp}` : convertedStamp;
+      await supabase
+        .from("leads")
+        .update({ notes: newNotes })
+        .eq("id", lead.id)
+        .eq("agent_id", user.id);
+
 
 
       queryClient.invalidateQueries({ queryKey: ["leads"] });
