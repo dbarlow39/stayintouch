@@ -20,29 +20,49 @@ interface ClientEmail {
 
 interface ClientCommunicationsViewProps {
   clientEmail: string | null | undefined;
+  propertyAddress?: string | null;
 }
 
-const ClientCommunicationsView = ({ clientEmail }: ClientCommunicationsViewProps) => {
+const ClientCommunicationsView = ({ clientEmail, propertyAddress }: ClientCommunicationsViewProps) => {
   const { user } = useAuth();
 
   const { data: emails = [], isLoading } = useQuery({
-    queryKey: ["client-communications", clientEmail],
+    queryKey: ["client-communications", clientEmail, propertyAddress],
     queryFn: async () => {
-      if (!clientEmail) return [];
-      
-      // Handle comma-separated emails (e.g., "bob@gmail.com,jane@gmail.com")
-      const emailList = clientEmail.split(",").map(e => e.trim()).filter(Boolean);
-      
-      // Build OR conditions for all email addresses
-      const orConditions = emailList
-        .map(email => `from_email.ilike.%${email}%,to_email.ilike.%${email}%`)
-        .join(",");
-      
+      const emailList = (clientEmail || "").split(",").map(e => e.trim()).filter(Boolean);
+
+      // Build address search terms (full + short form "number + first word")
+      const addrTerms: string[] = [];
+      const addr = (propertyAddress || "").trim();
+      if (addr) {
+        addrTerms.push(addr);
+        const parts = addr.split(/\s+/);
+        if (parts.length >= 2) {
+          const shortForm = `${parts[0]} ${parts[1]}`;
+          if (shortForm !== addr) addrTerms.push(shortForm);
+        }
+      }
+
+      if (emailList.length === 0 && addrTerms.length === 0) return [];
+
+      const escape = (s: string) => s.replace(/,/g, " ").replace(/[()]/g, " ");
+      const orParts: string[] = [];
+      for (const email of emailList) {
+        orParts.push(`from_email.ilike.%${escape(email)}%`);
+        orParts.push(`to_email.ilike.%${escape(email)}%`);
+      }
+      for (const term of addrTerms) {
+        const t = escape(term);
+        orParts.push(`subject.ilike.%${t}%`);
+        orParts.push(`snippet.ilike.%${t}%`);
+        orParts.push(`body_preview.ilike.%${t}%`);
+      }
+
       const { data, error } = await supabase
         .from("client_email_logs")
         .select("*")
         .eq("agent_id", user!.id)
-        .or(orConditions)
+        .or(orParts.join(","))
         .order("received_at", { ascending: false });
       
       if (error) throw error;
@@ -61,16 +81,16 @@ const ClientCommunicationsView = ({ clientEmail }: ClientCommunicationsViewProps
       
       return filteredEmails;
     },
-    enabled: !!clientEmail && !!user,
+    enabled: !!user && (!!clientEmail || !!propertyAddress),
   });
 
-  if (!clientEmail) {
+  if (!clientEmail && !propertyAddress) {
     return (
       <div className="text-center py-8 border border-dashed rounded-lg">
         <Mail className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-        <p className="text-muted-foreground">No email address on file</p>
+        <p className="text-muted-foreground">No email address or property on file</p>
         <p className="text-sm text-muted-foreground">
-          Add an email address to see communications
+          Add an email address or property address to see communications
         </p>
       </div>
     );

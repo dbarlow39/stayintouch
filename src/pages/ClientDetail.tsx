@@ -639,7 +639,7 @@ const ClientDetail = () => {
               )}
 
               {activeTab === "communications" && (
-                <ClientCommunicationsView clientEmail={client.email} />
+                <ClientCommunicationsView clientEmail={client.email} propertyAddress={[client.street_number, client.street_name].filter(Boolean).join(" ").trim() || null} />
               )}
 
               {activeTab === "feedback" && (

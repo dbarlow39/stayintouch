@@ -678,7 +678,7 @@ const ClientDetailModal = ({ client, open, onClose, onClientUpdated }: ClientDet
               )}
 
               {activeTab === "communications" && (
-                <ClientCommunicationsView clientEmail={client.email} />
+                <ClientCommunicationsView clientEmail={client.email} propertyAddress={[(client as any).street_number, (client as any).street_name].filter(Boolean).join(" ").trim() || null} />
               )}
 
               {activeTab === "feedback" && (
