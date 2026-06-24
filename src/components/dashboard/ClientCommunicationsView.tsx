@@ -81,16 +81,16 @@ const ClientCommunicationsView = ({ clientEmail, propertyAddress }: ClientCommun
       
       return filteredEmails;
     },
-    enabled: !!clientEmail && !!user,
+    enabled: !!user && (!!clientEmail || !!propertyAddress),
   });
 
-  if (!clientEmail) {
+  if (!clientEmail && !propertyAddress) {
     return (
       <div className="text-center py-8 border border-dashed rounded-lg">
         <Mail className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-        <p className="text-muted-foreground">No email address on file</p>
+        <p className="text-muted-foreground">No email address or property on file</p>
         <p className="text-sm text-muted-foreground">
-          Add an email address to see communications
+          Add an email address or property address to see communications
         </p>
       </div>
     );
