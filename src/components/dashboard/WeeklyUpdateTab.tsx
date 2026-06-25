@@ -217,6 +217,7 @@ const WeeklyUpdateTab = () => {
   });
   
   const [articleText, setArticleText] = useState('');
+  const [isGeneratingArticle, setIsGeneratingArticle] = useState(false);
   
   
   const [selectedClients, setSelectedClients] = useState<Set<string>>(new Set());
