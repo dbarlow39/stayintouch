@@ -42,6 +42,18 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
+    let emphasis = "";
+    try {
+      const body = await req.json();
+      emphasis = typeof body?.emphasis === "string" ? body.emphasis.trim() : "";
+    } catch {
+      // no body is fine
+    }
+
+    const finalPrompt = emphasis
+      ? `${PROMPT}\n\nIMPORTANT — weave this week's point of emphasis naturally into the article (do not quote it verbatim, integrate the idea): ${emphasis}`
+      : PROMPT;
+
     const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -50,9 +62,10 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         model: "openai/gpt-5.5",
-        messages: [{ role: "user", content: PROMPT }],
+        messages: [{ role: "user", content: finalPrompt }],
       }),
     });
+
 
     if (!resp.ok) {
       const t = await resp.text();
