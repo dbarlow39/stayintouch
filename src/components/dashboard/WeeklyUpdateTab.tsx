@@ -216,7 +216,7 @@ const WeeklyUpdateTab = () => {
     article_summary: undefined,
   });
   
-  const [articleText, setArticleText] = useState('');
+  const [emphasisText, setEmphasisText] = useState('');
   const [isGeneratingArticle, setIsGeneratingArticle] = useState(false);
   
   
