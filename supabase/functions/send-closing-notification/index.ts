@@ -1,3 +1,5 @@
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -9,7 +11,48 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { recipientEmail, agentName, propertyAddress, paperworkReceived, checkReceived, fromName } = await req.json();
+    const body = await req.json().catch(() => ({}));
+    let { recipientEmail, agentName, propertyAddress, paperworkReceived, checkReceived, fromName } = body;
+    const closingId = body.closing_id || body.closingId;
+
+    // If invoked with just closing_id (e.g. by DB trigger on auto-import), resolve fields from DB.
+    if (closingId) {
+      const supabase = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+      );
+      const { data: closing, error: cErr } = await supabase
+        .from("closings")
+        .select("agent_id, agent_name, property_address, paperwork_status")
+        .eq("id", closingId)
+        .maybeSingle();
+      if (cErr || !closing) {
+        console.error("Closing lookup failed:", cErr);
+        return new Response(JSON.stringify({ error: "Closing not found" }), {
+          status: 404,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("preferred_email, email, first_name, full_name")
+        .eq("id", closing.agent_id)
+        .maybeSingle();
+
+      recipientEmail = recipientEmail || profile?.preferred_email || profile?.email;
+      agentName = agentName || profile?.first_name || profile?.full_name || closing.agent_name;
+      propertyAddress = propertyAddress || closing.property_address;
+      paperworkReceived = paperworkReceived ?? (closing.paperwork_status === "received");
+      fromName = fromName || "Sell For 1 Percent";
+
+      if (!recipientEmail) {
+        console.warn(`No recipient email for agent ${closing.agent_id}; skipping.`);
+        return new Response(JSON.stringify({ skipped: "no recipient email" }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
 
     if (!recipientEmail || (!paperworkReceived && !checkReceived)) {
       return new Response(JSON.stringify({ error: "Missing recipient or nothing to notify" }), {
