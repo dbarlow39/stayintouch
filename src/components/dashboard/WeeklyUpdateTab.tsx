@@ -216,7 +216,7 @@ const WeeklyUpdateTab = () => {
     article_summary: undefined,
   });
   
-  const [articleText, setArticleText] = useState('');
+  const [emphasisText, setEmphasisText] = useState('');
   const [isGeneratingArticle, setIsGeneratingArticle] = useState(false);
   
   
@@ -1108,25 +1108,40 @@ const WeeklyUpdateTab = () => {
           
           {/* Article Generation Section */}
           <div className="mt-6 space-y-3">
-            <Label htmlFor="article_text" className="text-sm font-medium">
+            <Label htmlFor="emphasis_text" className="text-sm font-medium">
               📰 Weekly Market Article
             </Label>
             <p className="text-xs text-muted-foreground">
-              Click Generate to have AI write the opening market article (GPT-5.5). Edit as needed, then click Add to Email.
+              Add an optional point of emphasis for this week (e.g. "End of month — buyers writing offers" or "4th of July weekend — showings slow"). Then click Generate; the article is placed directly into the email.
             </p>
+            <Textarea
+              id="emphasis_text"
+              value={emphasisText}
+              onChange={(e) => setEmphasisText(e.target.value)}
+              placeholder="Point of emphasis for this week (optional)..."
+              className="min-h-[70px]"
+            />
             <div className="flex items-center gap-2">
               <Button
                 variant="default"
                 size="sm"
                 disabled={isGeneratingArticle}
                 onClick={async () => {
+                  if (marketData.article_summary && !window.confirm("This will overwrite the current article in the email. Continue?")) {
+                    return;
+                  }
                   setIsGeneratingArticle(true);
                   try {
-                    const { data, error } = await supabase.functions.invoke('generate-market-article');
+                    const { data, error } = await supabase.functions.invoke('generate-market-article', {
+                      body: { emphasis: emphasisText.trim() || undefined },
+                    });
                     if (error) throw error;
                     if (data?.article) {
-                      setArticleText(data.article);
-                      toast({ title: "Article generated", description: "Review and edit, then click Add to Email." });
+                      const nextMarketData = { ...marketData, article_summary: data.article.trim() };
+                      setMarketData(nextMarketData);
+                      setHasUserEdited(true);
+                      saveMarketData.mutate(nextMarketData);
+                      toast({ title: "Article added", description: "Article placed in the email opening." });
                     } else {
                       throw new Error(data?.error || "No article returned");
                     }
@@ -1142,29 +1157,6 @@ const WeeklyUpdateTab = () => {
                 ) : (
                   <><FileText className="w-4 h-4 mr-2" /> Generate Article</>
                 )}
-              </Button>
-            </div>
-            <Textarea
-              id="article_text"
-              value={articleText}
-              onChange={(e) => setArticleText(e.target.value)}
-              placeholder="Click Generate Article above, or paste your own here..."
-              className="min-h-[180px]"
-            />
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={!articleText.trim()}
-                onClick={() => {
-                  setMarketData(prev => ({ ...prev, article_summary: articleText.trim() }));
-                  setHasUserEdited(true);
-                  setArticleText('');
-                  toast({ title: "Article added", description: "Article will appear as the opening paragraphs of your email" });
-                }}
-              >
-                <FileText className="w-4 h-4 mr-2" />
-                Add to Email
               </Button>
               {marketData.article_summary && (
                 <Button
@@ -1188,6 +1180,7 @@ const WeeklyUpdateTab = () => {
               </div>
             )}
           </div>
+
           
           <div className="mt-4 flex justify-start">
             <Button
