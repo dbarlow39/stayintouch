@@ -217,6 +217,7 @@ const WeeklyUpdateTab = () => {
   });
   
   const [articleText, setArticleText] = useState('');
+  const [isGeneratingArticle, setIsGeneratingArticle] = useState(false);
   
   
   const [selectedClients, setSelectedClients] = useState<Set<string>>(new Set());
@@ -1105,20 +1106,50 @@ const WeeklyUpdateTab = () => {
             )}
           </div>
           
-          {/* Article Summarization Section */}
+          {/* Article Generation Section */}
           <div className="mt-6 space-y-3">
             <Label htmlFor="article_text" className="text-sm font-medium">
-              📰 Paste Real Estate Article (optional)
+              📰 Weekly Market Article
             </Label>
             <p className="text-xs text-muted-foreground">
-              Paste an article and it will be added as the opening paragraphs of your email
+              Click Generate to have AI write the opening market article (GPT-5.5). Edit as needed, then click Add to Email.
             </p>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="default"
+                size="sm"
+                disabled={isGeneratingArticle}
+                onClick={async () => {
+                  setIsGeneratingArticle(true);
+                  try {
+                    const { data, error } = await supabase.functions.invoke('generate-market-article');
+                    if (error) throw error;
+                    if (data?.article) {
+                      setArticleText(data.article);
+                      toast({ title: "Article generated", description: "Review and edit, then click Add to Email." });
+                    } else {
+                      throw new Error(data?.error || "No article returned");
+                    }
+                  } catch (e: any) {
+                    toast({ title: "Generation failed", description: e?.message || "Try again shortly", variant: "destructive" });
+                  } finally {
+                    setIsGeneratingArticle(false);
+                  }
+                }}
+              >
+                {isGeneratingArticle ? (
+                  <><RefreshCw className="w-4 h-4 mr-2 animate-spin" /> Generating...</>
+                ) : (
+                  <><FileText className="w-4 h-4 mr-2" /> Generate Article</>
+                )}
+              </Button>
+            </div>
             <Textarea
               id="article_text"
               value={articleText}
               onChange={(e) => setArticleText(e.target.value)}
-              placeholder="Paste a real estate article here..."
-              className="min-h-[120px]"
+              placeholder="Click Generate Article above, or paste your own here..."
+              className="min-h-[180px]"
             />
             <div className="flex items-center gap-2">
               <Button
