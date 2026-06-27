@@ -18,6 +18,40 @@ interface Meta {
   alreadySubmitted?: boolean;
 }
 
+interface Section {
+  title: string;
+  description: string;
+  prompt: string;
+  indices: number[];
+}
+
+const SECTIONS: Section[] = [
+  {
+    title: "Daily Moments & Interior Comforts",
+    description: "Think about your daily routines, your favorite spots to unwind, and how the house feels throughout the day.",
+    prompt: "Where do you drink your morning coffee? Where and how do you unwind or recharge at the end of the day? Which room gets the best natural light? How does this home support your routines (working from home, family dinners, hobbies, getting kids ready, etc.)? What small, functional feature will you miss the most?",
+    indices: [0, 1, 2],
+  },
+  {
+    title: "Hosting & Entertaining",
+    description: "Think about holidays, birthdays, or casual Friday nights with friends and family.",
+    prompt: "Where does everyone naturally gather when you host? What feature or detail do guests always notice or compliment? Any custom touches, built-ins, architectural details, or updates that make this home feel one-of-a-kind? What surprised you most (in a good way) when you first moved in or lived here? What is your home's \"party trick\" (e.g., great deck flow, massive kitchen island, cozy basement)?",
+    indices: [3, 4, 5],
+  },
+  {
+    title: "Community & The Neighborhood",
+    description: "Step outside. What makes your specific lot, street, or community special?",
+    prompt: "What is your favorite view from a window? What do you enjoy most about the yard, patio, deck, or views outside? What neighborhood perks can you enjoy without even leaving the area (sounds, proximity, community feel, etc.)? What will you miss most after moving about your home, neighborhood or the street dynamics?",
+    indices: [6, 7, 8],
+  },
+  {
+    title: 'The "First Impression" Flashback',
+    description: "Let's take a trip down memory lane.",
+    prompt: 'When you first toured this home as a buyer, what was the exact moment or feature that made you say, "Yep, this is the one"?',
+    indices: [9],
+  },
+];
+
 const LoveQuestionnaire = () => {
   const { token } = useParams<{ token: string }>();
   const [loading, setLoading] = useState(true);
@@ -101,9 +135,9 @@ const LoveQuestionnaire = () => {
         </header>
         <div className="container mx-auto px-4 py-16 max-w-xl text-center">
           <CheckCircle2 className="w-16 h-16 mx-auto text-emerald-600 mb-4" />
-          <h1 className="text-2xl font-bold mb-2">Thank you!</h1>
-          <p className="text-muted-foreground">
-            Your answers have been sent to your listing agent. They'll use the emotional details you shared to write a description that helps buyers fall in love with your home the way you did.
+          <h1 className="text-2xl font-bold mb-3">Thank you so much!</h1>
+          <p className="text-muted-foreground leading-relaxed">
+            Your insights are incredibly valuable. I am going to weave these unique details into your property descriptions, social media spotlights, and marketing materials so prospective buyers can truly see themselves living in your beautiful home. I'll be in touch soon!
           </p>
         </div>
       </div>
@@ -137,12 +171,18 @@ const LoveQuestionnaire = () => {
               <Heart className="w-6 h-6 text-emerald-600" />
               <CardTitle className="text-2xl">10 Things You Love About Your Home</CardTitle>
             </div>
-            <p className="text-sm text-muted-foreground">
-              Hi {meta?.firstName || "there"} — as we get ready to list <strong>{meta?.propertyAddress}</strong>, share the things you've loved most about living here. The more personal, the better. We'll use them to write a listing description that connects with the right buyer.
-            </p>
+            <div className="text-sm text-muted-foreground space-y-3">
+              <p>
+                Hi {meta?.firstName || "there"} — as we get ready to list <strong>{meta?.propertyAddress}</strong>, share the things you've loved most about living here.
+              </p>
+              <p>
+                Buyers don't just buy houses — they buy the feeling of living there. Help us capture the real heart of your home by sharing the specific details, moments, and feelings that make it special to you. Be as descriptive as possible (the little things often matter most). We'll turn your answers into authentic marketing that attracts the right buyers.
+              </p>
+              <p>The more personal, the better. We'll use them to write a listing description that connects with the right buyer.</p>
+            </div>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-5">
+            <form onSubmit={handleSubmit} className="space-y-8">
               <div className="space-y-2">
                 <Label htmlFor="security">Security word (from your email)</Label>
                 <Input
@@ -155,20 +195,32 @@ const LoveQuestionnaire = () => {
                 />
               </div>
 
-              {responses.map((value, i) => (
-                <div key={i} className="space-y-2">
-                  <Label htmlFor={`r-${i}`}>#{i + 1} — What do you love?</Label>
-                  <Textarea
-                    id={`r-${i}`}
-                    value={value}
-                    onChange={(e) => {
-                      const next = [...responses];
-                      next[i] = e.target.value.slice(0, 1000);
-                      setResponses(next);
-                    }}
-                    rows={2}
-                    placeholder={i === 0 ? "e.g. The way the kitchen fills with morning light" : ""}
-                  />
+              {SECTIONS.map((section, sIdx) => (
+                <div key={sIdx} className="space-y-4 pt-2 border-t first:border-t-0 first:pt-0">
+                  <div>
+                    <h3 className="text-lg font-semibold text-emerald-700">{section.title}</h3>
+                    <p className="text-sm text-muted-foreground mt-1">{section.description}</p>
+                    <div className="mt-3 bg-emerald-50 border border-emerald-100 rounded-md px-3 py-2 text-sm text-emerald-900">
+                      <span className="font-medium">Prompt to spark your memory: </span>
+                      {section.prompt}
+                    </div>
+                  </div>
+
+                  {section.indices.map((i) => (
+                    <div key={i} className="space-y-2">
+                      <Label htmlFor={`r-${i}`}>Love Item #{i + 1}</Label>
+                      <Textarea
+                        id={`r-${i}`}
+                        value={responses[i]}
+                        onChange={(e) => {
+                          const next = [...responses];
+                          next[i] = e.target.value.slice(0, 1000);
+                          setResponses(next);
+                        }}
+                        rows={4}
+                      />
+                    </div>
+                  ))}
                 </div>
               ))}
 
