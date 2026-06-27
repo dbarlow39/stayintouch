@@ -1,5 +1,5 @@
-// Combines the Gemini + Claude MLS descriptions into a single best version.
-// Routes to the chosen model: "gemini" -> Lovable AI gateway / Gemini 2.5 Pro,
+// Combines the ChatGPT + Claude MLS descriptions into a single best version.
+// Routes to the chosen model: "openai" -> OpenAI GPT-5,
 // "claude" -> Anthropic Claude Sonnet 4.5. Streams as OpenAI-compatible SSE.
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { authenticate, corsHeaders, aiGatewayErrorResponse } from "../_shared/mls-description.ts";
