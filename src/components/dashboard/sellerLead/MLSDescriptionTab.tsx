@@ -425,16 +425,16 @@ const MLSDescriptionTab = ({ leadId, initialDescription, initialClaude, initialF
     }
   };
 
-  const handleCombine = async (model: "gemini" | "claude") => {
+  const handleCombine = async (model: "openai" | "claude") => {
     if (!gemini && !claude) {
-      toast({ title: "Generate at least one description first", description: "You need a Gemini or Claude version (ideally both) before combining.", variant: "destructive" });
+      toast({ title: "Generate at least one description first", description: "You need a ChatGPT or Claude version (ideally both) before combining.", variant: "destructive" });
       return;
     }
     setCombiningWith(model);
     setFinalText("");
     let acc = "";
     try {
-      await streamFromFunction("combine-mls-descriptions", { gemini, claude, model, notes }, (chunk) => {
+      await streamFromFunction("combine-mls-descriptions", { openai: gemini, claude, model, notes }, (chunk) => {
         acc += chunk;
         setFinalText(acc);
       });
