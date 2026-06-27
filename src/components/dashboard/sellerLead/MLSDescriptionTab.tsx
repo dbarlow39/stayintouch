@@ -518,8 +518,8 @@ const MLSDescriptionTab = ({ leadId, initialDescription, initialClaude, initialF
         <ColumnPanel
           leadId={leadId}
           config={{
-            title: "Gemini 2.5 Pro",
-            subtitle: "Google's flagship multimodal model. Reads all photos + work sheet.",
+            title: "ChatGPT",
+            subtitle: "OpenAI's GPT-5. Reads all photos + work sheet.",
             generateFn: "generate-mls-description",
             tweakFn: "tweak-mls-description",
             column: "mls_description",
