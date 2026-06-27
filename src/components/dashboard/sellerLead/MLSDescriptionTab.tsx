@@ -480,6 +480,24 @@ const MLSDescriptionTab = ({ leadId, initialDescription, initialClaude, initialF
             )}
           </div>
 
+          {loveItems.length > 0 && (
+            <div className="space-y-2">
+              <Label htmlFor="mls-love" className="text-sm font-semibold">
+                10 Things the Seller Loves
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                Pulled from the seller's questionnaire. ChatGPT and Claude will emphasize these when writing the description.
+              </p>
+              <Textarea
+                id="mls-love"
+                value={loveItems.map((r, i) => `${i + 1}. ${r}`).join("\n")}
+                readOnly
+                rows={Math.min(loveItems.length + 1, 12)}
+                className="bg-muted/30"
+              />
+            </div>
+          )}
+
           <div className="space-y-2">
             <Label htmlFor="mls-notes" className="text-sm font-semibold">
               Points of interest & emphasis
