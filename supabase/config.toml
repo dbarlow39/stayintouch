@@ -1,1 +1,4 @@
 project_id = "ujhohggsvijjqoatvwnl"
+
+[functions.submit-love-questionnaire]
+verify_jwt = false
