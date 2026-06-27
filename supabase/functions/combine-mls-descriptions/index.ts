@@ -96,18 +96,20 @@ async function streamClaude(userText: string): Promise<Response> {
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   try {
-    const { gemini, claude, model, notes } = await req.json();
-    if (!gemini && !claude) throw new Error("At least one of gemini or claude descriptions is required");
-    if (model !== "gemini" && model !== "claude") throw new Error("model must be 'gemini' or 'claude'");
+    const { gemini, openai, claude, model, notes } = await req.json();
+    const chatgptText = openai || gemini; // backward compat: accept legacy "gemini" field
+    if (!chatgptText && !claude) throw new Error("At least one of openai or claude descriptions is required");
+    const normalizedModel = model === "gemini" ? "openai" : model;
+    if (normalizedModel !== "openai" && normalizedModel !== "claude") throw new Error("model must be 'openai' or 'claude'");
     await authenticate(req);
 
     const notesBlock = notes && String(notes).trim()
       ? `\n\nAGENT'S POINTS OF INTEREST & EMPHASIS (HIGH PRIORITY — make sure these are reflected in the final version):\n${String(notes).trim()}\n`
       : "";
 
-    const userText = `DESCRIPTION A (Gemini 2.5 Pro):\n${gemini || "(not provided)"}\n\nDESCRIPTION B (Claude Sonnet 4.5):\n${claude || "(not provided)"}${notesBlock}\n\nMerge these into one polished MLS description following the rules. Output only the final description.`;
+    const userText = `DESCRIPTION A (ChatGPT):\n${chatgptText || "(not provided)"}\n\nDESCRIPTION B (Claude Sonnet 4.5):\n${claude || "(not provided)"}${notesBlock}\n\nMerge these into one polished MLS description following the rules. Output only the final description.`;
 
-    return model === "gemini" ? await streamGemini(userText) : await streamClaude(userText);
+    return normalizedModel === "openai" ? await streamOpenAI(userText) : await streamClaude(userText);
   } catch (e) {
     console.error("combine-mls-descriptions error:", e);
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
