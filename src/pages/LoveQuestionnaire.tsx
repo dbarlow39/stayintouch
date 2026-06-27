@@ -184,7 +184,7 @@ const LoveQuestionnaire = () => {
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-8">
               <div className="space-y-2">
-                <Label htmlFor="security">Security word (from your email)</Label>
+                <Label htmlFor="security" className="text-[#9B111E] font-semibold">Security word (from your email)</Label>
                 <Input
                   id="security"
                   value={securityWord}
@@ -192,15 +192,16 @@ const LoveQuestionnaire = () => {
                   placeholder="Type the word shown in the email"
                   maxLength={50}
                   autoComplete="off"
+                  className="border-[#9B111E]/40 focus-visible:ring-[#9B111E] placeholder:text-[#9B111E]/50"
                 />
               </div>
 
               {SECTIONS.map((section, sIdx) => (
                 <div key={sIdx} className="space-y-4 pt-2 border-t first:border-t-0 first:pt-0">
                   <div>
-                    <h3 className="text-lg font-semibold text-emerald-700">{section.title}</h3>
+                    <h3 className="text-lg font-semibold text-[#9B111E]">{section.title}</h3>
                     <p className="text-sm text-muted-foreground mt-1">{section.description}</p>
-                    <div className="mt-3 bg-emerald-50 border border-emerald-100 rounded-md px-3 py-2 text-sm text-emerald-900">
+                    <div className="mt-3 bg-[#9B111E]/10 border border-[#9B111E]/20 rounded-md px-3 py-2 text-sm text-[#5C0A12]">
                       <span className="font-medium">Prompt to spark your memory: </span>
                       {section.prompt}
                     </div>
@@ -228,7 +229,7 @@ const LoveQuestionnaire = () => {
                 <div className="text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded px-3 py-2">{error}</div>
               )}
 
-              <Button type="submit" disabled={submitting} className="w-full bg-emerald-600 hover:bg-emerald-700">
+              <Button type="submit" disabled={submitting} className="w-full bg-[#9B111E] hover:bg-[#7A0D17] text-white">
                 {submitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Heart className="w-4 h-4 mr-2" />}
                 Send to {meta?.agentName || "my agent"}
               </Button>
