@@ -21,7 +21,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { ArrowLeft, Save, Trash2, Loader2, Asterisk, Zap, FileText, BarChart3, GitBranch, DollarSign, ClipboardList, UserCheck, Mail, Pencil } from "lucide-react";
+import { ArrowLeft, Save, Trash2, Loader2, Asterisk, Zap, FileText, BarChart3, GitBranch, DollarSign, ClipboardList, UserCheck, Mail, Pencil, Heart } from "lucide-react";
+import LoveResponsesTab from "@/components/dashboard/sellerLead/LoveResponsesTab";
 import PhoneCallTextLink from "@/components/PhoneCallTextLink";
 import { openEmailClient } from "@/utils/emailClientUtils";
 import { useToast } from "@/hooks/use-toast";
