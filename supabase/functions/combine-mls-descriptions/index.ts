@@ -1,5 +1,5 @@
-// Combines the Gemini + Claude MLS descriptions into a single best version.
-// Routes to the chosen model: "gemini" -> Lovable AI gateway / Gemini 2.5 Pro,
+// Combines the ChatGPT + Claude MLS descriptions into a single best version.
+// Routes to the chosen model: "openai" -> OpenAI GPT-5,
 // "claude" -> Anthropic Claude Sonnet 4.5. Streams as OpenAI-compatible SSE.
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { authenticate, corsHeaders, aiGatewayErrorResponse } from "../_shared/mls-description.ts";
@@ -21,20 +21,20 @@ function sseChunk(text: string): string {
   return `data: ${JSON.stringify({ choices: [{ delta: { content: text } }] })}\n\n`;
 }
 
-async function streamGemini(userText: string): Promise<Response> {
-  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-  if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
-  const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+async function streamOpenAI(userText: string): Promise<Response> {
+  const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
+  if (!OPENAI_API_KEY) throw new Error("OPENAI_API_KEY not configured");
+  const response = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
-    headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+    headers: { Authorization: `Bearer ${OPENAI_API_KEY}`, "Content-Type": "application/json" },
     body: JSON.stringify({
-      model: "google/gemini-2.5-pro",
+      model: "gpt-5",
       messages: [{ role: "system", content: COMBINE_SYSTEM_PROMPT }, { role: "user", content: userText }],
       stream: true,
     }),
   });
   if (!response.ok) {
-    console.error("Gemini combine error:", response.status, await response.text());
+    console.error("OpenAI combine error:", response.status, await response.text());
     return aiGatewayErrorResponse(response.status);
   }
   return new Response(response.body, { headers: { ...corsHeaders, "Content-Type": "text/event-stream" } });
@@ -96,18 +96,20 @@ async function streamClaude(userText: string): Promise<Response> {
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   try {
-    const { gemini, claude, model, notes } = await req.json();
-    if (!gemini && !claude) throw new Error("At least one of gemini or claude descriptions is required");
-    if (model !== "gemini" && model !== "claude") throw new Error("model must be 'gemini' or 'claude'");
+    const { gemini, openai, claude, model, notes } = await req.json();
+    const chatgptText = openai || gemini; // backward compat: accept legacy "gemini" field
+    if (!chatgptText && !claude) throw new Error("At least one of openai or claude descriptions is required");
+    const normalizedModel = model === "gemini" ? "openai" : model;
+    if (normalizedModel !== "openai" && normalizedModel !== "claude") throw new Error("model must be 'openai' or 'claude'");
     await authenticate(req);
 
     const notesBlock = notes && String(notes).trim()
       ? `\n\nAGENT'S POINTS OF INTEREST & EMPHASIS (HIGH PRIORITY — make sure these are reflected in the final version):\n${String(notes).trim()}\n`
       : "";
 
-    const userText = `DESCRIPTION A (Gemini 2.5 Pro):\n${gemini || "(not provided)"}\n\nDESCRIPTION B (Claude Sonnet 4.5):\n${claude || "(not provided)"}${notesBlock}\n\nMerge these into one polished MLS description following the rules. Output only the final description.`;
+    const userText = `DESCRIPTION A (ChatGPT):\n${chatgptText || "(not provided)"}\n\nDESCRIPTION B (Claude Sonnet 4.5):\n${claude || "(not provided)"}${notesBlock}\n\nMerge these into one polished MLS description following the rules. Output only the final description.`;
 
-    return model === "gemini" ? await streamGemini(userText) : await streamClaude(userText);
+    return normalizedModel === "openai" ? await streamOpenAI(userText) : await streamClaude(userText);
   } catch (e) {
     console.error("combine-mls-descriptions error:", e);
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });

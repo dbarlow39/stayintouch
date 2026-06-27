@@ -238,7 +238,7 @@ const MLSDescriptionTab = ({ leadId, initialDescription, initialClaude, initialF
   const [claude, setClaude] = useState(initialClaude || "");
   const [finalText, setFinalText] = useState(initialFinal || "");
   const [notes, setNotes] = useState(initialNotes || "");
-  const [combiningWith, setCombiningWith] = useState<null | "gemini" | "claude">(null);
+  const [combiningWith, setCombiningWith] = useState<null | "openai" | "claude">(null);
   const [facts, setFacts] = useState<{
     address?: string; city?: string; state?: string; zip?: string;
     bedrooms?: string | number; bathrooms?: string | number;
@@ -425,16 +425,16 @@ const MLSDescriptionTab = ({ leadId, initialDescription, initialClaude, initialF
     }
   };
 
-  const handleCombine = async (model: "gemini" | "claude") => {
+  const handleCombine = async (model: "openai" | "claude") => {
     if (!gemini && !claude) {
-      toast({ title: "Generate at least one description first", description: "You need a Gemini or Claude version (ideally both) before combining.", variant: "destructive" });
+      toast({ title: "Generate at least one description first", description: "You need a ChatGPT or Claude version (ideally both) before combining.", variant: "destructive" });
       return;
     }
     setCombiningWith(model);
     setFinalText("");
     let acc = "";
     try {
-      await streamFromFunction("combine-mls-descriptions", { gemini, claude, model, notes }, (chunk) => {
+      await streamFromFunction("combine-mls-descriptions", { openai: gemini, claude, model, notes }, (chunk) => {
         acc += chunk;
         setFinalText(acc);
       });
@@ -518,8 +518,8 @@ const MLSDescriptionTab = ({ leadId, initialDescription, initialClaude, initialF
         <ColumnPanel
           leadId={leadId}
           config={{
-            title: "Gemini 2.5 Pro",
-            subtitle: "Google's flagship multimodal model. Reads all photos + work sheet.",
+            title: "ChatGPT",
+            subtitle: "OpenAI's GPT-5. Reads all photos + work sheet.",
             generateFn: "generate-mls-description",
             tweakFn: "tweak-mls-description",
             column: "mls_description",
@@ -559,13 +559,13 @@ const MLSDescriptionTab = ({ leadId, initialDescription, initialClaude, initialF
           customActions={
             <>
               <Button
-                onClick={() => handleCombine("gemini")}
+                onClick={() => handleCombine("openai")}
                 disabled={combiningWith !== null || (!gemini && !claude)}
                 size="sm"
                 className="bg-emerald-600 hover:bg-emerald-700"
               >
-                {combiningWith === "gemini" ? <Loader2 className="w-4 h-4 animate-spin" /> : <Combine className="w-4 h-4" />}
-                Combine w/ Gemini
+                {combiningWith === "openai" ? <Loader2 className="w-4 h-4 animate-spin" /> : <Combine className="w-4 h-4" />}
+                Combine w/ ChatGPT
               </Button>
               <Button
                 onClick={() => handleCombine("claude")}
