@@ -74,7 +74,7 @@ const LoveResponsesTab = ({ leadId, leadEmail }: Props) => {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Heart className="w-5 h-5 text-emerald-600" />
+            <Heart className="w-5 h-5 text-[#9B111E]" />
             10 Things They Love
           </CardTitle>
           <p className="text-sm text-muted-foreground">
@@ -83,7 +83,7 @@ const LoveResponsesTab = ({ leadId, leadEmail }: Props) => {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex flex-wrap items-center gap-2">
-            <Button onClick={handleSend} disabled={sending || !leadEmail} className="bg-emerald-600 hover:bg-emerald-700">
+            <Button onClick={handleSend} disabled={sending || !leadEmail} className="bg-[#9B111E] hover:bg-[#7A0D17] text-white">
               {sending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Send className="w-4 h-4 mr-2" />}
               {row?.sent_at ? "Resend questionnaire" : "Send questionnaire"}
             </Button>
@@ -99,7 +99,7 @@ const LoveResponsesTab = ({ leadId, leadEmail }: Props) => {
                   href={`https://10thingsilove.sellfor1percent.com/love/${row.token}`}
                   target="_blank"
                   rel="noreferrer"
-                  className="text-xs text-emerald-700 inline-flex items-center gap-1 hover:underline"
+                  className="text-xs text-[#9B111E] inline-flex items-center gap-1 hover:underline"
                 >
                   Open form <ExternalLink className="w-3 h-3" />
                 </a>
@@ -115,7 +115,7 @@ const LoveResponsesTab = ({ leadId, leadEmail }: Props) => {
             <div className="text-xs text-muted-foreground space-y-1">
               {row.sent_at && <div>Sent: {new Date(row.sent_at).toLocaleString()}</div>}
               {row.submitted_at
-                ? <div className="text-emerald-700 font-medium">Submitted: {new Date(row.submitted_at).toLocaleString()}</div>
+                ? <div className="text-[#9B111E] font-medium">Submitted: {new Date(row.submitted_at).toLocaleString()}</div>
                 : <div>Waiting for the seller's response. Link expires {new Date(row.token_expires_at).toLocaleDateString()}.</div>}
             </div>
           )}
