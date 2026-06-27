@@ -384,6 +384,7 @@ const ClientDetail = () => {
                   { id: "market-analysis" as TabView, label: "Market Analysis", icon: TrendingUp },
                   { id: "residential-work-sheet" as TabView, label: "Residential Work Sheet", icon: ClipboardList },
                   { id: "mls-description" as TabView, label: "MLS Description", icon: Sparkles },
+                  { id: "love" as TabView, label: "10 Things They Love", icon: Heart },
                 ].map(({ id: tabId, label, icon: Icon }) => (
                   <button
                     key={tabId}
