@@ -238,7 +238,7 @@ const MLSDescriptionTab = ({ leadId, initialDescription, initialClaude, initialF
   const [claude, setClaude] = useState(initialClaude || "");
   const [finalText, setFinalText] = useState(initialFinal || "");
   const [notes, setNotes] = useState(initialNotes || "");
-  const [combiningWith, setCombiningWith] = useState<null | "gemini" | "claude">(null);
+  const [combiningWith, setCombiningWith] = useState<null | "openai" | "claude">(null);
   const [facts, setFacts] = useState<{
     address?: string; city?: string; state?: string; zip?: string;
     bedrooms?: string | number; bathrooms?: string | number;
