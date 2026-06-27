@@ -255,6 +255,34 @@ const MLSDescriptionTab = ({ leadId, initialDescription, initialClaude, initialF
   useEffect(() => { setFinalText(initialFinal || ""); }, [initialFinal, leadId]);
   useEffect(() => { setNotes(initialNotes || ""); notesLoadedRef.current = true; }, [initialNotes, leadId]);
 
+  // Auto-merge "10 Things You Love" seller responses into the notes block (one-time per lead).
+  // The block is bracketed by markers so we don't duplicate or overwrite user edits.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("lead_love_responses")
+        .select("responses, submitted_at")
+        .eq("lead_id", leadId)
+        .not("submitted_at", "is", null)
+        .order("submitted_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (cancelled) return;
+      const responses = (data as any)?.responses;
+      if (!Array.isArray(responses) || responses.length === 0) return;
+      const START = "[SELLER'S 10 THINGS THEY LOVE — start]";
+      const END = "[SELLER'S 10 THINGS THEY LOVE — end]";
+      const block = `${START}\n${responses.map((r: string, i: number) => `${i + 1}. ${r}`).join("\n")}\n${END}`;
+      setNotes((prev) => {
+        if (prev.includes(START)) return prev; // already injected
+        const next = prev.trim() ? `${block}\n\n${prev}` : block;
+        return next;
+      });
+    })();
+    return () => { cancelled = true; };
+  }, [leadId]);
+
   // Debounced auto-save for the notes field
   useEffect(() => {
     if (!notesLoadedRef.current) return;
