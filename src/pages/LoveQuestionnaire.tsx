@@ -168,8 +168,8 @@ const LoveQuestionnaire = () => {
         <Card>
           <CardHeader>
             <div className="flex items-center gap-2 mb-2">
-              <Heart className="w-6 h-6 text-emerald-600" />
-              <CardTitle className="text-2xl">10 Things You Love About Your Home</CardTitle>
+              <Heart className="w-6 h-6 text-[#9B111E] fill-[#9B111E]" />
+              <CardTitle className="text-2xl text-[#9B111E]">10 Things You Love About Your Home</CardTitle>
             </div>
             <div className="text-sm text-muted-foreground space-y-3">
               <p>
@@ -184,7 +184,7 @@ const LoveQuestionnaire = () => {
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-8">
               <div className="space-y-2">
-                <Label htmlFor="security" className="text-[#9B111E] font-semibold">Security word (from your email)</Label>
+                <Label htmlFor="security" className="text-red-600 font-bold">Security word (from your email)</Label>
                 <Input
                   id="security"
                   value={securityWord}
@@ -192,7 +192,7 @@ const LoveQuestionnaire = () => {
                   placeholder="Type the word shown in the email"
                   maxLength={50}
                   autoComplete="off"
-                  className="border-[#9B111E]/40 focus-visible:ring-[#9B111E] placeholder:text-[#9B111E]/50"
+                  className="border-red-600 focus-visible:ring-red-600 placeholder:text-red-600 placeholder:font-semibold text-red-600 font-semibold"
                 />
               </div>
 
