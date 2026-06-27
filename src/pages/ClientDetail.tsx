@@ -39,6 +39,7 @@ import {
   ClipboardList,
   Sparkles,
   Copy,
+  Heart,
 } from "lucide-react";
 
 
