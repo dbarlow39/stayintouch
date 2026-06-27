@@ -119,7 +119,7 @@ const ClientDetail = () => {
 
   // Best-effort lookup of the source seller-lead row for this client.
   // Powers the Residential Work Sheet and Market Analysis tabs (both require leads.id).
-  const { data: linkedLead } = useQuery({
+  const { data: linkedLead, isFetched: linkedLeadFetched } = useQuery({
     queryKey: ["client-linked-lead", id, user?.id],
     queryFn: async () => {
       if (!client || !user) return null;
@@ -204,6 +204,16 @@ const ClientDetail = () => {
     },
     onError: (e: any) => toast.error("Failed to create source lead: " + (e?.message || "")),
   });
+
+  // Auto-create the source lead the first time we confirm none exists for this client.
+  useEffect(() => {
+    if (!client || !user) return;
+    if (!linkedLeadFetched) return;
+    if (linkedLead) return;
+    if (createSourceLeadMutation.isPending || createSourceLeadMutation.isSuccess) return;
+    createSourceLeadMutation.mutate();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [client?.id, user?.id, linkedLeadFetched, linkedLead]);
 
 
   const addNoteMutation = useMutation({
