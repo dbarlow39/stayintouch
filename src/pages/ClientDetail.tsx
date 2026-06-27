@@ -39,6 +39,7 @@ import {
   ClipboardList,
   Sparkles,
   Copy,
+  Heart,
 } from "lucide-react";
 
 
@@ -51,6 +52,7 @@ import ClientAnalysisView from "@/components/dashboard/weeklyUpdate/ClientAnalys
 import ResidentialWorkSheetTab from "@/components/dashboard/ResidentialWorkSheetTab";
 import MarketAnalysisTab from "@/components/dashboard/sellerLead/MarketAnalysisTab";
 import MLSDescriptionTab from "@/components/dashboard/sellerLead/MLSDescriptionTab";
+import LoveResponsesTab from "@/components/dashboard/sellerLead/LoveResponsesTab";
 
 interface ClientNote {
   id: string;
@@ -59,7 +61,7 @@ interface ClientNote {
   updated_at: string;
 }
 
-type TabView = "details" | "edit" | "notes" | "communications" | "feedback" | "stats" | "pre-listing" | "market-analysis" | "residential-work-sheet" | "mls-description";
+type TabView = "details" | "edit" | "notes" | "communications" | "feedback" | "stats" | "pre-listing" | "market-analysis" | "residential-work-sheet" | "mls-description" | "love";
 
 const ClientDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -382,6 +384,7 @@ const ClientDetail = () => {
                   { id: "market-analysis" as TabView, label: "Market Analysis", icon: TrendingUp },
                   { id: "residential-work-sheet" as TabView, label: "Residential Work Sheet", icon: ClipboardList },
                   { id: "mls-description" as TabView, label: "MLS Description", icon: Sparkles },
+                  { id: "love" as TabView, label: "10 Things They Love", icon: Heart },
                 ].map(({ id: tabId, label, icon: Icon }) => (
                   <button
                     key={tabId}
@@ -739,6 +742,21 @@ const ClientDetail = () => {
                           icon={Sparkles}
                           title="No source lead found"
                           body="The MLS Description generator is powered by a seller-lead record. Create one from this client's info to generate descriptions from the Residential Work Sheet."
+                        />
+                      )
+                    )}
+
+                    {activeTab === "love" && (
+                      linkedLead ? (
+                        <LoveResponsesTab
+                          leadId={(linkedLead as any).id}
+                          leadEmail={(linkedLead as any).email || client.email || null}
+                        />
+                      ) : (
+                        <NoSourceLeadEmpty
+                          icon={Heart}
+                          title="No source lead found"
+                          body="The 10 Things They Love questionnaire is tied to a seller-lead record. Create one from this client's info to send and view responses."
                         />
                       )
                     )}
