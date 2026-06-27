@@ -21,20 +21,20 @@ function sseChunk(text: string): string {
   return `data: ${JSON.stringify({ choices: [{ delta: { content: text } }] })}\n\n`;
 }
 
-async function streamGemini(userText: string): Promise<Response> {
-  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-  if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
-  const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+async function streamOpenAI(userText: string): Promise<Response> {
+  const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
+  if (!OPENAI_API_KEY) throw new Error("OPENAI_API_KEY not configured");
+  const response = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
-    headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+    headers: { Authorization: `Bearer ${OPENAI_API_KEY}`, "Content-Type": "application/json" },
     body: JSON.stringify({
-      model: "google/gemini-2.5-pro",
+      model: "gpt-5",
       messages: [{ role: "system", content: COMBINE_SYSTEM_PROMPT }, { role: "user", content: userText }],
       stream: true,
     }),
   });
   if (!response.ok) {
-    console.error("Gemini combine error:", response.status, await response.text());
+    console.error("OpenAI combine error:", response.status, await response.text());
     return aiGatewayErrorResponse(response.status);
   }
   return new Response(response.body, { headers: { ...corsHeaders, "Content-Type": "text/event-stream" } });
