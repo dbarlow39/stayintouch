@@ -250,10 +250,19 @@ const MLSDescriptionTab = ({ leadId, initialDescription, initialClaude, initialF
   const [suggestingPoints, setSuggestingPoints] = useState(false);
   const [pointsAreSuggestion, setPointsAreSuggestion] = useState(false);
 
-  useEffect(() => { setGemini(initialDescription || ""); }, [initialDescription, leadId]);
-  useEffect(() => { setClaude(initialClaude || ""); }, [initialClaude, leadId]);
-  useEffect(() => { setFinalText(initialFinal || ""); }, [initialFinal, leadId]);
-  useEffect(() => { setNotes(initialNotes || ""); notesLoadedRef.current = true; }, [initialNotes, leadId]);
+  useEffect(() => { if (typeof initialDescription === "string" && initialDescription.length > 0) setGemini(initialDescription); }, [initialDescription, leadId]);
+  useEffect(() => { if (typeof initialClaude === "string" && initialClaude.length > 0) setClaude(initialClaude); }, [initialClaude, leadId]);
+  useEffect(() => { if (typeof initialFinal === "string" && initialFinal.length > 0) setFinalText(initialFinal); }, [initialFinal, leadId]);
+  useEffect(() => {
+    const raw = initialNotes || "";
+    const cleaned = raw.replace(/\[SELLER'S 10 THINGS THEY LOVE — start\][\s\S]*?\[SELLER'S 10 THINGS THEY LOVE — end\]\s*/g, "").trim();
+    skipNextNotesSaveRef.current = true;
+    setNotes(cleaned);
+    notesLoadedRef.current = true;
+    if (cleaned !== raw) {
+      supabase.from("leads").update({ mls_description_notes: cleaned || null } as any).eq("id", leadId).then(() => {});
+    }
+  }, [initialNotes, leadId]);
 
   // Fetch the seller's "10 Things You Love" responses for display in their own box.
   const [loveItems, setLoveItems] = useState<string[]>([]);
