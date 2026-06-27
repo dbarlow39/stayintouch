@@ -114,11 +114,11 @@ Deno.serve(async (req) => {
         <p>Hi ${firstName},</p>
         <p>As we get ready to list <strong>${propertyAddress || "your home"}</strong>, the most powerful thing we can do in the MLS description is capture the <em>emotional</em> reasons buyers should fall in love with it — the same reasons you fell in love with it.</p>
         <p>Would you take a few minutes to share the <strong>10 things you love most</strong> about your home? Anything counts — the morning light in the kitchen, the way the backyard feels in the fall, a specific upgrade that changed how you live there. The more personal, the better.</p>
+        <p style="color: #9B111E;">For spam protection, the form will ask you to type this security word:</p>
+        <p style="font-family: monospace; font-size: 18px; background: #FBEAEC; color: #9B111E; padding: 10px 14px; border-radius: 4px; display: inline-block; border: 1px solid #9B111E;"><strong>${SECURITY_WORD}</strong></p>
         <p style="text-align: center; margin: 28px 0;">
-          <a href="${link}" style="background: #047857; color: #ffffff; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: 600; display: inline-block;">Share Your 10 Things</a>
+          <a href="${link}" style="background: #9B111E; color: #ffffff; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: 600; display: inline-block;">Click to Share Your 10 Things</a>
         </p>
-        <p>For spam protection, the form will ask you to type this security word:</p>
-        <p style="font-family: monospace; font-size: 18px; background: #f3f4f6; padding: 10px 14px; border-radius: 4px; display: inline-block;"><strong>${SECURITY_WORD}</strong></p>
         <p style="margin-top: 24px;">Thank you — your answers go directly into the listing we'll craft for your home.</p>
         <p>${agentName}<br/>Sell For 1 Percent</p>
         <p style="color: #888; font-size: 12px; margin-top: 28px;">If the button doesn't work, copy and paste this link: ${link}</p>
