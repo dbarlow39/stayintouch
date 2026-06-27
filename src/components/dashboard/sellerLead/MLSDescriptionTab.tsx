@@ -255,8 +255,8 @@ const MLSDescriptionTab = ({ leadId, initialDescription, initialClaude, initialF
   useEffect(() => { setFinalText(initialFinal || ""); }, [initialFinal, leadId]);
   useEffect(() => { setNotes(initialNotes || ""); notesLoadedRef.current = true; }, [initialNotes, leadId]);
 
-  // Auto-merge "10 Things You Love" seller responses into the notes block (one-time per lead).
-  // The block is bracketed by markers so we don't duplicate or overwrite user edits.
+  // Fetch the seller's "10 Things You Love" responses for display in their own box.
+  const [loveItems, setLoveItems] = useState<string[]>([]);
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -270,15 +270,9 @@ const MLSDescriptionTab = ({ leadId, initialDescription, initialClaude, initialF
         .maybeSingle();
       if (cancelled) return;
       const responses = (data as any)?.responses;
-      if (!Array.isArray(responses) || responses.length === 0) return;
-      const START = "[SELLER'S 10 THINGS THEY LOVE — start]";
-      const END = "[SELLER'S 10 THINGS THEY LOVE — end]";
-      const block = `${START}\n${responses.map((r: string, i: number) => `${i + 1}. ${r}`).join("\n")}\n${END}`;
-      setNotes((prev) => {
-        if (prev.includes(START)) return prev; // already injected
-        const next = prev.trim() ? `${block}\n\n${prev}` : block;
-        return next;
-      });
+      if (Array.isArray(responses)) {
+        setLoveItems(responses.filter((r: any) => typeof r === "string" && r.trim()));
+      }
     })();
     return () => { cancelled = true; };
   }, [leadId]);
@@ -485,6 +479,24 @@ const MLSDescriptionTab = ({ leadId, initialDescription, initialClaude, initialF
               <div className="text-sm text-muted-foreground italic">Loading work sheet facts...</div>
             )}
           </div>
+
+          {loveItems.length > 0 && (
+            <div className="space-y-2">
+              <Label htmlFor="mls-love" className="text-sm font-semibold">
+                10 Things the Seller Loves
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                Pulled from the seller's questionnaire. ChatGPT and Claude will emphasize these when writing the description.
+              </p>
+              <Textarea
+                id="mls-love"
+                value={loveItems.map((r, i) => `${i + 1}. ${r}`).join("\n")}
+                readOnly
+                rows={Math.min(loveItems.length + 1, 12)}
+                className="bg-muted/30"
+              />
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label htmlFor="mls-notes" className="text-sm font-semibold">
