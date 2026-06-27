@@ -101,7 +101,30 @@ export async function buildWorkSheetContext(supabase: any, user: any, leadId: st
     ? `\n\nAGENT'S POINTS OF INTEREST & EMPHASIS (HIGH PRIORITY — weave these into the narrative naturally):\n${userNotes}\n`
     : "";
 
-  const factsText = `PROPERTY FACTS:\n${JSON.stringify(facts, null, 2)}${notesBlock}\n\nAI SUMMARY OF WORK SHEET:\n${summary || "(none)"}\n\nFULL TRANSCRIPTION:\n${transcription || "(none)"}\n\nINSPECTION SECTION NOTES:\n${JSON.stringify(inspection.inspection_data, null, 2).slice(0, 8000)}\n\nNow write the MLS description. Remember: under 1000 characters, no em dashes, evocative storytelling, end with an imagined call to action.`;
+  // Seller's own "10 Things They Love" responses — highest priority emphasis.
+  let loveBlock = "";
+  try {
+    const { data: loveRow } = await supabase
+      .from("lead_love_responses")
+      .select("responses")
+      .eq("lead_id", leadId)
+      .not("submitted_at", "is", null)
+      .order("submitted_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    const responses = (loveRow as any)?.responses;
+    if (Array.isArray(responses) && responses.length > 0) {
+      const numbered = responses
+        .filter((r: any) => typeof r === "string" && r.trim())
+        .map((r: string, i: number) => `${i + 1}. ${r.trim()}`)
+        .join("\n");
+      if (numbered) {
+        loveBlock = `\n\nSELLER'S 10 THINGS THEY LOVE ABOUT THIS HOME (HIGHEST PRIORITY — these are the seller's own words. Emphasize them prominently and weave them naturally into the narrative so a buyer feels what the seller felt):\n${numbered}\n`;
+      }
+    }
+  } catch (_) { /* non-fatal */ }
+
+  const factsText = `PROPERTY FACTS:\n${JSON.stringify(facts, null, 2)}${loveBlock}${notesBlock}\n\nAI SUMMARY OF WORK SHEET:\n${summary || "(none)"}\n\nFULL TRANSCRIPTION:\n${transcription || "(none)"}\n\nINSPECTION SECTION NOTES:\n${JSON.stringify(inspection.inspection_data, null, 2).slice(0, 8000)}\n\nNow write the MLS description. Remember: under 1000 characters, no em dashes, evocative storytelling, end with an imagined call to action.`;
 
   return { factsText, allPhotos };
 }
