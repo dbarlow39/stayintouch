@@ -745,6 +745,21 @@ const ClientDetail = () => {
                         />
                       )
                     )}
+
+                    {activeTab === "love" && (
+                      linkedLead ? (
+                        <LoveResponsesTab
+                          leadId={(linkedLead as any).id}
+                          leadEmail={(linkedLead as any).email || client.email || null}
+                        />
+                      ) : (
+                        <NoSourceLeadEmpty
+                          icon={Heart}
+                          title="No source lead found"
+                          body="The 10 Things They Love questionnaire is tied to a seller-lead record. Create one from this client's info to send and view responses."
+                        />
+                      )
+                    )}
                   </>
                 );
               })()}
