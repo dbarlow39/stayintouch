@@ -13,21 +13,21 @@ serve(async (req) => {
     const userContent: any[] = [{ type: "text", text: factsText }];
     for (const url of allPhotos) userContent.push({ type: "image_url", image_url: { url } });
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
+    const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
+    if (!OPENAI_API_KEY) throw new Error("OPENAI_API_KEY not configured");
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
-      headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+      headers: { Authorization: `Bearer ${OPENAI_API_KEY}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: "google/gemini-2.5-pro",
+        model: "gpt-5",
         messages: [{ role: "system", content: MLS_SYSTEM_PROMPT }, { role: "user", content: userContent }],
         stream: true,
       }),
     });
 
     if (!response.ok) {
-      console.error("Gemini gateway error:", response.status, await response.text());
+      console.error("OpenAI error:", response.status, await response.text());
       return aiGatewayErrorResponse(response.status);
     }
     return new Response(response.body, { headers: { ...corsHeaders, "Content-Type": "text/event-stream" } });
