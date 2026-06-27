@@ -1507,6 +1507,53 @@ export type Database = {
           },
         ]
       }
+      lead_love_responses: {
+        Row: {
+          agent_id: string
+          created_at: string
+          id: string
+          lead_id: string
+          responses: Json | null
+          sent_at: string | null
+          submitted_at: string | null
+          token: string
+          token_expires_at: string
+          updated_at: string
+        }
+        Insert: {
+          agent_id: string
+          created_at?: string
+          id?: string
+          lead_id: string
+          responses?: Json | null
+          sent_at?: string | null
+          submitted_at?: string | null
+          token?: string
+          token_expires_at?: string
+          updated_at?: string
+        }
+        Update: {
+          agent_id?: string
+          created_at?: string
+          id?: string
+          lead_id?: string
+          responses?: Json | null
+          sent_at?: string | null
+          submitted_at?: string | null
+          token?: string
+          token_expires_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_love_responses_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lead_sequence_enrollments: {
         Row: {
           completed_at: string | null
