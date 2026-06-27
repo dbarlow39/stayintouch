@@ -168,7 +168,7 @@ const ColumnPanel = ({ leadId, config, value, setValue, customActions, showGener
       <CardContent className="space-y-3 flex-1 flex flex-col">
         <div className="flex flex-wrap gap-2">
           {showGenerate && (
-            <Button onClick={handleGenerate} disabled={busy || disabled} size="sm" className="bg-emerald-600 hover:bg-emerald-700">
+            <Button onClick={handleGenerate} disabled={busy || disabled} size="sm" className="bg-[#9B111E] hover:bg-[#7A0D17] text-white">
               {generating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
               {value ? "Regenerate" : "Generate"}
             </Button>
@@ -222,7 +222,7 @@ const ColumnPanel = ({ leadId, config, value, setValue, customActions, showGener
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setTweakOpen(false)} disabled={tweaking}>Cancel</Button>
-            <Button onClick={handleTweak} disabled={tweaking || !tweakInstruction.trim()} className="bg-emerald-600 hover:bg-emerald-700">
+            <Button onClick={handleTweak} disabled={tweaking || !tweakInstruction.trim()} className="bg-[#9B111E] hover:bg-[#7A0D17] text-white">
               {tweaking ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wand2 className="w-4 h-4" />} Apply
             </Button>
           </DialogFooter>
@@ -511,7 +511,7 @@ const MLSDescriptionTab = ({ leadId, initialDescription, initialClaude, initialF
               </p>
             )}
             {pointsAreSuggestion && !suggestingPoints && notes.trim().length > 0 && (
-              <p className="text-xs text-emerald-700 italic">
+              <p className="text-xs text-[#9B111E] italic">
                 Suggested from your Work Sheet AI Summary. Edit, add to, or clear to regenerate.
               </p>
             )}
@@ -563,7 +563,7 @@ const MLSDescriptionTab = ({ leadId, initialDescription, initialClaude, initialF
             generateFn: "combine-mls-descriptions",
             tweakFn: "tweak-mls-description",
             column: "mls_description_final",
-            accent: "text-emerald-600",
+            accent: "text-[#9B111E]",
           }}
           value={finalText}
           setValue={setFinalText}
@@ -574,7 +574,7 @@ const MLSDescriptionTab = ({ leadId, initialDescription, initialClaude, initialF
                 onClick={() => handleCombine("openai")}
                 disabled={combiningWith !== null || (!gemini && !claude)}
                 size="sm"
-                className="bg-emerald-600 hover:bg-emerald-700"
+                className="bg-[#9B111E] hover:bg-[#7A0D17] text-white"
               >
                 {combiningWith === "openai" ? <Loader2 className="w-4 h-4 animate-spin" /> : <Combine className="w-4 h-4" />}
                 Combine w/ ChatGPT
@@ -583,7 +583,7 @@ const MLSDescriptionTab = ({ leadId, initialDescription, initialClaude, initialF
                 onClick={() => handleCombine("claude")}
                 disabled={combiningWith !== null || (!gemini && !claude)}
                 size="sm"
-                className="bg-emerald-600 hover:bg-emerald-700"
+                className="bg-[#9B111E] hover:bg-[#7A0D17] text-white"
               >
                 {combiningWith === "claude" ? <Loader2 className="w-4 h-4 animate-spin" /> : <Combine className="w-4 h-4" />}
                 Combine w/ Claude
