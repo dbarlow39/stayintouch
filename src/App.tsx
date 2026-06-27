@@ -37,7 +37,25 @@ const isListingsSubdomain = () => {
   return host.startsWith('listings.');
 };
 
+const isLoveSubdomain = () => {
+  const host = window.location.hostname;
+  return host.startsWith('10thingsilove.');
+};
+
+const LoveLandingPlaceholder = () => (
+  <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px', background: '#f8fafc', fontFamily: 'Arial, sans-serif' }}>
+    <div style={{ maxWidth: 520, textAlign: 'center', background: '#fff', padding: '40px 32px', borderRadius: 12, boxShadow: '0 4px 24px rgba(0,0,0,0.06)' }}>
+      <h1 style={{ fontSize: 24, fontWeight: 700, color: '#047857', marginBottom: 12 }}>10 Things You Love About Your Home</h1>
+      <p style={{ color: '#444', lineHeight: 1.6 }}>
+        This page can only be opened from the personal link in the email your listing agent sent you. Please open that email and click the green "Share Your 10 Things" button.
+      </p>
+      <p style={{ color: '#888', fontSize: 13, marginTop: 24 }}>Sell For 1 Percent</p>
+    </div>
+  </div>
+);
+
 const IndexOrListings = () => {
+  if (isLoveSubdomain()) return <LoveLandingPlaceholder />;
   return isListingsSubdomain() ? <PublicListings /> : <Index />;
 };
 
