@@ -559,13 +559,13 @@ const MLSDescriptionTab = ({ leadId, initialDescription, initialClaude, initialF
           customActions={
             <>
               <Button
-                onClick={() => handleCombine("gemini")}
+                onClick={() => handleCombine("openai")}
                 disabled={combiningWith !== null || (!gemini && !claude)}
                 size="sm"
                 className="bg-emerald-600 hover:bg-emerald-700"
               >
-                {combiningWith === "gemini" ? <Loader2 className="w-4 h-4 animate-spin" /> : <Combine className="w-4 h-4" />}
-                Combine w/ Gemini
+                {combiningWith === "openai" ? <Loader2 className="w-4 h-4 animate-spin" /> : <Combine className="w-4 h-4" />}
+                Combine w/ ChatGPT
               </Button>
               <Button
                 onClick={() => handleCombine("claude")}
