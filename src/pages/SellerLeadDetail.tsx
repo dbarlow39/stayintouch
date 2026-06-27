@@ -373,6 +373,7 @@ const SellerLeadDetail = () => {
     { id: "residential", label: "Residential Work Sheet", icon: ClipboardList },
     { id: "market-analysis", label: "Market Analysis", icon: BarChart3 },
     { id: "estimated-net", label: "Estimated Net", icon: DollarSign },
+    { id: "love", label: "10 Things They Love", icon: Heart },
     { id: "mls-description", label: "Write MLS Description", icon: Pencil },
     { id: "pipeline", label: "Pipeline", icon: GitBranch },
   ];
@@ -448,6 +449,10 @@ const SellerLeadDetail = () => {
               initialFinal={(lead as any).mls_description_final}
               initialNotes={(lead as any).mls_description_notes}
             />
+          </div>
+        ) : activeTab === "love" && lead ? (
+          <div className="flex-1 overflow-auto p-6">
+            <LoveResponsesTab leadId={lead.id} leadEmail={(lead as any).email} />
           </div>
         ) : (
           <main className="flex-1 px-6 py-8 max-w-3xl">
