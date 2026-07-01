@@ -123,6 +123,15 @@ const LoveResponsesTab = ({ leadId, leadEmail }: Props) => {
               {sending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Send className="w-4 h-4 mr-2" />}
               {row?.sent_at ? "Resend questionnaire" : "Send questionnaire"}
             </Button>
+            <Button
+              onClick={handleCopyAndEmail}
+              disabled={drafting || !leadEmail}
+              variant="outline"
+              className="border-[#9B111E] text-[#9B111E] hover:bg-[#9B111E]/10"
+            >
+              {drafting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Mail className="w-4 h-4 mr-2" />}
+              Copy & email from Gmail
+            </Button>
             {!leadEmail && (
               <span className="text-xs text-destructive">Add an email address to the lead first.</span>
             )}
