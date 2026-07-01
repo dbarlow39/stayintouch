@@ -2,8 +2,9 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Heart, Loader2, Send, Copy, ExternalLink } from "lucide-react";
+import { Heart, Loader2, Send, Copy, ExternalLink, Mail } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { openEmailClient } from "@/utils/emailClientUtils";
 
 interface Props {
   leadId: string;
@@ -23,6 +24,7 @@ const LoveResponsesTab = ({ leadId, leadEmail }: Props) => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
+  const [drafting, setDrafting] = useState(false);
   const [row, setRow] = useState<LoveRow | null>(null);
 
   const load = async () => {
@@ -67,6 +69,40 @@ const LoveResponsesTab = ({ leadId, leadEmail }: Props) => {
     toast({ title: "Link copied" });
   };
 
+  const handleCopyAndEmail = async () => {
+    if (!leadEmail) {
+      toast({ title: "Lead has no email address", variant: "destructive" });
+      return;
+    }
+    setDrafting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("send-love-questionnaire", {
+        body: { lead_id: leadId, mode: "draft" },
+      });
+      if (error) throw error;
+      const d = data as any;
+      if (d?.error) throw new Error(d.error);
+      const html: string = d.html;
+      const subject: string = d.subject;
+      const to: string = d.to;
+      const plain = html.replace(/<[^>]+>/g, "").replace(/\s+\n/g, "\n").trim();
+      await navigator.clipboard.write([
+        new ClipboardItem({
+          "text/html": new Blob([html], { type: "text/html" }),
+          "text/plain": new Blob([plain], { type: "text/plain" }),
+        }),
+      ]);
+      toast({ title: "Copied — opening Gmail", description: "Paste into the Gmail compose window." });
+      openEmailClient(to, "gmail", subject);
+      await load();
+    } catch (e: any) {
+      toast({ title: "Copy failed", description: e.message, variant: "destructive" });
+    } finally {
+      setDrafting(false);
+    }
+  };
+
+
   const responses = row?.responses && Array.isArray(row.responses) ? row.responses : [];
 
   return (
@@ -86,6 +122,15 @@ const LoveResponsesTab = ({ leadId, leadEmail }: Props) => {
             <Button onClick={handleSend} disabled={sending || !leadEmail} className="bg-[#9B111E] hover:bg-[#7A0D17] text-white">
               {sending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Send className="w-4 h-4 mr-2" />}
               {row?.sent_at ? "Resend questionnaire" : "Send questionnaire"}
+            </Button>
+            <Button
+              onClick={handleCopyAndEmail}
+              disabled={drafting || !leadEmail}
+              variant="outline"
+              className="border-[#9B111E] text-[#9B111E] hover:bg-[#9B111E]/10"
+            >
+              {drafting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Mail className="w-4 h-4 mr-2" />}
+              Copy & email from Gmail
             </Button>
             {!leadEmail && (
               <span className="text-xs text-destructive">Add an email address to the lead first.</span>

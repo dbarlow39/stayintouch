@@ -34,6 +34,7 @@ Deno.serve(async (req) => {
 
     const body = await req.json().catch(() => ({}));
     const leadId = body.lead_id || body.leadId;
+    const mode = body.mode === "draft" ? "draft" : "send";
     if (!leadId || typeof leadId !== "string") {
       return new Response(JSON.stringify({ error: "lead_id required" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -111,6 +112,14 @@ Deno.serve(async (req) => {
         <p style="color: #888; font-size: 12px; margin-top: 28px;">If the button doesn't work, copy and paste this link: ${link}</p>
       </div>
     `;
+
+    if (mode === "draft") {
+      return new Response(JSON.stringify({
+        success: true, mode: "draft", link, subject, html, to: lead.email,
+      }), {
+        status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
     if (!RESEND_API_KEY) {
