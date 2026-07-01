@@ -2,8 +2,9 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Heart, Loader2, Send, Copy, ExternalLink } from "lucide-react";
+import { Heart, Loader2, Send, Copy, ExternalLink, Mail } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { openEmailClient } from "@/utils/emailClientUtils";
 
 interface Props {
   leadId: string;
