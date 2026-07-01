@@ -24,6 +24,7 @@ const LoveResponsesTab = ({ leadId, leadEmail }: Props) => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
+  const [drafting, setDrafting] = useState(false);
   const [row, setRow] = useState<LoveRow | null>(null);
 
   const load = async () => {
