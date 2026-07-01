@@ -34,6 +34,7 @@ Deno.serve(async (req) => {
 
     const body = await req.json().catch(() => ({}));
     const leadId = body.lead_id || body.leadId;
+    const mode = body.mode === "draft" ? "draft" : "send";
     if (!leadId || typeof leadId !== "string") {
       return new Response(JSON.stringify({ error: "lead_id required" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
