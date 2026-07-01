@@ -113,6 +113,14 @@ Deno.serve(async (req) => {
       </div>
     `;
 
+    if (mode === "draft") {
+      return new Response(JSON.stringify({
+        success: true, mode: "draft", link, subject, html, to: lead.email,
+      }), {
+        status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
     if (!RESEND_API_KEY) {
       return new Response(JSON.stringify({ error: "RESEND_API_KEY not configured" }), {
