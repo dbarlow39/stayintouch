@@ -69,6 +69,40 @@ const LoveResponsesTab = ({ leadId, leadEmail }: Props) => {
     toast({ title: "Link copied" });
   };
 
+  const handleCopyAndEmail = async () => {
+    if (!leadEmail) {
+      toast({ title: "Lead has no email address", variant: "destructive" });
+      return;
+    }
+    setDrafting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("send-love-questionnaire", {
+        body: { lead_id: leadId, mode: "draft" },
+      });
+      if (error) throw error;
+      const d = data as any;
+      if (d?.error) throw new Error(d.error);
+      const html: string = d.html;
+      const subject: string = d.subject;
+      const to: string = d.to;
+      const plain = html.replace(/<[^>]+>/g, "").replace(/\s+\n/g, "\n").trim();
+      await navigator.clipboard.write([
+        new ClipboardItem({
+          "text/html": new Blob([html], { type: "text/html" }),
+          "text/plain": new Blob([plain], { type: "text/plain" }),
+        }),
+      ]);
+      toast({ title: "Copied — opening Gmail", description: "Paste into the Gmail compose window." });
+      openEmailClient(to, "gmail", subject);
+      await load();
+    } catch (e: any) {
+      toast({ title: "Copy failed", description: e.message, variant: "destructive" });
+    } finally {
+      setDrafting(false);
+    }
+  };
+
+
   const responses = row?.responses && Array.isArray(row.responses) ? row.responses : [];
 
   return (
