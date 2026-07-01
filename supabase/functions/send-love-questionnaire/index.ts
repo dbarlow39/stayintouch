@@ -69,40 +69,27 @@ Deno.serve(async (req) => {
     const agentName = profile?.full_name || profile?.first_name || "Your Agent";
     const agentBcc = profile?.preferred_email || profile?.email || null;
 
-    // Reuse existing un-submitted row or create new
-    let { data: existing } = await supabase
+    // Expire any prior un-submitted rows for this lead so old links stop working.
+    await supabase
       .from("lead_love_responses")
-      .select("id, token, submitted_at, token_expires_at")
+      .update({ token_expires_at: new Date().toISOString() })
       .eq("lead_id", leadId)
       .eq("agent_id", agentId)
-      .is("submitted_at", null)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
+      .is("submitted_at", null);
 
-    let tokenValue: string;
-    let rowId: string;
-    if (existing && new Date(existing.token_expires_at) > new Date()) {
-      tokenValue = existing.token;
-      rowId = existing.id;
-      await supabase
-        .from("lead_love_responses")
-        .update({ sent_at: new Date().toISOString() })
-        .eq("id", rowId);
-    } else {
-      const { data: inserted, error: insErr } = await supabase
-        .from("lead_love_responses")
-        .insert({ lead_id: leadId, agent_id: agentId, sent_at: new Date().toISOString() })
-        .select("id, token")
-        .single();
-      if (insErr || !inserted) {
-        return new Response(JSON.stringify({ error: insErr?.message || "Insert failed" }), {
-          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      tokenValue = inserted.token;
-      rowId = inserted.id;
+    // Always issue a fresh token on send/resend.
+    const { data: inserted, error: insErr } = await supabase
+      .from("lead_love_responses")
+      .insert({ lead_id: leadId, agent_id: agentId, sent_at: new Date().toISOString() })
+      .select("id, token")
+      .single();
+    if (insErr || !inserted) {
+      return new Response(JSON.stringify({ error: insErr?.message || "Insert failed" }), {
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
+    const tokenValue = inserted.token;
+    const rowId = inserted.id;
 
     const link = `${PUBLIC_BASE}/love/${tokenValue}`;
     const firstName = lead.first_name || "there";
