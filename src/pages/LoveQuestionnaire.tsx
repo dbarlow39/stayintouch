@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, Heart, CheckCircle2 } from "lucide-react";
+
 import logo from "@/assets/logo.jpg";
 
 const FN_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/submit-love-questionnaire`;
