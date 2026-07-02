@@ -181,18 +181,8 @@ const LoveQuestionnaire = () => {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-8">
-              <div className="space-y-2">
-                <Label htmlFor="security" className="text-red-600 font-bold">Security word (from your email)</Label>
-                <Input
-                  id="security"
-                  value={securityWord}
-                  onChange={(e) => setSecurityWord(e.target.value)}
-                  placeholder="Type the word shown in the email"
-                  maxLength={50}
-                  autoComplete="off"
-                  className="border-red-600 focus-visible:ring-red-600 placeholder:text-red-600 placeholder:font-semibold text-red-600 font-semibold"
-                />
-              </div>
+
+
 
               {SECTIONS.map((section, sIdx) => (
                 <div key={sIdx} className="space-y-4 pt-2 border-t first:border-t-0 first:pt-0">
