@@ -59,7 +59,7 @@ const LoveQuestionnaire = () => {
   const [error, setError] = useState<string | null>(null);
   const [meta, setMeta] = useState<Meta | null>(null);
   const [responses, setResponses] = useState<string[]>(Array(10).fill(""));
-  const [responses, setResponses] = useState<string[]>(Array(10).fill(""));
+
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
