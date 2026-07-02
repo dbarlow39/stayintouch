@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, Heart, CheckCircle2 } from "lucide-react";
+
 import logo from "@/assets/logo.jpg";
 
 const FN_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/submit-love-questionnaire`;
@@ -57,8 +58,8 @@ const LoveQuestionnaire = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [meta, setMeta] = useState<Meta | null>(null);
-  const [securityWord, setSecurityWord] = useState("");
   const [responses, setResponses] = useState<string[]>(Array(10).fill(""));
+
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
@@ -90,10 +91,6 @@ const LoveQuestionnaire = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    if (!securityWord.trim()) {
-      setError("Please enter the security word from your email.");
-      return;
-    }
     const filled = responses.filter((r) => r.trim().length > 0);
     if (filled.length === 0) {
       setError("Please share at least one thing you love about your home.");
@@ -104,8 +101,9 @@ const LoveQuestionnaire = () => {
       const resp = await fetch(FN_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json", apikey: ANON, Authorization: `Bearer ${ANON}` },
-        body: JSON.stringify({ token, security_word: securityWord, responses }),
+        body: JSON.stringify({ token, responses }),
       });
+
       const j = await resp.json();
       if (!resp.ok) throw new Error(j.error || "Submission failed");
       setSubmitted(true);
@@ -183,18 +181,8 @@ const LoveQuestionnaire = () => {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-8">
-              <div className="space-y-2">
-                <Label htmlFor="security" className="text-red-600 font-bold">Security word (from your email)</Label>
-                <Input
-                  id="security"
-                  value={securityWord}
-                  onChange={(e) => setSecurityWord(e.target.value)}
-                  placeholder="Type the word shown in the email"
-                  maxLength={50}
-                  autoComplete="off"
-                  className="border-red-600 focus-visible:ring-red-600 placeholder:text-red-600 placeholder:font-semibold text-red-600 font-semibold"
-                />
-              </div>
+
+
 
               {SECTIONS.map((section, sIdx) => (
                 <div key={sIdx} className="space-y-4 pt-2 border-t first:border-t-0 first:pt-0">

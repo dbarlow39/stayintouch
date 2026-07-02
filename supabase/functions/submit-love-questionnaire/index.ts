@@ -72,11 +72,6 @@ Deno.serve(async (req) => {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      if (!security_word || String(security_word).trim().toLowerCase() !== SECURITY_WORD) {
-        return new Response(JSON.stringify({ error: "The security word doesn't match. Please copy it exactly from your email." }), {
-          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
       if (!Array.isArray(responses) || responses.length === 0) {
         return new Response(JSON.stringify({ error: "Please answer at least one question." }), {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
