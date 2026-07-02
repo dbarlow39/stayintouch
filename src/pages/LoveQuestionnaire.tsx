@@ -91,10 +91,6 @@ const LoveQuestionnaire = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    if (!securityWord.trim()) {
-      setError("Please enter the security word from your email.");
-      return;
-    }
     const filled = responses.filter((r) => r.trim().length > 0);
     if (filled.length === 0) {
       setError("Please share at least one thing you love about your home.");
@@ -105,8 +101,9 @@ const LoveQuestionnaire = () => {
       const resp = await fetch(FN_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json", apikey: ANON, Authorization: `Bearer ${ANON}` },
-        body: JSON.stringify({ token, security_word: securityWord, responses }),
+        body: JSON.stringify({ token, responses }),
       });
+
       const j = await resp.json();
       if (!resp.ok) throw new Error(j.error || "Submission failed");
       setSubmitted(true);
