@@ -173,19 +173,59 @@ const MarketingTab = () => {
           </div>
         </div>
         <div className="flex flex-col items-end gap-1">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={syncFromMLS}
-            disabled={isSyncing}
-          >
-            {isSyncing ? (
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            ) : (
-              <RefreshCw className="w-4 h-4 mr-2" />
-            )}
-            {isSyncing ? 'Syncing...' : 'Sync MLS'}
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                const activeStatuses = ['active', 'pending', 'contingent'];
+                const rows = listings.filter(l => activeStatuses.includes((l.status || '').toLowerCase()));
+                if (rows.length === 0) {
+                  toast.error('No active listings to export. Sync MLS first.');
+                  return;
+                }
+                const esc = (v: any) => {
+                  const s = v == null ? '' : String(v);
+                  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+                };
+                const header = ['user_path','address','city','state','zip','mls_number','status','price'];
+                const csvLines = [header.join(',')];
+                for (const l of rows) {
+                  csvLines.push([
+                    `/listing/${l.id}`,
+                    l.address, l.city, l.state, l.zip,
+                    l.mlsNumber, l.status, l.price,
+                  ].map(esc).join(','));
+                }
+                const blob = new Blob([csvLines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `retargetiq-listing-paths-${new Date().toISOString().slice(0,10)}.csv`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                toast.success(`Exported ${rows.length} listings`);
+              }}
+            >
+              <FileDown className="w-4 h-4 mr-2" />
+              Export Path Map
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={syncFromMLS}
+              disabled={isSyncing}
+            >
+              {isSyncing ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <RefreshCw className="w-4 h-4 mr-2" />
+              )}
+              {isSyncing ? 'Syncing...' : 'Sync MLS'}
+            </Button>
+          </div>
           <p className="text-[10px] text-muted-foreground">
             {lastSynced
               ? `Last synced: ${new Date(lastSynced).toLocaleString()}`
