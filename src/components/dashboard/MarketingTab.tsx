@@ -9,7 +9,8 @@ import BuyersGuideLeadsDialog from '@/components/dashboard/marketing/BuyersGuide
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Building2, Search, RefreshCw, Download, Loader2, Wifi, WifiOff, ArrowUpDown, BarChart3, Inbox, BookOpen, FileDown } from 'lucide-react';
+import { Building2, Search, RefreshCw, Download, Loader2, Wifi, WifiOff, ArrowUpDown, BarChart3, Inbox, BookOpen, Link as LinkIcon, Copy } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
