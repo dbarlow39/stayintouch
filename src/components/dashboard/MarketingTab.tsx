@@ -23,6 +23,7 @@ const MarketingTab = () => {
   const [view, setView] = useState<'listings' | 'ad-results'>('listings');
   const [inquiriesOpen, setInquiriesOpen] = useState(false);
   const [buyersGuideOpen, setBuyersGuideOpen] = useState(false);
+  const [pathMapOpen, setPathMapOpen] = useState(false);
   
 
   const [listings, setListings] = useState<MarketingListing[]>(mockMarketingListings);
