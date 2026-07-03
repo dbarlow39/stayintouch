@@ -319,6 +319,76 @@ const MarketingTab = () => {
       )}
       </>
       )}
+
+      <Dialog open={pathMapOpen} onOpenChange={setPathMapOpen}>
+        <DialogContent className="max-w-4xl max-h-[85vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <LinkIcon className="w-5 h-5 text-primary" />
+              RetargetIQ User Path Lookup
+            </DialogTitle>
+          </DialogHeader>
+          {(() => {
+            const activeStatuses = ['active', 'pending', 'contingent'];
+            const rows = listings
+              .filter(l => activeStatuses.includes((l.status || '').toLowerCase()))
+              .map(l => {
+                // Strip leading house number to sort by street name
+                const streetKey = (l.address || '').replace(/^\s*\d+[a-z]?\s*/i, '').trim().toLowerCase();
+                return { l, streetKey };
+              })
+              .sort((a, b) => a.streetKey.localeCompare(b.streetKey))
+              .map(r => r.l);
+            const copyPath = (path: string) => {
+              navigator.clipboard.writeText(path);
+              toast.success('Path copied');
+            };
+            return (
+              <>
+                <p className="text-xs text-muted-foreground">
+                  {rows.length} active listings · sorted alphabetically by street name. Match a RetargetIQ "User Path" to an address below.
+                </p>
+                <div className="overflow-auto border rounded-md">
+                  <table className="w-full text-sm">
+                    <thead className="bg-muted sticky top-0">
+                      <tr className="text-left">
+                        <th className="px-3 py-2 font-semibold">Address</th>
+                        <th className="px-3 py-2 font-semibold">City</th>
+                        <th className="px-3 py-2 font-semibold">MLS #</th>
+                        <th className="px-3 py-2 font-semibold">Status</th>
+                        <th className="px-3 py-2 font-semibold">User Path</th>
+                        <th className="px-3 py-2"></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {rows.map(l => {
+                        const path = `/listing/${l.id}`;
+                        return (
+                          <tr key={l.id} className="border-t hover:bg-muted/40">
+                            <td className="px-3 py-2 font-medium">{l.address}</td>
+                            <td className="px-3 py-2 text-muted-foreground">{l.city}, {l.state}</td>
+                            <td className="px-3 py-2 text-muted-foreground">{l.mlsNumber}</td>
+                            <td className="px-3 py-2 text-muted-foreground capitalize">{l.status}</td>
+                            <td className="px-3 py-2 font-mono text-xs">{path}</td>
+                            <td className="px-3 py-2">
+                              <Button variant="ghost" size="sm" onClick={() => copyPath(path)}>
+                                <Copy className="w-3.5 h-3.5" />
+                              </Button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                      {rows.length === 0 && (
+                        <tr><td colSpan={6} className="px-3 py-8 text-center text-muted-foreground">No active listings. Sync MLS first.</td></tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
