@@ -461,13 +461,19 @@ def process_email(access_token, agent_id, agent_name, email):
     # Drop None values so DB defaults apply
     row = {k: v for k, v in row.items() if v is not None}
 
-    cr = insert_closing(access_token, row)
+    existing_id = find_existing_closing(access_token, agent_id, row["property_address"])
+    if existing_id:
+        cr = update_closing(access_token, existing_id, row)
+        action = "updated existing"
+    else:
+        cr = insert_closing(access_token, row)
+        action = "created new"
     if cr.ok:
-        log(f"  Closing row created.")
+        log(f"  Closing row {action} ({existing_id or 'insert'}).")
         with open(PRINT_LIST, "a", encoding="utf-8") as f:
             f.write(f"{datetime.now().isoformat(timespec='seconds')}\t{address}\t{len(paperwork_files)} file(s)\n")
     else:
-        log(f"  Closing insert FAIL ({cr.status_code}): {cr.text[:400]}")
+        log(f"  Closing {action} FAIL ({cr.status_code}): {cr.text[:400]}")
 
 
 def main():
