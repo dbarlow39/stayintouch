@@ -202,6 +202,101 @@ def insert_closing(access_token, row):
     return r
 
 
+def _normalize_street(addr):
+    """Lowercase, strip punctuation, collapse whitespace, normalize common suffixes."""
+    if not addr:
+        return ""
+    s = str(addr).lower()
+    # Take only the portion before the first comma (drops city/state/zip)
+    s = s.split(",")[0]
+    s = re.sub(r"[^a-z0-9\s]", " ", s)
+    s = re.sub(r"\s+", " ", s).strip()
+    suffix_map = {
+        "road": "rd", "street": "st", "drive": "dr", "avenue": "ave", "boulevard": "blvd",
+        "lane": "ln", "court": "ct", "circle": "cir", "place": "pl", "terrace": "ter",
+        "parkway": "pkwy", "highway": "hwy", "trail": "trl", "way": "way",
+    }
+    parts = [suffix_map.get(p, p) for p in s.split(" ")]
+    return " ".join(parts)
+
+
+def find_existing_closing(access_token, agent_id, address):
+    """
+    Look for an existing closing for this agent with no paperwork yet whose
+    address partially matches. Returns closing id, or None if no unambiguous match.
+    """
+    try:
+        r = requests.get(
+            f"{SUPABASE_URL}/rest/v1/closings",
+            headers={
+                "Authorization": f"Bearer {access_token}",
+                "apikey": SUPABASE_ANON_KEY,
+            },
+            params={
+                "select": "id,property_address,paperwork_files",
+                "agent_id": f"eq.{agent_id}",
+                "or": "(paperwork_files.is.null,paperwork_files.eq.[])",
+            },
+            timeout=30,
+        )
+        if not r.ok:
+            log(f"  Existing-closing lookup FAIL ({r.status_code}): {r.text[:200]}")
+            return None
+        rows = r.json() or []
+    except Exception as e:
+        log(f"  Existing-closing lookup exception: {e}")
+        return None
+
+    target = _normalize_street(address)
+    if not target:
+        return None
+    target_tokens = [t for t in target.split(" ") if t]
+    if not target_tokens:
+        return None
+
+    matches = []
+    for row in rows:
+        cand = _normalize_street(row.get("property_address"))
+        if not cand:
+            continue
+        cand_tokens = cand.split(" ")
+        # Partial match: either string contains the other, or they share the
+        # house number + at least one street-name token.
+        if target in cand or cand in target:
+            matches.append(row)
+            continue
+        shared = set(target_tokens) & set(cand_tokens)
+        # Require house number (first token, numeric) to match plus at least
+        # one additional shared token.
+        if target_tokens[0].isdigit() and cand_tokens and cand_tokens[0] == target_tokens[0] and len(shared) >= 2:
+            matches.append(row)
+
+    if len(matches) == 1:
+        return matches[0]["id"]
+    if len(matches) > 1:
+        log(f"  Multiple existing closings matched '{address}' — skipping auto-merge, will insert new.")
+    return None
+
+
+def update_closing(access_token, closing_id, row):
+    """PATCH an existing closing with parsed fields + paperwork_files."""
+    # Preserve fields we should not overwrite on an existing row
+    payload = {k: v for k, v in row.items() if k not in ("agent_id", "created_by", "status")}
+    r = requests.patch(
+        f"{SUPABASE_URL}/rest/v1/closings",
+        headers={
+            "Authorization": f"Bearer {access_token}",
+            "apikey": SUPABASE_ANON_KEY,
+            "Content-Type": "application/json",
+            "Prefer": "return=representation",
+        },
+        params={"id": f"eq.{closing_id}"},
+        json=payload,
+        timeout=30,
+    )
+    return r
+
+
 # ---------------- Main flow ----------------
 def process_email(access_token, agent_id, agent_name, email):
     address = email["address"]
@@ -366,13 +461,19 @@ def process_email(access_token, agent_id, agent_name, email):
     # Drop None values so DB defaults apply
     row = {k: v for k, v in row.items() if v is not None}
 
-    cr = insert_closing(access_token, row)
+    existing_id = find_existing_closing(access_token, agent_id, row["property_address"])
+    if existing_id:
+        cr = update_closing(access_token, existing_id, row)
+        action = "updated existing"
+    else:
+        cr = insert_closing(access_token, row)
+        action = "created new"
     if cr.ok:
-        log(f"  Closing row created.")
+        log(f"  Closing row {action} ({existing_id or 'insert'}).")
         with open(PRINT_LIST, "a", encoding="utf-8") as f:
             f.write(f"{datetime.now().isoformat(timespec='seconds')}\t{address}\t{len(paperwork_files)} file(s)\n")
     else:
-        log(f"  Closing insert FAIL ({cr.status_code}): {cr.text[:400]}")
+        log(f"  Closing {action} FAIL ({cr.status_code}): {cr.text[:400]}")
 
 
 def main():
