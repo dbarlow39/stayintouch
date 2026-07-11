@@ -31,6 +31,55 @@ const AddLead = () => {
   const [googleMapsKey, setGoogleMapsKey] = useState<string>("");
   const [addressInput, setAddressInput] = useState("");
   const [creating, setCreating] = useState(false);
+  const [manualMode, setManualMode] = useState(false);
+  const [manual, setManual] = useState({
+    street: "",
+    city: "",
+    state: "OH",
+    zip: "",
+    first_name: "",
+    last_name: "",
+  });
+
+  const createManualLead = async () => {
+    if (!user?.id) {
+      toast({ title: "Not signed in", variant: "destructive" });
+      return;
+    }
+    if (!manual.street.trim() || !manual.city.trim()) {
+      toast({ title: "Street and city are required", variant: "destructive" });
+      return;
+    }
+    setCreating(true);
+    const { data: inserted, error: insertError } = await supabase
+      .from("leads")
+      .insert([{
+        agent_id: user.id,
+        lead_type: "seller",
+        status: "new",
+        address: manual.street.trim(),
+        city: manual.city.trim(),
+        state: (manual.state || "OH").trim(),
+        zip: manual.zip.trim(),
+        first_name: manual.first_name.trim() || "Unknown",
+        last_name: manual.last_name.trim() || "Owner",
+      }])
+      .select()
+      .single();
+
+    if (insertError || !inserted) {
+      console.error("Insert lead error:", insertError);
+      toast({
+        title: "Error creating lead",
+        description: insertError?.message || "Unknown error",
+        variant: "destructive",
+      });
+      setCreating(false);
+      return;
+    }
+    toast({ title: "Lead created", description: manual.street });
+    navigate(`/seller-lead/${inserted.id}`);
+  };
 
   useEffect(() => {
     let cancelled = false;
