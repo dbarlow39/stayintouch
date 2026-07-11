@@ -31,6 +31,55 @@ const AddLead = () => {
   const [googleMapsKey, setGoogleMapsKey] = useState<string>("");
   const [addressInput, setAddressInput] = useState("");
   const [creating, setCreating] = useState(false);
+  const [manualMode, setManualMode] = useState(false);
+  const [manual, setManual] = useState({
+    street: "",
+    city: "",
+    state: "OH",
+    zip: "",
+    first_name: "",
+    last_name: "",
+  });
+
+  const createManualLead = async () => {
+    if (!user?.id) {
+      toast({ title: "Not signed in", variant: "destructive" });
+      return;
+    }
+    if (!manual.street.trim() || !manual.city.trim()) {
+      toast({ title: "Street and city are required", variant: "destructive" });
+      return;
+    }
+    setCreating(true);
+    const { data: inserted, error: insertError } = await supabase
+      .from("leads")
+      .insert([{
+        agent_id: user.id,
+        lead_type: "seller",
+        status: "new",
+        address: manual.street.trim(),
+        city: manual.city.trim(),
+        state: (manual.state || "OH").trim(),
+        zip: manual.zip.trim(),
+        first_name: manual.first_name.trim() || "Unknown",
+        last_name: manual.last_name.trim() || "Owner",
+      }])
+      .select()
+      .single();
+
+    if (insertError || !inserted) {
+      console.error("Insert lead error:", insertError);
+      toast({
+        title: "Error creating lead",
+        description: insertError?.message || "Unknown error",
+        variant: "destructive",
+      });
+      setCreating(false);
+      return;
+    }
+    toast({ title: "Lead created", description: manual.street });
+    navigate(`/seller-lead/${inserted.id}`);
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -172,34 +221,100 @@ const AddLead = () => {
             </p>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="address" className="flex items-center gap-2">
-                Property Address
-                {creating && <Loader2 className="w-3 h-3 animate-spin text-muted-foreground" />}
-              </Label>
-              {googleMapsKey ? (
-                <GooglePlacesAddressInput
-                  id="address"
-                  apiKey={googleMapsKey}
-                  value={addressInput}
-                  onChange={setAddressInput}
-                  onAddressSelect={handleAddressSelect}
-                />
-              ) : (
-                <Input
-                  id="address"
-                  placeholder="Loading address autocomplete..."
-                  value={addressInput}
-                  onChange={(e) => setAddressInput(e.target.value)}
-                  disabled
-                />
-              )}
-              {creating && (
-                <p className="text-xs text-muted-foreground">
-                  Looking up property details and creating lead...
-                </p>
-              )}
-            </div>
+            {!manualMode ? (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="address" className="flex items-center gap-2">
+                    Property Address
+                    {creating && <Loader2 className="w-3 h-3 animate-spin text-muted-foreground" />}
+                  </Label>
+                  {googleMapsKey ? (
+                    <GooglePlacesAddressInput
+                      id="address"
+                      apiKey={googleMapsKey}
+                      value={addressInput}
+                      onChange={setAddressInput}
+                      onAddressSelect={handleAddressSelect}
+                    />
+                  ) : (
+                    <Input
+                      id="address"
+                      placeholder="Loading address autocomplete..."
+                      value={addressInput}
+                      onChange={(e) => setAddressInput(e.target.value)}
+                      disabled
+                    />
+                  )}
+                  {creating && (
+                    <p className="text-xs text-muted-foreground">
+                      Looking up property details and creating lead...
+                    </p>
+                  )}
+                </div>
+                <Button variant="link" className="px-0 h-auto" onClick={() => setManualMode(true)}>
+                  Can't find it? Enter manually
+                </Button>
+              </>
+            ) : (
+              <div className="space-y-3">
+                <div className="space-y-2">
+                  <Label>Street Address *</Label>
+                  <Input
+                    value={manual.street}
+                    onChange={(e) => setManual({ ...manual, street: e.target.value })}
+                    placeholder="123 Main St"
+                  />
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="col-span-2 space-y-2">
+                    <Label>City *</Label>
+                    <Input
+                      value={manual.city}
+                      onChange={(e) => setManual({ ...manual, city: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>State</Label>
+                    <Input
+                      value={manual.state}
+                      onChange={(e) => setManual({ ...manual, state: e.target.value })}
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>Zip</Label>
+                  <Input
+                    value={manual.zip}
+                    onChange={(e) => setManual({ ...manual, zip: e.target.value })}
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-2">
+                    <Label>Owner First Name</Label>
+                    <Input
+                      value={manual.first_name}
+                      onChange={(e) => setManual({ ...manual, first_name: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Owner Last Name</Label>
+                    <Input
+                      value={manual.last_name}
+                      onChange={(e) => setManual({ ...manual, last_name: e.target.value })}
+                    />
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Button onClick={createManualLead} disabled={creating}>
+                    {creating && <Loader2 className="w-3 h-3 mr-2 animate-spin" />}
+                    Create Lead
+                  </Button>
+                  <Button variant="ghost" onClick={() => setManualMode(false)} disabled={creating}>
+                    Back to search
+                  </Button>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
