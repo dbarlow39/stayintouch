@@ -510,12 +510,7 @@ async function runForAgent(
         }
         if (toCreate.length === 0 && toUpdate.length === 0) continue;
 
-        // Multi-address emails: only UPDATE existing rows; do not auto-create new ones from a shared PDF set
-        if (addressHits.length > 1 && toCreate.length > 0) {
-          for (const h of toCreate) {
-            summary.push({ address: h.address, status: "skipped_multi_address_new_needs_manual_create" });
-          }
-        }
+        // Multi-address emails: we'll create bare closings below for any missing addresses so paperwork isn't lost.
 
         processedThisRun++;
 
