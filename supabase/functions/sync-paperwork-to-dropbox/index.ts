@@ -588,23 +588,28 @@ async function runForAgent(
             dropbox_file_path: firstDbxPath,
             notes: `Paperwork auto-attached from Gmail '${subject}' on ${new Date().toISOString().slice(0, 10)}`,
           };
-          // If we parsed AND parse matches this address, enrich empty fields
-          if (parseOk && normalizeAddr(extracted.property_address || "") === normalizeAddr(upd.hit.address)) {
-            patch.paperwork_checklist = {
-              ...(extracted.checklist_detected || {}),
-              built_before_1978: extracted.built_before_1978 === true,
-            };
-            // Only backfill fields, don't overwrite existing check-derived values
-            const { data: cur } = await serviceClient
-              .from("closings").select("sale_price, closing_date, city, zip").eq("id", upd.id).maybeSingle();
-            if (cur) {
-              if ((!cur.sale_price || Number(cur.sale_price) === 0) && Number(extracted.sale_price) > 0) {
-                patch.sale_price = Number(extracted.sale_price);
-              }
-              if (!cur.city && extracted.city) patch.city = extracted.city;
-              if (!cur.zip && extracted.zip) patch.zip = extracted.zip;
-              if (extracted.closing_date && /^\d{4}-\d{2}-\d{2}$/.test(extracted.closing_date)) {
-                patch.closing_date = extracted.closing_date;
+          // Apply detected checklist whenever we have one.
+          // Single-address: also enrich empty sale_price/date/city/zip.
+          if (parseOk) {
+            const addrMatches = normalizeAddr(extracted.property_address || "") === normalizeAddr(upd.hit.address);
+            if (addrMatches || isMulti) {
+              patch.paperwork_checklist = {
+                ...(extracted.checklist_detected || {}),
+                built_before_1978: extracted.built_before_1978 === true,
+              };
+            }
+            if (addrMatches && !isMulti) {
+              const { data: cur } = await serviceClient
+                .from("closings").select("sale_price, closing_date, city, zip").eq("id", upd.id).maybeSingle();
+              if (cur) {
+                if ((!cur.sale_price || Number(cur.sale_price) === 0) && Number(extracted.sale_price) > 0) {
+                  patch.sale_price = Number(extracted.sale_price);
+                }
+                if (!cur.city && extracted.city) patch.city = extracted.city;
+                if (!cur.zip && extracted.zip) patch.zip = extracted.zip;
+                if (extracted.closing_date && /^\d{4}-\d{2}-\d{2}$/.test(extracted.closing_date)) {
+                  patch.closing_date = extracted.closing_date;
+                }
               }
             }
           }
