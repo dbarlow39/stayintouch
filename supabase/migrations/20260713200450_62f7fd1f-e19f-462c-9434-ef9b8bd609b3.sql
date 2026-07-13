@@ -1,0 +1,1 @@
+UPDATE public.closings SET agent_id = '0859dbb2-f31d-4409-8c2f-e001706f3866', created_by = '0859dbb2-f31d-4409-8c2f-e001706f3866', agent_name = 'Jaime Barlow' WHERE id = 'b1e65d0f-f5d7-4774-bbff-88e39c4fc8d6';
