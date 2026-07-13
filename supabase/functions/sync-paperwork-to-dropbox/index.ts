@@ -282,6 +282,60 @@ Deno.serve(async (req) => {
     // For cron: agent_id passed in body. For manual: JWT.
     let agentId = await resolveAgentId(req, body);
 
+    // One-off: re-run parser against an existing closing's paperwork_files and update checklist
+    if (body?.action === "backfill_checklist" && typeof body?.closing_id === "string") {
+      const { data: closing } = await serviceClient
+        .from("closings").select("id, paperwork_files, representation").eq("id", body.closing_id).maybeSingle();
+      if (!closing) {
+        return new Response(JSON.stringify({ error: "closing not found" }), {
+          status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const files: any[] = Array.isArray(closing.paperwork_files) ? closing.paperwork_files : [];
+      const urls: string[] = [];
+      for (const f of files) {
+        if (!f?.path) continue;
+        const u = await signedUrl(serviceClient, f.path);
+        if (u) urls.push(u);
+      }
+      if (urls.length === 0) {
+        return new Response(JSON.stringify({ error: "no signable files" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const pr = await fetch(`${SUPABASE_URL}/functions/v1/parse-closing-paperwork`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+          apikey: SUPABASE_ANON_KEY,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ signed_urls: urls, representation: closing.representation || "seller" }),
+      });
+      if (!pr.ok) {
+        const t = await pr.text().catch(() => "");
+        return new Response(JSON.stringify({ error: "parse failed", detail: t }), {
+          status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const extracted = (await pr.json()).extracted || {};
+      const checklist = {
+        ...(extracted.checklist_detected || {}),
+        built_before_1978: extracted.built_before_1978 === true,
+      };
+      const { error: updErr } = await serviceClient
+        .from("closings").update({ paperwork_checklist: checklist }).eq("id", body.closing_id);
+      if (updErr) {
+        return new Response(JSON.stringify({ error: updErr.message }), {
+          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      return new Response(JSON.stringify({ ok: true, checklist }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+
     // Cron convenience: if no agent_id supplied, iterate all agents who have Dropbox connected.
     if (!agentId && mode === "incremental") {
       const { data: agents } = await serviceClient
