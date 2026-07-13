@@ -303,26 +303,38 @@ Deno.serve(async (req) => {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      const pr = await fetch(`${SUPABASE_URL}/functions/v1/parse-closing-paperwork`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-          apikey: SUPABASE_ANON_KEY,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ signed_urls: urls, representation: closing.representation || "seller" }),
-      });
-      if (!pr.ok) {
-        const t = await pr.text().catch(() => "");
-        return new Response(JSON.stringify({ error: "parse failed", detail: t }), {
+      // Parse one file at a time and merge to avoid Anthropic's 100-page/document limit
+      let mergedChecklist: Record<string, boolean> = {};
+      let builtBefore1978 = false;
+      let anySuccess = false;
+      for (const u of urls) {
+        const pr = await fetch(`${SUPABASE_URL}/functions/v1/parse-closing-paperwork`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+            apikey: SUPABASE_ANON_KEY,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ signed_urls: [u], representation: closing.representation || "seller" }),
+        });
+        if (!pr.ok) {
+          const t = await pr.text().catch(() => "");
+          console.warn("backfill per-file parse failed:", t);
+          continue;
+        }
+        anySuccess = true;
+        const ex = (await pr.json()).extracted || {};
+        const det = ex.checklist_detected || {};
+        for (const k of Object.keys(det)) if (det[k] === true) mergedChecklist[k] = true;
+        if (ex.built_before_1978 === true) builtBefore1978 = true;
+      }
+      if (!anySuccess) {
+        return new Response(JSON.stringify({ error: "parse failed for all files" }), {
           status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      const extracted = (await pr.json()).extracted || {};
-      const checklist = {
-        ...(extracted.checklist_detected || {}),
-        built_before_1978: extracted.built_before_1978 === true,
-      };
+      const checklist = { ...mergedChecklist, built_before_1978: builtBefore1978 };
+
       const { error: updErr } = await serviceClient
         .from("closings").update({ paperwork_checklist: checklist }).eq("id", body.closing_id);
       if (updErr) {
