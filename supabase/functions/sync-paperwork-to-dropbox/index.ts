@@ -749,15 +749,33 @@ async function runForAgent(
           const caliberDetected = useParsed && (extracted.caliber_title_detected === true
             || /caliber/i.test(String(extracted.title_company || "")));
 
-          const matchedAgentName = useParsed
-            ? (matchAgent(extracted.listing_agent_name) || matchAgent(extracted.buyer_agent_name) || matchAgent(agentName) || agentName)
-            : (matchAgent(agentName) || agentName);
+          // Determine if parsed agent data reliably applies to THIS address:
+          // - single-address branch (useParsed) always applies
+          // - multi-address branch applies only when the parsed property_address matches this hit
+          const parsedAppliesToThisAddress = useParsed
+            || (parseOk && normalizeAddr(extracted.property_address || "") === norm);
 
+          const parsedListing = parsedAppliesToThisAddress ? matchAgent(extracted.listing_agent_name) : null;
+          const parsedBuyer = parsedAppliesToThisAddress ? matchAgent(extracted.buyer_agent_name) : null;
+
+          const matchedAgentName = useParsed
+            ? (parsedListing || parsedBuyer || matchAgent(agentName) || agentName)
+            : (parsedListing || parsedBuyer || matchAgent(agentName) || agentName);
+
+          // Reassign closing ownership if the matched listing agent is a different agent
+          // that has a profile in the system. Falls back to the syncing user otherwise.
           const rep = nc.representation || (useParsed ? "seller" : "seller");
+          const preferredAgentName = rep === "buyer"
+            ? (parsedBuyer || parsedListing)
+            : (parsedListing || parsedBuyer);
+          const reassignProfileId = profileIdForAgent(preferredAgentName);
+          const rowAgentId = reassignProfileId || agentId;
+
           const row: any = {
-            agent_id: agentId,
+            agent_id: rowAgentId,
             agent_name: matchedAgentName,
-            created_by: agentId,
+            created_by: rowAgentId,
+
             property_address: useParsed ? (extracted.property_address || address) : address,
             city: useParsed ? (extracted.city || null) : null,
             state: useParsed ? (extracted.state || "OH") : "OH",
