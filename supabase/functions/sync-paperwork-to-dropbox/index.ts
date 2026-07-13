@@ -407,11 +407,24 @@ async function runForAgent(
   const gmailToken = await getGmailAccessToken(serviceClient, agentId);
   const dbxToken = await getDropboxAccessToken(serviceClient, agentId);
 
-  // Load accounting agents for name matching against parsed PDF agent names
+  // Load accounting agents for name matching against parsed PDF agent names.
+  // Also load profiles so we can map a matched agent -> profile UUID (used by closings.agent_id).
   const { data: agentsList } = await serviceClient
-    .from("agents").select("full_name");
+    .from("agents").select("full_name, email");
+  const { data: profilesList } = await serviceClient
+    .from("profiles").select("id, full_name, email");
   const agentNames: string[] = (agentsList || []).map((a: any) => a.full_name).filter(Boolean);
+  const agentEmailByName = new Map<string, string>();
+  for (const a of (agentsList || [])) {
+    if (a.full_name && a.email) agentEmailByName.set(a.full_name, String(a.email).toLowerCase());
+  }
+  const profileByEmail = new Map<string, { id: string; full_name: string | null }>();
+  const profileByNormName = new Map<string, { id: string; full_name: string | null }>();
   const normName = (s: string) => (s || "").toLowerCase().replace(/[^a-z]+/g, "");
+  for (const p of (profilesList || [])) {
+    if (p.email) profileByEmail.set(String(p.email).toLowerCase(), { id: p.id, full_name: p.full_name });
+    if (p.full_name) profileByNormName.set(normName(p.full_name), { id: p.id, full_name: p.full_name });
+  }
   function matchAgent(name?: string | null): string | null {
     if (!name) return null;
     const target = normName(name);
@@ -431,6 +444,19 @@ async function runForAgent(
     }
     return null;
   }
+  // Resolve a matched agent full name to a profile UUID (for closings.agent_id reassignment).
+  // Prefers agents.email -> profiles.email match; falls back to normalized full_name match.
+  function profileIdForAgent(agentFullName: string | null): string | null {
+    if (!agentFullName) return null;
+    const email = agentEmailByName.get(agentFullName);
+    if (email) {
+      const p = profileByEmail.get(email);
+      if (p) return p.id;
+    }
+    const p2 = profileByNormName.get(normName(agentFullName));
+    return p2?.id || null;
+  }
+
 
   // Existing closings map: norm addr -> { id, hasPaperwork }
   const { data: existingClosings } = await serviceClient
@@ -723,15 +749,33 @@ async function runForAgent(
           const caliberDetected = useParsed && (extracted.caliber_title_detected === true
             || /caliber/i.test(String(extracted.title_company || "")));
 
-          const matchedAgentName = useParsed
-            ? (matchAgent(extracted.listing_agent_name) || matchAgent(extracted.buyer_agent_name) || matchAgent(agentName) || agentName)
-            : (matchAgent(agentName) || agentName);
+          // Determine if parsed agent data reliably applies to THIS address:
+          // - single-address branch (useParsed) always applies
+          // - multi-address branch applies only when the parsed property_address matches this hit
+          const parsedAppliesToThisAddress = useParsed
+            || (parseOk && normalizeAddr(extracted.property_address || "") === norm);
 
+          const parsedListing = parsedAppliesToThisAddress ? matchAgent(extracted.listing_agent_name) : null;
+          const parsedBuyer = parsedAppliesToThisAddress ? matchAgent(extracted.buyer_agent_name) : null;
+
+          const matchedAgentName = useParsed
+            ? (parsedListing || parsedBuyer || matchAgent(agentName) || agentName)
+            : (parsedListing || parsedBuyer || matchAgent(agentName) || agentName);
+
+          // Reassign closing ownership if the matched listing agent is a different agent
+          // that has a profile in the system. Falls back to the syncing user otherwise.
           const rep = nc.representation || (useParsed ? "seller" : "seller");
+          const preferredAgentName = rep === "buyer"
+            ? (parsedBuyer || parsedListing)
+            : (parsedListing || parsedBuyer);
+          const reassignProfileId = profileIdForAgent(preferredAgentName);
+          const rowAgentId = reassignProfileId || agentId;
+
           const row: any = {
-            agent_id: agentId,
+            agent_id: rowAgentId,
             agent_name: matchedAgentName,
-            created_by: agentId,
+            created_by: rowAgentId,
+
             property_address: useParsed ? (extracted.property_address || address) : address,
             city: useParsed ? (extracted.city || null) : null,
             state: useParsed ? (extracted.state || "OH") : "OH",
