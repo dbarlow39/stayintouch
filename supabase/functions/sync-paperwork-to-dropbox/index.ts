@@ -619,88 +619,91 @@ async function runForAgent(
           });
         }
 
-        // -------- CREATE new closing (only for single-address emails where parse succeeded) --------
-        if (addressHits.length === 1 && toCreate.length === 1) {
-          if (!parseOk) {
-            summary.push({ address: toCreate[0].address, status: "parse_failed_will_retry" });
+        // -------- CREATE new closing(s) --------
+        // Single-address: use parsed details when available.
+        // Multi-address: create a bare closing per missing address so paperwork is attached and the row is visible for manual completion.
+        for (const nc of toCreate) {
+          const address = nc.address;
+          const norm = normalizeAddr(address);
+          const isSingle = addressHits.length === 1 && toCreate.length === 1;
+          const useParsed = isSingle && parseOk && normalizeAddr(extracted.property_address || "") === norm;
+
+          if (isSingle && !parseOk) {
+            summary.push({ address, status: "parse_failed_will_retry" });
+            continue;
+          }
+
+          let closingDate = useParsed ? extracted.closing_date : null;
+          if (!closingDate || !/^\d{4}-\d{2}-\d{2}$/.test(closingDate)) {
+            closingDate = new Date().toISOString().slice(0, 10);
+          }
+
+          const salePrice = useParsed ? (Number(extracted.sale_price) || 0) : 0;
+          const calculatedCheck = salePrice > 0 ? Math.max(salePrice * 0.01, 2250) + 499 : 0;
+          const adminFee = 499;
+          const totalCommission = Math.max(calculatedCheck - adminFee, 0);
+          const companyPct = 40;
+          const agentPct = 60;
+          const companyShare = totalCommission * (companyPct / 100);
+          const agentShare = totalCommission * (agentPct / 100);
+          const caliberDetected = useParsed && (extracted.caliber_title_detected === true
+            || /caliber/i.test(String(extracted.title_company || "")));
+
+          const matchedAgentName = useParsed
+            ? (matchAgent(extracted.listing_agent_name) || matchAgent(extracted.buyer_agent_name) || matchAgent(agentName) || agentName)
+            : (matchAgent(agentName) || agentName);
+
+          const rep = nc.representation || (useParsed ? "seller" : "seller");
+          const row: any = {
+            agent_id: agentId,
+            agent_name: matchedAgentName,
+            created_by: agentId,
+            property_address: useParsed ? (extracted.property_address || address) : address,
+            city: useParsed ? (extracted.city || null) : null,
+            state: useParsed ? (extracted.state || "OH") : "OH",
+            zip: useParsed ? (extracted.zip || null) : null,
+            closing_date: closingDate,
+            sale_price: salePrice,
+            total_commission: totalCommission,
+            admin_fee: adminFee,
+            company_split_pct: companyPct,
+            agent_split_pct: agentPct,
+            company_share: companyShare,
+            agent_share: agentShare,
+            caliber_title_bonus: caliberDetected,
+            caliber_title_amount: caliberDetected ? 150 : 0,
+            representation: rep,
+            paperwork_files: paperworkFiles,
+            paperwork_status: "received",
+            paperwork_checklist: useParsed ? {
+              ...(extracted.checklist_detected || {}),
+              built_before_1978: extracted.built_before_1978 === true,
+            } : {},
+            notes: `Auto-imported from Gmail '${subject}' on ${new Date().toISOString().slice(0, 10)}${!useParsed ? ' (multi-address email — details need manual review)' : ''}`,
+            dropbox_upload_status: dbxOk ? "uploaded" : "failed",
+            dropbox_file_path: firstDbxPath,
+          };
+          Object.keys(row).forEach((k) => row[k] === null && delete row[k]);
+
+          const finalNorm = normalizeAddr(row.property_address);
+          if (finalNorm !== norm && existingMap.has(finalNorm)) {
+            skippedCount++;
+            summary.push({ address: row.property_address, status: "skipped_exists_after_parse" });
+            continue;
+          }
+          const { error: insErr } = await serviceClient.from("closings").insert(row);
+          if (insErr) {
+            summary.push({ address, status: "closing_insert_failed", error: insErr.message });
           } else {
-            const address = toCreate[0].address;
-            const norm = normalizeAddr(address);
-
-            let closingDate = extracted.closing_date;
-            if (!closingDate || !/^\d{4}-\d{2}-\d{2}$/.test(closingDate)) {
-              closingDate = new Date().toISOString().slice(0, 10);
-            }
-
-            const salePrice = Number(extracted.sale_price) || 0;
-            const calculatedCheck = salePrice > 0 ? Math.max(salePrice * 0.01, 2250) + 499 : 0;
-            const adminFee = 499;
-            const totalCommission = Math.max(calculatedCheck - adminFee, 0);
-            const companyPct = 40;
-            const agentPct = 60;
-            const companyShare = totalCommission * (companyPct / 100);
-            const agentShare = totalCommission * (agentPct / 100);
-            const caliberDetected = extracted.caliber_title_detected === true
-              || /caliber/i.test(String(extracted.title_company || ""));
-
-            const matchedAgentName =
-              matchAgent(extracted.listing_agent_name) ||
-              matchAgent(extracted.buyer_agent_name) ||
-              matchAgent(agentName) ||
-              agentName;
-
-            const rep = toCreate[0].representation || "seller";
-            const row: any = {
-              agent_id: agentId,
-              agent_name: matchedAgentName,
-              created_by: agentId,
-              property_address: extracted.property_address || address,
-              city: extracted.city || null,
-              state: extracted.state || "OH",
-              zip: extracted.zip || null,
-              closing_date: closingDate,
-              sale_price: salePrice,
-              total_commission: totalCommission,
-              admin_fee: adminFee,
-              company_split_pct: companyPct,
-              agent_split_pct: agentPct,
-              company_share: companyShare,
-              agent_share: agentShare,
-              caliber_title_bonus: caliberDetected,
-              caliber_title_amount: caliberDetected ? 150 : 0,
-              representation: rep,
-              paperwork_files: paperworkFiles,
-              paperwork_status: "received",
-              paperwork_checklist: {
-                ...(extracted.checklist_detected || {}),
-                built_before_1978: extracted.built_before_1978 === true,
-              },
-              notes: `Auto-imported from Gmail '${subject}' on ${new Date().toISOString().slice(0, 10)}`,
-              dropbox_upload_status: dbxOk ? "uploaded" : "failed",
-              dropbox_file_path: firstDbxPath,
-            };
-            Object.keys(row).forEach((k) => row[k] === null && delete row[k]);
-
-            const finalNorm = normalizeAddr(row.property_address);
-            if (finalNorm !== norm && existingMap.has(finalNorm)) {
-              skippedCount++;
-              summary.push({ address: row.property_address, status: "skipped_exists_after_parse" });
-            } else {
-              const { error: insErr } = await serviceClient.from("closings").insert(row);
-              if (insErr) {
-                summary.push({ address, status: "closing_insert_failed", error: insErr.message });
-              } else {
-                createdCount++;
-                if (!dbxOk) dbxFailCount++;
-                existingMap.set(norm, { id: null, hasPaperwork: true });
-                existingMap.set(finalNorm, { id: null, hasPaperwork: true });
-                summary.push({
-                  address,
-                  status: dbxOk ? "created_and_uploaded" : "created_dbx_failed",
-                  file_count: paperworkFiles.length,
-                });
-              }
-            }
+            createdCount++;
+            if (!dbxOk) dbxFailCount++;
+            existingMap.set(norm, { id: null, hasPaperwork: true });
+            existingMap.set(finalNorm, { id: null, hasPaperwork: true });
+            summary.push({
+              address,
+              status: useParsed ? (dbxOk ? "created_and_uploaded" : "created_dbx_failed") : (dbxOk ? "created_bare_multi_address" : "created_bare_multi_address_dbx_failed"),
+              file_count: paperworkFiles.length,
+            });
           }
         }
       } catch (e) {
