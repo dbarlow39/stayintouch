@@ -357,18 +357,24 @@ async function runForAgent(
     return null;
   }
 
-  // Dedup set: existing closings + Sold clients (status = 'S')
+  // Existing closings map: norm addr -> { id, hasPaperwork }
   const { data: existingClosings } = await serviceClient
-    .from("closings").select("property_address").eq("agent_id", agentId);
+    .from("closings").select("id, property_address, paperwork_files").eq("agent_id", agentId);
   const { data: soldClients } = await serviceClient
     .from("clients").select("street_number, street_name")
     .eq("agent_id", agentId).eq("status", "S");
-  const existingSet = new Set(
-    (existingClosings || []).map((c: any) => normalizeAddr(c.property_address || ""))
-  );
+  const existingMap = new Map<string, { id: string | null; hasPaperwork: boolean }>();
+  for (const c of (existingClosings || [])) {
+    const n = normalizeAddr(c.property_address || "");
+    if (!n) continue;
+    const hasPaperwork = Array.isArray(c.paperwork_files) && c.paperwork_files.length > 0;
+    existingMap.set(n, { id: c.id, hasPaperwork });
+  }
   for (const c of (soldClients || [])) {
     const addr = `${c.street_number || ""} ${c.street_name || ""}`.trim();
-    if (addr) existingSet.add(normalizeAddr(addr));
+    if (!addr) continue;
+    const n = normalizeAddr(addr);
+    if (n && !existingMap.has(n)) existingMap.set(n, { id: null, hasPaperwork: true });
   }
 
   // Cursor (backfill mode only)
@@ -385,10 +391,11 @@ async function runForAgent(
     }
   }
 
-  // Gmail query
+  // Gmail query — widened to also catch multi-address subjects ending in "Paperwork"
   const baseQuery = mode === "backfill"
-    ? 'subject:"Compiled Paperwork" has:attachment'
-    : 'subject:"Compiled Paperwork" newer_than:7d has:attachment';
+    ? '(subject:"Compiled Paperwork" OR subject:Paperwork) has:attachment'
+    : '(subject:"Compiled Paperwork" OR subject:Paperwork) newer_than:7d has:attachment';
+
 
   const summary: any[] = [];
   let createdCount = 0;
