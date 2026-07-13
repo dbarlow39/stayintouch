@@ -550,10 +550,12 @@ async function runForAgent(
 
         if (paperworkFiles.length === 0) continue;
 
-        // Parse (single-address emails only — multi-address PDFs would confuse the parser)
+        // Parse — run for both single- and multi-address emails so checklist boxes get auto-checked.
+        // For multi-address emails, the detected checklist is applied to every address in the email
+        // (approved trade-off: better to mark detected docs across all than leave everything unchecked).
         let extracted: any = {};
         let parseOk = false;
-        if (addressHits.length === 1 && signedUrls.length > 0) {
+        if (signedUrls.length > 0) {
           try {
             const pr = await fetch(`${SUPABASE_URL}/functions/v1/parse-closing-paperwork`, {
               method: "POST",
@@ -575,6 +577,7 @@ async function runForAgent(
             console.warn("parse-closing-paperwork failed:", e);
           }
         }
+        const isMulti = addressHits.length > 1;
 
         // -------- UPDATE existing closings (attach paperwork to rows created from just a commission check) --------
         for (const upd of toUpdate) {
