@@ -683,10 +683,11 @@ async function runForAgent(
             representation: rep,
             paperwork_files: paperworkFiles,
             paperwork_status: "received",
-            paperwork_checklist: useParsed ? {
-              ...(extracted.checklist_detected || {}),
-              built_before_1978: extracted.built_before_1978 === true,
-            } : {},
+            paperwork_checklist: useParsed
+              ? { ...(extracted.checklist_detected || {}), built_before_1978: extracted.built_before_1978 === true }
+              : (parseOk && isMulti
+                  ? { ...(extracted.checklist_detected || {}), built_before_1978: extracted.built_before_1978 === true }
+                  : {}),
             notes: `Auto-imported from Gmail '${subject}' on ${new Date().toISOString().slice(0, 10)}${!useParsed ? ' (multi-address email — details need manual review)' : ''}`,
             dropbox_upload_status: dbxOk ? "uploaded" : "failed",
             dropbox_file_path: firstDbxPath,
