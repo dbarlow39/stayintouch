@@ -99,10 +99,77 @@ async function getDropboxAccessToken(supabase: any, agentId: string): Promise<st
   return accessToken;
 }
 
-function parseAddress(subject: string): string | null {
-  const m = subject.match(/Compiled Paperwork\s+for\s+(.+)$/i);
-  if (!m) return null;
-  return m[1].trim().replace(/[\r\n]+/g, " ").replace(/\s+/g, " ");
+const STREET_SUFFIX_RE =
+  /(Rd|Road|St|Street|Ave|Avenue|Dr|Drive|Ln|Lane|Way|Blvd|Boulevard|Ct|Court|Pl|Place|Trl|Trace|Trail|Hwy|Highway|Cir|Circle|Ter|Terrace|Pkwy|Parkway|Sq|Square|Row|Loop|Pass|Run|Xing|Crossing|Ridge|Ridg|Grv|Grove|Pt|Point|Hl|Hill|Vw|View|Mnr|Manor)/i;
+const ADDRESS_RE = new RegExp(
+  String.raw`\b(\d{1,6}\s+(?:[NSEW]\.?\s+)?[A-Za-z0-9.'\-]+(?:\s+[A-Za-z0-9.'\-]+){0,5}\s+` +
+    STREET_SUFFIX_RE.source + String.raw`)\b`,
+  "gi",
+);
+
+type AddrHit = { address: string; representation: "buyer" | "seller" | null };
+
+function parseAddressesFromSubject(subject: string): AddrHit[] {
+  if (!subject) return [];
+  const s = subject.replace(/^\s*(Re:|Fwd?:)\s*/gi, "").trim();
+  // Case A: "Compiled Paperwork for <addr>"
+  const forMatch = s.match(/Compiled Paperwork\s+for\s+(.+)$/i);
+  if (forMatch) {
+    return [{ address: forMatch[1].trim().replace(/\s+/g, " "), representation: null }];
+  }
+  // Case B: multi-address like "183 W Case (buyer), 1910 rosemont (seller), 4826 Edge Grove (seller) Paperwork"
+  const cleaned = s.replace(/\bPaperwork\b\s*$/i, "").trim();
+  const parts = cleaned.split(/\s*,\s*|\s+and\s+/i);
+  const out: AddrHit[] = [];
+  for (const p of parts) {
+    const m = p.match(/^(.+?)\s*(?:\((buyer|seller)\))?\s*$/i);
+    if (!m) continue;
+    const addr = m[1].trim();
+    if (/\d/.test(addr) && addr.length >= 4) {
+      out.push({ address: addr, representation: m[2] ? (m[2].toLowerCase() as any) : null });
+    }
+  }
+  return out;
+}
+
+function extractAddressesFromText(text: string): string[] {
+  if (!text) return [];
+  const out = new Set<string>();
+  let m: RegExpExecArray | null;
+  const re = new RegExp(ADDRESS_RE.source, "gi");
+  while ((m = re.exec(text)) !== null) {
+    out.add(m[1].replace(/\s+/g, " ").trim());
+  }
+  return Array.from(out);
+}
+
+function extractAddressesFromFilenames(files: { filename: string }[]): string[] {
+  const out = new Set<string>();
+  for (const f of files) {
+    const name = (f.filename || "").replace(/\.pdf$/i, "").replace(/[_]+/g, " ");
+    const re = new RegExp(ADDRESS_RE.source, "i");
+    const m = name.match(re);
+    if (m) out.add(m[1].replace(/\s+/g, " ").trim());
+  }
+  return Array.from(out);
+}
+
+function decodeB64Url(s: string): string {
+  const b64 = (s || "").replace(/-/g, "+").replace(/_/g, "/");
+  if (!b64) return "";
+  try { return atob(b64 + "===".slice((b64.length + 3) % 4)); } catch { return ""; }
+}
+
+function getPlainTextBody(payload: any): string {
+  if (!payload) return "";
+  if (payload.mimeType === "text/plain" && payload.body?.data) {
+    return decodeB64Url(payload.body.data);
+  }
+  for (const p of payload.parts || []) {
+    const t = getPlainTextBody(p);
+    if (t) return t;
+  }
+  return "";
 }
 
 function findPdfParts(payload: any, out: any[] = []): any[] {
