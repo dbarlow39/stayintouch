@@ -28,8 +28,17 @@ const BACKFILL_TOTAL_CAP = 2500;
 
 function normalizeAddr(s: string): string {
   let n = (s || "").toLowerCase();
+  // Collapse directional abbreviations (N/S/E/W) with their long forms
+  n = n.replace(/\b(n|north)\b/g, " ")
+       .replace(/\b(s|south)\b/g, " ")
+       .replace(/\b(e|east)\b/g, " ")
+       .replace(/\b(w|west)\b/g, " ")
+       .replace(/\b(ne|northeast)\b/g, " ")
+       .replace(/\b(nw|northwest)\b/g, " ")
+       .replace(/\b(se|southeast)\b/g, " ")
+       .replace(/\b(sw|southwest)\b/g, " ");
   // Strip common street-type suffixes so "Ave"/"Avenue", "Dr"/"Drive" collapse to the same key
-  n = n.replace(/\b(avenue|ave|drive|dr|street|st|road|rd|boulevard|blvd|court|ct|lane|ln|place|pl|way|circle|cir|terrace|ter|parkway|pkwy|highway|hwy|trail|trl|square|sq)\b/g, "");
+  n = n.replace(/\b(avenue|ave|drive|dr|street|st|road|rd|boulevard|blvd|court|ct|lane|ln|place|pl|way|circle|cir|terrace|ter|parkway|pkwy|highway|hwy|trail|trl|trace|square|sq|grove|grv|point|pt|ridge|hill|hl|view|vw|manor|mnr|row|loop|pass|run|crossing|xing)\b/g, "");
   return n.replace(/[^a-z0-9]+/g, "");
 }
 
