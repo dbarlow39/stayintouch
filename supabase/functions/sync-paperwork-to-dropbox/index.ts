@@ -282,6 +282,72 @@ Deno.serve(async (req) => {
     // For cron: agent_id passed in body. For manual: JWT.
     let agentId = await resolveAgentId(req, body);
 
+    // One-off: re-run parser against an existing closing's paperwork_files and update checklist
+    if (body?.action === "backfill_checklist" && typeof body?.closing_id === "string") {
+      const { data: closing } = await serviceClient
+        .from("closings").select("id, paperwork_files, representation").eq("id", body.closing_id).maybeSingle();
+      if (!closing) {
+        return new Response(JSON.stringify({ error: "closing not found" }), {
+          status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const files: any[] = Array.isArray(closing.paperwork_files) ? closing.paperwork_files : [];
+      const urls: string[] = [];
+      for (const f of files) {
+        if (!f?.path) continue;
+        const u = await signedUrl(serviceClient, f.path);
+        if (u) urls.push(u);
+      }
+      if (urls.length === 0) {
+        return new Response(JSON.stringify({ error: "no signable files" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      // Parse one file at a time and merge to avoid Anthropic's 100-page/document limit
+      let mergedChecklist: Record<string, boolean> = {};
+      let builtBefore1978 = false;
+      let anySuccess = false;
+      for (const u of urls) {
+        const pr = await fetch(`${SUPABASE_URL}/functions/v1/parse-closing-paperwork`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+            apikey: SUPABASE_ANON_KEY,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ signed_urls: [u], representation: closing.representation || "seller" }),
+        });
+        if (!pr.ok) {
+          const t = await pr.text().catch(() => "");
+          console.warn("backfill per-file parse failed:", t);
+          continue;
+        }
+        anySuccess = true;
+        const ex = (await pr.json()).extracted || {};
+        const det = ex.checklist_detected || {};
+        for (const k of Object.keys(det)) if (det[k] === true) mergedChecklist[k] = true;
+        if (ex.built_before_1978 === true) builtBefore1978 = true;
+      }
+      if (!anySuccess) {
+        return new Response(JSON.stringify({ error: "parse failed for all files" }), {
+          status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const checklist = { ...mergedChecklist, built_before_1978: builtBefore1978 };
+
+      const { error: updErr } = await serviceClient
+        .from("closings").update({ paperwork_checklist: checklist }).eq("id", body.closing_id);
+      if (updErr) {
+        return new Response(JSON.stringify({ error: updErr.message }), {
+          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      return new Response(JSON.stringify({ ok: true, checklist }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+
     // Cron convenience: if no agent_id supplied, iterate all agents who have Dropbox connected.
     if (!agentId && mode === "incremental") {
       const { data: agents } = await serviceClient
@@ -550,10 +616,12 @@ async function runForAgent(
 
         if (paperworkFiles.length === 0) continue;
 
-        // Parse (single-address emails only — multi-address PDFs would confuse the parser)
+        // Parse — run for both single- and multi-address emails so checklist boxes get auto-checked.
+        // For multi-address emails, the detected checklist is applied to every address in the email
+        // (approved trade-off: better to mark detected docs across all than leave everything unchecked).
         let extracted: any = {};
         let parseOk = false;
-        if (addressHits.length === 1 && signedUrls.length > 0) {
+        if (signedUrls.length > 0) {
           try {
             const pr = await fetch(`${SUPABASE_URL}/functions/v1/parse-closing-paperwork`, {
               method: "POST",
@@ -575,6 +643,7 @@ async function runForAgent(
             console.warn("parse-closing-paperwork failed:", e);
           }
         }
+        const isMulti = addressHits.length > 1;
 
         // -------- UPDATE existing closings (attach paperwork to rows created from just a commission check) --------
         for (const upd of toUpdate) {
@@ -585,23 +654,28 @@ async function runForAgent(
             dropbox_file_path: firstDbxPath,
             notes: `Paperwork auto-attached from Gmail '${subject}' on ${new Date().toISOString().slice(0, 10)}`,
           };
-          // If we parsed AND parse matches this address, enrich empty fields
-          if (parseOk && normalizeAddr(extracted.property_address || "") === normalizeAddr(upd.hit.address)) {
-            patch.paperwork_checklist = {
-              ...(extracted.checklist_detected || {}),
-              built_before_1978: extracted.built_before_1978 === true,
-            };
-            // Only backfill fields, don't overwrite existing check-derived values
-            const { data: cur } = await serviceClient
-              .from("closings").select("sale_price, closing_date, city, zip").eq("id", upd.id).maybeSingle();
-            if (cur) {
-              if ((!cur.sale_price || Number(cur.sale_price) === 0) && Number(extracted.sale_price) > 0) {
-                patch.sale_price = Number(extracted.sale_price);
-              }
-              if (!cur.city && extracted.city) patch.city = extracted.city;
-              if (!cur.zip && extracted.zip) patch.zip = extracted.zip;
-              if (extracted.closing_date && /^\d{4}-\d{2}-\d{2}$/.test(extracted.closing_date)) {
-                patch.closing_date = extracted.closing_date;
+          // Apply detected checklist whenever we have one.
+          // Single-address: also enrich empty sale_price/date/city/zip.
+          if (parseOk) {
+            const addrMatches = normalizeAddr(extracted.property_address || "") === normalizeAddr(upd.hit.address);
+            if (addrMatches || isMulti) {
+              patch.paperwork_checklist = {
+                ...(extracted.checklist_detected || {}),
+                built_before_1978: extracted.built_before_1978 === true,
+              };
+            }
+            if (addrMatches && !isMulti) {
+              const { data: cur } = await serviceClient
+                .from("closings").select("sale_price, closing_date, city, zip").eq("id", upd.id).maybeSingle();
+              if (cur) {
+                if ((!cur.sale_price || Number(cur.sale_price) === 0) && Number(extracted.sale_price) > 0) {
+                  patch.sale_price = Number(extracted.sale_price);
+                }
+                if (!cur.city && extracted.city) patch.city = extracted.city;
+                if (!cur.zip && extracted.zip) patch.zip = extracted.zip;
+                if (extracted.closing_date && /^\d{4}-\d{2}-\d{2}$/.test(extracted.closing_date)) {
+                  patch.closing_date = extracted.closing_date;
+                }
               }
             }
           }
@@ -675,10 +749,11 @@ async function runForAgent(
             representation: rep,
             paperwork_files: paperworkFiles,
             paperwork_status: "received",
-            paperwork_checklist: useParsed ? {
-              ...(extracted.checklist_detected || {}),
-              built_before_1978: extracted.built_before_1978 === true,
-            } : {},
+            paperwork_checklist: useParsed
+              ? { ...(extracted.checklist_detected || {}), built_before_1978: extracted.built_before_1978 === true }
+              : (parseOk && isMulti
+                  ? { ...(extracted.checklist_detected || {}), built_before_1978: extracted.built_before_1978 === true }
+                  : {}),
             notes: `Auto-imported from Gmail '${subject}' on ${new Date().toISOString().slice(0, 10)}${!useParsed ? ' (multi-address email — details need manual review)' : ''}`,
             dropbox_upload_status: dbxOk ? "uploaded" : "failed",
             dropbox_file_path: firstDbxPath,
