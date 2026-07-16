@@ -61,11 +61,25 @@ const BuyersTab = () => {
   const { data: leads, isLoading } = useQuery({
     queryKey: ["buyer-leads"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // Exclude leads that have already been converted to a client
+      // (clients.source_lead_id points back to the originating lead).
+      const { data: convertedRows } = await supabase
+        .from("clients")
+        .select("source_lead_id")
+        .not("source_lead_id", "is", null);
+      const convertedIds = (convertedRows || [])
+        .map((r: any) => r.source_lead_id)
+        .filter(Boolean) as string[];
+
+      let query = supabase
         .from("leads")
         .select("*")
         .eq("lead_type", "buyer")
         .order("created_at", { ascending: false });
+      if (convertedIds.length > 0) {
+        query = query.not("id", "in", `(${convertedIds.join(",")})`);
+      }
+      const { data, error } = await query;
       if (error) throw error;
       return data as BuyerLead[];
     },
