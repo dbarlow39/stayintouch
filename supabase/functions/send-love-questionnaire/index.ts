@@ -5,7 +5,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const SECURITY_WORD = "sellfor1percent";
+
 const PUBLIC_BASE = "https://10thingsilove.sellfor1percent.com";
 
 Deno.serve(async (req) => {

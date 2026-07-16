@@ -6,7 +6,7 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
 };
 
-const SECURITY_WORD = "sellfor1percent";
+
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -66,7 +66,7 @@ Deno.serve(async (req) => {
 
     if (req.method === "POST") {
       const body = await req.json().catch(() => ({}));
-      const { token, security_word, responses } = body;
+      const { token, responses } = body;
       if (!token || typeof token !== "string") {
         return new Response(JSON.stringify({ error: "token required" }), {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
