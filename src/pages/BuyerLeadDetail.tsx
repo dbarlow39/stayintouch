@@ -46,6 +46,9 @@ const BuyerLeadDetail = () => {
   const [activeTab, setActiveTab] = useState("details");
   const [showConvertDialog, setShowConvertDialog] = useState(false);
   const [isConverting, setIsConverting] = useState(false);
+  // NOTE: Buyer leads convert to a Working Deal (estimated_net_properties row) only.
+  // They are NOT added to Client Management. A buyer may separately become a
+  // seller lead later; that flow lives in SellerLeadDetail and stays untouched.
 
   const [formData, setFormData] = useState({
     first_name: "",
@@ -201,42 +204,54 @@ const BuyerLeadDetail = () => {
     },
   });
 
-  const convertToClient = async () => {
+  const convertToWorkingDeal = async () => {
     if (!lead || !user) return;
+    if (!formData.address || !formData.city || !formData.state || !formData.zip) {
+      toast({
+        title: "Property address required",
+        description: "Fill in the buyer's Property of Interest (address, city, state, zip) before adding to Working Deals.",
+        variant: "destructive",
+      });
+      return;
+    }
     setIsConverting(true);
     try {
-      const { data: newClient, error: insertError } = await supabase
-        .from("clients")
+      const buyerFullName = `${formData.first_name} ${formData.last_name}`.trim();
+      const buyer2FullName = `${formData.buyer2_first_name} ${formData.buyer2_last_name}`.trim();
+      const { data: newProp, error: insertError } = await supabase
+        .from("estimated_net_properties")
         .insert({
           agent_id: user.id,
-          first_name: formData.first_name,
-          last_name: formData.last_name,
-          email: formData.email || null,
-          cell_phone: formData.phone || null,
+          client_id: null,
+          name: buyerFullName || formData.address,
+          street_address: formData.address,
+          city: formData.city,
+          state: formData.state,
+          zip: formData.zip,
+          representation_type: "buyer",
+          deal_status: "active",
+          buyer_name_1: buyerFullName || null,
+          buyer_name_2: buyer2FullName || null,
+          buyer_email: formData.email || null,
+          buyer_cell_phone: formData.phone || null,
           notes: formData.notes || null,
-          status: "A",
-          source_lead_id: lead.id,
-          street_name: formData.address || null,
-          city: formData.city || null,
-          state: formData.state || null,
-          zip: formData.zip || null,
         })
         .select("id")
         .single();
       if (insertError) throw insertError;
 
-      // Do NOT delete the lead — keep the row so linked market analysis / worksheet data
-      // survives. It's hidden from the Buyer Leads list via the source_lead_id join in BuyersTab.
-      const convertedStamp = `Converted to client on ${new Date().toLocaleDateString()}`;
-      const newNotes = formData.notes ? `${formData.notes}\n\n${convertedStamp}` : convertedStamp;
+      // Keep the buyer lead in the buyer pool. Just stamp a note so we know
+      // a working deal was created from it.
+      const stamp = `Added to Working Deals on ${new Date().toLocaleDateString()}`;
+      const newNotes = formData.notes ? `${formData.notes}\n\n${stamp}` : stamp;
       await supabase.from("leads").update({ notes: newNotes }).eq("id", id!);
 
       queryClient.invalidateQueries({ queryKey: ["buyer-leads"] });
-      queryClient.invalidateQueries({ queryKey: ["clients"] });
-      toast({ title: "Lead converted to client successfully" });
-      navigate(`/dashboard?tab=clients&openClient=${newClient.id}`);
+      queryClient.invalidateQueries({ queryKey: ["estimated-net-properties"] });
+      toast({ title: "Added to Working Deals" });
+      navigate(`/dashboard?tab=deals&propertyId=${newProp.id}`);
     } catch (error: any) {
-      toast({ title: "Error converting lead", description: error.message, variant: "destructive" });
+      toast({ title: "Error creating working deal", description: error.message, variant: "destructive" });
     } finally {
       setIsConverting(false);
       setShowConvertDialog(false);
@@ -346,7 +361,7 @@ const BuyerLeadDetail = () => {
                   {lead && (
                     <Button variant="default" size="sm" onClick={() => setShowConvertDialog(true)}>
                       <UserCheck className="w-4 h-4 mr-1" />
-                      Convert to Client
+                      Add to Working Deals
                     </Button>
                   )}
                 </div>
@@ -618,21 +633,22 @@ const BuyerLeadDetail = () => {
       <AlertDialog open={showConvertDialog} onOpenChange={setShowConvertDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Convert Lead to Client</AlertDialogTitle>
+            <AlertDialogTitle>Add Buyer to Working Deals</AlertDialogTitle>
             <AlertDialogDescription>
-              This will create a new active client from <strong>{formData.first_name} {formData.last_name}</strong> and permanently delete this buyer lead. This action cannot be undone.
+              This will create a new Working Deal for <strong>{formData.first_name} {formData.last_name}</strong> at <strong>{formData.address || "(no address set)"}</strong>. The buyer lead stays in your Buyer Leads pool.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="text-sm space-y-1 py-2 text-muted-foreground">
-            <p><strong>Name:</strong> {formData.first_name} {formData.last_name}</p>
+            <p><strong>Buyer:</strong> {formData.first_name} {formData.last_name}</p>
+            {formData.address && <p><strong>Property:</strong> {[formData.address, formData.city, formData.state, formData.zip].filter(Boolean).join(", ")}</p>}
             {formData.email && <p><strong>Email:</strong> {formData.email}</p>}
             {formData.phone && <p><strong>Phone:</strong> {formData.phone}</p>}
           </div>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={isConverting}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={convertToClient} disabled={isConverting}>
+            <AlertDialogAction onClick={convertToWorkingDeal} disabled={isConverting}>
               {isConverting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <UserCheck className="w-4 h-4 mr-2" />}
-              Convert to Client
+              Add to Working Deals
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
