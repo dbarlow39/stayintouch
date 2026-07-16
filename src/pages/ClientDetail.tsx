@@ -206,14 +206,10 @@ const ClientDetail = () => {
   });
 
   // Auto-create the source lead the first time we confirm none exists for this client.
-  useEffect(() => {
-    if (!client || !user) return;
-    if (!linkedLeadFetched) return;
-    if (linkedLead) return;
-    if (createSourceLeadMutation.isPending || createSourceLeadMutation.isSuccess) return;
-    createSourceLeadMutation.mutate();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [client?.id, user?.id, linkedLeadFetched, linkedLead]);
+  // NOTE: We intentionally do NOT auto-create a seller source lead here.
+  // Auto-creating one for buyer-converted clients was mislabeling them as sellers
+  // and hiding their original buyer market analysis. Users can still create a
+  // source lead manually via the buttons on the tabs below.
 
 
   const addNoteMutation = useMutation({

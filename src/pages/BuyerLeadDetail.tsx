@@ -225,8 +225,11 @@ const BuyerLeadDetail = () => {
         .single();
       if (insertError) throw insertError;
 
-      const { error: deleteError } = await supabase.from("leads").delete().eq("id", id!);
-      if (deleteError) throw deleteError;
+      // Do NOT delete the lead — keep the row so linked market analysis / worksheet data
+      // survives. It's hidden from the Buyer Leads list via the source_lead_id join in BuyersTab.
+      const convertedStamp = `Converted to client on ${new Date().toLocaleDateString()}`;
+      const newNotes = formData.notes ? `${formData.notes}\n\n${convertedStamp}` : convertedStamp;
+      await supabase.from("leads").update({ notes: newNotes }).eq("id", id!);
 
       queryClient.invalidateQueries({ queryKey: ["buyer-leads"] });
       queryClient.invalidateQueries({ queryKey: ["clients"] });
