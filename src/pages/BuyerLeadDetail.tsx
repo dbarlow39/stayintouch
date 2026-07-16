@@ -65,6 +65,43 @@ const BuyerLeadDetail = () => {
     buyer2_phone: "",
   });
 
+  const [googleMapsKey, setGoogleMapsKey] = useState<string>("");
+
+  useEffect(() => {
+    let cancelled = false;
+    supabase.functions.invoke("get-google-maps-key").then(({ data, error }) => {
+      if (cancelled) return;
+      if (error) {
+        console.error("Failed to fetch Google Maps key:", error);
+        return;
+      }
+      if (data?.apiKey) setGoogleMapsKey(data.apiKey);
+    });
+    return () => { cancelled = true; };
+  }, []);
+
+  const handleAddressAutocomplete = (fullAddress: string) => {
+    const place = (typeof window !== "undefined" ? (window as any).__lastGooglePlace : null);
+    const components: any[] = place?.address_components || [];
+    const get = (type: string, short = false) => {
+      const c = components.find((x: any) => x.types?.includes(type));
+      return c ? (short ? c.short_name : c.long_name) : "";
+    };
+    const streetNumber = get("street_number");
+    const route = get("route");
+    const street = [streetNumber, route].filter(Boolean).join(" ") || fullAddress.split(",")[0] || "";
+    const city = get("locality") || get("sublocality") || get("postal_town") || "";
+    const state = get("administrative_area_level_1", true);
+    const zip = get("postal_code");
+    setFormData((prev) => ({
+      ...prev,
+      address: street,
+      city: city || prev.city,
+      state: state || prev.state,
+      zip: zip || prev.zip,
+    }));
+  };
+
   const { data: lead, isLoading } = useQuery({
     queryKey: ["lead", id],
     queryFn: async () => {
