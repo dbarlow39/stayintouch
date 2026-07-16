@@ -871,6 +871,15 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
             <Badge variant="secondary" className="ml-auto">
               {uploadedCount}/{documents.length}
             </Badge>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={handleResetAnalysis}
+              className="ml-2"
+            >
+              <Trash2 className="w-4 h-4 mr-1" />
+              Reset Market Analysis
+            </Button>
           </CardTitle>
         </CardHeader>
         <CardContent>
