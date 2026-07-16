@@ -53,6 +53,7 @@ import ResidentialWorkSheetTab from "@/components/dashboard/ResidentialWorkSheet
 import MarketAnalysisTab from "@/components/dashboard/sellerLead/MarketAnalysisTab";
 import MLSDescriptionTab from "@/components/dashboard/sellerLead/MLSDescriptionTab";
 import LoveResponsesTab from "@/components/dashboard/sellerLead/LoveResponsesTab";
+import BuyerMarketAnalysisTab from "@/components/dashboard/buyerLead/BuyerMarketAnalysisTab";
 
 interface ClientNote {
   id: string;
