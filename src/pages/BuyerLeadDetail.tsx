@@ -512,11 +512,21 @@ const BuyerLeadDetail = () => {
                     <h3 className="text-sm font-semibold">Property of Interest</h3>
                     <div className="space-y-2">
                       <Label htmlFor="address">Address</Label>
-                      <Input
-                        id="address"
-                        value={formData.address}
-                        onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                      />
+                      {googleMapsKey ? (
+                        <GooglePlacesAddressInput
+                          id="address"
+                          apiKey={googleMapsKey}
+                          value={formData.address}
+                          onChange={(v) => setFormData((prev) => ({ ...prev, address: v }))}
+                          onAddressSelect={handleAddressAutocomplete}
+                        />
+                      ) : (
+                        <Input
+                          id="address"
+                          value={formData.address}
+                          onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                        />
+                      )}
                     </div>
                     <div className="grid grid-cols-3 gap-4">
                       <div className="space-y-2">
