@@ -53,6 +53,7 @@ import ResidentialWorkSheetTab from "@/components/dashboard/ResidentialWorkSheet
 import MarketAnalysisTab from "@/components/dashboard/sellerLead/MarketAnalysisTab";
 import MLSDescriptionTab from "@/components/dashboard/sellerLead/MLSDescriptionTab";
 import LoveResponsesTab from "@/components/dashboard/sellerLead/LoveResponsesTab";
+import BuyerMarketAnalysisTab from "@/components/dashboard/buyerLead/BuyerMarketAnalysisTab";
 
 interface ClientNote {
   id: string;
@@ -145,8 +146,7 @@ const ClientDetail = () => {
       let query = supabase
         .from("leads")
         .select("*")
-        .eq("agent_id", user.id)
-        .eq("lead_type", "seller");
+        .eq("agent_id", user.id);
 
       if (fullAddress) {
         query = query.ilike("address", `%${fullAddress}%`);
@@ -379,19 +379,29 @@ const ClientDetail = () => {
             {/* Sidebar */}
             <aside className="bg-muted/30 border-b md:border-b-0 md:border-r p-2 md:p-3">
               <nav className="flex md:flex-col gap-1 overflow-x-auto md:overflow-visible">
-                {[
-                  { id: "details" as TabView, label: "Details", icon: User },
-                  { id: "edit" as TabView, label: "Edit Client", icon: Pencil },
-                  { id: "notes" as TabView, label: "Notes", icon: FileText },
-                  { id: "communications" as TabView, label: "Communications", icon: Mail },
-                  { id: "feedback" as TabView, label: "Feedback", icon: MessageSquare },
-                  { id: "stats" as TabView, label: "Stats", icon: BarChart3 },
-                  { id: "pre-listing" as TabView, label: "Pre-Listing Pack", icon: Package },
-                  { id: "market-analysis" as TabView, label: "Market Analysis", icon: TrendingUp },
-                  { id: "residential-work-sheet" as TabView, label: "Residential Work Sheet", icon: ClipboardList },
-                  { id: "mls-description" as TabView, label: "MLS Description", icon: Sparkles },
-                  { id: "love" as TabView, label: "10 Things They Love", icon: Heart },
-                ].map(({ id: tabId, label, icon: Icon }) => (
+                {(() => {
+                  const isBuyer = (linkedLead as any)?.lead_type === "buyer";
+                  const allTabs = [
+                    { id: "details" as TabView, label: "Details", icon: User },
+                    { id: "edit" as TabView, label: "Edit Client", icon: Pencil },
+                    { id: "notes" as TabView, label: "Notes", icon: FileText },
+                    { id: "communications" as TabView, label: "Communications", icon: Mail },
+                    { id: "feedback" as TabView, label: "Feedback", icon: MessageSquare },
+                    { id: "stats" as TabView, label: "Stats", icon: BarChart3 },
+                    ...(isBuyer
+                      ? [
+                          { id: "market-analysis" as TabView, label: "Market Analysis", icon: TrendingUp },
+                        ]
+                      : [
+                          { id: "pre-listing" as TabView, label: "Pre-Listing Pack", icon: Package },
+                          { id: "market-analysis" as TabView, label: "Market Analysis", icon: TrendingUp },
+                          { id: "residential-work-sheet" as TabView, label: "Residential Work Sheet", icon: ClipboardList },
+                          { id: "mls-description" as TabView, label: "MLS Description", icon: Sparkles },
+                          { id: "love" as TabView, label: "10 Things They Love", icon: Heart },
+                        ]),
+                  ];
+                  return allTabs;
+                })().map(({ id: tabId, label, icon: Icon }) => (
                   <button
                     key={tabId}
                     onClick={() => setActiveTab(tabId)}
@@ -704,12 +714,16 @@ const ClientDetail = () => {
                   <>
                     {activeTab === "market-analysis" && (
                       linkedLead ? (
-                        <MarketAnalysisTab lead={linkedLead as any} />
+                        (linkedLead as any).lead_type === "buyer" ? (
+                          <BuyerMarketAnalysisTab lead={linkedLead as any} />
+                        ) : (
+                          <MarketAnalysisTab lead={linkedLead as any} />
+                        )
                       ) : (
                         <NoSourceLeadEmpty
                           icon={TrendingUp}
                           title="No source lead found"
-                          body="Market Analysis is powered by a seller-lead record. Create one from this client's info to get started."
+                          body="Market Analysis is powered by a lead record. Create one from this client's info to get started."
                         />
                       )
                     )}
