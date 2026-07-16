@@ -27,6 +27,7 @@ import { useToast } from "@/hooks/use-toast";
 import LeadEnrollmentDialog from "@/components/dashboard/LeadEnrollmentDialog";
 import logo from "@/assets/logo.jpg";
 import BuyerMarketAnalysisTab from "@/components/dashboard/buyerLead/BuyerMarketAnalysisTab";
+import { GooglePlacesAddressInput } from "@/components/dashboard/residential/GooglePlacesAddressInput";
 
 const statusColors: Record<string, string> = {
   new: "bg-primary/10 text-primary border-primary/20",
