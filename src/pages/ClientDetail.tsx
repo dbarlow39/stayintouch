@@ -146,8 +146,7 @@ const ClientDetail = () => {
       let query = supabase
         .from("leads")
         .select("*")
-        .eq("agent_id", user.id)
-        .eq("lead_type", "seller");
+        .eq("agent_id", user.id);
 
       if (fullAddress) {
         query = query.ilike("address", `%${fullAddress}%`);
