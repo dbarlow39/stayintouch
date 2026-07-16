@@ -54,6 +54,10 @@ const BuyerLeadDetail = () => {
     status: "new",
     source: "",
     notes: "",
+    address: "",
+    city: "",
+    state: "",
+    zip: "",
     buyer2_first_name: "",
     buyer2_last_name: "",
     buyer2_email: "",
@@ -85,6 +89,10 @@ const BuyerLeadDetail = () => {
         status: lead.status || "new",
         source: lead.source || "",
         notes: lead.notes || "",
+        address: (lead as any).address || "",
+        city: (lead as any).city || "",
+        state: (lead as any).state || "",
+        zip: (lead as any).zip || "",
         buyer2_first_name: prefs.buyer2_first_name || "",
         buyer2_last_name: prefs.buyer2_last_name || "",
         buyer2_email: prefs.buyer2_email || "",
@@ -457,6 +465,44 @@ const BuyerLeadDetail = () => {
                     </div>
                   </div>
 
+                  <div className="space-y-4 rounded-md border p-4">
+                    <h3 className="text-sm font-semibold">Property of Interest</h3>
+                    <div className="space-y-2">
+                      <Label htmlFor="address">Address</Label>
+                      <Input
+                        id="address"
+                        value={formData.address}
+                        onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                      />
+                    </div>
+                    <div className="grid grid-cols-3 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="city">City</Label>
+                        <Input
+                          id="city"
+                          value={formData.city}
+                          onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="state">State</Label>
+                        <Input
+                          id="state"
+                          value={formData.state}
+                          onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="zip">Zip</Label>
+                        <Input
+                          id="zip"
+                          value={formData.zip}
+                          onChange={(e) => setFormData({ ...formData, zip: e.target.value })}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
                   <div className="space-y-2">
                     <Label htmlFor="notes">Notes</Label>
                     <Textarea
@@ -466,6 +512,7 @@ const BuyerLeadDetail = () => {
                       onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                     />
                   </div>
+
 
                   <div className="flex justify-between pt-4">
                     <Button
