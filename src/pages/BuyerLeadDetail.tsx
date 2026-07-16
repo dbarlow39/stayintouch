@@ -633,21 +633,22 @@ const BuyerLeadDetail = () => {
       <AlertDialog open={showConvertDialog} onOpenChange={setShowConvertDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Convert Lead to Client</AlertDialogTitle>
+            <AlertDialogTitle>Add Buyer to Working Deals</AlertDialogTitle>
             <AlertDialogDescription>
-              This will create a new active client from <strong>{formData.first_name} {formData.last_name}</strong> and permanently delete this buyer lead. This action cannot be undone.
+              This will create a new Working Deal for <strong>{formData.first_name} {formData.last_name}</strong> at <strong>{formData.address || "(no address set)"}</strong>. The buyer lead stays in your Buyer Leads pool.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="text-sm space-y-1 py-2 text-muted-foreground">
-            <p><strong>Name:</strong> {formData.first_name} {formData.last_name}</p>
+            <p><strong>Buyer:</strong> {formData.first_name} {formData.last_name}</p>
+            {formData.address && <p><strong>Property:</strong> {[formData.address, formData.city, formData.state, formData.zip].filter(Boolean).join(", ")}</p>}
             {formData.email && <p><strong>Email:</strong> {formData.email}</p>}
             {formData.phone && <p><strong>Phone:</strong> {formData.phone}</p>}
           </div>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={isConverting}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={convertToClient} disabled={isConverting}>
+            <AlertDialogAction onClick={convertToWorkingDeal} disabled={isConverting}>
               {isConverting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <UserCheck className="w-4 h-4 mr-2" />}
-              Convert to Client
+              Add to Working Deals
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
