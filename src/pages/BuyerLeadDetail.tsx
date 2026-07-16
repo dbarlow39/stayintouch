@@ -27,6 +27,7 @@ import { useToast } from "@/hooks/use-toast";
 import LeadEnrollmentDialog from "@/components/dashboard/LeadEnrollmentDialog";
 import logo from "@/assets/logo.jpg";
 import BuyerMarketAnalysisTab from "@/components/dashboard/buyerLead/BuyerMarketAnalysisTab";
+import { GooglePlacesAddressInput } from "@/components/dashboard/residential/GooglePlacesAddressInput";
 
 const statusColors: Record<string, string> = {
   new: "bg-primary/10 text-primary border-primary/20",
@@ -63,6 +64,43 @@ const BuyerLeadDetail = () => {
     buyer2_email: "",
     buyer2_phone: "",
   });
+
+  const [googleMapsKey, setGoogleMapsKey] = useState<string>("");
+
+  useEffect(() => {
+    let cancelled = false;
+    supabase.functions.invoke("get-google-maps-key").then(({ data, error }) => {
+      if (cancelled) return;
+      if (error) {
+        console.error("Failed to fetch Google Maps key:", error);
+        return;
+      }
+      if (data?.apiKey) setGoogleMapsKey(data.apiKey);
+    });
+    return () => { cancelled = true; };
+  }, []);
+
+  const handleAddressAutocomplete = (fullAddress: string) => {
+    const place = (typeof window !== "undefined" ? (window as any).__lastGooglePlace : null);
+    const components: any[] = place?.address_components || [];
+    const get = (type: string, short = false) => {
+      const c = components.find((x: any) => x.types?.includes(type));
+      return c ? (short ? c.short_name : c.long_name) : "";
+    };
+    const streetNumber = get("street_number");
+    const route = get("route");
+    const street = [streetNumber, route].filter(Boolean).join(" ") || fullAddress.split(",")[0] || "";
+    const city = get("locality") || get("sublocality") || get("postal_town") || "";
+    const state = get("administrative_area_level_1", true);
+    const zip = get("postal_code");
+    setFormData((prev) => ({
+      ...prev,
+      address: street,
+      city: city || prev.city,
+      state: state || prev.state,
+      zip: zip || prev.zip,
+    }));
+  };
 
   const { data: lead, isLoading } = useQuery({
     queryKey: ["lead", id],
@@ -474,11 +512,21 @@ const BuyerLeadDetail = () => {
                     <h3 className="text-sm font-semibold">Property of Interest</h3>
                     <div className="space-y-2">
                       <Label htmlFor="address">Address</Label>
-                      <Input
-                        id="address"
-                        value={formData.address}
-                        onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                      />
+                      {googleMapsKey ? (
+                        <GooglePlacesAddressInput
+                          id="address"
+                          apiKey={googleMapsKey}
+                          value={formData.address}
+                          onChange={(v) => setFormData((prev) => ({ ...prev, address: v }))}
+                          onAddressSelect={handleAddressAutocomplete}
+                        />
+                      ) : (
+                        <Input
+                          id="address"
+                          value={formData.address}
+                          onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                        />
+                      )}
                     </div>
                     <div className="grid grid-cols-3 gap-4">
                       <div className="space-y-2">
