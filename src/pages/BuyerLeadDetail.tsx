@@ -177,6 +177,11 @@ const BuyerLeadDetail = () => {
           cell_phone: formData.phone || null,
           notes: formData.notes || null,
           status: "A",
+          source_lead_id: lead.id,
+          street_name: formData.address || null,
+          city: formData.city || null,
+          state: formData.state || null,
+          zip: formData.zip || null,
         })
         .select("id")
         .single();
