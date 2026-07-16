@@ -714,12 +714,16 @@ const ClientDetail = () => {
                   <>
                     {activeTab === "market-analysis" && (
                       linkedLead ? (
-                        <MarketAnalysisTab lead={linkedLead as any} />
+                        (linkedLead as any).lead_type === "buyer" ? (
+                          <BuyerMarketAnalysisTab lead={linkedLead as any} />
+                        ) : (
+                          <MarketAnalysisTab lead={linkedLead as any} />
+                        )
                       ) : (
                         <NoSourceLeadEmpty
                           icon={TrendingUp}
                           title="No source lead found"
-                          body="Market Analysis is powered by a seller-lead record. Create one from this client's info to get started."
+                          body="Market Analysis is powered by a lead record. Create one from this client's info to get started."
                         />
                       )
                     )}
