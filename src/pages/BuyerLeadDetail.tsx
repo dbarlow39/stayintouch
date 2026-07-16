@@ -46,6 +46,9 @@ const BuyerLeadDetail = () => {
   const [activeTab, setActiveTab] = useState("details");
   const [showConvertDialog, setShowConvertDialog] = useState(false);
   const [isConverting, setIsConverting] = useState(false);
+  // NOTE: Buyer leads convert to a Working Deal (estimated_net_properties row) only.
+  // They are NOT added to Client Management. A buyer may separately become a
+  // seller lead later; that flow lives in SellerLeadDetail and stays untouched.
 
   const [formData, setFormData] = useState({
     first_name: "",
