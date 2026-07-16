@@ -933,9 +933,7 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
                       className="shrink-0"
                       onClick={(e) => {
                         e.stopPropagation();
-                        setDocuments((prev) =>
-                          prev.map((d, i) => i === index ? { ...d, fromDatabase: false, inspectionData: undefined, inspectionPhotos: undefined, savedFileName: undefined } : d)
-                        );
+                        deleteSavedSlot(index);
                       }}
                     >
                       <X className="w-4 h-4" />
