@@ -22,6 +22,7 @@ import {
   MessageCircle,
   Send,
   ArrowRight,
+  Trash2,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -461,6 +462,83 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
     if (refreshed) setSavedFiles(refreshed);
   };
 
+  // Delete a single saved slot's DB row + storage object, then clear local state
+  const deleteSavedSlot = async (index: number) => {
+    if (!lead?.id || !user?.id) return;
+    const slot = documents[index];
+    const label = slot?.label;
+    if (!label) return;
+    try {
+      const { data: rows } = await supabase
+        .from("market_analysis_files")
+        .select("id, file_path, source_type")
+        .eq("lead_id", lead.id)
+        .eq("agent_id", user.id)
+        .eq("file_type", "source_doc")
+        .eq("document_label", label);
+      const paths = (rows || [])
+        .filter((r: any) => r.source_type === "storage" && r.file_path)
+        .map((r: any) => r.file_path as string);
+      if (paths.length > 0) {
+        try { await supabase.storage.from("market-analysis-docs").remove(paths); } catch (e) { console.error("storage remove failed", e); }
+      }
+      const ids = (rows || []).map((r: any) => r.id).filter(Boolean);
+      if (ids.length > 0) {
+        await supabase.from("market_analysis_files").delete().eq("agent_id", user.id).in("id", ids);
+      }
+      setUploadedDocsRef((prev) => prev.filter((d) => d.name !== label));
+      setDocuments((prev) =>
+        prev.map((d, i) => i === index ? {
+          label: d.label, description: d.description, file: null, required: d.required,
+          savedFilePath: undefined, savedFileName: undefined, fromDatabase: false,
+          inspectionData: undefined, inspectionPhotos: undefined, summaryText: undefined,
+        } : d)
+      );
+      await refreshSavedMarketAnalysisFiles();
+      toast({ title: "Removed", description: `${label} removed from this lead.` });
+    } catch (err: any) {
+      toast({ title: "Error removing document", description: err.message, variant: "destructive" });
+    }
+  };
+
+  // Nuke ALL market-analysis data for this lead (files + analysis JSON + storage) and reset UI
+  const handleResetAnalysis = async () => {
+    if (!lead?.id || !user?.id) return;
+    if (!confirm("Delete ALL market-analysis data for this lead (uploads, analysis, chat)? This cannot be undone.")) return;
+    try {
+      const { data: rows } = await supabase
+        .from("market_analysis_files")
+        .select("id, file_path, source_type")
+        .eq("lead_id", lead.id)
+        .eq("agent_id", user.id);
+      const paths = (rows || [])
+        .filter((r: any) => r.source_type === "storage" && r.file_path)
+        .map((r: any) => r.file_path as string);
+      if (paths.length > 0) {
+        try { await supabase.storage.from("market-analysis-docs").remove(paths); } catch (e) { console.error("storage remove failed", e); }
+      }
+      const ids = (rows || []).map((r: any) => r.id).filter(Boolean);
+      if (ids.length > 0) {
+        await supabase.from("market_analysis_files").delete().eq("agent_id", user.id).in("id", ids);
+      }
+      setAnalysis(null);
+      setChatMessages([]);
+      setUploadedDocsRef([]);
+      setSavedFiles([]);
+      setDocuments([
+        { label: "CMA / Property Detail Report", description: "CoreLogic, RPR, or similar report", file: null, required: false },
+        { label: "Residential Inspection Worksheet", description: "Room-by-room condition notes", file: null, required: false },
+        { label: "Summary of Walk-Through", description: "Seller observations and transcript", file: null, required: false },
+        { label: "Zillow PDF Screenshot", description: "Zestimate, range, and property stats", file: null, required: false },
+        { label: "Reallist Tax Record", description: "County tax record and assessment details", file: null, required: false },
+        { label: "Optional Information", description: "Any additional documents to be considered", file: null, required: false },
+      ]);
+      toast({ title: "Market analysis reset", description: "All files and analysis cleared for this lead." });
+    } catch (err: any) {
+      toast({ title: "Error resetting analysis", description: err.message, variant: "destructive" });
+    }
+  };
+
   const buildMarketAnalysisRows = (docsForRequest: any[], generatedAnalysis: any) => {
     const fileRows = docsForRequest.map((doc: any) => {
       const isInline = doc.filePath === "__database__";
@@ -793,6 +871,15 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
             <Badge variant="secondary" className="ml-auto">
               {uploadedCount}/{documents.length}
             </Badge>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={handleResetAnalysis}
+              className="ml-2"
+            >
+              <Trash2 className="w-4 h-4 mr-1" />
+              Reset Market Analysis
+            </Button>
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -846,9 +933,7 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
                       className="shrink-0"
                       onClick={(e) => {
                         e.stopPropagation();
-                        setDocuments((prev) =>
-                          prev.map((d, i) => i === index ? { ...d, fromDatabase: false, inspectionData: undefined, inspectionPhotos: undefined, savedFileName: undefined } : d)
-                        );
+                        deleteSavedSlot(index);
                       }}
                     >
                       <X className="w-4 h-4" />
@@ -887,9 +972,7 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
                       className="shrink-0"
                       onClick={(e) => {
                         e.stopPropagation();
-                        setDocuments((prev) =>
-                          prev.map((d, i) => i === index ? { ...d, savedFilePath: undefined, savedFileName: undefined } : d)
-                        );
+                        deleteSavedSlot(index);
                       }}
                     >
                       <X className="w-4 h-4" />
