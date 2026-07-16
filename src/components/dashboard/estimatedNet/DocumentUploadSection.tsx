@@ -23,6 +23,7 @@ const DOCUMENT_TYPES = [
   { value: "lender_pre_approval", label: "Lender Pre-Approval" },
   { value: "counter_offer", label: "Counter Offer" },
   { value: "inspection_report", label: "Inspection Report" },
+  { value: "mls_listing", label: "MLS Listing Page" },
   { value: "other", label: "Other" },
 ] as const;
 
