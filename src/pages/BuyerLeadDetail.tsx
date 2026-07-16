@@ -361,7 +361,7 @@ const BuyerLeadDetail = () => {
                   {lead && (
                     <Button variant="default" size="sm" onClick={() => setShowConvertDialog(true)}>
                       <UserCheck className="w-4 h-4 mr-1" />
-                      Convert to Client
+                      Add to Working Deals
                     </Button>
                   )}
                 </div>
