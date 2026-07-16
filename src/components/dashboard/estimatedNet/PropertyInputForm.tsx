@@ -2112,7 +2112,69 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
         {!hideSections.includes('parties') && <Card className="p-6 mb-6">
           <h3 className="text-xl font-semibold mb-4 text-foreground">Parties of the Contract</h3>
           
-          {/* Buyer Agent Section - Light Rose Background */}
+          {representationType === 'buyer' ? (
+            <div className="bg-rose-50 p-4 rounded-lg mb-6">
+              <h4 className="font-bold text-foreground mb-3">Listing Agent Details</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                  <Label htmlFor="listingAgentNameParties">Listing Agent Name</Label>
+                  <Input
+                    id="listingAgentNameParties"
+                    value={formData.listingAgentName || ""}
+                    onChange={(e) => updateField("listingAgentName", e.target.value)}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="listingAgentPhoneParties">Listing Agent Cell Phone</Label>
+                  <div className="relative">
+                    <Input
+                      id="listingAgentPhoneParties"
+                      value={formData.listingAgentPhone || ""}
+                      onChange={(e) => updateField("listingAgentPhone", e.target.value)}
+                      className="pr-16"
+                    />
+                    {formData.listingAgentPhone && (
+                      <div className="absolute right-1 top-1/2 -translate-y-1/2 flex gap-0.5">
+                        <Button type="button" variant="ghost" size="sm" className="h-7 w-7 p-0 text-primary hover:text-primary/80" title="Call" onClick={() => window.open(`tel:${formData.listingAgentPhone}`, '_self')}>
+                          <Phone className="h-4 w-4" />
+                        </Button>
+                        <Button type="button" variant="ghost" size="sm" className="h-7 w-7 p-0 text-primary hover:text-primary/80" title="Text" onClick={() => window.open(`sms:${formData.listingAgentPhone.replace(/\D/g, '')}`, '_self')}>
+                          <MessageSquare className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="listingAgentEmailParties">Listing Agent Email</Label>
+                  <div className="relative">
+                    <Input
+                      id="listingAgentEmailParties"
+                      type="text"
+                      value={formData.listingAgentEmail || ""}
+                      onChange={(e) => updateField("listingAgentEmail", e.target.value)}
+                      placeholder="email@example.com"
+                      className="pr-10"
+                    />
+                    {formData.listingAgentEmail && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 p-0 text-primary hover:text-primary/80"
+                        onClick={() => openEmailClient(formData.listingAgentEmail.split(',')[0].trim())}
+                        title="Send email"
+                      >
+                        <Mail className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : (
           <div className="bg-rose-50 p-4 rounded-lg mb-6">
            <h4 className="font-bold text-foreground mb-3">Buyer Agent Details</h4>
             {/* Line 1: Buyer Agent Name + Cell Phone */}
@@ -2177,6 +2239,8 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
               </div>
             </div>
           </div>
+          )}
+
 
           {/* Lender Section - Light Green Background */}
           <div className="bg-green-50 p-4 rounded-lg mb-6">
