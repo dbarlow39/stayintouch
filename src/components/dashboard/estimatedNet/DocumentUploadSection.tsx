@@ -413,7 +413,7 @@ const DocumentUploadSection = ({ propertyId, clientId, onContractParsed, onReset
               className="text-destructive border-destructive/50 hover:bg-destructive/10 hover:text-destructive"
             >
               <RotateCcw className="h-4 w-4 mr-2" />
-              Reset Form
+              Reset Uploads
             </Button>
           )}
           {parsing ? (
