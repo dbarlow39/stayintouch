@@ -1476,11 +1476,26 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
       {/* Main Content */}
       <div className="flex-1 py-4 px-6 overflow-auto">
         <div className="max-w-4xl">
+          <div className="mb-6 flex items-start justify-between gap-4">
+            <div>
+              <h2 className="text-2xl font-bold text-foreground">
+                {editingId ? "Edit Property" : "Property Information"}
+              </h2>
+              <p className="text-muted-foreground">Enter property and offer details</p>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleResetForm}
+              className="text-destructive border-destructive/50 hover:bg-destructive/10 hover:text-destructive shrink-0"
+            >
+              <RotateCcw className="mr-2 h-4 w-4" />
+              Reset Form
+            </Button>
+          </div>
+
           <div className="mb-6">
-            <h2 className="text-2xl font-bold text-foreground">
-              {editingId ? "Edit Property" : "Property Information"}
-            </h2>
-            <p className="text-muted-foreground">Enter property and offer details</p>
+
             
             <div className="mt-4">
               <Label className="text-sm font-medium text-foreground mb-2 block">Representation Type</Label>
