@@ -1335,6 +1335,61 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
     setTimeout(() => formRef.current?.requestSubmit(), 0);
   };
 
+  const handleResetForm = () => {
+    if (!window.confirm("Clear all offer fields to start a new offer? Address and party info are preserved. This does not save until you click Save.")) {
+      return;
+    }
+    setFormData((prev) => ({
+      ...prev,
+      offerPrice: 0,
+      firstMortgage: 0,
+      secondMortgage: 0,
+      listingAgentCommission: 1,
+      buyerAgentCommission: 3,
+      closingCost: 0,
+      typeOfLoan: "Conventional",
+      lenderName: "",
+      lendingOfficer: "",
+      lendingOfficerPhone: "",
+      lendingOfficerEmail: "",
+      buyerName1: "",
+      buyerName2: "",
+      buyerEmail: "",
+      buyerCellPhone: "",
+      loanAppTimeFrame: "7",
+      loanCommitment: "",
+      preApprovalDays: 2,
+      appraisalContingency: true,
+      homeWarranty: 0,
+      homeWarrantyCompany: "",
+      deposit: 1000,
+      depositCollection: "Within 3 Days of Acceptance",
+      inContract: "",
+      closingDate: "",
+      possession: "",
+      finalWalkThrough: "48 hours prior to close",
+      respondToOfferBy: "",
+      inspectionDays: 7,
+      remedyPeriodDays: 2,
+      firstHalfPaid: true,
+      secondHalfPaid: false,
+      taxDaysDueThisYear: 0,
+      daysFirstHalfTaxes: 0,
+      daysSecondHalfTaxes: 0,
+      adminFee: 499,
+      appliances: "",
+      notes: "",
+      escalationCap: undefined,
+      appraisalGap: undefined,
+    }));
+    setPreApprovalText("");
+    toast({
+      title: "Form Reset",
+      description: "Offer fields cleared. Click Save to persist the reset.",
+    });
+  };
+
+
 
   const navigationItems = [
     {
