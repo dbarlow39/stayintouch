@@ -10,7 +10,7 @@ import { PropertyData } from "@/types/estimatedNet";
 import { filterNavForRepType } from "@/utils/navigationUtils";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, List, Download, Mail, Calendar, FileText, ArrowRight, DollarSign, ClipboardList, Phone, MessageSquare, StickyNote } from "lucide-react";
+import { ArrowLeft, List, Download, Mail, Calendar, FileText, ArrowRight, DollarSign, ClipboardList, Phone, MessageSquare, StickyNote, RotateCcw } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import DocumentUploadSection, { ContractExtractedData } from "./DocumentUploadSection";
@@ -1335,6 +1335,61 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
     setTimeout(() => formRef.current?.requestSubmit(), 0);
   };
 
+  const handleResetForm = () => {
+    if (!window.confirm("Clear all offer fields to start a new offer? Address and party info are preserved. This does not save until you click Save.")) {
+      return;
+    }
+    setFormData((prev) => ({
+      ...prev,
+      offerPrice: 0,
+      firstMortgage: 0,
+      secondMortgage: 0,
+      listingAgentCommission: 1,
+      buyerAgentCommission: 3,
+      closingCost: 0,
+      typeOfLoan: "Conventional",
+      lenderName: "",
+      lendingOfficer: "",
+      lendingOfficerPhone: "",
+      lendingOfficerEmail: "",
+      buyerName1: "",
+      buyerName2: "",
+      buyerEmail: "",
+      buyerCellPhone: "",
+      loanAppTimeFrame: "7",
+      loanCommitment: "",
+      preApprovalDays: 2,
+      appraisalContingency: true,
+      homeWarranty: 0,
+      homeWarrantyCompany: "",
+      deposit: 1000,
+      depositCollection: "Within 3 Days of Acceptance",
+      inContract: "",
+      closingDate: "",
+      possession: "",
+      finalWalkThrough: "48 hours prior to close",
+      respondToOfferBy: "",
+      inspectionDays: 7,
+      remedyPeriodDays: 2,
+      firstHalfPaid: true,
+      secondHalfPaid: false,
+      taxDaysDueThisYear: 0,
+      daysFirstHalfTaxes: 0,
+      daysSecondHalfTaxes: 0,
+      adminFee: 499,
+      appliances: "",
+      notes: "",
+      escalationCap: undefined,
+      appraisalGap: undefined,
+    }));
+    setPreApprovalText("");
+    toast({
+      title: "Form Reset",
+      description: "Offer fields cleared. Click Save to persist the reset.",
+    });
+  };
+
+
 
   const navigationItems = [
     {
@@ -1421,11 +1476,26 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
       {/* Main Content */}
       <div className="flex-1 py-4 px-6 overflow-auto">
         <div className="max-w-4xl">
+          <div className="mb-6 flex items-start justify-between gap-4">
+            <div>
+              <h2 className="text-2xl font-bold text-foreground">
+                {editingId ? "Edit Property" : "Property Information"}
+              </h2>
+              <p className="text-muted-foreground">Enter property and offer details</p>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleResetForm}
+              className="text-destructive border-destructive/50 hover:bg-destructive/10 hover:text-destructive shrink-0"
+            >
+              <RotateCcw className="mr-2 h-4 w-4" />
+              Reset Form
+            </Button>
+          </div>
+
           <div className="mb-6">
-            <h2 className="text-2xl font-bold text-foreground">
-              {editingId ? "Edit Property" : "Property Information"}
-            </h2>
-            <p className="text-muted-foreground">Enter property and offer details</p>
+
             
             <div className="mt-4">
               <Label className="text-sm font-medium text-foreground mb-2 block">Representation Type</Label>
