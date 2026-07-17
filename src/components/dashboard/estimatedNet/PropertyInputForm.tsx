@@ -1719,6 +1719,7 @@ const PropertyInputForm = ({ editingId, onSave, onCancel, initialClient, onClear
           propertyId={currentPropertyId} 
           clientId={linkedClientId}
           onContractParsed={handleContractParsed}
+          onResetForm={handleResetForm}
         />
         )}
 
