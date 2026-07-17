@@ -83,9 +83,10 @@ interface DocumentUploadSectionProps {
   propertyId: string | null;
   clientId: string | null;
   onContractParsed?: (data: ContractExtractedData) => void;
+  onResetForm?: () => void;
 }
 
-const DocumentUploadSection = ({ propertyId, clientId, onContractParsed }: DocumentUploadSectionProps) => {
+const DocumentUploadSection = ({ propertyId, clientId, onContractParsed, onResetForm }: DocumentUploadSectionProps) => {
   const { toast } = useToast();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
