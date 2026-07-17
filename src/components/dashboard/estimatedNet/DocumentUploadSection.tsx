@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Upload, File, Trash2, Loader2, FileText, Download } from "lucide-react";
+import { Upload, File, Trash2, Loader2, FileText, Download, RotateCcw } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
