@@ -54,11 +54,28 @@ interface Client {
   days_on_market?: number;
 }
 
+const emailField = z
+  .string()
+  .trim()
+  .max(500)
+  .refine((v) => v === "" || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v), "Invalid email")
+  .optional()
+  .or(z.literal(""))
+  .or(z.null());
+const phoneField = z
+  .string()
+  .trim()
+  .max(100)
+  .refine((v) => v === "" || /^[+()\-.\s\dxext]{7,50}$/i.test(v), "Invalid phone")
+  .optional()
+  .or(z.literal(""))
+  .or(z.null());
+
 const clientSchema = z.object({
   first_name: z.string().trim().max(100).optional().or(z.literal("")).or(z.null()),
   last_name: z.string().trim().max(100).optional().or(z.literal("")).or(z.null()),
-  email: z.string().trim().max(500).optional().or(z.literal("")).or(z.null()),
-  phone: z.string().trim().max(100).optional().or(z.literal("")).or(z.null()),
+  email: emailField,
+  phone: phoneField,
   notes: z.string().trim().max(1000).optional().or(z.literal("")).or(z.null()),
   status: z.string().trim().max(50).optional().or(z.literal("")).or(z.null()),
   mls_id: z.string().trim().max(100).optional().or(z.literal("")).or(z.null()),
@@ -67,9 +84,11 @@ const clientSchema = z.object({
   city: z.string().trim().max(100).optional().or(z.literal("")).or(z.null()),
   state: z.string().trim().max(50).optional().or(z.literal("")).or(z.null()),
   zip: z.string().trim().max(20).optional().or(z.literal("")).or(z.null()),
-  price: z.union([z.number(), z.string(), z.null()]).optional(),
-  home_phone: z.string().trim().max(100).optional().or(z.literal("")).or(z.null()),
-  cell_phone: z.string().trim().max(200).optional().or(z.literal("")).or(z.null()),
+  price: z
+    .union([z.number().min(0).max(1_000_000_000), z.string().max(20), z.null()])
+    .optional(),
+  home_phone: phoneField,
+  cell_phone: phoneField,
   listing_date: z.string().trim().optional().or(z.literal("")).or(z.null()),
   cbs: z.string().trim().max(100).optional().or(z.literal("")).or(z.null()),
   showing_type: z.string().trim().max(100).optional().or(z.literal("")).or(z.null()),
@@ -599,10 +618,16 @@ const ClientsTab = ({ onSelectClientForEstimate }: ClientsTabProps) => {
 
   const handleConfirmImport = async () => {
     try {
+      const MAX_IMPORT_ROWS = 10000;
+      if (csvData.length > MAX_IMPORT_ROWS) {
+        toast.error(`CSV too large: ${csvData.length} rows (limit ${MAX_IMPORT_ROWS}).`);
+        return;
+      }
       const validClients: any[] = [];
       const errors: string[] = [];
 
       console.log('Starting CSV import, total rows:', csvData.length);
+
 
       csvData.forEach((row, index) => {
         const rawClient: any = {};

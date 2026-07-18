@@ -7,11 +7,16 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+import { requireUserOrServiceRole } from "../_shared/verifyAuth.ts";
+
 serve(async (req) => {
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
+
+  const _auth = await requireUserOrServiceRole(req);
+  if (_auth instanceof Response) return _auth;
 
   try {
     const { address, city, state, zip } = await req.json();
