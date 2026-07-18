@@ -74,6 +74,8 @@ export default function MarketingPlanTab({ lead }: { lead: any }) {
   const [planStream, setPlanStream] = useState<string>("");
   const [streamingPlan, setStreamingPlan] = useState(false);
   const [downloadingDocx, setDownloadingDocx] = useState(false);
+  const [tweakInstruction, setTweakInstruction] = useState("");
+  const [tweaking, setTweaking] = useState(false);
   const stage5Fired = useRef(false);
 
   // ---------- Load existing job ----------
