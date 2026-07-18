@@ -18,7 +18,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Upload, Download, X, Play, FileText, Trash2, RefreshCw } from "lucide-react";
+import { Loader2, Upload, Download, X, Play, FileText, Trash2, RefreshCw, Wand2 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 
 interface UploadedDoc {
@@ -74,6 +74,8 @@ export default function MarketingPlanTab({ lead }: { lead: any }) {
   const [planStream, setPlanStream] = useState<string>("");
   const [streamingPlan, setStreamingPlan] = useState(false);
   const [downloadingDocx, setDownloadingDocx] = useState(false);
+  const [tweakInstruction, setTweakInstruction] = useState("");
+  const [tweaking, setTweaking] = useState(false);
   const stage5Fired = useRef(false);
 
   // ---------- Load existing job ----------
@@ -246,6 +248,24 @@ export default function MarketingPlanTab({ lead }: { lead: any }) {
       toast({ title: "Download failed", description: err.message, variant: "destructive" });
     } finally {
       setDownloadingDocx(false);
+    }
+  }
+
+  async function handleTweak() {
+    if (!existingJob || !tweakInstruction.trim()) return;
+    setTweaking(true);
+    try {
+      const { error } = await supabase.functions.invoke("marketing-plan-tweak", {
+        body: { job_id: existingJob.id, instruction: tweakInstruction.trim() },
+      });
+      if (error) throw error;
+      await loadResults(existingJob.id);
+      setTweakInstruction("");
+      toast({ title: "Plan updated", description: "Your requested change was applied." });
+    } catch (err: any) {
+      toast({ title: "Tweak failed", description: err.message, variant: "destructive" });
+    } finally {
+      setTweaking(false);
     }
   }
 
@@ -484,6 +504,40 @@ export default function MarketingPlanTab({ lead }: { lead: any }) {
           </CardContent>
         </Card>
       )}
+
+      {/* Tweak / revise panel */}
+      {existingJob && status === "complete" && results.marketing_plan && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Wand2 className="w-4 h-4" /> Request Changes
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Tell the AI exactly what to change. It will rewrite only that part and leave the rest of the plan alone. Example: "In the Open House section, change the second sentence to say X" or "Recalculate savings using a $475,000 list price."
+            </p>
+            <Textarea
+              rows={4}
+              value={tweakInstruction}
+              onChange={(e) => setTweakInstruction(e.target.value)}
+              placeholder="Describe the change you want..."
+              disabled={tweaking}
+            />
+            <div className="flex justify-end">
+              <Button
+                onClick={handleTweak}
+                disabled={tweaking || tweakInstruction.trim().length < 3}
+              >
+                {tweaking ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Wand2 className="w-4 h-4 mr-2" />}
+                Apply Change
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+
 
       <AlertDialog open={showResetConfirm} onOpenChange={setShowResetConfirm}>
         <AlertDialogContent>
