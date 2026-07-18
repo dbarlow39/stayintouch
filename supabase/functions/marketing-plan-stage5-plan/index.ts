@@ -79,10 +79,10 @@ Use this copy verbatim:
 ## What You Save with Sell for 1 Percent
 
 Calculate the seller's savings using the List Price from Form Inputs.
-- Formula: savings = 0.02 × list_price (2% of the asking price — describe this as a MINIMUM).
-- Frame it against a traditional full-service listing that typically costs about 6% total (split between the two sides), so our 1% listing fee saves roughly 2–3% on the listing side alone.
+- Formula: savings = 0.02 × list_price (2% of the asking price, described as a MINIMUM).
+- Frame it against a traditional full-service listing that typically costs about 6% total (split between the two sides), so our 1% listing fee saves roughly 2% to 3% on the listing side alone.
 - State the dollar figure explicitly, e.g., "On your asking price of $X, that's a minimum of $Y back in your pocket at closing."
-- Emphasize: you get everything a full-service agent charging a whole lot more would provide — so why give away your home's equity?
+- Emphasize: you get everything a full-service agent charging a whole lot more would provide, so why give away your home's equity?
 - If List Price is "not specified", DO NOT print a bracketed placeholder. Instead write "roughly 2% of your asking price" and note the exact figure will be confirmed once pricing is set.
 
 ## Staying in Touch
