@@ -37,7 +37,7 @@ const ANTHROPIC_URL = "https://api.anthropic.com/v1/messages";
 const ANTHROPIC_VERSION = "2023-06-01";
 // Beta header required for the web_search / web_fetch server-side tools.
 const ANTHROPIC_BETA =
-  "web-search-2025-03-05,files-api-2025-04-14,extended-thinking-2025-02-06";
+  "web-search-2025-03-05,files-api-2025-04-14";
 
 function buildBody(o: ClaudeCallOptions, stream: boolean) {
   const isOpus = o.model.startsWith("claude-opus");
