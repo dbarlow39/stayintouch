@@ -8,9 +8,31 @@ import {
   TextRun,
   HeadingLevel,
   AlignmentType,
+  Table,
+  TableRow,
+  TableCell,
+  WidthType,
+  BorderStyle,
+  ImageRun,
+  VerticalAlign,
 } from "npm:docx@8.5.0";
 import { authUser, serviceClient } from "../_shared/marketing-plan-common.ts";
 import { corsHeaders } from "../_shared/marketing-plan-claude.ts";
+
+const DARK_SCARLET = "8B0000";
+const SCARLET = "CC0000";
+const LOGO_URL = "https://stayintouch.lovable.app/logo.jpg";
+
+const noBorder = {
+  top: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+  bottom: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+  left: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+  right: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+};
+
+function stripLeadingH1(md: string): string {
+  return md.replace(/^\s*#\s+Marketing Plan for[^\n]*\n+/i, "");
+}
 
 function splitInternal(text: string): string {
   const idx = text.indexOf("---INTERNAL---");
