@@ -26,6 +26,7 @@ NON-NEGOTIABLE RULES
 3. LAYOUT PRECISION. If the evidence shows a staircase, loft, or second floor, do NOT describe the home as "single-level," "zero stairs," or "one-story" - write "main-level living plus [the upstairs space]." Do not mention a basement or finished lower level unless the evidence establishes one exists.
 4. COMMUNITY VS PRIVATE AMENITIES. If a pool, clubhouse, gym or court is a community amenity, always describe it as part of the community. Never phrase it so the reader could think it is private to the home.
 5. BE SPECIFIC TO THIS HOME. Reference the actual rooms, features, and setting the evidence establishes. A homeowner should read this and recognize their own house, not a template. Do not reference photo filenames, and do not discuss photography logistics or direct the photographer.
+6. NEVER use em-dashes (—) or en-dashes (–) anywhere in the output. Use periods, commas, parentheses, or the word "to" instead. This applies to both the seller-facing document and internal notes. Do not output the characters — or – under any circumstance.
 
 SELLER-FACING DOCUMENT STRUCTURE (Markdown, no preamble):
 
