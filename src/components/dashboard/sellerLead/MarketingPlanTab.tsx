@@ -251,6 +251,24 @@ export default function MarketingPlanTab({ lead }: { lead: any }) {
     }
   }
 
+  async function handleTweak() {
+    if (!existingJob || !tweakInstruction.trim()) return;
+    setTweaking(true);
+    try {
+      const { error } = await supabase.functions.invoke("marketing-plan-tweak", {
+        body: { job_id: existingJob.id, instruction: tweakInstruction.trim() },
+      });
+      if (error) throw error;
+      await loadResults(existingJob.id);
+      setTweakInstruction("");
+      toast({ title: "Plan updated", description: "Your requested change was applied." });
+    } catch (err: any) {
+      toast({ title: "Tweak failed", description: err.message, variant: "destructive" });
+    } finally {
+      setTweaking(false);
+    }
+  }
+
   async function handleReset() {
     if (!existingJob) return;
     // Best-effort cleanup — actual file removal is optional.
