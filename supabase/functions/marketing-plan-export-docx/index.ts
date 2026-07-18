@@ -8,9 +8,31 @@ import {
   TextRun,
   HeadingLevel,
   AlignmentType,
+  Table,
+  TableRow,
+  TableCell,
+  WidthType,
+  BorderStyle,
+  ImageRun,
+  VerticalAlign,
 } from "npm:docx@8.5.0";
 import { authUser, serviceClient } from "../_shared/marketing-plan-common.ts";
 import { corsHeaders } from "../_shared/marketing-plan-claude.ts";
+
+const DARK_SCARLET = "8B0000";
+const SCARLET = "CC0000";
+const LOGO_URL = "https://stayintouch.lovable.app/logo.jpg";
+
+const noBorder = {
+  top: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+  bottom: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+  left: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+  right: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+};
+
+function stripLeadingH1(md: string): string {
+  return md.replace(/^\s*#\s+Marketing Plan for[^\n]*\n+/i, "");
+}
 
 function splitInternal(text: string): string {
   const idx = text.indexOf("---INTERNAL---");
@@ -98,7 +120,72 @@ serve(async (req) => {
       });
     }
 
-    const sellerFacing = splitInternal(res.content);
+    const [{ data: lead }, { data: profile }] = await Promise.all([
+      db.from("leads").select("address, city, state, zip").eq("id", job.seller_lead_id).maybeSingle(),
+      db.from("profiles").select("full_name, first_name, last_name").eq("id", job.user_id).maybeSingle(),
+    ]);
+
+    const agentName =
+      profile?.full_name ||
+      `${profile?.first_name || ""} ${profile?.last_name || ""}`.trim() ||
+      "Your Agent";
+    const addressLine = lead?.address
+      ? `${lead.address}, ${lead.city || ""} ${lead.state || ""} ${lead.zip || ""}`.replace(/\s+/g, " ").trim()
+      : "";
+    const dateLine = new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+
+    let logoBytes: Uint8Array | null = null;
+    try {
+      const r = await fetch(LOGO_URL);
+      if (r.ok) logoBytes = new Uint8Array(await r.arrayBuffer());
+    } catch (_) { /* fall back to no logo */ }
+
+    const headerTable = new Table({
+      width: { size: 100, type: WidthType.PERCENTAGE },
+      rows: [
+        new TableRow({
+          children: [
+            new TableCell({
+              width: { size: 3000, type: WidthType.DXA },
+              borders: noBorder,
+              verticalAlign: VerticalAlign.CENTER,
+              children: logoBytes
+                ? [new Paragraph({ children: [new ImageRun({ data: logoBytes, transformation: { width: 252, height: 117 }, type: "jpg" })] })]
+                : [new Paragraph({ children: [] })],
+            }),
+            new TableCell({
+              width: { size: 6500, type: WidthType.DXA },
+              borders: noBorder,
+              verticalAlign: VerticalAlign.CENTER,
+              children: [
+                new Paragraph({
+                  alignment: AlignmentType.RIGHT,
+                  children: [new TextRun({ text: "MARKETING PLAN", bold: true, color: DARK_SCARLET, font: "Arial", size: 32 })],
+                }),
+                new Paragraph({
+                  alignment: AlignmentType.RIGHT,
+                  spacing: { before: 60 },
+                  children: [new TextRun({ text: addressLine, bold: true, color: SCARLET, font: "Arial", size: 20 })],
+                }),
+                new Paragraph({
+                  alignment: AlignmentType.RIGHT,
+                  spacing: { before: 60 },
+                  children: [new TextRun({ text: `Prepared by ${agentName} | ${dateLine}`, color: DARK_SCARLET, font: "Arial", size: 18 })],
+                }),
+              ],
+            }),
+          ],
+        }),
+      ],
+    });
+    const headerRule = new Paragraph({
+      spacing: { after: 200 },
+      border: { bottom: { style: BorderStyle.SINGLE, size: 3, color: SCARLET } },
+      children: [],
+    });
+
+    const sellerFacing = stripLeadingH1(splitInternal(res.content));
+
 
     const doc = new Document({
       styles: {
@@ -123,7 +210,7 @@ serve(async (req) => {
               margin: { top: 1440, right: 1440, bottom: 1440, left: 1440 },
             },
           },
-          children: mdToParagraphs(sellerFacing),
+          children: [headerTable, headerRule, ...mdToParagraphs(sellerFacing)],
         },
       ],
     });
