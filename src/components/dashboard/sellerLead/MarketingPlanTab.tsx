@@ -433,17 +433,27 @@ export default function MarketingPlanTab({ lead }: { lead: any }) {
               {stages.map((s) => {
                 const done = !!results[s];
                 const current = existingJob.current_stage === s && isRunning;
+                const showBatch = current && s === "photo_review" && (existingJob.current_batch ?? 0) > 0;
                 return (
                   <li key={s} className="flex items-center gap-2">
                     <span className={`inline-block w-2 h-2 rounded-full ${done ? "bg-green-500" : current ? "bg-amber-500" : "bg-muted-foreground/30"}`} />
                     <span className={done ? "" : "text-muted-foreground"}>{STAGE_LABELS[s]}</span>
-                    {current && <span className="text-xs text-amber-600">(running…)</span>}
+                    {current && <span className="text-xs text-amber-600">(running…{showBatch ? ` batch ${existingJob.current_batch}` : ""})</span>}
                   </li>
                 );
               })}
             </ol>
             {existingJob.error && (
               <p className="text-sm text-destructive mt-2">{existingJob.error}</p>
+            )}
+            {isRunning && existingJob.updated_at && (Date.now() - new Date(existingJob.updated_at).getTime()) > 3 * 60 * 1000 && (
+              <div className="mt-3 p-2 rounded border border-amber-500/40 bg-amber-500/10 text-sm">
+                <p className="font-medium text-amber-700">This job appears to have stalled.</p>
+                <p className="text-xs text-muted-foreground mb-2">No progress for over 3 minutes on the {STAGE_LABELS[existingJob.current_stage] || existingJob.current_stage} stage.</p>
+                <Button size="sm" variant="outline" onClick={handleRetryStalled}>
+                  <RefreshCw className="w-3 h-3 mr-2" /> Retry this stage
+                </Button>
+              </div>
             )}
           </CardContent>
         </Card>
