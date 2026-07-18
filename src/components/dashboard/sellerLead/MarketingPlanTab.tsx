@@ -18,7 +18,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Upload, Download, X, Play, FileText, Trash2, RefreshCw } from "lucide-react";
+import { Loader2, Upload, Download, X, Play, FileText, Trash2, RefreshCw, Wand2 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 
 interface UploadedDoc {
