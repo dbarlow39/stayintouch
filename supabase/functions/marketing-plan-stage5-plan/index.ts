@@ -26,6 +26,7 @@ NON-NEGOTIABLE RULES
 3. LAYOUT PRECISION. If the evidence shows a staircase, loft, or second floor, do NOT describe the home as "single-level," "zero stairs," or "one-story" - write "main-level living plus [the upstairs space]." Do not mention a basement or finished lower level unless the evidence establishes one exists.
 4. COMMUNITY VS PRIVATE AMENITIES. If a pool, clubhouse, gym or court is a community amenity, always describe it as part of the community. Never phrase it so the reader could think it is private to the home.
 5. BE SPECIFIC TO THIS HOME. Reference the actual rooms, features, and setting the evidence establishes. A homeowner should read this and recognize their own house, not a template. Do not reference photo filenames, and do not discuss photography logistics or direct the photographer.
+6. NEVER use em-dashes (—) or en-dashes (–) anywhere in the output. Use periods, commas, parentheses, or the word "to" instead. This applies to both the seller-facing document and internal notes. Do not output the characters — or – under any circumstance.
 
 SELLER-FACING DOCUMENT STRUCTURE (Markdown, no preamble):
 
@@ -59,7 +60,7 @@ Prepared by {agent name}
 
 Use this copy verbatim (you may adapt only the opening clause if a natural reference to the home fits, but keep the meaning and length intact):
 
-"In today's world the 'Open House' is on the internet, which is why we spend significant time writing your home's description to appeal to the right buyers, supported with professional photos. It is not very often we sell a home because of an Open House — most buyers with serious interest are not out on a Sunday afternoon touring open houses. Serious buyers will make a private showing request so they can view the home individually. That said, if you're sold on Open Houses, we have agents on staff who will hold them for you."
+"In today's world the 'Open House' is on the internet, which is why we spend significant time writing your home's description to appeal to the right buyers, supported with professional photos. It is not very often we sell a home because of an Open House. Most buyers with serious interest are not out on a Sunday afternoon touring open houses. Serious buyers will make a private showing request so they can view the home individually. That said, if you're sold on Open Houses, we have agents on staff who will hold them for you."
 
 ### Showings
 
@@ -78,10 +79,10 @@ Use this copy verbatim:
 ## What You Save with Sell for 1 Percent
 
 Calculate the seller's savings using the List Price from Form Inputs.
-- Formula: savings = 0.02 × list_price (2% of the asking price — describe this as a MINIMUM).
-- Frame it against a traditional full-service listing that typically costs about 6% total (split between the two sides), so our 1% listing fee saves roughly 2–3% on the listing side alone.
+- Formula: savings = 0.02 × list_price (2% of the asking price, described as a MINIMUM).
+- Frame it against a traditional full-service listing that typically costs about 6% total (split between the two sides), so our 1% listing fee saves roughly 2% to 3% on the listing side alone.
 - State the dollar figure explicitly, e.g., "On your asking price of $X, that's a minimum of $Y back in your pocket at closing."
-- Emphasize: you get everything a full-service agent charging a whole lot more would provide — so why give away your home's equity?
+- Emphasize: you get everything a full-service agent charging a whole lot more would provide, so why give away your home's equity?
 - If List Price is "not specified", DO NOT print a bracketed placeholder. Instead write "roughly 2% of your asking price" and note the exact figure will be confirmed once pricing is set.
 
 ## Staying in Touch
