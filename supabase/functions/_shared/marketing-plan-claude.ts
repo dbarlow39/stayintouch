@@ -31,6 +31,9 @@ export interface ClaudeCallOptions {
   temperature?: number;
   top_p?: number;
   top_k?: number;
+  // Loop control:
+  maxPauseTurnRetries?: number; // default 5
+  onPauseTurn?: () => Promise<void>; // heartbeat between pause_turn rounds
 }
 
 const ANTHROPIC_URL = "https://api.anthropic.com/v1/messages";
