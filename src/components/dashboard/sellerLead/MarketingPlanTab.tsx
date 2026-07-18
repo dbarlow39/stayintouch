@@ -204,57 +204,18 @@ export default function MarketingPlanTab({ lead }: { lead: any }) {
     }
   }
 
-  // ---------- Stage 5 stream ----------
+  // ---------- Stage 5 kickoff (backgrounded server-side; UI polls results) ----------
   async function runStage5(jobId: string) {
     setStreamingPlan(true);
-    setPlanStream("");
     try {
-      const { data: sess } = await supabase.auth.getSession();
-      const token = sess.session?.access_token;
-      const url = `${(supabase as any).functionsUrl ?? ""}/marketing-plan-stage5-plan`;
-      // Fallback: derive from SUPABASE URL via meta env
-      const projectId = (import.meta as any).env?.VITE_SUPABASE_PROJECT_ID;
-      const fnUrl = projectId
-        ? `https://${projectId}.supabase.co/functions/v1/marketing-plan-stage5-plan`
-        : url;
-      const resp = await fetch(fnUrl, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ jobId }),
+      const { error } = await supabase.functions.invoke("marketing-plan-stage5-plan", {
+        body: { jobId },
       });
-      if (!resp.ok || !resp.body) {
-        const t = await resp.text();
-        throw new Error(t || `Stage 5 HTTP ${resp.status}`);
-      }
-      const reader = resp.body.getReader();
-      const dec = new TextDecoder();
-      let buf = "";
-      let full = "";
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buf += dec.decode(value, { stream: true });
-        let nl: number;
-        while ((nl = buf.indexOf("\n\n")) !== -1) {
-          const chunk = buf.slice(0, nl).trim();
-          buf = buf.slice(nl + 2);
-          if (!chunk.startsWith("data:")) continue;
-          const json = chunk.slice(5).trim();
-          if (json === "[DONE]") continue;
-          try {
-            const p = JSON.parse(json);
-            const delta = p.choices?.[0]?.delta?.content;
-            if (delta) { full += delta; setPlanStream(full); }
-          } catch { /* ignore */ }
-        }
-      }
-      // Refresh job/results from DB
-      await loadLatestJob();
+      if (error) throw error;
+      // Polling loop (already running) will pick up partial writes to
+      // marketing_plan_results every ~2s and stream them into the UI.
     } catch (err: any) {
-      toast({ title: "Plan generation failed", description: err.message, variant: "destructive" });
+      toast({ title: "Plan generation failed to start", description: err.message, variant: "destructive" });
     } finally {
       setStreamingPlan(false);
     }

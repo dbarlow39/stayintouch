@@ -31,6 +31,9 @@ export interface ClaudeCallOptions {
   temperature?: number;
   top_p?: number;
   top_k?: number;
+  // Loop control:
+  maxPauseTurnRetries?: number; // default 5
+  onPauseTurn?: () => Promise<void>; // heartbeat between pause_turn rounds
 }
 
 const ANTHROPIC_URL = "https://api.anthropic.com/v1/messages";
@@ -80,8 +83,9 @@ export async function callClaude(opts: ClaudeCallOptions): Promise<{
   let messages: Msg[] = [...opts.messages];
   let iterations = 0;
   let last: any = null;
+  const maxRetries = opts.maxPauseTurnRetries ?? 5;
 
-  while (iterations < 6) {
+  while (iterations <= maxRetries) {
     const body = buildBody({ ...opts, messages }, false);
     const r = await fetch(ANTHROPIC_URL, {
       method: "POST",
@@ -101,9 +105,12 @@ export async function callClaude(opts: ClaudeCallOptions): Promise<{
     const stop = last.stop_reason as string;
     const assistantBlocks = last.content ?? [];
     // If pause_turn, append assistant response and re-send.
-    if (stop === "pause_turn" && iterations < 5) {
+    if (stop === "pause_turn" && iterations < maxRetries) {
       messages = [...messages, { role: "assistant", content: assistantBlocks }];
       iterations++;
+      if (opts.onPauseTurn) {
+        try { await opts.onPauseTurn(); } catch (_) { /* ignore */ }
+      }
       continue;
     }
     const text = assistantBlocks
@@ -117,6 +124,72 @@ export async function callClaude(opts: ClaudeCallOptions): Promise<{
     .map((b: any) => b.text)
     .join("\n");
   return { text, blocks: last?.content ?? [], stop_reason: "pause_turn_exhausted", raw: last };
+}
+
+/**
+ * Streams Claude output into storage via periodic partial callbacks. Meant for
+ * background execution (EdgeRuntime.waitUntil) — does NOT hold an HTTP stream
+ * open to the browser. The caller polls the persisted row for progress.
+ */
+export async function streamClaudeToStorage(
+  opts: ClaudeCallOptions,
+  onPartial: (fullText: string) => Promise<void>,
+  onComplete: (fullText: string) => Promise<void>,
+  partialIntervalMs = 2000,
+): Promise<void> {
+  const body = buildBody(opts, true);
+  const upstream = await fetch(ANTHROPIC_URL, {
+    method: "POST",
+    headers: {
+      "x-api-key": apiKey(),
+      "anthropic-version": ANTHROPIC_VERSION,
+      "anthropic-beta": ANTHROPIC_BETA,
+      "content-type": "application/json",
+    },
+    body: JSON.stringify(body),
+  });
+  if (!upstream.ok || !upstream.body) {
+    const t = await upstream.text();
+    throw new Error(`Claude API error [${upstream.status}]: ${t.slice(0, 800)}`);
+  }
+
+  const reader = upstream.body.getReader();
+  const decoder = new TextDecoder();
+  let full = "";
+  let buf = "";
+  let lastFlush = Date.now();
+  let lastFlushedLen = 0;
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buf += decoder.decode(value, { stream: true });
+    let nl: number;
+    while ((nl = buf.indexOf("\n")) !== -1) {
+      const line = buf.slice(0, nl).trimEnd();
+      buf = buf.slice(nl + 1);
+      if (!line.startsWith("data: ")) continue;
+      const json = line.slice(6).trim();
+      if (!json) continue;
+      try {
+        const evt = JSON.parse(json);
+        if (
+          evt.type === "content_block_delta" &&
+          evt.delta?.type === "text_delta" &&
+          evt.delta.text
+        ) {
+          full += evt.delta.text;
+        }
+      } catch (_) { /* ignore partials */ }
+    }
+    const now = Date.now();
+    if (now - lastFlush >= partialIntervalMs && full.length > lastFlushedLen) {
+      lastFlush = now;
+      lastFlushedLen = full.length;
+      try { await onPartial(full); } catch (e) { console.error("onPartial failed:", e); }
+    }
+  }
+  await onComplete(full);
 }
 
 /**
