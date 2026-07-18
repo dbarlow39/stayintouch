@@ -373,10 +373,11 @@ const SellerLeadDetail = () => {
     { id: "pre-listing", label: "Pre-Listing Pack", icon: FileText },
     { id: "residential", label: "Residential Work Sheet", icon: ClipboardList },
     { id: "market-analysis", label: "Market Analysis", icon: BarChart3 },
+    { id: "marketing-plan", label: "Marketing Plan", icon: Megaphone },
     { id: "estimated-net", label: "Estimated Net", icon: DollarSign },
     { id: "love", label: "10 Things They Love", icon: Heart },
     { id: "mls-description", label: "Write MLS Description", icon: Pencil },
-    { id: "marketing-plan", label: "Marketing Plan", icon: Megaphone },
+
     { id: "pipeline", label: "Pipeline", icon: GitBranch },
   ];
 
