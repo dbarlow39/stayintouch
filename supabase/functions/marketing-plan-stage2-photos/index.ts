@@ -62,13 +62,11 @@ async function fetchImage(url: string): Promise<{ media_type: string; data: stri
   }
 }
 
-serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
-  const { jobId } = await req.json();
+async function runPhotoReview(jobId: string) {
   const db = serviceClient();
-
   try {
     await markStage(db, jobId, "photo_review", "running");
+    await db.from("marketing_plan_jobs").update({ current_batch: 0, updated_at: new Date().toISOString() }).eq("id", jobId);
 
     const { data: job } = await db
       .from("marketing_plan_jobs")
@@ -83,7 +81,6 @@ serve(async (req) => {
       .eq("id", job.seller_lead_id)
       .single();
 
-    // Find inspection by address (loose match) then user.
     const address = (lead?.address || "").trim();
     let photos: Record<string, string[]> = {};
     if (address) {
@@ -100,7 +97,6 @@ serve(async (req) => {
       }
     }
 
-    // Flatten to [{name, url}]
     const items: { name: string; url: string }[] = [];
     for (const [section, arr] of Object.entries(photos)) {
       (arr || []).forEach((url, i) => {
@@ -118,12 +114,10 @@ serve(async (req) => {
         "# Walkthrough Photo Review (Stage 2)\n\n> No walkthrough photos available — layout and condition could not be visually verified.",
       );
       await invokeNextStage("marketing-plan-stage3-docs", jobId);
-      return new Response(JSON.stringify({ ok: true }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return;
     }
 
-    const BATCH = 15;
+    const BATCH = 6;
     const batchOutputs: string[] = [];
     const limitedNote =
       items.length < 5
@@ -153,10 +147,16 @@ serve(async (req) => {
         system: SYSTEM_PROMPT,
         max_tokens: 8000,
         thinking: { type: "adaptive" },
-        output_config: { effort: "high" },
+        output_config: { effort: "low" },
         messages: [{ role: "user", content: blocks }],
       });
       batchOutputs.push(res.text);
+
+      const batchNum = Math.floor(i / BATCH) + 1;
+      await db
+        .from("marketing_plan_jobs")
+        .update({ current_batch: batchNum, updated_at: new Date().toISOString() })
+        .eq("id", jobId);
     }
 
     let finalMd: string;
@@ -168,7 +168,7 @@ serve(async (req) => {
         system: MERGE_PROMPT,
         max_tokens: 8000,
         thinking: { type: "adaptive" },
-        output_config: { effort: "high" },
+        output_config: { effort: "low" },
         messages: [
           {
             role: "user",
@@ -188,11 +188,8 @@ serve(async (req) => {
       `# Walkthrough Photo Review (Stage 2)${limitedNote}\n\n${finalMd}`,
     );
     await invokeNextStage("marketing-plan-stage3-docs", jobId);
-    return new Response(JSON.stringify({ ok: true }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
   } catch (e) {
-    console.error("stage2 error:", e);
+    console.error("stage2 background error:", e);
     try {
       await saveStageResult(
         db,
@@ -200,12 +197,23 @@ serve(async (req) => {
         "photo_review",
         `# Walkthrough Photo Review (Stage 2)\n\n> Stage failed: ${e instanceof Error ? e.message : "unknown"} — layout and condition could not be visually verified.`,
       );
-      await invokeNextStage("marketing-plan-stage3-docs", jobId);
+      await failJob(db, jobId, `Stage 2 failed: ${e instanceof Error ? e.message : "unknown"}`);
     } catch (e2) {
       await failJob(db, jobId, `Stage 2 fatal: ${e2 instanceof Error ? e2.message : "unknown"}`);
     }
-    return new Response(JSON.stringify({ ok: true }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
   }
+}
+
+serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  const { jobId } = await req.json();
+
+  // Detach the heavy work from the request wall-clock. Any thrown error inside
+  // runPhotoReview flips the job to status='failed' via failJob.
+  // @ts-ignore EdgeRuntime is provided by Supabase edge-runtime
+  EdgeRuntime.waitUntil(runPhotoReview(jobId));
+
+  return new Response(JSON.stringify({ ok: true, backgrounded: true }), {
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
 });
