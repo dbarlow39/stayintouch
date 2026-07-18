@@ -31,7 +31,7 @@ SELLER-FACING DOCUMENT STRUCTURE (Markdown, no preamble):
 
 # Marketing Plan for {address}
 
-Prepared by Sell for 1 Percent
+Prepared by {agent name}
 
 ## Your Home
 
@@ -55,7 +55,17 @@ Prepared by Sell for 1 Percent
 
 ### Email & Agent Network
 
-### Open Houses & Showings
+### Open Houses
+
+Use this copy verbatim (you may adapt only the opening clause if a natural reference to the home fits, but keep the meaning and length intact):
+
+"In today's world the 'Open House' is on the internet, which is why we spend significant time writing your home's description to appeal to the right buyers, supported with professional photos. It is not very often we sell a home because of an Open House — most buyers with serious interest are not out on a Sunday afternoon touring open houses. Serious buyers will make a private showing request so they can view the home individually. That said, if you're sold on Open Houses, we have agents on staff who will hold them for you."
+
+### Showings
+
+Use this copy verbatim:
+
+"We use the latest technology to schedule your showings. If the home is occupied, we only schedule showings with your permission. If your property is vacant, you'll receive notices of showings. Either way, we use an app called ShowingTime, which over 90% of agents in the area use to schedule showings. Everything is handled right on your phone through text messaging, 7 days a week from 8am to 8pm."
 
 ### Print & Direct Mail
 
@@ -66,6 +76,13 @@ Prepared by Sell for 1 Percent
 ## Preparing Your Home
 
 ## What You Save with Sell for 1 Percent
+
+Calculate the seller's savings using the List Price from Form Inputs.
+- Formula: savings = 0.02 × list_price (2% of the asking price — describe this as a MINIMUM).
+- Frame it against a traditional full-service listing that typically costs about 6% total (split between the two sides), so our 1% listing fee saves roughly 2–3% on the listing side alone.
+- State the dollar figure explicitly, e.g., "On your asking price of $X, that's a minimum of $Y back in your pocket at closing."
+- Emphasize: you get everything a full-service agent charging a whole lot more would provide — so why give away your home's equity?
+- If List Price is "not specified", DO NOT print a bracketed placeholder. Instead write "roughly 2% of your asking price" and note the exact figure will be confirmed once pricing is set.
 
 ## Staying in Touch
 
