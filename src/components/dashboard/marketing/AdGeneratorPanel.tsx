@@ -159,9 +159,11 @@ const AdGeneratorPanel = ({ listing, autoGenerate = false }: AdGeneratorPanelPro
   };
 
   const toDataUrl = async (url: string): Promise<string> => {
+    const { data: { session } } = await supabase.auth.getSession();
+    const token = session?.access_token ?? ANON_KEY;
     const resp = await fetch(`${SUPABASE_URL}/functions/v1/proxy-image`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${ANON_KEY}` },
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, apikey: ANON_KEY },
       body: JSON.stringify({ url }),
     });
     const data = await resp.json();
