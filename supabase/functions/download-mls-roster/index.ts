@@ -12,10 +12,15 @@ function csvEscape(value: any): string {
   return str;
 }
 
+import { requireUser } from "../_shared/verifyAuth.ts";
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
+
+  const _auth = await requireUser(req);
+  if (_auth instanceof Response) return _auth;
 
   try {
     const apiKey = Deno.env.get('FLEXMLS_API_KEY');

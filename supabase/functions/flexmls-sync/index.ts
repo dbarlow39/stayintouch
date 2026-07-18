@@ -3,10 +3,16 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
+import { requireUserOrServiceRole } from "../_shared/verifyAuth.ts";
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
+
+  const _auth = await requireUserOrServiceRole(req);
+  if (_auth instanceof Response) return _auth;
+
 
   try {
     const apiKey = Deno.env.get('FLEXMLS_API_KEY');

@@ -13,10 +13,15 @@ interface ShowingData {
   error: string | null;
 }
 
+import { requireUserOrServiceRole } from "../_shared/verifyAuth.ts";
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
+
+  const _auth = await requireUserOrServiceRole(req);
+  if (_auth instanceof Response) return _auth;
 
   try {
     const { mls_id, property_address, debug_login_page } = await req.json();

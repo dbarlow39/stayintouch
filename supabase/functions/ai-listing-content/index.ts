@@ -15,8 +15,13 @@ const platformPrompts: Record<string, string> = {
   "ai-suggestions": `You are a real estate marketing strategist. Analyze this property listing and provide:\n\n1. **Listing Description Improvements** - Suggest 3 specific ways to improve the description\n2. **Pricing Strategy** - Comment on the price per sqft and positioning\n3. **Target Buyer Profile** - Describe the ideal buyer for this property\n4. **Marketing Channels** - Recommend the top 3 marketing channels and why\n5. **Staging & Photo Tips** - Suggest improvements for visual presentation\n6. **Competitive Advantages** - Highlight the top 3 selling points to emphasize\n\nBe specific and actionable. Reference actual details from the listing.`,
 };
 
+import { requireUser } from "../_shared/verifyAuth.ts";
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+
+  const _auth = await requireUser(req);
+  if (_auth instanceof Response) return _auth;
 
   try {
     const { listing, platform } = await req.json();
