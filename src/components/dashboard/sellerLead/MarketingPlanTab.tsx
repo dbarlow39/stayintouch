@@ -505,6 +505,40 @@ export default function MarketingPlanTab({ lead }: { lead: any }) {
         </Card>
       )}
 
+      {/* Tweak / revise panel */}
+      {existingJob && status === "complete" && results.marketing_plan && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Wand2 className="w-4 h-4" /> Request Changes
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Tell the AI exactly what to change. It will rewrite only that part and leave the rest of the plan alone. Example: "In the Open House section, change the second sentence to say X" or "Recalculate savings using a $475,000 list price."
+            </p>
+            <Textarea
+              rows={4}
+              value={tweakInstruction}
+              onChange={(e) => setTweakInstruction(e.target.value)}
+              placeholder="Describe the change you want..."
+              disabled={tweaking}
+            />
+            <div className="flex justify-end">
+              <Button
+                onClick={handleTweak}
+                disabled={tweaking || tweakInstruction.trim().length < 3}
+              >
+                {tweaking ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Wand2 className="w-4 h-4 mr-2" />}
+                Apply Change
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+
+
       <AlertDialog open={showResetConfirm} onOpenChange={setShowResetConfirm}>
         <AlertDialogContent>
           <AlertDialogHeader>
