@@ -301,6 +301,31 @@ export default function MarketingPlanTab({ lead }: { lead: any }) {
     toast({ title: "Marketing plan cleared" });
   }
 
+  async function handleRetryStalled() {
+    if (!existingJob) return;
+    const stage = existingJob.current_stage;
+    const fnMap: Record<string, string> = {
+      property_data: "marketing-plan-stage1-property",
+      photo_review: "marketing-plan-stage2-photos",
+      document_facts: "marketing-plan-stage3-docs",
+      area_research: "marketing-plan-stage4-area",
+      marketing_plan: "marketing-plan-stage5-plan",
+    };
+    const fn = fnMap[stage];
+    if (!fn) return;
+    try {
+      await supabase
+        .from("marketing_plan_jobs")
+        .update({ status: "running", error: null, current_batch: 0, updated_at: new Date().toISOString() })
+        .eq("id", existingJob.id);
+      await supabase.functions.invoke(fn, { body: { jobId: existingJob.id } });
+      toast({ title: "Retrying", description: `Re-invoked ${STAGE_LABELS[stage] || stage}.` });
+      await loadLatestJob();
+    } catch (err: any) {
+      toast({ title: "Retry failed", description: err.message, variant: "destructive" });
+    }
+  }
+
   // ---------- Render ----------
   if (loadingJob) {
     return (
