@@ -210,7 +210,7 @@ serve(async (req) => {
               margin: { top: 1440, right: 1440, bottom: 1440, left: 1440 },
             },
           },
-          children: mdToParagraphs(sellerFacing),
+          children: [headerTable, headerRule, ...mdToParagraphs(sellerFacing)],
         },
       ],
     });
