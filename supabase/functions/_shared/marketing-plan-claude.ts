@@ -1,0 +1,196 @@
+// Shared Claude helper for the Marketing Plan pipeline.
+// Standalone: does not touch existing sonnet callers. Supports content-block arrays
+// (text/image/document), streaming, tools with pause_turn loop, and opus-specific params.
+
+export const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
+};
+
+export const OPUS_MODEL = "claude-opus-4-8";
+
+export type Block =
+  | { type: "text"; text: string }
+  | { type: "image"; source: { type: "base64"; media_type: string; data: string } }
+  | { type: "document"; source: { type: "base64"; media_type: string; data: string } }
+  | Record<string, any>;
+
+export type Msg = { role: "user" | "assistant"; content: string | Block[] };
+
+export interface ClaudeCallOptions {
+  model: string;
+  system?: string;
+  messages: Msg[];
+  max_tokens: number;
+  tools?: any[];
+  // Opus-specific:
+  thinking?: { type: "adaptive" | "disabled" | "enabled" };
+  output_config?: { effort: "low" | "medium" | "high" };
+  // Sonnet-only (silently dropped for opus):
+  temperature?: number;
+  top_p?: number;
+  top_k?: number;
+}
+
+const ANTHROPIC_URL = "https://api.anthropic.com/v1/messages";
+const ANTHROPIC_VERSION = "2023-06-01";
+// Beta header required for the web_search / web_fetch server-side tools.
+const ANTHROPIC_BETA =
+  "web-search-2025-03-05,files-api-2025-04-14,extended-thinking-2025-02-06";
+
+function buildBody(o: ClaudeCallOptions, stream: boolean) {
+  const isOpus = o.model.startsWith("claude-opus");
+  const body: Record<string, any> = {
+    model: o.model,
+    max_tokens: o.max_tokens,
+    messages: o.messages,
+    stream,
+  };
+  if (o.system) body.system = o.system;
+  if (o.tools && o.tools.length) body.tools = o.tools;
+  if (isOpus) {
+    if (o.thinking) body.thinking = o.thinking;
+    if (o.output_config) body.output_config = o.output_config;
+    // opus rejects temperature/top_p/top_k
+  } else {
+    if (o.temperature != null) body.temperature = o.temperature;
+    if (o.top_p != null) body.top_p = o.top_p;
+    if (o.top_k != null) body.top_k = o.top_k;
+  }
+  return body;
+}
+
+function apiKey(): string {
+  const k = Deno.env.get("ANTHROPIC_API_KEY");
+  if (!k) throw new Error("ANTHROPIC_API_KEY not configured");
+  return k;
+}
+
+/**
+ * Non-streaming Claude call. Handles pause_turn tool loop up to 5 iterations.
+ * Returns the final assistant message content blocks joined into text plus the raw blocks.
+ */
+export async function callClaude(opts: ClaudeCallOptions): Promise<{
+  text: string;
+  blocks: any[];
+  stop_reason: string;
+  raw: any;
+}> {
+  let messages: Msg[] = [...opts.messages];
+  let iterations = 0;
+  let last: any = null;
+
+  while (iterations < 6) {
+    const body = buildBody({ ...opts, messages }, false);
+    const r = await fetch(ANTHROPIC_URL, {
+      method: "POST",
+      headers: {
+        "x-api-key": apiKey(),
+        "anthropic-version": ANTHROPIC_VERSION,
+        "anthropic-beta": ANTHROPIC_BETA,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify(body),
+    });
+    if (!r.ok) {
+      const t = await r.text();
+      throw new Error(`Claude API error [${r.status}]: ${t.slice(0, 800)}`);
+    }
+    last = await r.json();
+    const stop = last.stop_reason as string;
+    const assistantBlocks = last.content ?? [];
+    // If pause_turn, append assistant response and re-send.
+    if (stop === "pause_turn" && iterations < 5) {
+      messages = [...messages, { role: "assistant", content: assistantBlocks }];
+      iterations++;
+      continue;
+    }
+    const text = assistantBlocks
+      .filter((b: any) => b.type === "text")
+      .map((b: any) => b.text)
+      .join("\n");
+    return { text, blocks: assistantBlocks, stop_reason: stop, raw: last };
+  }
+  const text = (last?.content ?? [])
+    .filter((b: any) => b.type === "text")
+    .map((b: any) => b.text)
+    .join("\n");
+  return { text, blocks: last?.content ?? [], stop_reason: "pause_turn_exhausted", raw: last };
+}
+
+/**
+ * Streams Claude output directly to the browser as SSE `data:` chunks (plain text deltas).
+ * Persists the accumulated text via the provided onComplete callback.
+ */
+export async function streamClaudeToBrowser(
+  opts: ClaudeCallOptions,
+  onComplete: (fullText: string) => Promise<void>,
+): Promise<Response> {
+  const body = buildBody(opts, true);
+  const upstream = await fetch(ANTHROPIC_URL, {
+    method: "POST",
+    headers: {
+      "x-api-key": apiKey(),
+      "anthropic-version": ANTHROPIC_VERSION,
+      "anthropic-beta": ANTHROPIC_BETA,
+      "content-type": "application/json",
+    },
+    body: JSON.stringify(body),
+  });
+  if (!upstream.ok || !upstream.body) {
+    const t = await upstream.text();
+    return new Response(
+      JSON.stringify({ error: "Claude API error", status: upstream.status, details: t.slice(0, 800) }),
+      { status: upstream.status, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
+  }
+
+  const reader = upstream.body.getReader();
+  const decoder = new TextDecoder();
+  const encoder = new TextEncoder();
+  let full = "";
+
+  const stream = new ReadableStream({
+    async start(controller) {
+      let buf = "";
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buf += decoder.decode(value, { stream: true });
+          let nl: number;
+          while ((nl = buf.indexOf("\n")) !== -1) {
+            const line = buf.slice(0, nl).trimEnd();
+            buf = buf.slice(nl + 1);
+            if (!line.startsWith("data: ")) continue;
+            const json = line.slice(6).trim();
+            if (!json) continue;
+            try {
+              const evt = JSON.parse(json);
+              if (
+                evt.type === "content_block_delta" &&
+                evt.delta?.type === "text_delta" &&
+                evt.delta.text
+              ) {
+                full += evt.delta.text;
+                const payload = { choices: [{ delta: { content: evt.delta.text } }] };
+                controller.enqueue(encoder.encode(`data: ${JSON.stringify(payload)}\n\n`));
+              }
+            } catch (_) { /* ignore partials */ }
+          }
+        }
+        try { await onComplete(full); } catch (e) { console.error("stage 5 onComplete failed:", e); }
+        controller.enqueue(encoder.encode("data: [DONE]\n\n"));
+      } catch (e) {
+        console.error("Stream relay error:", e);
+      } finally {
+        controller.close();
+      }
+    },
+  });
+
+  return new Response(stream, {
+    headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
+  });
+}

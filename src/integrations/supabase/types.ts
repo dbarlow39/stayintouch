@@ -1851,6 +1851,118 @@ export type Database = {
           },
         ]
       }
+      marketing_plan_documents: {
+        Row: {
+          created_at: string
+          doc_type: string
+          filename: string
+          id: string
+          job_id: string
+          storage_path: string
+        }
+        Insert: {
+          created_at?: string
+          doc_type: string
+          filename: string
+          id?: string
+          job_id: string
+          storage_path: string
+        }
+        Update: {
+          created_at?: string
+          doc_type?: string
+          filename?: string
+          id?: string
+          job_id?: string
+          storage_path?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketing_plan_documents_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "marketing_plan_jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketing_plan_jobs: {
+        Row: {
+          created_at: string
+          current_stage: string | null
+          error: string | null
+          id: string
+          list_price: number | null
+          mls_paste: string | null
+          seller_lead_id: string
+          status: string
+          target_on_market_date: string | null
+          unusual_notes: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          current_stage?: string | null
+          error?: string | null
+          id?: string
+          list_price?: number | null
+          mls_paste?: string | null
+          seller_lead_id: string
+          status?: string
+          target_on_market_date?: string | null
+          unusual_notes?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          current_stage?: string | null
+          error?: string | null
+          id?: string
+          list_price?: number | null
+          mls_paste?: string | null
+          seller_lead_id?: string
+          status?: string
+          target_on_market_date?: string | null
+          unusual_notes?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      marketing_plan_results: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          job_id: string
+          stage: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          job_id: string
+          stage: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          job_id?: string
+          stage?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketing_plan_results_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "marketing_plan_jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       master_email_templates: {
         Row: {
           id: string

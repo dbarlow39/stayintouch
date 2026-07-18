@@ -21,8 +21,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { ArrowLeft, Save, Trash2, Loader2, Asterisk, Zap, FileText, BarChart3, GitBranch, DollarSign, ClipboardList, UserCheck, Mail, Pencil, Heart } from "lucide-react";
+import { ArrowLeft, Save, Trash2, Loader2, Asterisk, Zap, FileText, BarChart3, GitBranch, DollarSign, ClipboardList, UserCheck, Mail, Pencil, Heart, Megaphone } from "lucide-react";
 import LoveResponsesTab from "@/components/dashboard/sellerLead/LoveResponsesTab";
+import MarketingPlanTab from "@/components/dashboard/sellerLead/MarketingPlanTab";
 import PhoneCallTextLink from "@/components/PhoneCallTextLink";
 import { openEmailClient } from "@/utils/emailClientUtils";
 import { useToast } from "@/hooks/use-toast";
@@ -375,6 +376,7 @@ const SellerLeadDetail = () => {
     { id: "estimated-net", label: "Estimated Net", icon: DollarSign },
     { id: "love", label: "10 Things They Love", icon: Heart },
     { id: "mls-description", label: "Write MLS Description", icon: Pencil },
+    { id: "marketing-plan", label: "Marketing Plan", icon: Megaphone },
     { id: "pipeline", label: "Pipeline", icon: GitBranch },
   ];
 
@@ -453,6 +455,10 @@ const SellerLeadDetail = () => {
         ) : activeTab === "love" && lead ? (
           <div className="flex-1 overflow-auto p-6">
             <LoveResponsesTab leadId={lead.id} leadEmail={(lead as any).email} />
+          </div>
+        ) : activeTab === "marketing-plan" && lead ? (
+          <div className="flex-1 overflow-auto p-6">
+            <MarketingPlanTab lead={lead} />
           </div>
         ) : (
           <main className="flex-1 px-6 py-8 max-w-3xl">
