@@ -1,0 +1,1 @@
+ALTER TABLE public.marketing_plan_jobs ADD COLUMN IF NOT EXISTS current_batch INT NOT NULL DEFAULT 0;
