@@ -250,7 +250,7 @@ serve(async (req) => {
       children: [],
     });
 
-    const sellerFacing = stripLeadingH1(splitInternal(res.content));
+    const sellerFacing = stripLeadingH1(sellerFacingOnly(res.content));
 
 
     const doc = new Document({
@@ -276,7 +276,7 @@ serve(async (req) => {
               margin: { top: 1440, right: 1440, bottom: 1440, left: 1440 },
             },
           },
-          children: [headerTable, headerRule, ...mdToParagraphs(sellerFacing)],
+          children: [headerTable, headerRule, ...mdToDocxChildren(sellerFacing)],
         },
       ],
     });
