@@ -63,7 +63,7 @@ interface ClientNote {
   updated_at: string;
 }
 
-type TabView = "details" | "edit" | "notes" | "communications" | "feedback" | "stats" | "pre-listing" | "market-analysis" | "residential-work-sheet" | "mls-description" | "love";
+type TabView = "details" | "edit" | "notes" | "communications" | "feedback" | "stats" | "pre-listing" | "market-analysis" | "marketing-plan" | "residential-work-sheet" | "mls-description" | "love";
 
 const ClientDetail = () => {
   const { id } = useParams<{ id: string }>();
