@@ -27,6 +27,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { generateMarketAnalysisDocx } from "@/utils/marketAnalysisDocx";
+import { fetchCurrentAgentProfile } from "@/utils/agentProfile";
 import BullseyeGraphic from "./BullseyeGraphic";
 import ZillowGraphic from "./ZillowGraphic";
 import AnalysisTweakDialog from "./AnalysisTweakDialog";
