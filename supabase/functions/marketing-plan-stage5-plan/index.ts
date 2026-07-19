@@ -65,6 +65,9 @@ Any place the property record, MLS paste, HOA docs, photo review, or seller note
 ## Left out on purpose
 Anything you deliberately did not put in the seller plan and why.
 
+## Homeowner stated, not documented
+List every fact used in the seller-facing plan whose ONLY source is the "Listing appointment conversation" transcript (i.e., no document, property record, or MLS paste confirms it). One bullet per fact with a short quote or paraphrase. If the transcript was not attached, write "No homeowner transcript attached."
+
 ## Compliance notes
 Fair Housing, age-restriction wording, community-vs-private amenities, anything else.
 
@@ -88,6 +91,13 @@ NON-NEGOTIABLE RULES
 4. COMMUNITY VS PRIVATE AMENITIES. If a pool, clubhouse, gym or court is a community amenity, always describe it as part of the community. Never phrase it so the reader could think it is private to the home.
 5. BE SPECIFIC TO THIS HOME. Reference the actual rooms, features, and setting the evidence establishes. A homeowner should read this and recognize their own house, not a template. Do not reference photo filenames, and do not discuss photography logistics or direct the photographer.
 6. NEVER use em-dashes (—) or en-dashes (–) anywhere in the output. Use periods, commas, parentheses, or the word "to" instead. Do not output the characters — or – under any circumstance.
+7. HOMEOWNER CONVERSATION TRANSCRIPT — SPECIAL HANDLING. Stage 3 may include a text block labeled "Listing appointment conversation - Type: Agent and homeowner transcript." This is the highest-risk input in the pipeline. Follow these four rules without exception:
+   a) PROTECTED CLASS INFORMATION. The homeowner may mention a death in the family, divorce, pregnancy, children, ages, health conditions, religion, or national origin. NEVER use any of it to describe or target the buyer, and NEVER repeat it in the plan. Familial status, disability, religion, race, and national origin are federally protected classes under the Fair Housing Act. Treat any personal detail from the transcript as background context only — it must not appear in any client-facing sentence.
+   b) SELLER MOTIVATION IS CONFIDENTIAL. Statements about urgency, financial pressure, the lowest price the seller would accept, deadlines, willingness to negotiate, or reasons they need to sell fast MUST NOT appear in the plan or in any generated listing copy. This information destroys the seller's negotiating position if it leaks. It may inform your strategy silently, but it must not be printed anywhere in the output.
+   c) SPOKEN CLAIMS, NOT VERIFIED FACT. Apply the existing evidence-precedence rules to the transcript. Documents, MLS paste, and the property record all outrank spoken claims. If the homeowner says the roof is ten years old and a document says it was replaced in 2019, the document wins. When the transcript is the ONLY source for a fact you use in the plan, list that fact under "Homeowner stated, not documented" in the verification section.
+   d) ACTIVELY MINE the transcript for: why they bought the home originally, what they will miss about it, which features they use most, improvements they have made and when, neighborhood character in their own words, what they think buyers will love, and concerns they expect buyers to raise. Feed these into "How We'll Position Your Home," "What Makes Your Home Stand Out," "The Buyer We're Targeting," and "Questions Buyers May Ask." Do NOT quote the homeowner directly in the plan; paraphrase into second-person seller-facing language.
+
+
 
 SELLER-FACING DOCUMENT STRUCTURE (Markdown, no preamble):
 

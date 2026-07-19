@@ -194,11 +194,12 @@ serve(async (req) => {
       }
     }
 
-    // 3) Residential Inspection Worksheet row.
+    // 3) Residential Inspection Worksheet row + any recorded homeowner
+    //    conversations linked to that inspection.
     if (leadId) {
       const { data: insp } = await db
         .from("inspections")
-        .select("property_address, inspection_data, updated_at")
+        .select("id, property_address, inspection_data, updated_at")
         .eq("lead_id", leadId)
         .maybeSingle();
       if (insp?.inspection_data) {
@@ -208,6 +209,33 @@ serve(async (req) => {
             insp.inspection_data,
           ),
         );
+      }
+
+      // 3b) Agent/homeowner recorded conversations. audio_transcriptions has
+      // no lead_id — it links via inspection_id. Include summary + full
+      // transcript (capped) in chronological order.
+      if (insp?.id) {
+        const { data: transcripts } = await db
+          .from("audio_transcriptions")
+          .select("transcription, summary, created_at")
+          .eq("inspection_id", insp.id)
+          .eq("status", "completed")
+          .order("created_at", { ascending: true });
+
+        const MAX_TRANSCRIPT_CHARS = 40000;
+        for (const t of transcripts || []) {
+          const summary = (t.summary || "").trim();
+          let full = (t.transcription || "").trim();
+          if (!summary && !full) continue;
+          if (full.length > MAX_TRANSCRIPT_CHARS) {
+            full = full.slice(0, MAX_TRANSCRIPT_CHARS) + "\n\n[...truncated]";
+          }
+          textNotes.push(
+            `### Filename: Listing appointment conversation - Type: Agent and homeowner transcript - Source: auto-attached from seller lead\n\n` +
+              (summary ? `--- SUMMARY ---\n${summary}\n\n` : "") +
+              (full ? `--- FULL TRANSCRIPT ---\n${full}` : ""),
+          );
+        }
       }
     }
 
