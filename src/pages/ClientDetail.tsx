@@ -40,6 +40,7 @@ import {
   Sparkles,
   Copy,
   Heart,
+  Megaphone,
 } from "lucide-react";
 
 
@@ -51,6 +52,7 @@ import ClientEditForm from "@/components/dashboard/ClientEditForm";
 import ClientAnalysisView from "@/components/dashboard/weeklyUpdate/ClientAnalysisView";
 import ResidentialWorkSheetTab from "@/components/dashboard/ResidentialWorkSheetTab";
 import MarketAnalysisTab from "@/components/dashboard/sellerLead/MarketAnalysisTab";
+import MarketingPlanTab from "@/components/dashboard/sellerLead/MarketingPlanTab";
 import MLSDescriptionTab from "@/components/dashboard/sellerLead/MLSDescriptionTab";
 import LoveResponsesTab from "@/components/dashboard/sellerLead/LoveResponsesTab";
 import BuyerMarketAnalysisTab from "@/components/dashboard/buyerLead/BuyerMarketAnalysisTab";
@@ -62,7 +64,7 @@ interface ClientNote {
   updated_at: string;
 }
 
-type TabView = "details" | "edit" | "notes" | "communications" | "feedback" | "stats" | "pre-listing" | "market-analysis" | "residential-work-sheet" | "mls-description" | "love";
+type TabView = "details" | "edit" | "notes" | "communications" | "feedback" | "stats" | "pre-listing" | "market-analysis" | "marketing-plan" | "residential-work-sheet" | "mls-description" | "love";
 
 const ClientDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -395,6 +397,7 @@ const ClientDetail = () => {
                       : [
                           { id: "pre-listing" as TabView, label: "Pre-Listing Pack", icon: Package },
                           { id: "market-analysis" as TabView, label: "Market Analysis", icon: TrendingUp },
+                          { id: "marketing-plan" as TabView, label: "Marketing Plan", icon: Megaphone },
                           { id: "residential-work-sheet" as TabView, label: "Residential Work Sheet", icon: ClipboardList },
                           { id: "mls-description" as TabView, label: "MLS Description", icon: Sparkles },
                           { id: "love" as TabView, label: "10 Things They Love", icon: Heart },
@@ -724,6 +727,18 @@ const ClientDetail = () => {
                           icon={TrendingUp}
                           title="No source lead found"
                           body="Market Analysis is powered by a lead record. Create one from this client's info to get started."
+                        />
+                      )
+                    )}
+
+                    {activeTab === "marketing-plan" && (
+                      linkedLead ? (
+                        <MarketingPlanTab lead={linkedLead as any} />
+                      ) : (
+                        <NoSourceLeadEmpty
+                          icon={Megaphone}
+                          title="No source lead found"
+                          body="The Marketing Plan is powered by a seller-lead record. Create one from this client's info to get started."
                         />
                       )
                     )}
