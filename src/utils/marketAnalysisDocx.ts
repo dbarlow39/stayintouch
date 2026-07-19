@@ -137,10 +137,30 @@ function getImageDimensions(dataUrl: string): Promise<{ width: number; height: n
   });
 }
 
+export interface MarketAnalysisAgentProfile {
+  full_name?: string | null;
+  first_name?: string | null;
+  last_name?: string | null;
+  cell_phone?: string | null;
+  preferred_email?: string | null;
+  email?: string | null;
+}
+
+function resolveAgentIdentity(profile?: MarketAnalysisAgentProfile | null) {
+  const name = (profile?.full_name && profile.full_name.trim())
+    || [profile?.first_name, profile?.last_name].filter(Boolean).join(" ").trim()
+    || "";
+  const phone = (profile?.cell_phone || "").trim();
+  const email = (profile?.preferred_email || profile?.email || "").trim();
+  const contactParts = [phone, email].filter(Boolean);
+  return { name, contact: contactParts.join(" | ") };
+}
+
 export async function generateMarketAnalysisDocx(
   analysis: any,
   bullseyeImage: string | null,
-  zillowImage: string | null
+  zillowImage: string | null,
+  agentProfile?: MarketAnalysisAgentProfile | null,
 ) {
   const prop = analysis.property || {};
   const comps = analysis.closedComps || [];
