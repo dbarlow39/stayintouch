@@ -397,6 +397,7 @@ const ClientDetail = () => {
                       : [
                           { id: "pre-listing" as TabView, label: "Pre-Listing Pack", icon: Package },
                           { id: "market-analysis" as TabView, label: "Market Analysis", icon: TrendingUp },
+                          { id: "marketing-plan" as TabView, label: "Marketing Plan", icon: Megaphone },
                           { id: "residential-work-sheet" as TabView, label: "Residential Work Sheet", icon: ClipboardList },
                           { id: "mls-description" as TabView, label: "MLS Description", icon: Sparkles },
                           { id: "love" as TabView, label: "10 Things They Love", icon: Heart },
