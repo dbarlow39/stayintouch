@@ -288,7 +288,7 @@ const WeeklyUpdateTab = () => {
       } else if (masterTemplate) {
         setEmailTemplate(masterTemplate);
       } else {
-        setEmailTemplate(generateSampleEmail(null, marketData));
+        setEmailTemplate(generateSampleEmail(null, marketData, agentProfile));
       }
     }
 
