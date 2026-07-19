@@ -331,6 +331,35 @@ export default function MarketingPlanTab({ lead }: { lead: any }) {
     }
   }
 
+  async function handleSkipStage4() {
+    if (!existingJob) return;
+    try {
+      await supabase.from("marketing_plan_results").upsert(
+        {
+          job_id: existingJob.id,
+          stage: "area_research",
+          content:
+            "# Area Research (Stage 4)\n\n> Area research was skipped. Neighborhood claims are limited to what the uploaded documents and property record support.",
+        },
+        { onConflict: "job_id,stage" },
+      );
+      await supabase
+        .from("marketing_plan_jobs")
+        .update({
+          current_stage: "marketing_plan",
+          status: "ready_for_plan",
+          error: null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", existingJob.id);
+      stage5Fired.current = false;
+      toast({ title: "Skipped area research", description: "Continuing to the marketing plan." });
+      await loadLatestJob();
+    } catch (err: any) {
+      toast({ title: "Skip failed", description: err.message, variant: "destructive" });
+    }
+  }
+
   // ---------- Render ----------
   if (loadingJob) {
     return (
@@ -506,9 +535,20 @@ export default function MarketingPlanTab({ lead }: { lead: any }) {
               <div className="mt-3 p-2 rounded border border-amber-500/40 bg-amber-500/10 text-sm">
                 <p className="font-medium text-amber-700">This job appears to have stalled.</p>
                 <p className="text-xs text-muted-foreground mb-2">No progress for over 3 minutes on the {STAGE_LABELS[existingJob.current_stage] || existingJob.current_stage} stage.</p>
-                <Button size="sm" variant="outline" onClick={handleRetryStalled}>
-                  <RefreshCw className="w-3 h-3 mr-2" /> Retry this stage
-                </Button>
+                {existingJob.current_stage === "area_research" ? (
+                  <div className="flex gap-2 flex-wrap">
+                    <Button size="sm" onClick={handleSkipStage4}>
+                      Skip area research and continue
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={handleRetryStalled}>
+                      <RefreshCw className="w-3 h-3 mr-2" /> Retry area research
+                    </Button>
+                  </div>
+                ) : (
+                  <Button size="sm" variant="outline" onClick={handleRetryStalled}>
+                    <RefreshCw className="w-3 h-3 mr-2" /> Retry this stage
+                  </Button>
+                )}
               </div>
             )}
           </CardContent>

@@ -62,8 +62,13 @@ async function fetchImage(url: string): Promise<{ media_type: string; data: stri
   }
 }
 
+// Hard server-side deadline for the entire stage. Prevents silent isolate
+// kills from leaving the job stuck at status='running'.
+const STAGE2_DEADLINE_MS = 240_000;
+
 async function runPhotoReview(jobId: string) {
   const db = serviceClient();
+  const startedAt = Date.now();
   try {
     await markStage(db, jobId, "photo_review", "running");
     await db.from("marketing_plan_jobs").update({ current_batch: 0, updated_at: new Date().toISOString() }).eq("id", jobId);
@@ -125,6 +130,10 @@ async function runPhotoReview(jobId: string) {
         : "";
 
     for (let i = 0; i < items.length; i += BATCH) {
+      if (Date.now() - startedAt > STAGE2_DEADLINE_MS) {
+        console.warn(`stage2 hit ${STAGE2_DEADLINE_MS}ms deadline at batch ${Math.floor(i / BATCH) + 1}`);
+        break;
+      }
       const batch = items.slice(i, i + BATCH);
       const blocks: Block[] = [];
       for (const it of batch) {
@@ -157,6 +166,18 @@ async function runPhotoReview(jobId: string) {
         .from("marketing_plan_jobs")
         .update({ current_batch: batchNum, updated_at: new Date().toISOString() })
         .eq("id", jobId);
+    }
+
+    if (batchOutputs.length === 0) {
+      // Deadline hit before any batch completed — save skip note and fail.
+      await saveStageResult(
+        db,
+        jobId,
+        "photo_review",
+        `# Walkthrough Photo Review (Stage 2)\n\n> Stage hit ${STAGE2_DEADLINE_MS / 1000}-second server deadline before any batch completed.`,
+      );
+      await failJob(db, jobId, `Stage 2 timed out after ${STAGE2_DEADLINE_MS / 1000}s`);
+      return;
     }
 
     let finalMd: string;

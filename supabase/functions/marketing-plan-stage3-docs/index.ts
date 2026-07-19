@@ -27,6 +27,9 @@ import { extractDocxToMarkdown } from "../_shared/docx-extract.ts";
 
 const SYSTEM_PROMPT = `You are extracting hard facts from real estate association, disclosure, market-analysis, and inspection documents so an agent can market a listing accurately. Quote the document and page (or the document label) for every fact. If a fact is not present, write "NOT FOUND - must confirm." Never estimate or infer a number. Return Markdown:
 
+## Neighborhood Snapshot
+From any attached market-analysis JSON, .docx, or PDF, extract these five values into a Markdown pipe table with columns Field | Value | Source. Fields (in this exact order): School District, Subdivision, Walkability Score, Crime Risk Score, Flood Zone. If a value is not present in the documents, write "NOT FOUND" for that row's Value. This section is authoritative for Stage 4 and must always be emitted, even if every row is NOT FOUND.
+
 ## HOA Dues
 Exact monthly or annual amount and precisely what it covers; note anything billed separately to the owner such as water, sewer, gas, or electric.
 
@@ -82,10 +85,15 @@ function jsonToMarkdown(label: string, obj: unknown): string {
 const DOCX_MIME =
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 
+// Hard server-side deadline for the entire stage. Prevents silent isolate
+// kills from leaving the job stuck at status='running'.
+const STAGE3_DEADLINE_MS = 240_000;
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   const { jobId } = await req.json();
   const db = serviceClient();
+  const startedAt = Date.now();
 
   try {
     await markStage(db, jobId, "document_facts", "running");
@@ -247,6 +255,10 @@ serve(async (req) => {
     const outputs: string[] = [];
     for (const g of groups) {
       if (g.length === 0) continue;
+      if (Date.now() - startedAt > STAGE3_DEADLINE_MS) {
+        console.warn(`stage3 hit ${STAGE3_DEADLINE_MS}ms deadline mid-batch`);
+        break;
+      }
       g.push({
         type: "text",
         text:
@@ -261,6 +273,19 @@ serve(async (req) => {
         messages: [{ role: "user", content: g }],
       });
       outputs.push(res.text);
+    }
+
+    if (outputs.length === 0) {
+      await saveStageResult(
+        db,
+        jobId,
+        "document_facts",
+        `# Document Facts (Stage 3)\n\n> Stage hit ${STAGE3_DEADLINE_MS / 1000}-second server deadline before any batch completed.`,
+      );
+      await failJob(db, jobId, `Stage 3 timed out after ${STAGE3_DEADLINE_MS / 1000}s`);
+      return new Response(JSON.stringify({ ok: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     const merged = outputs.length === 1
