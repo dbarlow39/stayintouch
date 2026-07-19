@@ -132,10 +132,9 @@ Please do not hesitate to reach out if you have any questions or would like to d
 
 Warm regards,
 
-Dave Barlow
-Sell for 1 Percent Realtors
-📞 614-778-6616
-🌐 www.Sellfor1Percent.com`;
+${(agent?.full_name && agent.full_name.trim()) || [agent?.first_name, agent?.last_name].filter(Boolean).join(' ').trim() || '{agent_name}'}
+Sell for 1 Percent Realtors${agent?.cell_phone ? `\n📞 ${agent.cell_phone}` : ''}${agent?.preferred_email || agent?.email ? `\n✉️ ${agent?.preferred_email || agent?.email}` : ''}
+🌐 ${agent?.website?.trim() || 'www.Sellfor1Percent.com'}`;
 };
 
 interface MarketData {
