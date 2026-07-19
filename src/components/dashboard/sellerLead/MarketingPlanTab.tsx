@@ -306,25 +306,37 @@ export default function MarketingPlanTab({ lead }: { lead: any }) {
     toast({ title: "Marketing plan cleared" });
   }
 
-  async function handleRetryStalled() {
+  async function handleRetryMissing() {
     if (!existingJob) return;
-    const stage = existingJob.current_stage;
-    const fnMap: Record<string, string> = {
-      property_data: "marketing-plan-stage1-property",
-      photo_review: "marketing-plan-stage2-photos",
-      document_facts: "marketing-plan-stage3-docs",
-      area_research: "marketing-plan-stage4-area",
-      marketing_plan: "marketing-plan-stage5-plan",
-    };
-    const fn = fnMap[stage];
-    if (!fn) return;
+    const topics = ["schools","recreation","convenience","commute","community","demographics","market"];
+    const missing = stages.filter((s) => !results[s]);
+    if (missing.length === 0) {
+      toast({ title: "Nothing to retry", description: "All stages have written results." });
+      return;
+    }
     try {
       await supabase
         .from("marketing_plan_jobs")
-        .update({ status: "running", error: null, current_batch: 0, updated_at: new Date().toISOString() })
+        .update({ status: "running", error: null, updated_at: new Date().toISOString() })
         .eq("id", existingJob.id);
-      await supabase.functions.invoke(fn, { body: { jobId: existingJob.id } });
-      toast({ title: "Retrying", description: `Re-invoked ${STAGE_LABELS[stage] || stage}.` });
+
+      const invocations: Promise<any>[] = [];
+      const invoked = new Set<string>();
+      const invoke = (fn: string, body: any = { jobId: existingJob.id }) => {
+        if (invoked.has(fn + JSON.stringify(body))) return;
+        invoked.add(fn + JSON.stringify(body));
+        invocations.push(supabase.functions.invoke(fn, { body }));
+      };
+
+      for (const s of missing) {
+        if (s === "property_data") invoke("marketing-plan-stage1-property");
+        else if (s === "photo_review") invoke("marketing-plan-stage2-photos");
+        else if (s === "document_facts") invoke("marketing-plan-stage3-docs");
+        else if (s.startsWith("area_")) invoke("marketing-plan-stage4-area");
+        else if (s === "marketing_plan") invoke("marketing-plan-stage5-plan");
+      }
+      await Promise.allSettled(invocations);
+      toast({ title: "Retrying", description: `Re-invoked ${missing.length} missing stage(s).` });
       await loadLatestJob();
     } catch (err: any) {
       toast({ title: "Retry failed", description: err.message, variant: "destructive" });
