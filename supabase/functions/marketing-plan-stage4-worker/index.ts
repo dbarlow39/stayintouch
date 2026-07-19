@@ -128,7 +128,35 @@ ${context?.snapshot || "(no snapshot available — proceed with normal research)
           else if (b?.name === "web_fetch") fetchCount++;
         }
       }
-      const txt = (res.text || "").trim();
+      let txt = (res.text || "").trim();
+
+      // If the model was cut off mid-output, do ONE bounded no-tools retry to
+      // let it finish the write-up. Research is already done at this point.
+      if (stopReason === "max_tokens") {
+        console.warn(`stage4-worker(${topic}) hit max_tokens; issuing continuation without tools`);
+        try {
+          const cont = await callClaude({
+            model: OPUS_MODEL,
+            system,
+            max_tokens: 6000,
+            thinking: { type: "adaptive" },
+            output_config: { effort: "high" },
+            maxPauseTurnRetries: 0,
+            messages: [
+              { role: "user", content: userMsg },
+              { role: "assistant", content: txt },
+              { role: "user", content: `Continue exactly where you left off under the "## ${title}" heading. Do not repeat any content. Do not restate the heading. Finish the section cleanly.` },
+            ],
+            tools: [],
+          });
+          const contTxt = (cont.text || "").trim();
+          if (contTxt) txt = `${txt}\n\n${contTxt}`;
+          stopReason = `max_tokens+continued(${cont.stop_reason})`;
+        } catch (e) {
+          console.error(`stage4-worker(${topic}) continuation failed:`, e);
+        }
+      }
+
       completed = txt.length > 0;
       content = completed
         ? txt
