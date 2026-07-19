@@ -75,3 +75,18 @@ export async function failJob(
     .update({ status: "failed", error: err.slice(0, 2000), updated_at: new Date().toISOString() })
     .eq("id", jobId);
 }
+
+// Atomically increments the area-research completion counter and reports
+// whether this call was the last one (count === expected). Uses the
+// mp_increment_area_completed RPC so concurrent workers cannot race.
+export async function incrementAreaCompleted(
+  db: SupabaseClient,
+  jobId: string,
+  expected: number,
+): Promise<{ newCount: number; isLast: boolean }> {
+  const { data, error } = await db.rpc("mp_increment_area_completed", { p_job_id: jobId });
+  if (error) throw error;
+  const newCount = typeof data === "number" ? data : Number(data);
+  return { newCount, isLast: newCount >= expected };
+}
+
