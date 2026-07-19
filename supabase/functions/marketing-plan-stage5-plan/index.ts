@@ -68,6 +68,12 @@ Anything you deliberately did not put in the seller plan and why.
 ## Homeowner stated, not documented
 List every fact used in the seller-facing plan whose ONLY source is the "Listing appointment conversation" transcript (i.e., no document, property record, or MLS paste confirms it). One bullet per fact with a short quote or paraphrase. If the transcript was not attached, write "No homeowner transcript attached."
 
+## Anti-boilerplate check
+For each of these marketing sections, write the section name followed by "yes" or "no": The One Big Idea, What Makes Your Home Stand Out, The Buyer We're Targeting, Why We Know This Buyer Is Out There, Your Neighborhood, Pricing Strategy, How We'll Reach That Buyer (each subsection), Getting Your Home in Front of the Right Neighbors, Questions Buyers Will Ask, Content We'll Produce, Preparing Your Home. Answer "yes" only if NO sentence in that section could appear unchanged in a marketing plan for a different house. If any answer is "no", rewrite that section before finalizing the plan.
+
+## Evidence completeness check
+For each item below, write "included" (and where), "not in evidence", or "in evidence but omitted, reason: ...": school district by name, square footage, year built, mechanical replacement dates (furnace, AC, roof, water heater), lot characteristics (backs to trees/field/other homes, corner, cul-de-sac, acreage), documented improvements with year. Anything in evidence but omitted without a stated reason is a defect that must be fixed before finalizing.
+
 ## Compliance notes
 Fair Housing, age-restriction wording, community-vs-private amenities, anything else.
 
@@ -78,6 +84,9 @@ SELLER-FACING PLAN SECTION
 AUDIENCE AND TONE
 Write to the homeowner directly, in second person ("your home," "we'll"). Warm, professional, and specific. Confident without hype. No internal jargon. Never reference the agent's own business development. This document is about selling THEIR home.
 
+PURPOSE OF THIS DOCUMENT (CONTROLLING INSTRUCTION)
+The plan is presented to the HOMEOWNER. Its job is to show them (a) exactly who the buyer for their home is, (b) the evidence that this buyer exists and can afford it, and (c) why each marketing channel reaches that specific buyer. It is NOT a market analysis and NOT a pricing justification. The agent supplies the list price separately. Any sentence that does not serve (a), (b), or (c) is out of scope.
+
 NON-NEGOTIABLE RULES
 1. NEVER STATE AN UNVERIFIED FACT, AND NEVER PRINT A PLACEHOLDER. Every fact you write must be traceable to the Verification section above. If a fact is not in the Verification "will state" list, do not write it. NEVER write "[CONFIRM]", "TBD", "N/A", or any bracketed placeholder - this must read as a finished piece.
    FORBIDDEN unless the evidence explicitly establishes them:
@@ -86,7 +95,9 @@ NON-NEGOTIABLE RULES
      - specific school ratings not present in Stage 4 area research
      - claims about traffic, safety, or noise
    Resolve conflicts by source authority: pasted MLS data outranks the property record for square footage, year built, beds/baths and taxes; the HOA documents outrank everything on dues, age restriction, rules and official amenities; the photo review and documents govern layout reality; seller-written descriptions are claims only.
+   MANDATORY EVIDENCE INCLUSION: whenever the evidence establishes them, the plan MUST include the school district by name, square footage, year built, mechanical replacement dates (furnace, AC, roof, water heater), lot characteristics (e.g., "does not back to homes directly behind," corner lot, cul-de-sac, acreage), and documented improvements with year. Omitting any of these when the evidence supports them is a defect.
 2. FAIR HOUSING. Describe the home and the lifestyle it offers, never who "should" live there. Say "main-floor living" and "low-maintenance," never "perfect for retirees" or "great for young families." Age-TARGETED is not age-RESTRICTED - if the documents show the community is not legally deed-restricted, never imply an age requirement.
+   Forbidden buyer-description terms anywhere in the plan: "nursery," "empty nesters," "young family," "young families," "retirees," "starter home for [group]," "downsizers," any age range or life-stage label, any reference to children, marital status, religion, race, or national origin. Describe buyers by needs and lifestyle only.
 3. LAYOUT PRECISION. The Photo Review "Layout Findings" is AUTHORITATIVE for what floor each room is on, whether stairs exist, and whether a basement exists. If Layout Findings shows a staircase, loft, or second floor, do NOT describe the home as "single-level," "zero stairs," or "one-story" - write "main-level living plus [the upstairs space]." Do not mention a basement or finished lower level unless Layout Findings establishes one.
 4. COMMUNITY VS PRIVATE AMENITIES. If a pool, clubhouse, gym or court is a community amenity, always describe it as part of the community. Never phrase it so the reader could think it is private to the home.
 5. BE SPECIFIC TO THIS HOME. Reference the actual rooms, features, and setting the evidence establishes. A homeowner should read this and recognize their own house, not a template. Do not reference photo filenames, and do not discuss photography logistics or direct the photographer.
@@ -95,9 +106,9 @@ NON-NEGOTIABLE RULES
    a) PROTECTED CLASS INFORMATION. The homeowner may mention a death in the family, divorce, pregnancy, children, ages, health conditions, religion, or national origin. NEVER use any of it to describe or target the buyer, and NEVER repeat it in the plan. Familial status, disability, religion, race, and national origin are federally protected classes under the Fair Housing Act. Treat any personal detail from the transcript as background context only — it must not appear in any client-facing sentence.
    b) SELLER MOTIVATION IS CONFIDENTIAL. Statements about urgency, financial pressure, the lowest price the seller would accept, deadlines, willingness to negotiate, or reasons they need to sell fast MUST NOT appear in the plan or in any generated listing copy. This information destroys the seller's negotiating position if it leaks. It may inform your strategy silently, but it must not be printed anywhere in the output.
    c) SPOKEN CLAIMS, NOT VERIFIED FACT. Apply the existing evidence-precedence rules to the transcript. Documents, MLS paste, and the property record all outrank spoken claims. If the homeowner says the roof is ten years old and a document says it was replaced in 2019, the document wins. When the transcript is the ONLY source for a fact you use in the plan, list that fact under "Homeowner stated, not documented" in the verification section.
-   d) ACTIVELY MINE the transcript for: why they bought the home originally, what they will miss about it, which features they use most, improvements they have made and when, neighborhood character in their own words, what they think buyers will love, and concerns they expect buyers to raise. Feed these into "How We'll Position Your Home," "What Makes Your Home Stand Out," "The Buyer We're Targeting," and "Questions Buyers May Ask." Do NOT quote the homeowner directly in the plan; paraphrase into second-person seller-facing language.
-
-
+   d) ACTIVELY MINE the transcript for: why they bought the home originally, what they will miss about it, which features they use most, improvements they have made and when, neighborhood character in their own words, what they think buyers will love, and concerns they expect buyers to raise. Feed these into "The One Big Idea," "What Makes Your Home Stand Out," "The Buyer We're Targeting," and "Questions Buyers Will Ask, and How We'll Answer Them." Do NOT quote the homeowner directly in the plan; paraphrase into second-person seller-facing language.
+8. ANTI-BOILERPLATE TEST. Before finalizing, read every sentence in every marketing section and ask: could this sentence appear unchanged in a marketing plan for a different house? If yes, rewrite it with something specific to THIS property, THIS buyer, or THIS neighborhood, or cut it. This rule applies to every section, not just the description of the home. Describing what the brokerage does in general is filler. State what will be done for THIS listing and why it fits THIS buyer. A subsection that only describes a channel's general capability is a failure and must be rewritten.
+9. PRICING SECTION IS STRATEGY ONLY. The list price is an input supplied by the agent. NEVER derive it, justify it, or state anything that conflicts with it. Do NOT cite comparable sale prices anywhere in this document (no comps, no ranges like "similar homes sold for $X to $Y"). The Pricing Strategy section is two to four sentences on strategy only: where the price sits relative to buyer search thresholds and psychological price breaks, how showing activity and feedback will be monitored, and what would trigger a price conversation. Nothing else.
 
 SELLER-FACING DOCUMENT STRUCTURE (Markdown, no preamble):
 
@@ -105,50 +116,74 @@ SELLER-FACING DOCUMENT STRUCTURE (Markdown, no preamble):
 
 Prepared by: {agent name}
 
-## Your Home
+Print the "Prepared by" byline exactly once, immediately under the title. Do NOT repeat it anywhere else in the document.
 
-## How We'll Position Your Home
+## Your Home
+Concrete description of THIS home using the evidence. Include, when established: square footage, year built, school district by name, mechanical replacement dates, lot characteristics, and documented improvements with year.
+
+## The One Big Idea
+A single sharp positioning thesis: what this home actually is, who it is for, and what the campaign will therefore lead with. Everything downstream must serve this thesis. If the home has a specific competitive edge, name it here as the sharpest one. Mine the homeowner transcript for this.
 
 ## What Makes Your Home Stand Out
+Ranked in priority order (1, 2, 3, ...), each with one line on why it matters to the buyer described below. Not an undifferentiated list.
 
 ## The Buyer We're Targeting
+One primary buyer profile plus two or three secondary profiles. For each: what they want, what they are moving from, what problem this home solves, and what they are actually paying for. Describe them by needs and lifestyle only. Rule 2's forbidden-terms list applies here in full.
+
+## Why We Know This Buyer Is Out There
+The evidence. Area income levels, home values and appreciation, ownership rates, market conditions, and anything from Stage 4 area research showing demand for this type of home in this location. Use real figures with the period they cover. This proves to the homeowner the strategy is grounded, not guessed. If Stage 4 was skipped, say so plainly and limit claims to what documents and the property record establish.
 
 ## Your Neighborhood
+Schools by name, parks and recreation, shopping and everyday convenience, commute context, and what gives the immediate area its character. Specific named places, not general praise.
 
 ## Pricing Strategy
+Two to four sentences. Strategy only, per rule 9. No comps, no price justification, no ranges. Where the price sits relative to buyer search thresholds and psychological price breaks, how showing activity and feedback will be monitored, and what would trigger a price conversation.
 
-## How We'll Market Your Home
+## How We'll Reach That Buyer
+One subsection per channel. EACH must connect back to the buyer profile above: who we are reaching with this channel, why it reaches them, and what specifically we will do for THIS listing.
 
 ### Professional Photography & Video
+What specifically will be captured for THIS home and why it fits the buyer above.
 
 ### MLS & Syndication
+What we will emphasize in the MLS description for THIS home and which syndication reach matters for this buyer.
 
 ### Social Media & Digital Advertising
+What creative and geography we will use for THIS listing to reach the buyer above. State plainly: real estate ads run under Meta's Housing Special Ad Category, so targeting is done through creative and geography rather than demographics.
 
 ### Email & Agent Network
+Which specific segments of our sphere and which cooperating-agent networks are the strongest match for this buyer, and what we will send them.
+
+### Print & Direct Mail
+What piece, to which addresses, and why they are the right addresses.
 
 ### Open Houses
-
 Use this copy verbatim (you may adapt only the opening clause if a natural reference to the home fits, but keep the meaning and length intact):
 
 "In today's world the 'Open House' is on the internet, which is why we spend significant time writing your home's description to appeal to the right buyers, supported with professional photos. It is not very often we sell a home because of an Open House. Most buyers with serious interest are not out on a Sunday afternoon touring open houses. Serious buyers will make a private showing request so they can view the home individually. That said, if you're sold on Open Houses, we have agents on staff who will hold them for you."
 
 ### Showings
-
 Use this copy verbatim:
 
 "We use the latest technology to schedule your showings. If the home is occupied, we only schedule showings with your permission. If your property is vacant, you'll receive notices of showings. Either way, we use an app called ShowingTime, which over 90% of agents in the area use to schedule showings. Everything is handled right on your phone through text messaging, 7 days a week from 8am to 8pm."
 
-### Print & Direct Mail
+## Getting Your Home in Front of the Right Neighbors
+A farming plan specific to THIS listing. Name the surrounding neighborhoods, subdivisions, or communities where the likely buyer lives now, and state what we will mail, post, or door-knock to reach them. Be geographically specific with real place names from the evidence and Stage 4 research.
+
+## Questions Buyers Will Ask, and How We'll Answer Them
+The real hesitations about THIS home, not trivia. Examples: price relative to size, HOA costs, taxes, lot size, bedroom count, an older mechanical system, competition from new construction. For each, give the honest answer we will use. Frame every one as preparation and confidence, never as criticism of the home. Do not include filler like "how old is the roof."
+
+## Content We'll Produce
+Specific short video and social concepts for THIS listing, each tied to a feature above or to a buyer question above. Not a generic content menu.
 
 ## Your Timeline
+Concrete days and a decision point, not vague phases.
 TIMELINE RULES:
-- If Form Inputs says "Target On-Market Date: (omitted - invalid or past)" you MUST NOT invent or print a specific calendar date anywhere in this section. Use relative weeks only ("Week 0: Preparation", "Week 1: Launch", "Week 2-4: Active marketing", etc.) so the seller sees the sequence, not a bogus date.
-- If a valid target date IS provided, anchor Week 1 to that date and reference it plainly.
-
-## Questions Buyers May Ask
+- If Form Inputs says "Target On-Market Date: (omitted - invalid or past)" you MUST NOT invent or print a specific calendar date anywhere in this section. Use relative days/weeks only ("Day 0: Preparation", "Week 1: Launch", "Day 21: Showing activity and feedback review — decision point", etc.).
+- If a valid target date IS provided, anchor Day 0 to that date and state actual calendar dates for each milestone.
 
 ## Preparing Your Home
+Room-by-room, specific to what the walkthrough photos actually show. Reference concrete rooms and items the photo review established.
 
 ## What You Save with Sell for 1 Percent
 
