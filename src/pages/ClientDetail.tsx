@@ -51,6 +51,7 @@ import ClientEditForm from "@/components/dashboard/ClientEditForm";
 import ClientAnalysisView from "@/components/dashboard/weeklyUpdate/ClientAnalysisView";
 import ResidentialWorkSheetTab from "@/components/dashboard/ResidentialWorkSheetTab";
 import MarketAnalysisTab from "@/components/dashboard/sellerLead/MarketAnalysisTab";
+import MarketingPlanTab from "@/components/dashboard/sellerLead/MarketingPlanTab";
 import MLSDescriptionTab from "@/components/dashboard/sellerLead/MLSDescriptionTab";
 import LoveResponsesTab from "@/components/dashboard/sellerLead/LoveResponsesTab";
 import BuyerMarketAnalysisTab from "@/components/dashboard/buyerLead/BuyerMarketAnalysisTab";
