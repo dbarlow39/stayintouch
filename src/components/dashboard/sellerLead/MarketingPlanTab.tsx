@@ -554,7 +554,9 @@ export default function MarketingPlanTab({ lead }: { lead: any }) {
               <p className="text-sm text-destructive mt-2">{existingJob.error}</p>
             )}
             {(() => {
-              const missing = stages.filter((s) => !results[s]);
+              const topics = ["schools","recreation","convenience","commute","community","demographics","market"];
+              const areaDone = topics.every((t) => !!results[`area_${t}`]);
+              const missing = stages.filter((s) => s === "area_research" ? !areaDone && !results[s] : !results[s]);
               const stale = existingJob.updated_at
                 && (Date.now() - new Date(existingJob.updated_at).getTime()) > 3 * 60 * 1000;
               if (!isRunning || !stale || missing.length === 0) return null;
