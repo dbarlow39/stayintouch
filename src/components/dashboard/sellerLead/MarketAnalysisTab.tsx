@@ -741,7 +741,8 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
         }
 
         setProgressMessage("Building document...");
-        await generateMarketAnalysisDocx(analysis, capturedBullseye, capturedZillow);
+        const agentProfile = await fetchCurrentAgentProfile();
+        await generateMarketAnalysisDocx(analysis, capturedBullseye, capturedZillow, agentProfile);
         toast({ title: "Market analysis document downloaded" });
       } catch (err: any) {
         console.error("Auto-download error:", err);
