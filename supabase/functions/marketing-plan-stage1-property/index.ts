@@ -30,9 +30,9 @@ async function advanceDownstreamGates(db: any, jobId: string) {
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
-  const unauth = assertInternalCaller(req);
-  if (unauth) return unauth;
   const { jobId } = await req.json();
+  const unauth = await assertInternalOrJobOwner(req, jobId);
+  if (unauth) return unauth;
   const db = serviceClient();
   const FAILSAFE = `# Property Data (Stage 1)\n\n> Stage 1 did not complete cleanly. Property data must be confirmed manually.`;
 
