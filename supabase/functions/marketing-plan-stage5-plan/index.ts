@@ -65,6 +65,9 @@ Any place the property record, MLS paste, HOA docs, photo review, or seller note
 ## Left out on purpose
 Anything you deliberately did not put in the seller plan and why.
 
+## Homeowner stated, not documented
+List every fact used in the seller-facing plan whose ONLY source is the "Listing appointment conversation" transcript (i.e., no document, property record, or MLS paste confirms it). One bullet per fact with a short quote or paraphrase. If the transcript was not attached, write "No homeowner transcript attached."
+
 ## Compliance notes
 Fair Housing, age-restriction wording, community-vs-private amenities, anything else.
 
