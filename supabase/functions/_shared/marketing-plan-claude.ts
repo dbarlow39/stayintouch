@@ -136,7 +136,7 @@ export async function streamClaudeToStorage(
   onPartial: (fullText: string) => Promise<void>,
   onComplete: (fullText: string) => Promise<void>,
   partialIntervalMs = 2000,
-): Promise<void> {
+): Promise<{ text: string; stop_reason: string; output_tokens: number }> {
   const body = buildBody(opts, true);
   const upstream = await fetch(ANTHROPIC_URL, {
     method: "POST",
@@ -159,6 +159,8 @@ export async function streamClaudeToStorage(
   let buf = "";
   let lastFlush = Date.now();
   let lastFlushedLen = 0;
+  let stopReason = "unknown";
+  let outputTokens = 0;
 
   while (true) {
     const { done, value } = await reader.read();
@@ -179,6 +181,11 @@ export async function streamClaudeToStorage(
           evt.delta.text
         ) {
           full += evt.delta.text;
+        } else if (evt.type === "message_delta") {
+          if (evt.delta?.stop_reason) stopReason = evt.delta.stop_reason;
+          if (evt.usage?.output_tokens) outputTokens = evt.usage.output_tokens;
+        } else if (evt.type === "message_stop" && evt["amazon-bedrock-invocationMetrics"]) {
+          // no-op, but keeps parser tolerant of future fields
         }
       } catch (_) { /* ignore partials */ }
     }
@@ -190,6 +197,7 @@ export async function streamClaudeToStorage(
     }
   }
   await onComplete(full);
+  return { text: full, stop_reason: stopReason, output_tokens: outputTokens };
 }
 
 /**
