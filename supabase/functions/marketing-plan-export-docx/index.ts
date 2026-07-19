@@ -34,18 +34,94 @@ function stripLeadingH1(md: string): string {
   return md.replace(/^\s*#\s+Marketing Plan for[^\n]*\n+/i, "");
 }
 
-function splitInternal(text: string): string {
-  const idx = text.indexOf("---INTERNAL---");
-  return (idx === -1 ? text : text.slice(0, idx)).trim();
+// Pull out just the seller-facing half. Supports both the new
+// ---VERIFICATION--- / ---PLAN--- ordering (internal first, seller second)
+// AND the legacy ---INTERNAL--- ordering (seller first, internal second).
+function sellerFacingOnly(text: string): string {
+  const planIdx = text.indexOf("---PLAN---");
+  if (planIdx !== -1) {
+    return text.slice(planIdx + "---PLAN---".length).trim();
+  }
+  const legacyIdx = text.indexOf("---INTERNAL---");
+  if (legacyIdx !== -1) {
+    // legacy: seller was before the delimiter, may also have a leading
+    // ---VERIFICATION--- header that we should drop.
+    const before = text.slice(0, legacyIdx).trim();
+    return before.replace(/^---VERIFICATION---[\s\S]*?(?=^#\s)/m, "").trim();
+  }
+  return text.trim();
+}
+
+function runsFromInline(text: string): TextRun[] {
+  const parts = text.split(/(\*\*[^*]+\*\*)/g).filter(Boolean);
+  return parts.map((p) => {
+    if (p.startsWith("**") && p.endsWith("**")) {
+      return new TextRun({ text: p.slice(2, -2), bold: true });
+    }
+    return new TextRun({ text: p });
+  });
+}
+
+// Detect a markdown pipe-table starting at line index `i`. Returns the table
+// element and how many lines it consumed, or null if this isn't a table.
+function tryConsumeTable(lines: string[], i: number): { table: Table; consumed: number } | null {
+  const isPipeRow = (s: string) => /^\s*\|.*\|\s*$/.test(s);
+  const isSepRow = (s: string) => /^\s*\|?\s*(:?-{3,}:?\s*\|)+\s*:?-{3,}:?\s*\|?\s*$/.test(s);
+  if (!isPipeRow(lines[i]) || !isSepRow(lines[i + 1] || "")) return null;
+  const rows: string[][] = [];
+  const parse = (s: string) =>
+    s.trim().replace(/^\||\|$/g, "").split("|").map((c) => c.trim());
+  rows.push(parse(lines[i]));
+  let j = i + 2;
+  while (j < lines.length && isPipeRow(lines[j])) {
+    rows.push(parse(lines[j]));
+    j++;
+  }
+  const maxCols = Math.max(...rows.map((r) => r.length));
+  const cellBorder = { style: BorderStyle.SINGLE, size: 4, color: "CCCCCC" };
+  const cellBorders = { top: cellBorder, bottom: cellBorder, left: cellBorder, right: cellBorder };
+  const tableWidth = 9360;
+  const colWidth = Math.floor(tableWidth / maxCols);
+  const table = new Table({
+    width: { size: tableWidth, type: WidthType.DXA },
+    columnWidths: Array(maxCols).fill(colWidth),
+    rows: rows.map((r, ri) =>
+      new TableRow({
+        children: Array.from({ length: maxCols }, (_, ci) => {
+          const text = r[ci] || "";
+          return new TableCell({
+            width: { size: colWidth, type: WidthType.DXA },
+            borders: cellBorders,
+            margins: { top: 60, bottom: 60, left: 100, right: 100 },
+            children: [
+              new Paragraph({
+                children: ri === 0
+                  ? [new TextRun({ text, bold: true })]
+                  : runsFromInline(text),
+              }),
+            ],
+          });
+        }),
+      })
+    ),
+  });
+  return { table, consumed: j - i };
 }
 
 // Very small Markdown-to-docx converter. Handles: # / ## / ###, blank lines,
-// - / * bullets, and inline **bold**. Everything else is a plain paragraph.
-function mdToParagraphs(md: string): Paragraph[] {
-  const out: Paragraph[] = [];
+// - / * bullets, inline **bold**, and pipe tables.
+function mdToDocxChildren(md: string): Array<Paragraph | Table> {
+  const out: Array<Paragraph | Table> = [];
   const lines = md.split(/\r?\n/);
-  for (const raw of lines) {
+  for (let i = 0; i < lines.length; i++) {
+    const raw = lines[i];
     const line = raw.trimEnd();
+    const tbl = tryConsumeTable(lines, i);
+    if (tbl) {
+      out.push(tbl.table);
+      i += tbl.consumed - 1;
+      continue;
+    }
     if (!line.trim()) {
       out.push(new Paragraph({ children: [new TextRun("")] }));
       continue;
@@ -70,16 +146,6 @@ function mdToParagraphs(md: string): Paragraph[] {
     out.push(new Paragraph({ children: runsFromInline(line) }));
   }
   return out;
-}
-
-function runsFromInline(text: string): TextRun[] {
-  const parts = text.split(/(\*\*[^*]+\*\*)/g).filter(Boolean);
-  return parts.map((p) => {
-    if (p.startsWith("**") && p.endsWith("**")) {
-      return new TextRun({ text: p.slice(2, -2), bold: true });
-    }
-    return new TextRun({ text: p });
-  });
 }
 
 serve(async (req) => {
