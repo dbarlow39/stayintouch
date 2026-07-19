@@ -279,7 +279,7 @@ const WeeklyUpdateTab = () => {
       if (masterTemplate) {
         setEmailTemplate(masterTemplate);
       } else {
-        setEmailTemplate(generateSampleEmail(null, marketData));
+        setEmailTemplate(generateSampleEmail(null, marketData, agentProfile));
       }
     } else {
       // Regular user: personal template first, then master, then default
