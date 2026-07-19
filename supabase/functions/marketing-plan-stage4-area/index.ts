@@ -110,9 +110,9 @@ async function dispatch(jobId: string) {
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
-  const unauth = assertInternalCaller(req);
-  if (unauth) return unauth;
   const { jobId } = await req.json();
+  const unauth = await assertInternalOrJobOwner(req, jobId);
+  if (unauth) return unauth;
   // @ts-ignore EdgeRuntime
   EdgeRuntime.waitUntil(dispatch(jobId));
   return new Response(
