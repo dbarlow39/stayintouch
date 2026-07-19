@@ -22,6 +22,27 @@ export async function authUser(req: Request): Promise<{ userId: string; token: s
   return { userId: data.user.id, token };
 }
 
+// Verifies the caller is an internal pipeline dispatch. Accepts either the
+// service-role bearer token (used by invokeNextStage / invokeNextStageAwaited)
+// or, as a future-proof secondary path, an `x-internal-secret` header equal to
+// the service-role key. Returns null when authorized, or a 401 Response
+// otherwise. Every stage entrypoint that is invoked internally must call this.
+export function assertInternalCaller(req: Request): Response | null {
+  const svcKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+  const auth = (req.headers.get("Authorization") || "").replace("Bearer ", "").trim();
+  const secretHeader = (req.headers.get("x-internal-secret") || "").trim();
+  const ok = svcKey.length > 0 && (auth === svcKey || secretHeader === svcKey);
+  if (ok) return null;
+  const corsHeaders = {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-internal-secret",
+  };
+  return new Response(JSON.stringify({ error: "Unauthorized (internal only)" }), {
+    status: 401,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
+
 // Fire-and-forget invoke. Does not throw on network failure; errors are logged.
 export function invokeNextStage(functionName: string, jobId: string): void {
   const url = `${Deno.env.get("SUPABASE_URL")}/functions/v1/${functionName}`;
