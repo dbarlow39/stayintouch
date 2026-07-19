@@ -731,6 +731,18 @@ const ClientDetail = () => {
                       )
                     )}
 
+                    {activeTab === "marketing-plan" && (
+                      linkedLead ? (
+                        <MarketingPlanTab lead={linkedLead as any} />
+                      ) : (
+                        <NoSourceLeadEmpty
+                          icon={Megaphone}
+                          title="No source lead found"
+                          body="The Marketing Plan is powered by a seller-lead record. Create one from this client's info to get started."
+                        />
+                      )
+                    )}
+
                     {activeTab === "residential-work-sheet" && (
                       linkedLead ? (
                         <ResidentialWorkSheetTab
