@@ -172,6 +172,10 @@ export async function generateMarketAnalysisDocx(
   const features = analysis.features || [];
 
   const sections: any[] = [];
+  const { name: agentName, contact: agentContact } = resolveAgentIdentity(agentProfile);
+  const dateLine = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+  const preparedByText = agentName ? `Prepared by ${agentName} | ${dateLine}` : dateLine;
+
 
   // ── LOGO ──
   let logoBytes: Uint8Array | null = null;
