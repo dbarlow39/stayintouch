@@ -27,6 +27,9 @@ import { extractDocxToMarkdown } from "../_shared/docx-extract.ts";
 
 const SYSTEM_PROMPT = `You are extracting hard facts from real estate association, disclosure, market-analysis, and inspection documents so an agent can market a listing accurately. Quote the document and page (or the document label) for every fact. If a fact is not present, write "NOT FOUND - must confirm." Never estimate or infer a number. Return Markdown:
 
+## Neighborhood Snapshot
+From any attached market-analysis JSON, .docx, or PDF, extract these five values into a Markdown pipe table with columns Field | Value | Source. Fields (in this exact order): School District, Subdivision, Walkability Score, Crime Risk Score, Flood Zone. If a value is not present in the documents, write "NOT FOUND" for that row's Value. This section is authoritative for Stage 4 and must always be emitted, even if every row is NOT FOUND.
+
 ## HOA Dues
 Exact monthly or annual amount and precisely what it covers; note anything billed separately to the owner such as water, sewer, gas, or electric.
 
