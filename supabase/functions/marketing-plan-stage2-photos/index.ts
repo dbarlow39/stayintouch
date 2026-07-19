@@ -1,9 +1,10 @@
 // Stage 2: walkthrough photo review (Claude Opus vision, batched by 15).
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import {
+  checkGateAndAdvance,
   failJob,
-  invokeNextStage,
   markStage,
+  saveResultIfMissing,
   saveStageResult,
   serviceClient,
 } from "../_shared/marketing-plan-common.ts";
@@ -13,6 +14,13 @@ import {
   OPUS_MODEL,
   type Block,
 } from "../_shared/marketing-plan-claude.ts";
+import { STAGE5_REQUIRED } from "../_shared/marketing-plan-gates.ts";
+
+async function advanceStage5Gate(db: any, jobId: string) {
+  try {
+    await checkGateAndAdvance(db, jobId, STAGE5_REQUIRED, "marketing-plan-stage5-plan", "stage5_dispatch");
+  } catch (e) { console.error("stage2 gate5 advance error:", e); }
+}
 
 const SYSTEM_PROMPT = `You are reviewing an agent's walkthrough photos of a home they are preparing to list.
 
