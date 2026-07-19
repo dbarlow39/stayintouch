@@ -11,9 +11,10 @@
 // come through as markdown pipe tables rather than a wall of flattened text.
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import {
+  checkGateAndAdvance,
   failJob,
-  invokeNextStage,
   markStage,
+  saveResultIfMissing,
   saveStageResult,
   serviceClient,
 } from "../_shared/marketing-plan-common.ts";
@@ -24,6 +25,16 @@ import {
   type Block,
 } from "../_shared/marketing-plan-claude.ts";
 import { extractDocxToMarkdown } from "../_shared/docx-extract.ts";
+import { STAGE4_REQUIRED, STAGE5_REQUIRED } from "../_shared/marketing-plan-gates.ts";
+
+async function advanceDownstreamGates(db: any, jobId: string) {
+  try {
+    await checkGateAndAdvance(db, jobId, STAGE4_REQUIRED, "marketing-plan-stage4-area", "stage4_dispatch");
+  } catch (e) { console.error("stage3 gate4 advance error:", e); }
+  try {
+    await checkGateAndAdvance(db, jobId, STAGE5_REQUIRED, "marketing-plan-stage5-plan", "stage5_dispatch");
+  } catch (e) { console.error("stage3 gate5 advance error:", e); }
+}
 
 const SYSTEM_PROMPT = `You are extracting hard facts from real estate association, disclosure, market-analysis, and inspection documents so an agent can market a listing accurately. Quote the document and page (or the document label) for every fact. If a fact is not present, write "NOT FOUND - must confirm." Never estimate or infer a number. Return Markdown:
 
