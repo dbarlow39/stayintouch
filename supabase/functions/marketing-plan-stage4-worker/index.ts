@@ -44,7 +44,9 @@ DATE EVERY FIGURE. Give the year or period each number covers, and note that fig
 
 STAY IN YOUR LANE. Report only your assigned topic. Do not summarize the property, do not discuss the listing price, and do not write marketing copy. Another stage does that.
 
-The user message will include a NEIGHBORHOOD SNAPSHOT extracted from the seller's own documents. Those values (School District, Subdivision, Walkability Score, Crime Risk Score, Flood Zone) are AUTHORITATIVE — do NOT web-search for any of them, and do NOT contradict them. If your topic touches any of those values, repeat them with source "Neighborhood Snapshot (documents)".`;
+The user message will include a NEIGHBORHOOD SNAPSHOT extracted from the seller's own documents. Those values (School District, Subdivision, Walkability Score, Crime Risk Score, Flood Zone) are AUTHORITATIVE — do NOT web-search for any of them, and do NOT contradict them. If your topic touches any of those values, repeat them with source "Neighborhood Snapshot (documents)".
+
+You have ONE web search. Make it count. Write a single specific query for your assigned topic and this address, read the results, and report what you found. Fetch a page only if the search results are insufficient. Do not iterate or refine repeatedly. If one search does not establish a fact, report what you did find and note what is missing rather than searching again.`;
 
 const TOPIC_INSTRUCTIONS: Record<Topic, string> = {
   schools:
