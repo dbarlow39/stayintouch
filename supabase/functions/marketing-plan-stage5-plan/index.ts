@@ -110,83 +110,35 @@ NON-NEGOTIABLE RULES
 8. ANTI-BOILERPLATE TEST. Before finalizing, read every sentence in every marketing section and ask: could this sentence appear unchanged in a marketing plan for a different house? If yes, rewrite it with something specific to THIS property, THIS buyer, or THIS neighborhood, or cut it. This rule applies to every section, not just the description of the home. Describing what the brokerage does in general is filler. State what will be done for THIS listing and why it fits THIS buyer. A subsection that only describes a channel's general capability is a failure and must be rewritten.
 9. PRICING SECTION IS STRATEGY ONLY. The list price is an input supplied by the agent. NEVER derive it, justify it, or state anything that conflicts with it. Do NOT cite comparable sale prices anywhere in this document (no comps, no ranges like "similar homes sold for $X to $Y"). The Pricing Strategy section is two to four sentences on strategy only: where the price sits relative to buyer search thresholds and psychological price breaks, how showing activity and feedback will be monitored, and what would trigger a price conversation. Nothing else.
 
-SELLER-FACING DOCUMENT STRUCTURE (Markdown, no preamble):
+STAGE 5 TASK
+
+Begin the seller-facing plan with these two lines, exactly, and print them only once:
 
 # Marketing Plan for {address}
 
 Prepared by: {agent name}
 
-Print the "Prepared by" byline exactly once, immediately under the title. Do NOT repeat it anywhere else in the document.
+Then work through all of the following, in whatever section order and under whatever headings best serve the homeowner. You are not required to use any particular skeleton — organize the answer around the request below.
 
-## Your Home
-Concrete description of THIS home using the evidence. Include, when established: square footage, year built, school district by name, mechanical replacement dates, lot characteristics, and documented improvements with year.
+1. State the single sharpest positioning thesis for THIS home: what it actually is, who it is for, and what the campaign will lead with. Everything downstream must serve this thesis.
+2. Describe the primary buyer for this home and two or three secondary buyers, by needs and lifestyle only. For each, what they want, what they are moving from, what problem this home solves, and what they are actually paying for. Then show the evidence this buyer exists in this market (area income, home values, appreciation, ownership rates, demand signals from Stage 4 area research, with the period the figures cover). If Stage 4 was skipped, say so plainly and limit claims to what documents and the property record establish.
+3. Describe the lifestyle this home offers and the lifestyle of the neighborhood around it. Name real places (schools by name, parks, shopping, commute anchors, community features) from the evidence. Do not describe who "should" live there.
+4. Handle the cons honestly. State the real hesitations a buyer will raise about THIS home (price relative to size, HOA costs, taxes, lot size, bedroom count, an older mechanical system, competition from new construction, etc.) and the honest answer we will use for each. Frame every one as preparation and confidence, never as criticism of the home. Skip filler like "how old is the roof."
+5. Explain, channel by channel, how we will reach the buyer described above. For each channel — professional photography and video, MLS and syndication, social media and digital advertising, email and agent network, print and direct mail — state who we are reaching, why that channel reaches them, and what specifically we will do for THIS listing. For social media and digital advertising, state plainly that real estate ads run under Meta's Housing Special Ad Category, so targeting is done through creative and geography rather than demographics.
+6. Include a farming plan specific to THIS listing: name the surrounding neighborhoods, subdivisions, or communities where the likely buyer lives now, and state what we will mail, post, or door-knock to reach them. Be geographically specific with real place names from the evidence and Stage 4 research.
+7. List specific short video and social content concepts for THIS listing, each tied to a feature of the home or to a buyer objection above. Not a generic content menu.
+8. Give the homeowner a concrete execution list of what happens next and when. If Form Inputs says "Target On-Market Date: (omitted - invalid or past)" you MUST NOT invent or print a specific calendar date; use relative days and weeks only ("Day 0: Preparation", "Week 1: Launch", "Day 21: Showing activity and feedback review — decision point", etc.). If a valid target date IS provided, anchor Day 0 to that date and state actual calendar dates for each milestone. Include a room-by-room preparation list specific to what the walkthrough photos actually show.
+9. Include a Pricing Strategy passage of two to four sentences, strategy only per rule 9 above — where the price sits relative to buyer search thresholds and psychological price breaks, how showing activity and feedback will be monitored, and what would trigger a price conversation. No comps, no ranges, no justification of the number.
 
-## The One Big Idea
-A single sharp positioning thesis: what this home actually is, who it is for, and what the campaign will therefore lead with. Everything downstream must serve this thesis. If the home has a specific competitive edge, name it here as the sharpest one. Mine the homeowner transcript for this.
+Somewhere in the marketing plan you MUST also include the following verbatim brokerage copy blocks, each under an appropriate heading you choose. Do not paraphrase them.
 
-## What Makes Your Home Stand Out
-Ranked in priority order (1, 2, 3, ...), each with one line on why it matters to the buyer described below. Not an undifferentiated list.
-
-## The Buyer We're Targeting
-One primary buyer profile plus two or three secondary profiles. For each: what they want, what they are moving from, what problem this home solves, and what they are actually paying for. Describe them by needs and lifestyle only. Rule 2's forbidden-terms list applies here in full.
-
-## Why We Know This Buyer Is Out There
-The evidence. Area income levels, home values and appreciation, ownership rates, market conditions, and anything from Stage 4 area research showing demand for this type of home in this location. Use real figures with the period they cover. This proves to the homeowner the strategy is grounded, not guessed. If Stage 4 was skipped, say so plainly and limit claims to what documents and the property record establish.
-
-## Your Neighborhood
-Schools by name, parks and recreation, shopping and everyday convenience, commute context, and what gives the immediate area its character. Specific named places, not general praise.
-
-## Pricing Strategy
-Two to four sentences. Strategy only, per rule 9. No comps, no price justification, no ranges. Where the price sits relative to buyer search thresholds and psychological price breaks, how showing activity and feedback will be monitored, and what would trigger a price conversation.
-
-## How We'll Reach That Buyer
-One subsection per channel. EACH must connect back to the buyer profile above: who we are reaching with this channel, why it reaches them, and what specifically we will do for THIS listing.
-
-### Professional Photography & Video
-What specifically will be captured for THIS home and why it fits the buyer above.
-
-### MLS & Syndication
-What we will emphasize in the MLS description for THIS home and which syndication reach matters for this buyer.
-
-### Social Media & Digital Advertising
-What creative and geography we will use for THIS listing to reach the buyer above. State plainly: real estate ads run under Meta's Housing Special Ad Category, so targeting is done through creative and geography rather than demographics.
-
-### Email & Agent Network
-Which specific segments of our sphere and which cooperating-agent networks are the strongest match for this buyer, and what we will send them.
-
-### Print & Direct Mail
-What piece, to which addresses, and why they are the right addresses.
-
-### Open Houses
-Use this copy verbatim (you may adapt only the opening clause if a natural reference to the home fits, but keep the meaning and length intact):
-
+OPEN HOUSES (verbatim, under a heading such as "Open Houses"):
 "In today's world the 'Open House' is on the internet, which is why we spend significant time writing your home's description to appeal to the right buyers, supported with professional photos. It is not very often we sell a home because of an Open House. Most buyers with serious interest are not out on a Sunday afternoon touring open houses. Serious buyers will make a private showing request so they can view the home individually. That said, if you're sold on Open Houses, we have agents on staff who will hold them for you."
 
-### Showings
-Use this copy verbatim:
-
+SHOWINGS (verbatim, under a heading such as "Showings"):
 "We use the latest technology to schedule your showings. If the home is occupied, we only schedule showings with your permission. If your property is vacant, you'll receive notices of showings. Either way, we use an app called ShowingTime, which over 90% of agents in the area use to schedule showings. Everything is handled right on your phone through text messaging, 7 days a week from 8am to 8pm."
 
-## Getting Your Home in Front of the Right Neighbors
-A farming plan specific to THIS listing. Name the surrounding neighborhoods, subdivisions, or communities where the likely buyer lives now, and state what we will mail, post, or door-knock to reach them. Be geographically specific with real place names from the evidence and Stage 4 research.
-
-## Questions Buyers Will Ask, and How We'll Answer Them
-The real hesitations about THIS home, not trivia. Examples: price relative to size, HOA costs, taxes, lot size, bedroom count, an older mechanical system, competition from new construction. For each, give the honest answer we will use. Frame every one as preparation and confidence, never as criticism of the home. Do not include filler like "how old is the roof."
-
-## Content We'll Produce
-Specific short video and social concepts for THIS listing, each tied to a feature above or to a buyer question above. Not a generic content menu.
-
-## Your Timeline
-Concrete days and a decision point, not vague phases.
-TIMELINE RULES:
-- If Form Inputs says "Target On-Market Date: (omitted - invalid or past)" you MUST NOT invent or print a specific calendar date anywhere in this section. Use relative days/weeks only ("Day 0: Preparation", "Week 1: Launch", "Day 21: Showing activity and feedback review — decision point", etc.).
-- If a valid target date IS provided, anchor Day 0 to that date and state actual calendar dates for each milestone.
-
-## Preparing Your Home
-Room-by-room, specific to what the walkthrough photos actually show. Reference concrete rooms and items the photo review established.
-
-## What You Save with Sell for 1 Percent
-
+WHAT YOU SAVE WITH SELL FOR 1 PERCENT (under a heading such as "What You Save with Sell for 1 Percent"):
 Calculate the seller's savings using the List Price from Form Inputs.
 - Formula: savings = 0.02 × list_price (2% of the asking price, described as a MINIMUM).
 - Frame it against a traditional full-service listing that typically costs about 6% total (split between the two sides), so our 1% listing fee saves roughly 2% to 3% on the listing side alone.
@@ -194,16 +146,24 @@ Calculate the seller's savings using the List Price from Form Inputs.
 - Emphasize: you get everything a full-service agent charging a whole lot more would provide, so why give away your home's equity?
 - If List Price is "not specified", DO NOT print a bracketed placeholder. Instead write "roughly 2% of your asking price" and note the exact figure will be confirmed once pricing is set.
 
-## Staying in Touch
+STAYING IN TOUCH (under a heading such as "Staying in Touch"): a short passage assuring the homeowner of communication cadence during the listing.
 
-## Your Agent
-
+YOUR AGENT (under a heading such as "Your Agent"):
 Build the agent contact line from ONLY the values in the "Agent" block of Form Inputs.
 - Start with "{agent name}, Sell for 1 Percent"
 - If a phone is provided, append " - {phone}"
 - If an email is provided, append ", {email}"
 - If neither phone nor email is provided, print just "{agent name}, Sell for 1 Percent"
-- NEVER print a bare label like "Email:" or a trailing comma with no value. NEVER invent contact info. NEVER print a placeholder like "[email]" or "TBD".`;
+- NEVER print a bare label like "Email:" or a trailing comma with no value. NEVER invent contact info. NEVER print a placeholder like "[email]" or "TBD".
+
+WHAT THIS DOCUMENT IS NOT
+It is not a description of the house. Do not spend the document walking through the rooms. Reference specific rooms, features, mechanicals, school district, square footage, lot characteristics and improvements ONLY where they support the positioning thesis, the buyer profile, the marketing channel choice, or the objection handling.
+
+FOUR CONSTRAINTS
+1. Pricing is strategy only. Never derive, justify, or contradict the list price. No comparable sale prices, no ranges anywhere in this document. The Pricing Strategy passage is two to four sentences on strategy only.
+2. Describe buyers by needs and lifestyle only. Rule 2's forbidden-terms list applies in full. No age ranges, no life-stage labels, no references to children, marital status, religion, race, or national origin.
+3. Name real places. Schools by name, parks by name, neighborhoods and subdivisions by name, commute anchors by name. No generic praise.
+4. State demographic sources. Whenever you cite an income figure, home-value figure, appreciation rate, ownership rate, or demand signal, name where it came from (Stage 4 area research, Stage 1 property data, HOA documents, MLS paste) and the period it covers.`;
 
 function isValidFutureDate(s: string | null | undefined): boolean {
   if (!s) return false;
