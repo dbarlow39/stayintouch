@@ -71,6 +71,12 @@ List every fact used in the seller-facing plan whose ONLY source is the "Listing
 ## Anti-boilerplate check
 For every heading you produce in the seller-facing plan, list the heading followed by "yes" or "no". Answer "yes" only if NO sentence under that heading could appear unchanged in a marketing plan for a different house. If any answer is "no", rewrite that section before finalizing the plan.
 
+## Equipment claims audit
+List every sentence in the seller-facing plan that names a mechanical system, appliance, brand, model, replacement year, or warranty. For each, quote the exact document line or MLS field that establishes it. If the source is a photo inference rather than a document, mark it "PHOTO ONLY - remove brand/model/date claim." If the documents say an item is NOT present (for example, "no humidifier"), confirm the plan does not claim it exists. Any unsourced claim is a defect and must be removed before finalizing.
+
+## Objection offsets audit
+List every objection you raised in the "handle the cons honestly" section. For each, scan the Document Facts, MLS Data, and Photo Review for advantages that offset it (lot depth, tree line, setback, fence line, view, recent replacement, warranty coverage, etc.) and quote the specific evidence. If an offsetting fact exists in the evidence and your objection response does not cite it, that response is a defect and must be rewritten before finalizing.
+
 ## Evidence completeness check
 For each item below, write "included" (and where), "not in evidence", or "in evidence but omitted, reason: ...": school district by name, square footage, year built, mechanical replacement dates (furnace, AC, roof, water heater), lot characteristics (backs to trees/field/other homes, corner, cul-de-sac, acreage), documented improvements with year. Anything in evidence but omitted without a stated reason is a defect that must be fixed before finalizing.
 
@@ -114,11 +120,9 @@ NON-NEGOTIABLE RULES
 
 STAGE 5 TASK
 
-Begin the seller-facing plan with these two lines, exactly, and print them only once:
+Begin the seller-facing plan with this single line and print it only once. Do NOT print a "Prepared by:" byline in the seller-facing body - the exporter adds the byline in the document header, and printing it here creates a duplicate.
 
 # Marketing Plan for {address}
-
-Prepared by: {agent name}
 
 Then work through all of the following, in whatever section order and under whatever headings best serve the homeowner. You are not required to use any particular skeleton — organize the answer around the request below.
 

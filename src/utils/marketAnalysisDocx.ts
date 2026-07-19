@@ -137,10 +137,30 @@ function getImageDimensions(dataUrl: string): Promise<{ width: number; height: n
   });
 }
 
+export interface MarketAnalysisAgentProfile {
+  full_name?: string | null;
+  first_name?: string | null;
+  last_name?: string | null;
+  cell_phone?: string | null;
+  preferred_email?: string | null;
+  email?: string | null;
+}
+
+function resolveAgentIdentity(profile?: MarketAnalysisAgentProfile | null) {
+  const name = (profile?.full_name && profile.full_name.trim())
+    || [profile?.first_name, profile?.last_name].filter(Boolean).join(" ").trim()
+    || "";
+  const phone = (profile?.cell_phone || "").trim();
+  const email = (profile?.preferred_email || profile?.email || "").trim();
+  const contactParts = [phone, email].filter(Boolean);
+  return { name, contact: contactParts.join(" | ") };
+}
+
 export async function generateMarketAnalysisDocx(
   analysis: any,
   bullseyeImage: string | null,
-  zillowImage: string | null
+  zillowImage: string | null,
+  agentProfile?: MarketAnalysisAgentProfile | null,
 ) {
   const prop = analysis.property || {};
   const comps = analysis.closedComps || [];
@@ -152,6 +172,10 @@ export async function generateMarketAnalysisDocx(
   const features = analysis.features || [];
 
   const sections: any[] = [];
+  const { name: agentName, contact: agentContact } = resolveAgentIdentity(agentProfile);
+  const dateLine = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+  const preparedByText = agentName ? `Prepared by ${agentName} | ${dateLine}` : dateLine;
+
 
   // ── LOGO ──
   let logoBytes: Uint8Array | null = null;
@@ -194,7 +218,7 @@ export async function generateMarketAnalysisDocx(
         new Paragraph({
           alignment: AlignmentType.RIGHT,
           spacing: { before: 60 },
-          children: [new TextRun({ text: `Prepared by Dave Barlow | ${new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`, color: DARK_SCARLET, font: "Arial", size: 18 })],
+          children: [new TextRun({ text: preparedByText, color: DARK_SCARLET, font: "Arial", size: 18 })],
         }),
       ],
     })
@@ -459,25 +483,29 @@ export async function generateMarketAnalysisDocx(
       spacing: { after: 40 },
       children: [new TextRun({ text: "Thanks,", font: "Arial", size: 22 })],
     }),
+    ...(agentName
+      ? [new Paragraph({
+          shading: { type: ShadingType.CLEAR, fill: LIGHT_SCARLET },
+          spacing: { after: 40 },
+          children: [new TextRun({ text: agentName, bold: true, color: DARK_SCARLET, font: "Arial", size: 28 })],
+        })]
+      : []),
     new Paragraph({
       shading: { type: ShadingType.CLEAR, fill: LIGHT_SCARLET },
       spacing: { after: 40 },
-      children: [new TextRun({ text: "Dave Barlow", bold: true, color: DARK_SCARLET, font: "Arial", size: 28 })],
-    }),
-    new Paragraph({
-      shading: { type: ShadingType.CLEAR, fill: LIGHT_SCARLET },
-      spacing: { after: 40 },
-      children: [new TextRun({ text: "The Barlow Group | SellFor1Percent.com", font: "Arial", size: 22 })],
+      children: [new TextRun({ text: "Sell for 1 Percent Realtors | SellFor1Percent.com", font: "Arial", size: 22 })],
     }),
     new Paragraph({
       shading: { type: ShadingType.CLEAR, fill: LIGHT_SCARLET },
       spacing: { after: 40 },
       children: [new TextRun({ text: "All You Need to Know About Real Estate!", italics: true, font: "Arial", size: 22 })],
     }),
-    new Paragraph({
-      shading: { type: ShadingType.CLEAR, fill: LIGHT_SCARLET },
-      children: [new TextRun({ text: "614-778-6616 | dave@sellfor1percent.com", font: "Arial", size: 22 })],
-    })
+    ...(agentContact
+      ? [new Paragraph({
+          shading: { type: ShadingType.CLEAR, fill: LIGHT_SCARLET },
+          children: [new TextRun({ text: agentContact, font: "Arial", size: 22 })],
+        })]
+      : []),
   );
 
   // ── BUILD DOCUMENT ──

@@ -45,6 +45,13 @@ serve(async (req) => {
     const market_data: MarketData = requestBody.market_data || requestBody.marketData;
     const client_data: ClientData = requestBody.client_data || requestBody.clientData;
     const customTemplate: string | undefined = requestBody.template;
+    const agent_profile = requestBody.agent_profile || requestBody.agentProfile || null;
+    const agentName: string = (agent_profile?.full_name && String(agent_profile.full_name).trim())
+      || [agent_profile?.first_name, agent_profile?.last_name].filter(Boolean).join(' ').trim()
+      || '';
+    const agentPhone: string = (agent_profile?.cell_phone || '').toString().trim();
+    const agentEmail: string = (agent_profile?.preferred_email || agent_profile?.email || '').toString().trim();
+    const agentWebsite: string = (agent_profile?.website || '').toString().trim() || 'www.Sellfor1Percent.com';
     
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) {
@@ -185,10 +192,9 @@ INSTRUCTIONS:
    - State: "We have generated ${views} online views which means we should have between ${expectedShowingsMin} and ${expectedShowingsMax} in person showings and at least ${expectedOffers} offer at this point."
 7. Weekly Outlook: Measured, data-driven expectations for next week
 8. Closing: Sign as:
-   Dave Barlow
-   Sell for 1 Percent Realtors
-   📞 614-778-6616
-   🌐 www.Sellfor1Percent.com
+   ${agentName || '(agent name not provided - omit this line)'}
+   Sell for 1 Percent Realtors${agentPhone ? `\n   📞 ${agentPhone}` : ''}${agentEmail ? `\n   ✉️ ${agentEmail}` : ''}
+   🌐 ${agentWebsite}
 
 TONE REQUIREMENTS:
 - Conservative, calm, factual, and reassuring

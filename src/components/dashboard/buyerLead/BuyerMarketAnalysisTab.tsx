@@ -27,6 +27,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { generateMarketAnalysisDocx } from "@/utils/marketAnalysisDocx";
+import { fetchCurrentAgentProfile } from "@/utils/agentProfile";
 import { openEmailClient } from "@/utils/emailClientUtils";
 import ZillowGraphic from "@/components/dashboard/sellerLead/ZillowGraphic";
 
@@ -393,7 +394,8 @@ const BuyerMarketAnalysisTab = ({ lead }: BuyerMarketAnalysisTabProps) => {
         }
 
         setProgressMessage("Building document...");
-        await generateMarketAnalysisDocx(analysis, null, capturedZillow);
+        const agentProfile = await fetchCurrentAgentProfile();
+        await generateMarketAnalysisDocx(analysis, null, capturedZillow, agentProfile);
         toast({ title: "Market analysis document downloaded" });
       } catch (err: any) {
         console.error("Auto-download error:", err);
@@ -415,7 +417,8 @@ const BuyerMarketAnalysisTab = ({ lead }: BuyerMarketAnalysisTabProps) => {
   const handleDownload = async () => {
     if (!analysis) return;
     try {
-      await generateMarketAnalysisDocx(analysis, null, zillowImage);
+      const agentProfile = await fetchCurrentAgentProfile();
+      await generateMarketAnalysisDocx(analysis, null, zillowImage, agentProfile);
       toast({ title: "Document downloaded successfully" });
     } catch (err: any) {
       console.error("DOCX generation error:", err);

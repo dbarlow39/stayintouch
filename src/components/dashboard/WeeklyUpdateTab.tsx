@@ -21,7 +21,8 @@ import ClientAnalysisView from "./weeklyUpdate/ClientAnalysisView";
 
 const generateSampleEmail = (
   client: { first_name: string | null; last_name: string | null; street_number: string | null; street_name: string | null; city: string | null; state: string | null; zip: string | null } | null,
-  marketData?: { week_of: string; active_homes: number; active_homes_last_week: number | null; inventory_change: number | null; market_avg_dom: number; price_trend: string; price_reductions: number; new_listings?: number; closed_deals?: number; in_contracts?: number; mortgage_rate_30yr?: number; mortgage_rate_30yr_week_ago?: number; mortgage_rate_30yr_year_ago?: number; mortgage_rate_15yr?: number; mortgage_rate_15yr_week_ago?: number; mortgage_rate_15yr_year_ago?: number; freddie_mac_summary?: string; article_summary?: string }
+  marketData?: { week_of: string; active_homes: number; active_homes_last_week: number | null; inventory_change: number | null; market_avg_dom: number; price_trend: string; price_reductions: number; new_listings?: number; closed_deals?: number; in_contracts?: number; mortgage_rate_30yr?: number; mortgage_rate_30yr_week_ago?: number; mortgage_rate_30yr_year_ago?: number; mortgage_rate_15yr?: number; mortgage_rate_15yr_week_ago?: number; mortgage_rate_15yr_year_ago?: number; freddie_mac_summary?: string; article_summary?: string },
+  agent?: { first_name?: string | null; last_name?: string | null; full_name?: string | null; cell_phone?: string | null; preferred_email?: string | null; website?: string | null; email?: string | null } | null,
 ) => {
   // Use placeholders that will be replaced by the edge function for each client
   const weekOf = marketData?.week_of ? format(new Date(marketData.week_of), 'MMMM d, yyyy') : format(new Date(), 'MMMM d, yyyy');
@@ -131,10 +132,9 @@ Please do not hesitate to reach out if you have any questions or would like to d
 
 Warm regards,
 
-Dave Barlow
-Sell for 1 Percent Realtors
-📞 614-778-6616
-🌐 www.Sellfor1Percent.com`;
+${(agent?.full_name && agent.full_name.trim()) || [agent?.first_name, agent?.last_name].filter(Boolean).join(' ').trim() || '{agent_name}'}
+Sell for 1 Percent Realtors${agent?.cell_phone ? `\n📞 ${agent.cell_phone}` : ''}${agent?.preferred_email || agent?.email ? `\n✉️ ${agent?.preferred_email || agent?.email}` : ''}
+🌐 ${agent?.website?.trim() || 'www.Sellfor1Percent.com'}`;
 };
 
 interface MarketData {
@@ -279,7 +279,7 @@ const WeeklyUpdateTab = () => {
       if (masterTemplate) {
         setEmailTemplate(masterTemplate);
       } else {
-        setEmailTemplate(generateSampleEmail(null, marketData));
+        setEmailTemplate(generateSampleEmail(null, marketData, agentProfile));
       }
     } else {
       // Regular user: personal template first, then master, then default
@@ -288,7 +288,7 @@ const WeeklyUpdateTab = () => {
       } else if (masterTemplate) {
         setEmailTemplate(masterTemplate);
       } else {
-        setEmailTemplate(generateSampleEmail(null, marketData));
+        setEmailTemplate(generateSampleEmail(null, marketData, agentProfile));
       }
     }
 
@@ -643,6 +643,7 @@ const WeeklyUpdateTab = () => {
         body: JSON.stringify({
           template: emailTemplate,
           market_data: marketData,
+          agent_profile: agentProfile || null,
           client_data: {
             first_name: client.first_name || '',
             last_name: client.last_name || '',
@@ -862,6 +863,7 @@ const WeeklyUpdateTab = () => {
             price_reductions: marketData.price_reductions,
           },
           clientData,
+          agent_profile: agentProfile || null,
         },
       });
 
@@ -1208,7 +1210,7 @@ const WeeklyUpdateTab = () => {
 
                   setMarketData(updatedMarketData);
                   const firstClient = clients?.[0] || null;
-                  setEmailTemplate(generateSampleEmail(firstClient, updatedMarketData));
+                  setEmailTemplate(generateSampleEmail(firstClient, updatedMarketData, agentProfile));
                   setTemplateDirty(true);
                   setIsTemplateOpen(true);
                   toast({ title: "Template updated with latest Freddie Mac rates" });
@@ -1216,7 +1218,7 @@ const WeeklyUpdateTab = () => {
                   console.error('Error fetching Freddie Mac:', err);
                   // Still update template with current market data
                   const firstClient = clients?.[0] || null;
-                  setEmailTemplate(generateSampleEmail(firstClient, marketData));
+                  setEmailTemplate(generateSampleEmail(firstClient, marketData, agentProfile));
                   setTemplateDirty(true);
                   setIsTemplateOpen(true);
                 } finally {
