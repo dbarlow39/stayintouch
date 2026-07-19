@@ -170,7 +170,7 @@ serve(async (req) => {
                 new Paragraph({
                   alignment: AlignmentType.RIGHT,
                   spacing: { before: 60 },
-                  children: [new TextRun({ text: `Prepared by ${agentName} | ${dateLine}`, color: DARK_SCARLET, font: "Arial", size: 18 })],
+                  children: [new TextRun({ text: `Prepared by: ${agentName} | ${dateLine}`, color: DARK_SCARLET, font: "Arial", size: 18 })],
                 }),
               ],
             }),

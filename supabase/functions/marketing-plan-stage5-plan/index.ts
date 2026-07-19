@@ -32,7 +32,7 @@ SELLER-FACING DOCUMENT STRUCTURE (Markdown, no preamble):
 
 # Marketing Plan for {address}
 
-Prepared by {agent name}
+Prepared by: {agent name}
 
 ## Your Home
 
