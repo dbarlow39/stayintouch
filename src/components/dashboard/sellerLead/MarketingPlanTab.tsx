@@ -383,6 +383,17 @@ export default function MarketingPlanTab({ lead }: { lead: any }) {
         )}
       </div>
 
+      {profileWarnings.length > 0 && (
+        <div className="rounded border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
+          <div className="flex items-center gap-2 font-medium text-amber-700">
+            <AlertTriangle className="w-4 h-4" /> Fix your Profile before sending this plan
+          </div>
+          <ul className="mt-1 list-disc pl-6 text-amber-800/90">
+            {profileWarnings.map((w, i) => <li key={i}>{w}</li>)}
+          </ul>
+        </div>
+      )}
+
       {/* Setup panel */}
       {(showSetup || !existingJob) && (
         <Card>
