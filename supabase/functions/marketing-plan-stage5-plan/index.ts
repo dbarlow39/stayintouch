@@ -13,7 +13,7 @@
 // The UI + docx exporter both split on ---PLAN--- (with legacy fallback to
 // ---INTERNAL--- for older jobs, where the order was reversed).
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { failJob, markStage, saveStageResult, serviceClient } from "../_shared/marketing-plan-common.ts";
+import { assertInternalCaller, failJob, markStage, saveStageResult, serviceClient } from "../_shared/marketing-plan-common.ts";
 import {
   corsHeaders,
   OPUS_MODEL,
