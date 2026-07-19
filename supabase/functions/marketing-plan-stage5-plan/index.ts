@@ -120,11 +120,9 @@ NON-NEGOTIABLE RULES
 
 STAGE 5 TASK
 
-Begin the seller-facing plan with these two lines, exactly, and print them only once:
+Begin the seller-facing plan with this single line and print it only once. Do NOT print a "Prepared by:" byline in the seller-facing body - the exporter adds the byline in the document header, and printing it here creates a duplicate.
 
 # Marketing Plan for {address}
-
-Prepared by: {agent name}
 
 Then work through all of the following, in whatever section order and under whatever headings best serve the homeowner. You are not required to use any particular skeleton — organize the answer around the request below.
 
