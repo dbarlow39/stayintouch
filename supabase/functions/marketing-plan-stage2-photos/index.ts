@@ -1,7 +1,7 @@
 // Stage 2: walkthrough photo review (Claude Opus vision, batched by 15).
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import {
-  assertInternalCaller,
+  assertInternalOrJobOwner,
   checkGateAndAdvance,
   markStage,
   saveResultIfMissing,
