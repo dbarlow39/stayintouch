@@ -266,7 +266,12 @@ ${byStage.photo_review || "(not available)"}
 ${byStage.document_facts || "(not available)"}
 
 # Stage 4 — Area Research
-${byStage.area_research || "(not available)"}
+${(() => {
+  const topics = ["schools","recreation","convenience","commute","community","demographics","market"];
+  const parts = topics.map((t) => byStage[`area_${t}`]).filter((x): x is string => !!x && x.trim().length > 0);
+  if (parts.length > 0) return parts.join("\n\n");
+  return byStage.area_research || "(not available)";
+})()}
 
 Now produce the two sections in the required order: begin with "---VERIFICATION---" on its own line, then the internal audit, then "---PLAN---" on its own line, then the seller-facing marketing plan. Substitute {address}, {agent name}, {phone}, {email} with the real values above. Do not print any bracketed placeholder in the seller-facing document.`;
 
