@@ -237,9 +237,9 @@ async function runPhotoReview(jobId: string) {
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
-  const unauth = assertInternalCaller(req);
-  if (unauth) return unauth;
   const { jobId } = await req.json();
+  const unauth = await assertInternalOrJobOwner(req, jobId);
+  if (unauth) return unauth;
 
   // Detach the heavy work from the request wall-clock. Any thrown error inside
   // runPhotoReview flips the job to status='failed' via failJob.
