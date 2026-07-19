@@ -1,7 +1,7 @@
 // Stage 1: pull authoritative property data from Estated. No AI.
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import {
-  assertInternalCaller,
+  assertInternalOrJobOwner,
   checkGateAndAdvance,
   failJob,
   markStage,
