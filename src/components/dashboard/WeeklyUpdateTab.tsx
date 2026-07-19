@@ -21,7 +21,8 @@ import ClientAnalysisView from "./weeklyUpdate/ClientAnalysisView";
 
 const generateSampleEmail = (
   client: { first_name: string | null; last_name: string | null; street_number: string | null; street_name: string | null; city: string | null; state: string | null; zip: string | null } | null,
-  marketData?: { week_of: string; active_homes: number; active_homes_last_week: number | null; inventory_change: number | null; market_avg_dom: number; price_trend: string; price_reductions: number; new_listings?: number; closed_deals?: number; in_contracts?: number; mortgage_rate_30yr?: number; mortgage_rate_30yr_week_ago?: number; mortgage_rate_30yr_year_ago?: number; mortgage_rate_15yr?: number; mortgage_rate_15yr_week_ago?: number; mortgage_rate_15yr_year_ago?: number; freddie_mac_summary?: string; article_summary?: string }
+  marketData?: { week_of: string; active_homes: number; active_homes_last_week: number | null; inventory_change: number | null; market_avg_dom: number; price_trend: string; price_reductions: number; new_listings?: number; closed_deals?: number; in_contracts?: number; mortgage_rate_30yr?: number; mortgage_rate_30yr_week_ago?: number; mortgage_rate_30yr_year_ago?: number; mortgage_rate_15yr?: number; mortgage_rate_15yr_week_ago?: number; mortgage_rate_15yr_year_ago?: number; freddie_mac_summary?: string; article_summary?: string },
+  agent?: { first_name?: string | null; last_name?: string | null; full_name?: string | null; cell_phone?: string | null; preferred_email?: string | null; website?: string | null; email?: string | null } | null,
 ) => {
   // Use placeholders that will be replaced by the edge function for each client
   const weekOf = marketData?.week_of ? format(new Date(marketData.week_of), 'MMMM d, yyyy') : format(new Date(), 'MMMM d, yyyy');
