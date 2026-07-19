@@ -528,16 +528,18 @@ export default function MarketingPlanTab({ lead }: { lead: any }) {
           <CardContent>
             <ol className="space-y-1 text-sm">
               {stages.map((s) => {
-                const done = !!results[s];
+                const topics = ["schools","recreation","convenience","commute","community","demographics","market"];
+                const areaCompleted = topics.filter((t) => !!results[`area_${t}`]).length;
+                const done = s === "area_research"
+                  ? areaCompleted >= 7 || !!results[s]
+                  : !!results[s];
                 // Parallel DAG: any stage without a result while the job is
                 // still running is "in flight". current_stage is no longer set.
                 const current = !done && isRunning;
                 const showBatch = current && s === "photo_review" && (existingJob.current_batch ?? 0) > 0;
                 let label = STAGE_LABELS[s];
                 if (s === "area_research") {
-                  const topics = ["schools","recreation","convenience","commute","community","demographics","market"];
-                  const completed = topics.filter((t) => !!results[`area_${t}`]).length;
-                  label = `4. Area research (${completed} of 7 complete)`;
+                  label = `4. Area research (${Math.min(areaCompleted, 7)} of 7 complete)`;
                 }
                 return (
                   <li key={s} className="flex items-center gap-2">
@@ -552,7 +554,9 @@ export default function MarketingPlanTab({ lead }: { lead: any }) {
               <p className="text-sm text-destructive mt-2">{existingJob.error}</p>
             )}
             {(() => {
-              const missing = stages.filter((s) => !results[s]);
+              const topics = ["schools","recreation","convenience","commute","community","demographics","market"];
+              const areaDone = topics.every((t) => !!results[`area_${t}`]);
+              const missing = stages.filter((s) => s === "area_research" ? !areaDone && !results[s] : !results[s]);
               const stale = existingJob.updated_at
                 && (Date.now() - new Date(existingJob.updated_at).getTime()) > 3 * 60 * 1000;
               if (!isRunning || !stale || missing.length === 0) return null;
