@@ -315,15 +315,13 @@ Now produce the two sections in the required order: begin with "---VERIFICATION-
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   try {
-    // Internal-only entrypoint. Any caller who knows a jobId could otherwise
-    // trigger a Stage 5 run against a job that isn't theirs, so we require
-    // proof this call came from the pipeline (service-role bearer, or the
-    // shared x-internal-secret header used by invokeNextStageAwaited).
-    const unauth = assertInternalCaller(req);
-    if (unauth) return unauth;
-
+    // Internal-only OR job-owner entrypoint. Prevents any authenticated
+    // caller who guesses a jobId from triggering Stage 5 for a job that
+    // isn't theirs, while still allowing UI-driven retries by the owner.
     const { jobId, userId: bodyUserId } = await req.json();
     if (!jobId) throw new Error("jobId required");
+    const unauth = await assertInternalOrJobOwner(req, jobId);
+    if (unauth) return unauth;
 
     // Prefer explicit userId from the caller. Fall back to the job's owner
     // because internal invokes (sweeper, gate advance) don't pass one.
