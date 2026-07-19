@@ -85,10 +85,15 @@ function jsonToMarkdown(label: string, obj: unknown): string {
 const DOCX_MIME =
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 
+// Hard server-side deadline for the entire stage. Prevents silent isolate
+// kills from leaving the job stuck at status='running'.
+const STAGE3_DEADLINE_MS = 240_000;
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   const { jobId } = await req.json();
   const db = serviceClient();
+  const startedAt = Date.now();
 
   try {
     await markStage(db, jobId, "document_facts", "running");
