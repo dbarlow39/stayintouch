@@ -3,6 +3,7 @@
 // and advances the job to Stage 5. Idempotent — safe if all workers finished.
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import {
+  assertInternalCaller,
   checkGateAndAdvance,
   saveStageResult,
   serviceClient,
