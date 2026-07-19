@@ -18,7 +18,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Upload, Download, X, Play, FileText, Trash2, RefreshCw, Wand2 } from "lucide-react";
+import { Loader2, Upload, Download, X, Play, FileText, Trash2, RefreshCw, Wand2, AlertTriangle } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 
 interface UploadedDoc {
@@ -78,11 +78,35 @@ export default function MarketingPlanTab({ lead }: { lead: any }) {
   const [tweaking, setTweaking] = useState(false);
   const stage5Fired = useRef(false);
 
+  // Agent profile - used to warn if the contact info that will land in the
+  // plan's contact line is missing before the plan is generated.
+  const [profileWarnings, setProfileWarnings] = useState<string[]>([]);
+
   // ---------- Load existing job ----------
   useEffect(() => {
     void loadLatestJob();
+    void loadProfileWarnings();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lead?.id]);
+
+  async function loadProfileWarnings() {
+    const { data: u } = await supabase.auth.getUser();
+    const uid = u.user?.id;
+    if (!uid) return;
+    const { data: p } = await supabase
+      .from("profiles")
+      .select("preferred_email, cell_phone")
+      .eq("id", uid)
+      .maybeSingle();
+    const w: string[] = [];
+    if (!p?.preferred_email?.trim()) {
+      w.push("Business email is missing on your Profile - the marketing plan will omit the email from your contact line until it's set.");
+    }
+    if (!p?.cell_phone?.trim()) {
+      w.push("Cell phone is missing on your Profile - the marketing plan will omit the phone from your contact line until it's set.");
+    }
+    setProfileWarnings(w);
+  }
 
   async function loadLatestJob() {
     setLoadingJob(true);
@@ -317,9 +341,24 @@ export default function MarketingPlanTab({ lead }: { lead: any }) {
   }
 
   // Split seller-facing vs internal for display.
+  // New format:     ---VERIFICATION---\n<internal>\n---PLAN---\n<seller>
+  // Legacy format:  <seller>\n---INTERNAL---\n<internal>
   const splitPlan = (txt: string) => {
-    const i = txt.indexOf("---INTERNAL---");
-    return { seller: (i === -1 ? txt : txt.slice(0, i)).trim(), internal: i === -1 ? "" : txt.slice(i + "---INTERNAL---".length).trim() };
+    const planIdx = txt.indexOf("---PLAN---");
+    if (planIdx !== -1) {
+      const before = txt.slice(0, planIdx);
+      const seller = txt.slice(planIdx + "---PLAN---".length).trim();
+      const internal = before.replace(/^---VERIFICATION---\s*/m, "").trim();
+      return { seller, internal };
+    }
+    const legacyIdx = txt.indexOf("---INTERNAL---");
+    if (legacyIdx !== -1) {
+      return {
+        seller: txt.slice(0, legacyIdx).trim(),
+        internal: txt.slice(legacyIdx + "---INTERNAL---".length).trim(),
+      };
+    }
+    return { seller: txt.trim(), internal: "" };
   };
   const planText = planStream || results.marketing_plan || "";
   const { seller: sellerFacing, internal: internalNotes } = splitPlan(planText);
@@ -343,6 +382,17 @@ export default function MarketingPlanTab({ lead }: { lead: any }) {
           </Button>
         )}
       </div>
+
+      {profileWarnings.length > 0 && (
+        <div className="rounded border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
+          <div className="flex items-center gap-2 font-medium text-amber-700">
+            <AlertTriangle className="w-4 h-4" /> Fix your Profile before sending this plan
+          </div>
+          <ul className="mt-1 list-disc pl-6 text-amber-800/90">
+            {profileWarnings.map((w, i) => <li key={i}>{w}</li>)}
+          </ul>
+        </div>
+      )}
 
       {/* Setup panel */}
       {(showSetup || !existingJob) && (

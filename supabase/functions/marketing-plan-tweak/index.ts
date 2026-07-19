@@ -11,7 +11,7 @@ const SYSTEM_PROMPT = `You are revising an existing seller-facing marketing plan
 
 RULES (non-negotiable):
 1. Apply ONLY the user's requested change. Do not rewrite, restructure, or "improve" other sections.
-2. Return the ENTIRE revised document verbatim, preserving every heading, section, bullet, table, and the "---INTERNAL---" delimiter if present, along with all internal notes after it.
+2. Return the ENTIRE revised document verbatim, preserving every heading, section, bullet, table, and any delimiter lines that are present ("---VERIFICATION---", "---PLAN---", or legacy "---INTERNAL---") along with all content on either side of them.
 3. Preserve all existing formatting (markdown headings, bold, lists, tables).
 4. Do NOT use em-dashes (—) or en-dashes (–) anywhere. Use periods, commas, "to", or parentheses instead.
 5. Do not add commentary, preambles, or explanations. Output the revised plan text only.
