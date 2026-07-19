@@ -1216,7 +1216,7 @@ const WeeklyUpdateTab = () => {
                   console.error('Error fetching Freddie Mac:', err);
                   // Still update template with current market data
                   const firstClient = clients?.[0] || null;
-                  setEmailTemplate(generateSampleEmail(firstClient, marketData));
+                  setEmailTemplate(generateSampleEmail(firstClient, marketData, agentProfile));
                   setTemplateDirty(true);
                   setIsTemplateOpen(true);
                 } finally {
