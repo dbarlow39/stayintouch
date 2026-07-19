@@ -127,7 +127,7 @@ ${context?.snapshot || "(no snapshot available — proceed with normal research)
     } catch (e) {
       console.error(`stage4-worker(${topic}) save failed:`, e);
     }
-    // Atomic increment.
+    // Atomic per-worker completion counter (drives the UI's N/7 label).
     try {
       const { data: job } = await db
         .from("marketing_plan_jobs")
@@ -135,14 +135,19 @@ ${context?.snapshot || "(no snapshot available — proceed with normal research)
         .eq("id", jobId)
         .single();
       const expected = (job as any)?.expected_area_count || 7;
-      const { newCount, isLast } = await incrementAreaCompleted(db, jobId, expected);
+      const { newCount } = await incrementAreaCompleted(db, jobId, expected);
       console.log(`stage4-worker(${topic}) counter -> ${newCount}/${expected}`);
-      if (isLast) {
-        await markStage(db, jobId, "marketing_plan", "ready_for_plan");
-        await invokeNextStage("marketing-plan-stage5-plan", jobId);
-      }
     } catch (e) {
-      console.error(`stage4-worker(${topic}) counter/advance failed:`, e);
+      console.error(`stage4-worker(${topic}) counter update failed:`, e);
+    }
+    // Try to advance the Stage 5 gate. checkGateAndAdvance is atomic — only
+    // one worker will actually invoke Stage 5, even if several arrive at once.
+    try {
+      const { STAGE5_REQUIRED } = await import("../_shared/marketing-plan-gates.ts");
+      const { checkGateAndAdvance } = await import("../_shared/marketing-plan-common.ts");
+      await checkGateAndAdvance(db, jobId, STAGE5_REQUIRED, "marketing-plan-stage5-plan", "stage5_dispatch");
+    } catch (e) {
+      console.error(`stage4-worker(${topic}) gate5 advance failed:`, e);
     }
   }
 }
