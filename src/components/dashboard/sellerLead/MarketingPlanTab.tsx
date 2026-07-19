@@ -317,9 +317,24 @@ export default function MarketingPlanTab({ lead }: { lead: any }) {
   }
 
   // Split seller-facing vs internal for display.
+  // New format:     ---VERIFICATION---\n<internal>\n---PLAN---\n<seller>
+  // Legacy format:  <seller>\n---INTERNAL---\n<internal>
   const splitPlan = (txt: string) => {
-    const i = txt.indexOf("---INTERNAL---");
-    return { seller: (i === -1 ? txt : txt.slice(0, i)).trim(), internal: i === -1 ? "" : txt.slice(i + "---INTERNAL---".length).trim() };
+    const planIdx = txt.indexOf("---PLAN---");
+    if (planIdx !== -1) {
+      const before = txt.slice(0, planIdx);
+      const seller = txt.slice(planIdx + "---PLAN---".length).trim();
+      const internal = before.replace(/^---VERIFICATION---\s*/m, "").trim();
+      return { seller, internal };
+    }
+    const legacyIdx = txt.indexOf("---INTERNAL---");
+    if (legacyIdx !== -1) {
+      return {
+        seller: txt.slice(0, legacyIdx).trim(),
+        internal: txt.slice(legacyIdx + "---INTERNAL---".length).trim(),
+      };
+    }
+    return { seller: txt.trim(), internal: "" };
   };
   const planText = planStream || results.marketing_plan || "";
   const { seller: sellerFacing, internal: internalNotes } = splitPlan(planText);
