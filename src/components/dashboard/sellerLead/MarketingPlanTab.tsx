@@ -519,10 +519,16 @@ export default function MarketingPlanTab({ lead }: { lead: any }) {
                 const done = !!results[s];
                 const current = existingJob.current_stage === s && isRunning;
                 const showBatch = current && s === "photo_review" && (existingJob.current_batch ?? 0) > 0;
+                let label = STAGE_LABELS[s];
+                if (s === "area_research") {
+                  const topics = ["schools","recreation","convenience","commute","community","demographics","market"];
+                  const completed = topics.filter((t) => !!results[`area_${t}`]).length;
+                  label = `4. Area research (${completed} of 7 complete)`;
+                }
                 return (
                   <li key={s} className="flex items-center gap-2">
                     <span className={`inline-block w-2 h-2 rounded-full ${done ? "bg-green-500" : current ? "bg-amber-500" : "bg-muted-foreground/30"}`} />
-                    <span className={done ? "" : "text-muted-foreground"}>{STAGE_LABELS[s]}</span>
+                    <span className={done ? "" : "text-muted-foreground"}>{label}</span>
                     {current && <span className="text-xs text-amber-600">(running…{showBatch ? ` batch ${existingJob.current_batch}` : ""})</span>}
                   </li>
                 );
@@ -531,24 +537,13 @@ export default function MarketingPlanTab({ lead }: { lead: any }) {
             {existingJob.error && (
               <p className="text-sm text-destructive mt-2">{existingJob.error}</p>
             )}
-            {isRunning && existingJob.updated_at && (Date.now() - new Date(existingJob.updated_at).getTime()) > 3 * 60 * 1000 && (
+            {isRunning && existingJob.current_stage !== "area_research" && existingJob.updated_at && (Date.now() - new Date(existingJob.updated_at).getTime()) > 3 * 60 * 1000 && (
               <div className="mt-3 p-2 rounded border border-amber-500/40 bg-amber-500/10 text-sm">
                 <p className="font-medium text-amber-700">This job appears to have stalled.</p>
                 <p className="text-xs text-muted-foreground mb-2">No progress for over 3 minutes on the {STAGE_LABELS[existingJob.current_stage] || existingJob.current_stage} stage.</p>
-                {existingJob.current_stage === "area_research" ? (
-                  <div className="flex gap-2 flex-wrap">
-                    <Button size="sm" onClick={handleSkipStage4}>
-                      Skip area research and continue
-                    </Button>
-                    <Button size="sm" variant="outline" onClick={handleRetryStalled}>
-                      <RefreshCw className="w-3 h-3 mr-2" /> Retry area research
-                    </Button>
-                  </div>
-                ) : (
-                  <Button size="sm" variant="outline" onClick={handleRetryStalled}>
-                    <RefreshCw className="w-3 h-3 mr-2" /> Retry this stage
-                  </Button>
-                )}
+                <Button size="sm" variant="outline" onClick={handleRetryStalled}>
+                  <RefreshCw className="w-3 h-3 mr-2" /> Retry this stage
+                </Button>
               </div>
             )}
           </CardContent>
