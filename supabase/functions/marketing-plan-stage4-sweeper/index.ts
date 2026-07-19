@@ -68,6 +68,8 @@ async function sweep(jobId: string) {
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  const unauth = assertInternalCaller(req);
+  if (unauth) return unauth;
   const { jobId } = await req.json();
   if (!jobId) {
     return new Response(JSON.stringify({ error: "jobId required" }), {
