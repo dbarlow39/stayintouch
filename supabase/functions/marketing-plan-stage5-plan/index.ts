@@ -315,27 +315,33 @@ Now produce the two sections in the required order: begin with "---VERIFICATION-
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   try {
-    const auth = req.headers.get("Authorization") || "";
-    const token = auth.replace("Bearer ", "").trim();
+    // Internal-only entrypoint. Any caller who knows a jobId could otherwise
+    // trigger a Stage 5 run against a job that isn't theirs, so we require
+    // proof this call came from the pipeline (service-role bearer, or the
+    // shared x-internal-secret header used by invokeNextStageAwaited).
+    const unauth = assertInternalCaller(req);
+    if (unauth) return unauth;
+
     const { jobId, userId: bodyUserId } = await req.json();
     if (!jobId) throw new Error("jobId required");
 
-    let userId = bodyUserId;
+    // Prefer explicit userId from the caller. Fall back to the job's owner
+    // because internal invokes (sweeper, gate advance) don't pass one.
+    let userId: string | undefined = bodyUserId;
     if (!userId) {
-      const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2.45.0");
-      const anon = createClient(
-        Deno.env.get("SUPABASE_URL")!,
-        Deno.env.get("SUPABASE_ANON_KEY")!,
-        { auth: { persistSession: false }, global: { headers: { Authorization: `Bearer ${token}` } } },
-      );
-      const { data, error } = await anon.auth.getUser();
-      if (error || !data.user) {
-        return new Response(JSON.stringify({ error: "Unauthorized" }), {
-          status: 401,
+      const db = serviceClient();
+      const { data: job, error } = await db
+        .from("marketing_plan_jobs")
+        .select("user_id")
+        .eq("id", jobId)
+        .single();
+      if (error || !job?.user_id) {
+        return new Response(JSON.stringify({ error: "Job not found or missing user_id" }), {
+          status: 404,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      userId = data.user.id;
+      userId = job.user_id as string;
     }
 
     // @ts-ignore EdgeRuntime is provided by Supabase edge-runtime
