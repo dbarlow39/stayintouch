@@ -237,6 +237,8 @@ async function runPhotoReview(jobId: string) {
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  const unauth = assertInternalCaller(req);
+  if (unauth) return unauth;
   const { jobId } = await req.json();
 
   // Detach the heavy work from the request wall-clock. Any thrown error inside
