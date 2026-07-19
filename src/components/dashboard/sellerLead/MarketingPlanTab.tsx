@@ -529,7 +529,9 @@ export default function MarketingPlanTab({ lead }: { lead: any }) {
             <ol className="space-y-1 text-sm">
               {stages.map((s) => {
                 const done = !!results[s];
-                const current = existingJob.current_stage === s && isRunning;
+                // Parallel DAG: any stage without a result while the job is
+                // still running is "in flight". current_stage is no longer set.
+                const current = !done && isRunning;
                 const showBatch = current && s === "photo_review" && (existingJob.current_batch ?? 0) > 0;
                 let label = STAGE_LABELS[s];
                 if (s === "area_research") {
@@ -549,15 +551,28 @@ export default function MarketingPlanTab({ lead }: { lead: any }) {
             {existingJob.error && (
               <p className="text-sm text-destructive mt-2">{existingJob.error}</p>
             )}
-            {isRunning && existingJob.current_stage !== "area_research" && existingJob.updated_at && (Date.now() - new Date(existingJob.updated_at).getTime()) > 3 * 60 * 1000 && (
-              <div className="mt-3 p-2 rounded border border-amber-500/40 bg-amber-500/10 text-sm">
-                <p className="font-medium text-amber-700">This job appears to have stalled.</p>
-                <p className="text-xs text-muted-foreground mb-2">No progress for over 3 minutes on the {STAGE_LABELS[existingJob.current_stage] || existingJob.current_stage} stage.</p>
-                <Button size="sm" variant="outline" onClick={handleRetryStalled}>
-                  <RefreshCw className="w-3 h-3 mr-2" /> Retry this stage
-                </Button>
-              </div>
-            )}
+            {(() => {
+              const missing = stages.filter((s) => !results[s]);
+              const stale = existingJob.updated_at
+                && (Date.now() - new Date(existingJob.updated_at).getTime()) > 3 * 60 * 1000;
+              if (!isRunning || !stale || missing.length === 0) return null;
+              return (
+                <div className="mt-3 p-2 rounded border border-amber-500/40 bg-amber-500/10 text-sm">
+                  <p className="font-medium text-amber-700">This job appears to have stalled.</p>
+                  <p className="text-xs text-muted-foreground mb-1">
+                    No progress for over 3 minutes. Missing stages:
+                  </p>
+                  <ul className="text-xs text-muted-foreground mb-2 list-disc pl-5">
+                    {missing.map((s) => (
+                      <li key={s}>{STAGE_LABELS[s] || s}</li>
+                    ))}
+                  </ul>
+                  <Button size="sm" variant="outline" onClick={handleRetryMissing}>
+                    <RefreshCw className="w-3 h-3 mr-2" /> Retry missing stages
+                  </Button>
+                </div>
+              );
+            })()}
           </CardContent>
         </Card>
       )}
