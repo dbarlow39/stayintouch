@@ -38,6 +38,12 @@ function tableToMd(tbl: string): string {
     });
   });
   if (rows.length === 0) return "";
+  // Skip single-row layout tables (e.g. the market-analysis title block).
+  // Real data tables in these documents always have a header row plus body rows.
+  if (rows.length === 1) {
+    const text = rows[0].map((c) => c.trim()).filter(Boolean).join(" ").trim();
+    return text;
+  }
   const maxCols = Math.max(...rows.map((r) => r.length));
   const norm = rows.map((r) => {
     while (r.length < maxCols) r.push("");
