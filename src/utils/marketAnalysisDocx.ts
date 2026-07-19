@@ -483,25 +483,29 @@ export async function generateMarketAnalysisDocx(
       spacing: { after: 40 },
       children: [new TextRun({ text: "Thanks,", font: "Arial", size: 22 })],
     }),
+    ...(agentName
+      ? [new Paragraph({
+          shading: { type: ShadingType.CLEAR, fill: LIGHT_SCARLET },
+          spacing: { after: 40 },
+          children: [new TextRun({ text: agentName, bold: true, color: DARK_SCARLET, font: "Arial", size: 28 })],
+        })]
+      : []),
     new Paragraph({
       shading: { type: ShadingType.CLEAR, fill: LIGHT_SCARLET },
       spacing: { after: 40 },
-      children: [new TextRun({ text: "Dave Barlow", bold: true, color: DARK_SCARLET, font: "Arial", size: 28 })],
-    }),
-    new Paragraph({
-      shading: { type: ShadingType.CLEAR, fill: LIGHT_SCARLET },
-      spacing: { after: 40 },
-      children: [new TextRun({ text: "The Barlow Group | SellFor1Percent.com", font: "Arial", size: 22 })],
+      children: [new TextRun({ text: "Sell for 1 Percent Realtors | SellFor1Percent.com", font: "Arial", size: 22 })],
     }),
     new Paragraph({
       shading: { type: ShadingType.CLEAR, fill: LIGHT_SCARLET },
       spacing: { after: 40 },
       children: [new TextRun({ text: "All You Need to Know About Real Estate!", italics: true, font: "Arial", size: 22 })],
     }),
-    new Paragraph({
-      shading: { type: ShadingType.CLEAR, fill: LIGHT_SCARLET },
-      children: [new TextRun({ text: "614-778-6616 | dave@sellfor1percent.com", font: "Arial", size: 22 })],
-    })
+    ...(agentContact
+      ? [new Paragraph({
+          shading: { type: ShadingType.CLEAR, fill: LIGHT_SCARLET },
+          children: [new TextRun({ text: agentContact, font: "Arial", size: 22 })],
+        })]
+      : []),
   );
 
   // ── BUILD DOCUMENT ──
