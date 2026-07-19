@@ -100,7 +100,7 @@ NON-NEGOTIABLE RULES
      - "walkable to", "walk score", "walking distance to X"
      - specific school ratings not present in Stage 4 area research
      - claims about traffic, safety, or noise
-   Resolve conflicts by source authority: pasted MLS data outranks the property record for square footage, year built, beds/baths and taxes; the HOA documents outrank everything on dues, age restriction, rules and official amenities; the photo review and documents govern layout reality; seller-written descriptions are claims only.
+   Resolve conflicts by source authority: pasted MLS data outranks the property record for square footage, year built, beds/baths and taxes; the HOA documents outrank everything on dues, age restriction, rules and official amenities; the photo review and documents govern layout reality; seller-written descriptions are claims only. For SQUARE FOOTAGE (above grade AND finished basement AND total finished), YEAR BUILT, TAX FIGURES, and ROOM COUNTS specifically, the Market Analysis document and any pasted MLS data outrank the Stage 1 property record (Estated). When they differ, use the document figure in the seller-facing plan and add a bullet under "Conflicts found in the evidence" in the verification section stating both values and which one you used.
    MANDATORY EVIDENCE INCLUSION: whenever the evidence establishes them, the plan MUST include the school district by name, square footage, year built, mechanical replacement dates (furnace, AC, roof, water heater), lot characteristics (e.g., "does not back to homes directly behind," corner lot, cul-de-sac, acreage), and documented improvements with year. Omitting any of these when the evidence supports them is a defect.
 2. FAIR HOUSING. Describe the home and the lifestyle it offers, never who "should" live there. Say "main-floor living" and "low-maintenance," never "perfect for retirees" or "great for young families." Age-TARGETED is not age-RESTRICTED - if the documents show the community is not legally deed-restricted, never imply an age requirement.
    Forbidden buyer-description terms anywhere in the plan: "nursery," "empty nesters," "young family," "young families," "retirees," "starter home for [group]," "downsizers," any age range or life-stage label, any reference to children, marital status, religion, race, or national origin. Describe buyers by needs and lifestyle only.
@@ -116,7 +116,7 @@ NON-NEGOTIABLE RULES
 8. ANTI-BOILERPLATE TEST. Before finalizing, read every sentence in every marketing section and ask: could this sentence appear unchanged in a marketing plan for a different house? If yes, rewrite it with something specific to THIS property, THIS buyer, or THIS neighborhood, or cut it. This rule applies to every section, not just the description of the home. Describing what the brokerage does in general is filler. State what will be done for THIS listing and why it fits THIS buyer. A subsection that only describes a channel's general capability is a failure and must be rewritten.
 9. PRICING SECTION IS STRATEGY ONLY. The list price is an input supplied by the agent. NEVER derive it, justify it, or state anything that conflicts with it. Do NOT cite comparable sale prices anywhere in this document (no comps, no ranges like "similar homes sold for $X to $Y"). The Pricing Strategy section is two to four sentences on strategy only: where the price sits relative to buyer search thresholds and psychological price breaks, how showing activity and feedback will be monitored, and what would trigger a price conversation. Nothing else.
 10. EQUIPMENT AND SYSTEMS. Before writing any sentence about a mechanical system, appliance, brand, model, replacement date, or warranty status, re-check the Document Facts and MLS Data blocks. If the documents identify a specific brand, model, or date, use that. If the documents contradict a common assumption (for example, a whole-home humidifier attached to the furnace when a listing sheet mentions "no humidifier"), the documents win and the plan must reflect what the documents establish. Never invent a brand, a model, or a replacement year.
-11. OBJECTION HANDLERS MUST USE THE EVIDENCE. When you draft the "Handle the cons honestly" section, first scan the Document Facts, MLS Data, and Photo Review for advantages that offset the objection you are about to raise. If the evidence shows an offsetting fact (for example, lot depth, tree line, setback from the road behind, or a fence line that provides privacy), the honest answer MUST cite that offsetting fact. Do not write an objection response that ignores an advantage the evidence already establishes.
+11. OBJECTION HANDLERS MUST USE THE EVIDENCE — EXPLICIT TRIGGER. Before writing any objection about lot size, privacy, neighbor proximity, backyard, sight lines, or "homes feel close," you MUST first scan the Document Facts, Market Analysis, MLS Data, and Photo Review for any statement about what the lot backs to (trees, field, common area, no homes directly behind), tree lines, fence lines, setback depth, or explicit privacy language. If ANY such statement exists in the evidence, the objection response MUST quote or cite that offsetting fact by name. If the evidence establishes that the home does not back to other homes, you MUST convert that from an objection into a stated selling point rather than raising it as a con at all. The same explicit-scan requirement applies before raising any objection about taxes (search for millage/school-district-value offsets), HOA cost (search for amenities/maintenance-included offsets), or an older mechanical system (search for replacement year documentation). An objection response that ignores an offsetting fact the evidence already establishes is a defect that must be rewritten before the "Objection offsets audit" is completed.
 
 STAGE 5 TASK
 
@@ -279,15 +279,17 @@ ${(() => {
 
 Now produce the two sections in the required order: begin with "---VERIFICATION---" on its own line, then the internal audit, then "---PLAN---" on its own line, then the seller-facing marketing plan. Substitute {address}, {agent name}, {phone}, {email} with the real values above. Do not print any bracketed placeholder in the seller-facing document.`;
 
-    await streamClaudeToStorage(
-      {
-        model: OPUS_MODEL,
-        system: SYSTEM_PROMPT,
-        max_tokens: 24000,
-        thinking: { type: "adaptive" },
-        output_config: { effort: "high" },
-        messages: [{ role: "user", content: userMsg }],
-      },
+    const streamOpts = {
+      model: OPUS_MODEL,
+      system: SYSTEM_PROMPT,
+      max_tokens: 16000,
+      thinking: { type: "adaptive" as const },
+      output_config: { effort: "high" as const },
+      messages: [{ role: "user" as const, content: userMsg }],
+    };
+
+    const first = await streamClaudeToStorage(
+      streamOpts,
       async (partial) => {
         await saveStageResult(db, jobId, "marketing_plan", partial);
         await db
@@ -297,13 +299,54 @@ Now produce the two sections in the required order: begin with "---VERIFICATION-
       },
       async (full) => {
         await saveStageResult(db, jobId, "marketing_plan", full);
-        await db
-          .from("marketing_plan_jobs")
-          .update({ status: "complete", current_stage: "marketing_plan", updated_at: new Date().toISOString() })
-          .eq("id", jobId);
       },
       2000,
     );
+
+    let finalText = first.text;
+    let finalStop = first.stop_reason;
+
+    // If truncated, issue ONE bounded continuation. The continuation replays the
+    // original user turn, echoes the assistant's partial output, and asks it to
+    // finish without repeating. Result is appended to what we already saved.
+    if (first.stop_reason === "max_tokens") {
+      console.warn(`stage5 truncated at max_tokens (output_tokens=${first.output_tokens}); issuing continuation`);
+      const cont = await streamClaudeToStorage(
+        {
+          ...streamOpts,
+          max_tokens: 16000,
+          messages: [
+            { role: "user", content: userMsg },
+            { role: "assistant", content: first.text },
+            { role: "user", content: "Continue exactly where you left off. Do not repeat any content. Do not restate any heading. Finish every remaining section, including Pricing Strategy, the farming plan, execution list, content and reels ideas, ad targeting, metrics, and the agent contact block. End the document cleanly." },
+          ],
+        },
+        async (partial) => {
+          await saveStageResult(db, jobId, "marketing_plan", first.text + partial);
+          await db
+            .from("marketing_plan_jobs")
+            .update({ updated_at: new Date().toISOString() })
+            .eq("id", jobId);
+        },
+        async (full) => {
+          await saveStageResult(db, jobId, "marketing_plan", first.text + full);
+        },
+        2000,
+      );
+      finalText = first.text + cont.text;
+      finalStop = cont.stop_reason;
+
+      if (cont.stop_reason === "max_tokens") {
+        console.error("stage5 continuation ALSO hit max_tokens; surfacing warning");
+        finalText = `> **WARNING: Plan generation was truncated even after a continuation attempt. Regenerate or shorten the source inputs.**\n\n${finalText}`;
+        await saveStageResult(db, jobId, "marketing_plan", finalText);
+      }
+    }
+
+    await db
+      .from("marketing_plan_jobs")
+      .update({ status: "complete", current_stage: "marketing_plan", updated_at: new Date().toISOString() })
+      .eq("id", jobId);
   } catch (e) {
     console.error("stage5 background error:", e);
     try {
