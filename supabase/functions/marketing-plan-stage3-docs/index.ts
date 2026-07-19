@@ -342,9 +342,9 @@ async function runDocs(jobId: string) {
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
-  const unauth = assertInternalCaller(req);
-  if (unauth) return unauth;
   const { jobId } = await req.json();
+  const unauth = await assertInternalOrJobOwner(req, jobId);
+  if (unauth) return unauth;
 
   // @ts-ignore EdgeRuntime is provided by Supabase edge-runtime
   EdgeRuntime.waitUntil(runDocs(jobId));
