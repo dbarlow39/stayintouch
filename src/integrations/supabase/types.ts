@@ -1893,6 +1893,7 @@ export type Database = {
           current_stage: string | null
           error: string | null
           expected_area_count: number | null
+          gates_claimed: string[]
           id: string
           list_price: number | null
           mls_paste: string | null
@@ -1909,6 +1910,7 @@ export type Database = {
           current_stage?: string | null
           error?: string | null
           expected_area_count?: number | null
+          gates_claimed?: string[]
           id?: string
           list_price?: number | null
           mls_paste?: string | null
@@ -1925,6 +1927,7 @@ export type Database = {
           current_stage?: string | null
           error?: string | null
           expected_area_count?: number | null
+          gates_claimed?: string[]
           id?: string
           list_price?: number | null
           mls_paste?: string | null
@@ -2985,6 +2988,14 @@ export type Database = {
       mp_increment_area_completed: {
         Args: { p_job_id: string }
         Returns: number
+      }
+      mp_release_gate: {
+        Args: { p_gate: string; p_job_id: string }
+        Returns: undefined
+      }
+      mp_try_claim_gate: {
+        Args: { p_gate: string; p_job_id: string }
+        Returns: boolean
       }
       recover_inspection_data: {
         Args: { target_id: string }
