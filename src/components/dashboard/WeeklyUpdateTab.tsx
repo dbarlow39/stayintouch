@@ -863,6 +863,7 @@ const WeeklyUpdateTab = () => {
             price_reductions: marketData.price_reductions,
           },
           clientData,
+          agent_profile: agentProfile || null,
         },
       });
 
