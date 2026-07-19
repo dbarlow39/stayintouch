@@ -255,6 +255,10 @@ serve(async (req) => {
     const outputs: string[] = [];
     for (const g of groups) {
       if (g.length === 0) continue;
+      if (Date.now() - startedAt > STAGE3_DEADLINE_MS) {
+        console.warn(`stage3 hit ${STAGE3_DEADLINE_MS}ms deadline mid-batch`);
+        break;
+      }
       g.push({
         type: "text",
         text:
@@ -269,6 +273,19 @@ serve(async (req) => {
         messages: [{ role: "user", content: g }],
       });
       outputs.push(res.text);
+    }
+
+    if (outputs.length === 0) {
+      await saveStageResult(
+        db,
+        jobId,
+        "document_facts",
+        `# Document Facts (Stage 3)\n\n> Stage hit ${STAGE3_DEADLINE_MS / 1000}-second server deadline before any batch completed.`,
+      );
+      await failJob(db, jobId, `Stage 3 timed out after ${STAGE3_DEADLINE_MS / 1000}s`);
+      return new Response(JSON.stringify({ ok: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     const merged = outputs.length === 1
