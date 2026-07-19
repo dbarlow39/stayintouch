@@ -4,6 +4,7 @@
 // it's the last worker advances the job to Stage 5.
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import {
+  assertInternalCaller,
   incrementAreaCompleted,
   saveStageResult,
   serviceClient,
