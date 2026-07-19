@@ -643,6 +643,7 @@ const WeeklyUpdateTab = () => {
         body: JSON.stringify({
           template: emailTemplate,
           market_data: marketData,
+          agent_profile: agentProfile || null,
           client_data: {
             first_name: client.first_name || '',
             last_name: client.last_name || '',
