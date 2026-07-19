@@ -279,15 +279,17 @@ ${(() => {
 
 Now produce the two sections in the required order: begin with "---VERIFICATION---" on its own line, then the internal audit, then "---PLAN---" on its own line, then the seller-facing marketing plan. Substitute {address}, {agent name}, {phone}, {email} with the real values above. Do not print any bracketed placeholder in the seller-facing document.`;
 
-    await streamClaudeToStorage(
-      {
-        model: OPUS_MODEL,
-        system: SYSTEM_PROMPT,
-        max_tokens: 24000,
-        thinking: { type: "adaptive" },
-        output_config: { effort: "high" },
-        messages: [{ role: "user", content: userMsg }],
-      },
+    const streamOpts = {
+      model: OPUS_MODEL,
+      system: SYSTEM_PROMPT,
+      max_tokens: 16000,
+      thinking: { type: "adaptive" as const },
+      output_config: { effort: "high" as const },
+      messages: [{ role: "user" as const, content: userMsg }],
+    };
+
+    const first = await streamClaudeToStorage(
+      streamOpts,
       async (partial) => {
         await saveStageResult(db, jobId, "marketing_plan", partial);
         await db
@@ -297,13 +299,54 @@ Now produce the two sections in the required order: begin with "---VERIFICATION-
       },
       async (full) => {
         await saveStageResult(db, jobId, "marketing_plan", full);
-        await db
-          .from("marketing_plan_jobs")
-          .update({ status: "complete", current_stage: "marketing_plan", updated_at: new Date().toISOString() })
-          .eq("id", jobId);
       },
       2000,
     );
+
+    let finalText = first.text;
+    let finalStop = first.stop_reason;
+
+    // If truncated, issue ONE bounded continuation. The continuation replays the
+    // original user turn, echoes the assistant's partial output, and asks it to
+    // finish without repeating. Result is appended to what we already saved.
+    if (first.stop_reason === "max_tokens") {
+      console.warn(`stage5 truncated at max_tokens (output_tokens=${first.output_tokens}); issuing continuation`);
+      const cont = await streamClaudeToStorage(
+        {
+          ...streamOpts,
+          max_tokens: 16000,
+          messages: [
+            { role: "user", content: userMsg },
+            { role: "assistant", content: first.text },
+            { role: "user", content: "Continue exactly where you left off. Do not repeat any content. Do not restate any heading. Finish every remaining section, including Pricing Strategy, the farming plan, execution list, content and reels ideas, ad targeting, metrics, and the agent contact block. End the document cleanly." },
+          ],
+        },
+        async (partial) => {
+          await saveStageResult(db, jobId, "marketing_plan", first.text + partial);
+          await db
+            .from("marketing_plan_jobs")
+            .update({ updated_at: new Date().toISOString() })
+            .eq("id", jobId);
+        },
+        async (full) => {
+          await saveStageResult(db, jobId, "marketing_plan", first.text + full);
+        },
+        2000,
+      );
+      finalText = first.text + cont.text;
+      finalStop = cont.stop_reason;
+
+      if (cont.stop_reason === "max_tokens") {
+        console.error("stage5 continuation ALSO hit max_tokens; surfacing warning");
+        finalText = `> **WARNING: Plan generation was truncated even after a continuation attempt. Regenerate or shorten the source inputs.**\n\n${finalText}`;
+        await saveStageResult(db, jobId, "marketing_plan", finalText);
+      }
+    }
+
+    await db
+      .from("marketing_plan_jobs")
+      .update({ status: "complete", current_stage: "marketing_plan", updated_at: new Date().toISOString() })
+      .eq("id", jobId);
   } catch (e) {
     console.error("stage5 background error:", e);
     try {
