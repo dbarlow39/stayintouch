@@ -3,22 +3,12 @@
 // and advances the job to Stage 5. Idempotent — safe if all workers finished.
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import {
-  invokeNextStage,
-  markStage,
+  checkGateAndAdvance,
   saveStageResult,
   serviceClient,
 } from "../_shared/marketing-plan-common.ts";
 import { corsHeaders } from "../_shared/marketing-plan-claude.ts";
-
-const TOPICS = [
-  "schools",
-  "recreation",
-  "convenience",
-  "commute",
-  "community",
-  "demographics",
-  "market",
-] as const;
+import { AREA_TOPICS, STAGE5_REQUIRED } from "../_shared/marketing-plan-gates.ts";
 
 const TITLES: Record<string, string> = {
   schools: "Schools",
@@ -38,13 +28,12 @@ async function sweep(jobId: string) {
   try {
     const { data: job } = await db
       .from("marketing_plan_jobs")
-      .select("status, current_stage")
+      .select("status")
       .eq("id", jobId)
       .single();
-    // If it already advanced past area_research, nothing to do.
     if (!job) return;
-    if ((job as any).current_stage !== "area_research" &&
-        (job as any).current_stage !== "marketing_plan") return;
+    // If the plan is already generated or the job failed, do nothing.
+    if ((job as any).status === "complete" || (job as any).status === "failed") return;
 
     const { data: rows } = await db
       .from("marketing_plan_results")
@@ -53,7 +42,7 @@ async function sweep(jobId: string) {
     const have = new Set((rows || []).map((r: any) => r.stage));
 
     let filled = 0;
-    for (const topic of TOPICS) {
+    for (const topic of AREA_TOPICS) {
       const key = `area_${topic}`;
       if (!have.has(key)) {
         const title = TITLES[topic];
@@ -67,11 +56,9 @@ async function sweep(jobId: string) {
       }
     }
 
-    // Only advance if we're not already generating the plan.
-    if ((job as any).current_stage === "area_research") {
-      await markStage(db, jobId, "marketing_plan", "ready_for_plan");
-      await invokeNextStage("marketing-plan-stage5-plan", jobId);
-    }
+    // Now that every required row exists, try the Stage 5 gate. Atomic —
+    // no-op if a worker already opened it.
+    await checkGateAndAdvance(db, jobId, STAGE5_REQUIRED, "marketing-plan-stage5-plan", "stage5_dispatch");
     console.log(`stage4-sweeper filled ${filled} placeholder(s) for job ${jobId}`);
   } catch (e) {
     console.error("stage4-sweeper error:", e);
