@@ -192,10 +192,9 @@ INSTRUCTIONS:
    - State: "We have generated ${views} online views which means we should have between ${expectedShowingsMin} and ${expectedShowingsMax} in person showings and at least ${expectedOffers} offer at this point."
 7. Weekly Outlook: Measured, data-driven expectations for next week
 8. Closing: Sign as:
-   Dave Barlow
-   Sell for 1 Percent Realtors
-   📞 614-778-6616
-   🌐 www.Sellfor1Percent.com
+   ${agentName || '(agent name not provided - omit this line)'}
+   Sell for 1 Percent Realtors${agentPhone ? `\n   📞 ${agentPhone}` : ''}${agentEmail ? `\n   ✉️ ${agentEmail}` : ''}
+   🌐 ${agentWebsite}
 
 TONE REQUIREMENTS:
 - Conservative, calm, factual, and reassuring
