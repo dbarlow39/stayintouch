@@ -26,21 +26,58 @@ export async function authUser(req: Request): Promise<{ userId: string; token: s
 // service-role bearer token (used by invokeNextStage / invokeNextStageAwaited)
 // or, as a future-proof secondary path, an `x-internal-secret` header equal to
 // the service-role key. Returns null when authorized, or a 401 Response
-// otherwise. Every stage entrypoint that is invoked internally must call this.
+// otherwise.
 export function assertInternalCaller(req: Request): Response | null {
   const svcKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
   const auth = (req.headers.get("Authorization") || "").replace("Bearer ", "").trim();
   const secretHeader = (req.headers.get("x-internal-secret") || "").trim();
   const ok = svcKey.length > 0 && (auth === svcKey || secretHeader === svcKey);
   if (ok) return null;
-  const corsHeaders = {
+  const cors = {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-internal-secret",
   };
   return new Response(JSON.stringify({ error: "Unauthorized (internal only)" }), {
     status: 401,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
+    headers: { ...cors, "Content-Type": "application/json" },
   });
+}
+
+// Accepts either an internal caller (service-role bearer or shared secret) OR
+// an authenticated user who owns the marketing_plan_jobs row identified by
+// jobId. Used by every stage entrypoint that can be re-invoked from the UI
+// (retry buttons). Returns null when authorized; a 401/403 Response otherwise.
+export async function assertInternalOrJobOwner(
+  req: Request,
+  jobId: string,
+): Promise<Response | null> {
+  const internal = assertInternalCaller(req);
+  if (internal === null) return null;
+
+  const user = await authUser(req);
+  const cors = {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-internal-secret",
+  };
+  if (!user) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { ...cors, "Content-Type": "application/json" },
+    });
+  }
+  const db = serviceClient();
+  const { data: job } = await db
+    .from("marketing_plan_jobs")
+    .select("user_id")
+    .eq("id", jobId)
+    .maybeSingle();
+  if (!job || (job as any).user_id !== user.userId) {
+    return new Response(JSON.stringify({ error: "Forbidden" }), {
+      status: 403,
+      headers: { ...cors, "Content-Type": "application/json" },
+    });
+  }
+  return null;
 }
 
 // Fire-and-forget invoke. Does not throw on network failure; errors are logged.
