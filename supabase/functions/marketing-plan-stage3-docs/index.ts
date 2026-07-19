@@ -11,6 +11,7 @@
 // come through as markdown pipe tables rather than a wall of flattened text.
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import {
+  assertInternalCaller,
   checkGateAndAdvance,
   markStage,
   saveResultIfMissing,
