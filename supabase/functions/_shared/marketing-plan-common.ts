@@ -22,11 +22,10 @@ export async function authUser(req: Request): Promise<{ userId: string; token: s
   return { userId: data.user.id, token };
 }
 
-export async function invokeNextStage(functionName: string, jobId: string): Promise<void> {
+// Fire-and-forget invoke. Does not throw on network failure; errors are logged.
+export function invokeNextStage(functionName: string, jobId: string): void {
   const url = `${Deno.env.get("SUPABASE_URL")}/functions/v1/${functionName}`;
   const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-  // Fire-and-forget (do not await response body). We still await the initial dispatch
-  // so any immediate error surfaces in logs.
   try {
     fetch(url, {
       method: "POST",
@@ -39,6 +38,26 @@ export async function invokeNextStage(functionName: string, jobId: string): Prom
     }).catch((e) => console.error(`invokeNextStage(${functionName}) fetch failed:`, e));
   } catch (e) {
     console.error(`invokeNextStage(${functionName}) threw:`, e);
+  }
+}
+
+// Awaited invoke — used by the gate helper so the caller can release the gate
+// if the dispatch itself throws before the next function accepts the request.
+export async function invokeNextStageAwaited(functionName: string, jobId: string): Promise<void> {
+  const url = `${Deno.env.get("SUPABASE_URL")}/functions/v1/${functionName}`;
+  const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const res = await fetch(url, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${key}`,
+      apikey: key,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ jobId }),
+  });
+  if (!res.ok) {
+    const t = await res.text().catch(() => "");
+    throw new Error(`invoke ${functionName} HTTP ${res.status}: ${t.slice(0, 200)}`);
   }
 }
 
@@ -63,6 +82,25 @@ export async function saveStageResult(
   await db
     .from("marketing_plan_results")
     .upsert({ job_id: jobId, stage, content }, { onConflict: "job_id,stage" });
+}
+
+// Writes an "unavailable" placeholder ONLY if no row exists for this stage.
+// Used as the last-ditch guarantee that every code path leaves a row behind.
+export async function saveResultIfMissing(
+  db: SupabaseClient,
+  jobId: string,
+  stage: string,
+  content: string,
+): Promise<void> {
+  const { data } = await db
+    .from("marketing_plan_results")
+    .select("stage")
+    .eq("job_id", jobId)
+    .eq("stage", stage)
+    .maybeSingle();
+  if (!data) {
+    await saveStageResult(db, jobId, stage, content);
+  }
 }
 
 export async function failJob(
@@ -90,3 +128,70 @@ export async function incrementAreaCompleted(
   return { newCount, isLast: newCount >= expected };
 }
 
+// --- Gate helpers (DAG advancement) ------------------------------------------
+
+async function tryClaimGate(
+  db: SupabaseClient,
+  jobId: string,
+  gateName: string,
+): Promise<boolean> {
+  const { data, error } = await db.rpc("mp_try_claim_gate", {
+    p_job_id: jobId,
+    p_gate: gateName,
+  });
+  if (error) {
+    console.error(`tryClaimGate(${gateName}) error:`, error);
+    return false;
+  }
+  return !!data;
+}
+
+async function releaseGate(
+  db: SupabaseClient,
+  jobId: string,
+  gateName: string,
+): Promise<void> {
+  try {
+    await db.rpc("mp_release_gate", { p_job_id: jobId, p_gate: gateName });
+  } catch (e) {
+    console.error(`releaseGate(${gateName}) error:`, e);
+  }
+}
+
+/**
+ * Reads the current set of `marketing_plan_results.stage` values for the job.
+ * If every required stage is present, atomically claims the named gate and
+ * invokes `nextFn`. If the invoke throws, the gate is released so a
+ * subsequent caller (or the global sweeper) can retry.
+ *
+ * Callers of this helper should treat it as a no-op when a required stage is
+ * still missing. It returns true only when this call actually dispatched.
+ */
+export async function checkGateAndAdvance(
+  db: SupabaseClient,
+  jobId: string,
+  requiredStages: string[],
+  nextFn: string,
+  gateName: string,
+): Promise<boolean> {
+  const { data: rows } = await db
+    .from("marketing_plan_results")
+    .select("stage")
+    .eq("job_id", jobId);
+  const have = new Set((rows || []).map((r: any) => r.stage));
+  for (const s of requiredStages) {
+    if (!have.has(s)) return false;
+  }
+
+  const claimed = await tryClaimGate(db, jobId, gateName);
+  if (!claimed) return false;
+
+  try {
+    await invokeNextStageAwaited(nextFn, jobId);
+    return true;
+  } catch (e) {
+    console.error(`checkGateAndAdvance(${gateName} -> ${nextFn}) invoke failed:`, e);
+    await releaseGate(db, jobId, gateName);
+    return false;
+  }
+}

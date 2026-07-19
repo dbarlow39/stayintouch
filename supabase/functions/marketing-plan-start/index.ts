@@ -75,7 +75,11 @@ serve(async (req) => {
       if (dErr) throw dErr;
     }
 
-    await invokeNextStage("marketing-plan-stage1-property", job.id);
+    // DAG head: stages 1, 2, 3 run in parallel. Stage 4 gates on 1+3.
+    // Stage 5 gates on 1+2+3+all seven area_* workers.
+    invokeNextStage("marketing-plan-stage1-property", job.id);
+    invokeNextStage("marketing-plan-stage2-photos", job.id);
+    invokeNextStage("marketing-plan-stage3-docs", job.id);
 
     return new Response(JSON.stringify({ jobId: job.id }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

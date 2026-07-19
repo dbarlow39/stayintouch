@@ -1,9 +1,9 @@
 // Stage 2: walkthrough photo review (Claude Opus vision, batched by 15).
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import {
-  failJob,
-  invokeNextStage,
+  checkGateAndAdvance,
   markStage,
+  saveResultIfMissing,
   saveStageResult,
   serviceClient,
 } from "../_shared/marketing-plan-common.ts";
@@ -13,6 +13,13 @@ import {
   OPUS_MODEL,
   type Block,
 } from "../_shared/marketing-plan-claude.ts";
+import { STAGE5_REQUIRED } from "../_shared/marketing-plan-gates.ts";
+
+async function advanceStage5Gate(db: any, jobId: string) {
+  try {
+    await checkGateAndAdvance(db, jobId, STAGE5_REQUIRED, "marketing-plan-stage5-plan", "stage5_dispatch");
+  } catch (e) { console.error("stage2 gate5 advance error:", e); }
+}
 
 const SYSTEM_PROMPT = `You are reviewing an agent's walkthrough photos of a home they are preparing to list.
 
@@ -69,6 +76,7 @@ const STAGE2_DEADLINE_MS = 240_000;
 async function runPhotoReview(jobId: string) {
   const db = serviceClient();
   const startedAt = Date.now();
+  const FAILSAFE = "# Walkthrough Photo Review (Stage 2)\n\n> Stage 2 did not complete cleanly. Photo review unavailable.";
   try {
     await markStage(db, jobId, "photo_review", "running");
     await db.from("marketing_plan_jobs").update({ current_batch: 0, updated_at: new Date().toISOString() }).eq("id", jobId);
@@ -118,7 +126,6 @@ async function runPhotoReview(jobId: string) {
         "photo_review",
         "# Walkthrough Photo Review (Stage 2)\n\n> No walkthrough photos available — layout and condition could not be visually verified.",
       );
-      await invokeNextStage("marketing-plan-stage3-docs", jobId);
       return;
     }
 
@@ -169,14 +176,15 @@ async function runPhotoReview(jobId: string) {
     }
 
     if (batchOutputs.length === 0) {
-      // Deadline hit before any batch completed — save skip note and fail.
+      // Deadline hit before any batch completed — save skip note and continue
+      // (do NOT failJob; that stops the whole pipeline). Downstream gates can
+      // still open once Stages 1, 3, and area workers finish.
       await saveStageResult(
         db,
         jobId,
         "photo_review",
         `# Walkthrough Photo Review (Stage 2)\n\n> Stage hit ${STAGE2_DEADLINE_MS / 1000}-second server deadline before any batch completed.`,
       );
-      await failJob(db, jobId, `Stage 2 timed out after ${STAGE2_DEADLINE_MS / 1000}s`);
       return;
     }
 
@@ -208,7 +216,6 @@ async function runPhotoReview(jobId: string) {
       "photo_review",
       `# Walkthrough Photo Review (Stage 2)${limitedNote}\n\n${finalMd}`,
     );
-    await invokeNextStage("marketing-plan-stage3-docs", jobId);
   } catch (e) {
     console.error("stage2 background error:", e);
     try {
@@ -218,10 +225,12 @@ async function runPhotoReview(jobId: string) {
         "photo_review",
         `# Walkthrough Photo Review (Stage 2)\n\n> Stage failed: ${e instanceof Error ? e.message : "unknown"} — layout and condition could not be visually verified.`,
       );
-      await failJob(db, jobId, `Stage 2 failed: ${e instanceof Error ? e.message : "unknown"}`);
     } catch (e2) {
-      await failJob(db, jobId, `Stage 2 fatal: ${e2 instanceof Error ? e2.message : "unknown"}`);
+      console.error("stage2 secondary save failed:", e2);
     }
+  } finally {
+    try { await saveResultIfMissing(db, jobId, "photo_review", FAILSAFE); } catch (e) { console.error("stage2 failsafe error:", e); }
+    await advanceStage5Gate(db, jobId);
   }
 }
 

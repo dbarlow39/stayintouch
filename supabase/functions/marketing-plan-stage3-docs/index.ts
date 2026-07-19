@@ -11,9 +11,9 @@
 // come through as markdown pipe tables rather than a wall of flattened text.
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import {
-  failJob,
-  invokeNextStage,
+  checkGateAndAdvance,
   markStage,
+  saveResultIfMissing,
   saveStageResult,
   serviceClient,
 } from "../_shared/marketing-plan-common.ts";
@@ -24,6 +24,16 @@ import {
   type Block,
 } from "../_shared/marketing-plan-claude.ts";
 import { extractDocxToMarkdown } from "../_shared/docx-extract.ts";
+import { STAGE4_REQUIRED, STAGE5_REQUIRED } from "../_shared/marketing-plan-gates.ts";
+
+async function advanceDownstreamGates(db: any, jobId: string) {
+  try {
+    await checkGateAndAdvance(db, jobId, STAGE4_REQUIRED, "marketing-plan-stage4-area", "stage4_dispatch");
+  } catch (e) { console.error("stage3 gate4 advance error:", e); }
+  try {
+    await checkGateAndAdvance(db, jobId, STAGE5_REQUIRED, "marketing-plan-stage5-plan", "stage5_dispatch");
+  } catch (e) { console.error("stage3 gate5 advance error:", e); }
+}
 
 const SYSTEM_PROMPT = `You are extracting hard facts from real estate association, disclosure, market-analysis, and inspection documents so an agent can market a listing accurately. Quote the document and page (or the document label) for every fact. If a fact is not present, write "NOT FOUND - must confirm." Never estimate or infer a number. Return Markdown:
 
@@ -89,11 +99,10 @@ const DOCX_MIME =
 // kills from leaving the job stuck at status='running'.
 const STAGE3_DEADLINE_MS = 240_000;
 
-serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
-  const { jobId } = await req.json();
+async function runDocs(jobId: string) {
   const db = serviceClient();
   const startedAt = Date.now();
+  const FAILSAFE = "# Document Facts (Stage 3)\n\n> Stage 3 did not complete cleanly. Document facts unavailable.";
 
   try {
     await markStage(db, jobId, "document_facts", "running");
@@ -153,17 +162,14 @@ serve(async (req) => {
 
       for (const r of maFiles || []) {
         const label = r.document_label || r.file_name || "Market Analysis file";
-        // Generated analysis JSON (pricing, comps, subject, etc.).
         if (r.file_type === "analysis_json" && r.analysis_json) {
           textNotes.push(jsonToMarkdown(`Market Analysis JSON (${label})`, r.analysis_json));
           continue;
         }
-        // Inline source doc (residential inspection worksheet snapshot, etc.).
         if (r.source_type === "inline" && r.inline_data) {
           textNotes.push(jsonToMarkdown(`Attached inline data (${label})`, r.inline_data));
           continue;
         }
-        // Storage-backed source doc.
         if (r.source_type === "storage" && r.file_path) {
           const buf = await downloadFromBucket(db, "market-analysis-docs", r.file_path);
           if (!buf) continue;
@@ -174,9 +180,7 @@ serve(async (req) => {
           if (isDocx) {
             const md = await extractDocxToMarkdown(buf).catch(() => "");
             if (md.trim()) {
-              textNotes.push(
-                `### Market Analysis file (.docx): ${label}\n\n${md}`,
-              );
+              textNotes.push(`### Market Analysis file (.docx): ${label}\n\n${md}`);
             }
             continue;
           }
@@ -188,14 +192,12 @@ serve(async (req) => {
             });
             continue;
           }
-          // Other types — skip binary; note it.
           textNotes.push(`### Market Analysis file skipped (${mime || "unknown type"}): ${label}`);
         }
       }
     }
 
-    // 3) Residential Inspection Worksheet row + any recorded homeowner
-    //    conversations linked to that inspection.
+    // 3) Residential Inspection Worksheet + recorded homeowner conversations.
     if (leadId) {
       const { data: insp } = await db
         .from("inspections")
@@ -211,9 +213,6 @@ serve(async (req) => {
         );
       }
 
-      // 3b) Agent/homeowner recorded conversations. audio_transcriptions has
-      // no lead_id — it links via inspection_id. Include summary + full
-      // transcript (capped) in chronological order.
       if (insp?.id) {
         const { data: transcripts } = await db
           .from("audio_transcriptions")
@@ -239,7 +238,6 @@ serve(async (req) => {
       }
     }
 
-    // Nothing at all attached — write the empty-result note and move on.
     if (blocks.length === 0 && textNotes.length === 0) {
       await saveStageResult(
         db,
@@ -247,14 +245,9 @@ serve(async (req) => {
         "document_facts",
         "# Document Facts (Stage 3)\n\n> No documents attached to this lead - HOA, disclosure, market-analysis, and inspection facts could not be verified.",
       );
-      await invokeNextStage("marketing-plan-stage4-area", jobId);
-      return new Response(JSON.stringify({ ok: true }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return;
     }
 
-    // Prepend text notes (JSON + docx extractions) as one large text block so
-    // Claude sees the structured tables verbatim.
     if (textNotes.length > 0) {
       blocks.unshift({
         type: "text",
@@ -264,7 +257,6 @@ serve(async (req) => {
       });
     }
 
-    // Group PDFs to stay under the request-size ceiling.
     const MAX_BYTES = 25 * 1024 * 1024;
     const groups: Block[][] = [[]];
     let groupBytes = 0;
@@ -310,10 +302,7 @@ serve(async (req) => {
         "document_facts",
         `# Document Facts (Stage 3)\n\n> Stage hit ${STAGE3_DEADLINE_MS / 1000}-second server deadline before any batch completed.`,
       );
-      await failJob(db, jobId, `Stage 3 timed out after ${STAGE3_DEADLINE_MS / 1000}s`);
-      return new Response(JSON.stringify({ ok: true }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return;
     }
 
     const merged = outputs.length === 1
@@ -332,12 +321,8 @@ serve(async (req) => {
         })).text;
 
     await saveStageResult(db, jobId, "document_facts", `# Document Facts (Stage 3)\n\n${merged}`);
-    await invokeNextStage("marketing-plan-stage4-area", jobId);
-    return new Response(JSON.stringify({ ok: true }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
   } catch (e) {
-    console.error("stage3 error:", e);
+    console.error("stage3 background error:", e);
     try {
       await saveStageResult(
         db,
@@ -345,12 +330,24 @@ serve(async (req) => {
         "document_facts",
         `# Document Facts (Stage 3)\n\n> Stage failed: ${e instanceof Error ? e.message : "unknown"} - HOA, disclosure, and market-analysis facts could not be extracted.`,
       );
-      await invokeNextStage("marketing-plan-stage4-area", jobId);
     } catch (e2) {
-      await failJob(db, jobId, `Stage 3 fatal: ${e2 instanceof Error ? e2.message : "unknown"}`);
+      console.error("stage3 secondary save failed:", e2);
     }
-    return new Response(JSON.stringify({ ok: true }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+  } finally {
+    try { await saveResultIfMissing(db, jobId, "document_facts", FAILSAFE); } catch (e) { console.error("stage3 failsafe error:", e); }
+    await advanceDownstreamGates(db, jobId);
   }
+}
+
+serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  const { jobId } = await req.json();
+
+  // @ts-ignore EdgeRuntime is provided by Supabase edge-runtime
+  EdgeRuntime.waitUntil(runDocs(jobId));
+
+  return new Response(JSON.stringify({ ok: true, backgrounded: true }), {
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
 });
+
