@@ -11,6 +11,7 @@
 // come through as markdown pipe tables rather than a wall of flattened text.
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import {
+  assertInternalOrJobOwner,
   checkGateAndAdvance,
   markStage,
   saveResultIfMissing,
@@ -342,6 +343,8 @@ async function runDocs(jobId: string) {
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   const { jobId } = await req.json();
+  const unauth = await assertInternalOrJobOwner(req, jobId);
+  if (unauth) return unauth;
 
   // @ts-ignore EdgeRuntime is provided by Supabase edge-runtime
   EdgeRuntime.waitUntil(runDocs(jobId));

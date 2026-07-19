@@ -1,6 +1,7 @@
 // Stage 2: walkthrough photo review (Claude Opus vision, batched by 15).
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import {
+  assertInternalOrJobOwner,
   checkGateAndAdvance,
   markStage,
   saveResultIfMissing,
@@ -237,6 +238,8 @@ async function runPhotoReview(jobId: string) {
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   const { jobId } = await req.json();
+  const unauth = await assertInternalOrJobOwner(req, jobId);
+  if (unauth) return unauth;
 
   // Detach the heavy work from the request wall-clock. Any thrown error inside
   // runPhotoReview flips the job to status='failed' via failJob.

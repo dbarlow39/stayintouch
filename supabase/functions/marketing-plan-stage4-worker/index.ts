@@ -4,6 +4,7 @@
 // it's the last worker advances the job to Stage 5.
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import {
+  assertInternalCaller,
   incrementAreaCompleted,
   saveStageResult,
   serviceClient,
@@ -43,7 +44,9 @@ DATE EVERY FIGURE. Give the year or period each number covers, and note that fig
 
 STAY IN YOUR LANE. Report only your assigned topic. Do not summarize the property, do not discuss the listing price, and do not write marketing copy. Another stage does that.
 
-The user message will include a NEIGHBORHOOD SNAPSHOT extracted from the seller's own documents. Those values (School District, Subdivision, Walkability Score, Crime Risk Score, Flood Zone) are AUTHORITATIVE — do NOT web-search for any of them, and do NOT contradict them. If your topic touches any of those values, repeat them with source "Neighborhood Snapshot (documents)".`;
+The user message will include a NEIGHBORHOOD SNAPSHOT extracted from the seller's own documents. Those values (School District, Subdivision, Walkability Score, Crime Risk Score, Flood Zone) are AUTHORITATIVE — do NOT web-search for any of them, and do NOT contradict them. If your topic touches any of those values, repeat them with source "Neighborhood Snapshot (documents)".
+
+You have ONE web search. Make it count. Write a single specific query for your assigned topic and this address, read the results, and report what you found. Fetch a page only if the search results are insufficient. Do not iterate or refine repeatedly. If one search does not establish a fact, report what you did find and note what is missing rather than searching again.`;
 
 const TOPIC_INSTRUCTIONS: Record<Topic, string> = {
   schools:
@@ -62,13 +65,20 @@ const TOPIC_INSTRUCTIONS: Record<Topic, string> = {
     `TOPIC: MARKET CONTEXT. Report median home value, appreciation trend, days on market, and current market conditions for this submarket (ZIP or subdivision). Prefer local MLS or board of Realtors data. Return Markdown under a single "## Market Context" heading.`,
 };
 
-const DEADLINE_MS = 110_000;
+const DEADLINE_MS = 130_000;
 
 async function runWorker(jobId: string, topic: Topic, context: any) {
   const db = serviceClient();
   const title = TOPIC_TITLES[topic];
   const stageKey = `area_${topic}`;
+  const startedAt = Date.now();
   let content = `## ${title}\n\n> Research unavailable for this topic.`;
+  let searchCount = 0;
+  let fetchCount = 0;
+  let completed = false;
+  let hitDeadline = false;
+  let stopReason = "unknown";
+  let errorMsg = "";
 
   try {
     const system = `${SHARED_PREAMBLE}\n\n${TOPIC_INSTRUCTIONS[topic]}`;
@@ -81,9 +91,9 @@ ${context?.snapshot || "(no snapshot available — proceed with normal research)
     const claudePromise = callClaude({
       model: OPUS_MODEL,
       system,
-      max_tokens: 2500,
+      max_tokens: 2000,
       thinking: { type: "adaptive" },
-      output_config: { effort: "high" },
+      output_config: { effort: "medium" },
       maxPauseTurnRetries: 2,
       onPauseTurn: async () => {
         await db.from("marketing_plan_jobs")
@@ -91,8 +101,8 @@ ${context?.snapshot || "(no snapshot available — proceed with normal research)
           .eq("id", jobId);
       },
       tools: [
-        { type: "web_search_20260209", name: "web_search", max_uses: 3 },
-        { type: "web_fetch_20260209", name: "web_fetch", max_uses: 2 },
+        { type: "web_search_20260209", name: "web_search", max_uses: 1 },
+        { type: "web_fetch_20260209", name: "web_fetch", max_uses: 1 },
       ],
       messages: [{ role: "user", content: userMsg }],
     });
@@ -104,21 +114,53 @@ ${context?.snapshot || "(no snapshot available — proceed with normal research)
     const winner = await Promise.race([claudePromise, timeoutPromise]);
 
     if ((winner as any).__timeout) {
+      hitDeadline = true;
       console.warn(`stage4-worker(${topic}) hit ${DEADLINE_MS}ms deadline`);
       claudePromise.catch(() => {});
       content = `## ${title}\n\n> Research unavailable for ${title} (hit ${DEADLINE_MS / 1000}s worker deadline).`;
     } else {
       const res = winner as Awaited<typeof claudePromise>;
+      stopReason = res.stop_reason || "unknown";
+      const blocks = res.blocks || [];
+      for (const b of blocks) {
+        if (b?.type === "server_tool_use") {
+          if (b?.name === "web_search") searchCount++;
+          else if (b?.name === "web_fetch") fetchCount++;
+        }
+      }
       const txt = (res.text || "").trim();
-      content = txt.length > 0
+      completed = txt.length > 0;
+      content = completed
         ? txt
-        : `## ${title}\n\n> Research unavailable for ${title} (empty response).`;
+        : `## ${title}\n\n> Research unavailable for ${title} (empty response, stop_reason=${stopReason}).`;
     }
   } catch (e) {
-    const msg = e instanceof Error ? e.message : "unknown";
-    console.error(`stage4-worker(${topic}) error:`, msg);
-    content = `## ${title}\n\n> Research unavailable for ${title}: ${msg}`;
+    errorMsg = e instanceof Error ? e.message : "unknown";
+    console.error(`stage4-worker(${topic}) error:`, errorMsg);
+    content = `## ${title}\n\n> Research unavailable for ${title}: ${errorMsg}`;
   } finally {
+    const elapsedMs = Date.now() - startedAt;
+    // Append a diagnostics footer so partial waves show which topics ran long
+    // and how their tool budget was actually spent.
+    const diag = [
+      "",
+      "---",
+      `<!-- stage4-worker diagnostics`,
+      `topic: ${topic}`,
+      `elapsed_ms: ${elapsedMs}`,
+      `web_search_used: ${searchCount}`,
+      `web_fetch_used: ${fetchCount}`,
+      `completed: ${completed}`,
+      `hit_deadline: ${hitDeadline}`,
+      `stop_reason: ${stopReason}`,
+      `error: ${errorMsg || "none"}`,
+      `-->`,
+    ].join("\n");
+    content = `${content}\n${diag}`;
+    console.log(
+      `stage4-worker(${topic}) done elapsed=${elapsedMs}ms searches=${searchCount} fetches=${fetchCount} completed=${completed} deadline=${hitDeadline} stop=${stopReason}`,
+    );
+
     // GUARANTEED WRITE — every code path lands here.
     try {
       await saveStageResult(db, jobId, stageKey, content);
@@ -152,6 +194,8 @@ ${context?.snapshot || "(no snapshot available — proceed with normal research)
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  const unauth = assertInternalCaller(req);
+  if (unauth) return unauth;
   const { jobId, topic, context } = await req.json();
   if (!jobId || !topic) {
     return new Response(JSON.stringify({ error: "jobId and topic required" }), {
