@@ -5,8 +5,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import {
   incrementAreaCompleted,
-  invokeNextStage,
-  markStage,
   saveStageResult,
   serviceClient,
 } from "../_shared/marketing-plan-common.ts";
