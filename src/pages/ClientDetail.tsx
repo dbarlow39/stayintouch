@@ -40,6 +40,7 @@ import {
   Sparkles,
   Copy,
   Heart,
+  Megaphone,
 } from "lucide-react";
 
 
