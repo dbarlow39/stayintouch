@@ -78,11 +78,35 @@ export default function MarketingPlanTab({ lead }: { lead: any }) {
   const [tweaking, setTweaking] = useState(false);
   const stage5Fired = useRef(false);
 
+  // Agent profile - used to warn if the contact info that will land in the
+  // plan's contact line is missing before the plan is generated.
+  const [profileWarnings, setProfileWarnings] = useState<string[]>([]);
+
   // ---------- Load existing job ----------
   useEffect(() => {
     void loadLatestJob();
+    void loadProfileWarnings();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lead?.id]);
+
+  async function loadProfileWarnings() {
+    const { data: u } = await supabase.auth.getUser();
+    const uid = u.user?.id;
+    if (!uid) return;
+    const { data: p } = await supabase
+      .from("profiles")
+      .select("preferred_email, cell_phone")
+      .eq("id", uid)
+      .maybeSingle();
+    const w: string[] = [];
+    if (!p?.preferred_email?.trim()) {
+      w.push("Business email is missing on your Profile - the marketing plan will omit the email from your contact line until it's set.");
+    }
+    if (!p?.cell_phone?.trim()) {
+      w.push("Cell phone is missing on your Profile - the marketing plan will omit the phone from your contact line until it's set.");
+    }
+    setProfileWarnings(w);
+  }
 
   async function loadLatestJob() {
     setLoadingJob(true);
