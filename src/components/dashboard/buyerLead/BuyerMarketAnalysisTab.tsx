@@ -417,7 +417,8 @@ const BuyerMarketAnalysisTab = ({ lead }: BuyerMarketAnalysisTabProps) => {
   const handleDownload = async () => {
     if (!analysis) return;
     try {
-      await generateMarketAnalysisDocx(analysis, null, zillowImage);
+      const agentProfile = await fetchCurrentAgentProfile();
+      await generateMarketAnalysisDocx(analysis, null, zillowImage, agentProfile);
       toast({ title: "Document downloaded successfully" });
     } catch (err: any) {
       console.error("DOCX generation error:", err);
