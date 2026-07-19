@@ -1208,7 +1208,7 @@ const WeeklyUpdateTab = () => {
 
                   setMarketData(updatedMarketData);
                   const firstClient = clients?.[0] || null;
-                  setEmailTemplate(generateSampleEmail(firstClient, updatedMarketData));
+                  setEmailTemplate(generateSampleEmail(firstClient, updatedMarketData, agentProfile));
                   setTemplateDirty(true);
                   setIsTemplateOpen(true);
                   toast({ title: "Template updated with latest Freddie Mac rates" });
