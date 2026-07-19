@@ -31,7 +31,12 @@ const noBorder = {
 };
 
 function stripLeadingH1(md: string): string {
-  return md.replace(/^\s*#\s+Marketing Plan for[^\n]*\n+/i, "");
+  // Strip the leading "# Marketing Plan for ..." H1 AND any immediately
+  // following "Prepared by: ..." line — the docx header already prints both,
+  // so leaving them in the body causes them to appear twice.
+  let out = md.replace(/^\s*#\s+Marketing Plan for[^\n]*\n+/i, "");
+  out = out.replace(/^\s*Prepared by:[^\n]*\n+/i, "");
+  return out;
 }
 
 // Pull out just the seller-facing half. Supports both the new
