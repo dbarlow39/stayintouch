@@ -1892,6 +1892,7 @@ export type Database = {
           current_batch: number
           current_stage: string | null
           error: string | null
+          expected_area_count: number | null
           id: string
           list_price: number | null
           mls_paste: string | null
@@ -1907,6 +1908,7 @@ export type Database = {
           current_batch?: number
           current_stage?: string | null
           error?: string | null
+          expected_area_count?: number | null
           id?: string
           list_price?: number | null
           mls_paste?: string | null
@@ -1922,6 +1924,7 @@ export type Database = {
           current_batch?: number
           current_stage?: string | null
           error?: string | null
+          expected_area_count?: number | null
           id?: string
           list_price?: number | null
           mls_paste?: string | null
@@ -2978,6 +2981,10 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      mp_increment_area_completed: {
+        Args: { p_job_id: string }
+        Returns: number
       }
       recover_inspection_data: {
         Args: { target_id: string }
