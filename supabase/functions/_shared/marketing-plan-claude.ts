@@ -170,22 +170,14 @@ export async function streamClaudeToStorage(
   onPartial: (fullText: string) => Promise<void>,
   onComplete: (fullText: string) => Promise<void>,
   partialIntervalMs = 2000,
-): Promise<{ text: string; stop_reason: string; output_tokens: number }> {
+): Promise<{ text: string; stop_reason: string; output_tokens: number; retries: number }> {
   const body = buildBody(opts, true);
-  const upstream = await fetch(ANTHROPIC_URL, {
-    method: "POST",
-    headers: {
-      "x-api-key": apiKey(),
-      "anthropic-version": ANTHROPIC_VERSION,
-      "anthropic-beta": ANTHROPIC_BETA,
-      "content-type": "application/json",
-    },
-    body: JSON.stringify(body),
-  });
+  const { response: upstream, retries } = await postAnthropicWithRetry(body);
   if (!upstream.ok || !upstream.body) {
     const t = await upstream.text();
-    throw new Error(`Claude API error [${upstream.status}]: ${t.slice(0, 800)}`);
+    throw new Error(`Claude API error [${upstream.status}] after ${retries} retries: ${t.slice(0, 800)}`);
   }
+
 
   const reader = upstream.body.getReader();
   const decoder = new TextDecoder();
