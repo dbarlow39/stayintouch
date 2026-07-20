@@ -236,23 +236,15 @@ export async function streamClaudeToBrowser(
   onComplete: (fullText: string) => Promise<void>,
 ): Promise<Response> {
   const body = buildBody(opts, true);
-  const upstream = await fetch(ANTHROPIC_URL, {
-    method: "POST",
-    headers: {
-      "x-api-key": apiKey(),
-      "anthropic-version": ANTHROPIC_VERSION,
-      "anthropic-beta": ANTHROPIC_BETA,
-      "content-type": "application/json",
-    },
-    body: JSON.stringify(body),
-  });
+  const { response: upstream, retries } = await postAnthropicWithRetry(body);
   if (!upstream.ok || !upstream.body) {
     const t = await upstream.text();
     return new Response(
-      JSON.stringify({ error: "Claude API error", status: upstream.status, details: t.slice(0, 800) }),
+      JSON.stringify({ error: "Claude API error", status: upstream.status, retries, details: t.slice(0, 800) }),
       { status: upstream.status, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   }
+
 
   const reader = upstream.body.getReader();
   const decoder = new TextDecoder();
