@@ -70,6 +70,45 @@ function apiKey(): string {
   return k;
 }
 
+// Exponential backoff schedule for HTTP 429 / 529 (Anthropic overload).
+// Total added wall time: ~32s across 3 retries.
+const RETRY_BACKOFF_MS = [3_000, 9_000, 20_000];
+
+/**
+ * POSTs to Anthropic, retrying on transient overload (429/529) with exponential
+ * backoff. Returns { response, retries }. Non-retryable statuses (including
+ * other 5xx) return immediately so the caller sees the real error.
+ */
+async function postAnthropicWithRetry(body: unknown): Promise<{ response: Response; retries: number }> {
+  let retries = 0;
+  for (let attempt = 0; attempt <= RETRY_BACKOFF_MS.length; attempt++) {
+    const response = await fetch(ANTHROPIC_URL, {
+      method: "POST",
+      headers: {
+        "x-api-key": apiKey(),
+        "anthropic-version": ANTHROPIC_VERSION,
+        "anthropic-beta": ANTHROPIC_BETA,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify(body),
+    });
+    if (response.status !== 429 && response.status !== 529) {
+      return { response, retries };
+    }
+    if (attempt === RETRY_BACKOFF_MS.length) {
+      return { response, retries };
+    }
+    const wait = RETRY_BACKOFF_MS[attempt];
+    console.warn(`Anthropic ${response.status} overload; retry ${attempt + 1}/${RETRY_BACKOFF_MS.length} in ${wait}ms`);
+    try { await response.body?.cancel(); } catch { /* ignore */ }
+    await new Promise((r) => setTimeout(r, wait));
+    retries++;
+  }
+  // unreachable
+  throw new Error("postAnthropicWithRetry: exhausted without response");
+}
+
+
 /**
  * Non-streaming Claude call. Handles pause_turn tool loop up to 5 iterations.
  * Returns the final assistant message content blocks joined into text plus the raw blocks.
