@@ -223,8 +223,9 @@ export async function streamClaudeToStorage(
     }
   }
   await onComplete(full);
-  return { text: full, stop_reason: stopReason, output_tokens: outputTokens };
+  return { text: full, stop_reason: stopReason, output_tokens: outputTokens, retries };
 }
+
 
 /**
  * Streams Claude output directly to the browser as SSE `data:` chunks (plain text deltas).
