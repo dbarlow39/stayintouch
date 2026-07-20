@@ -36,7 +36,10 @@ function stripLeadingH1(md: string): string {
   // so leaving them in the body causes them to appear twice.
   let out = md.replace(/^\s*#\s+Marketing Plan for[^\n]*\n+/i, "");
   out = out.replace(/^\s*Prepared by:[^\n]*\n+/i, "");
-  return out;
+  // Strip HTML comments (e.g. Stage 5 diagnostics footer) — operator
+  // metadata must never appear in the homeowner-facing document.
+  out = out.replace(/<!--[\s\S]*?-->/g, "");
+  return out.trimEnd();
 }
 
 // Pull out just the seller-facing half. Supports both the new
