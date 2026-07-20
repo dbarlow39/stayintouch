@@ -118,27 +118,21 @@ export async function callClaude(opts: ClaudeCallOptions): Promise<{
   blocks: any[];
   stop_reason: string;
   raw: any;
+  retries: number;
 }> {
   let messages: Msg[] = [...opts.messages];
   let iterations = 0;
   let last: any = null;
+  let totalRetries = 0;
   const maxRetries = opts.maxPauseTurnRetries ?? 5;
 
   while (iterations <= maxRetries) {
     const body = buildBody({ ...opts, messages }, false);
-    const r = await fetch(ANTHROPIC_URL, {
-      method: "POST",
-      headers: {
-        "x-api-key": apiKey(),
-        "anthropic-version": ANTHROPIC_VERSION,
-        "anthropic-beta": ANTHROPIC_BETA,
-        "content-type": "application/json",
-      },
-      body: JSON.stringify(body),
-    });
+    const { response: r, retries } = await postAnthropicWithRetry(body);
+    totalRetries += retries;
     if (!r.ok) {
       const t = await r.text();
-      throw new Error(`Claude API error [${r.status}]: ${t.slice(0, 800)}`);
+      throw new Error(`Claude API error [${r.status}] after ${retries} retries: ${t.slice(0, 800)}`);
     }
     last = await r.json();
     const stop = last.stop_reason as string;
@@ -156,14 +150,15 @@ export async function callClaude(opts: ClaudeCallOptions): Promise<{
       .filter((b: any) => b.type === "text")
       .map((b: any) => b.text)
       .join("\n");
-    return { text, blocks: assistantBlocks, stop_reason: stop, raw: last };
+    return { text, blocks: assistantBlocks, stop_reason: stop, raw: last, retries: totalRetries };
   }
   const text = (last?.content ?? [])
     .filter((b: any) => b.type === "text")
     .map((b: any) => b.text)
     .join("\n");
-  return { text, blocks: last?.content ?? [], stop_reason: "pause_turn_exhausted", raw: last };
+  return { text, blocks: last?.content ?? [], stop_reason: "pause_turn_exhausted", raw: last, retries: totalRetries };
 }
+
 
 /**
  * Streams Claude output into storage via periodic partial callbacks. Meant for
