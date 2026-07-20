@@ -91,8 +91,7 @@ ${context?.snapshot || "(no snapshot available — proceed with normal research)
     const claudePromise = callClaude({
       model: OPUS_MODEL,
       system,
-      max_tokens: 3500,
-      thinking: { type: "adaptive" },
+      max_tokens: 4000,
       output_config: { effort: "high" },
       maxPauseTurnRetries: 2,
       onPauseTurn: async () => {
