@@ -274,6 +274,8 @@ async function runDocs(jobId: string) {
     }
 
     const outputs: string[] = [];
+    let overloadRetries = 0;
+    let lastStopReason = "unknown";
     for (const g of groups) {
       if (g.length === 0) continue;
       if (Date.now() - startedAt > STAGE3_DEADLINE_MS) {
@@ -293,35 +295,55 @@ async function runDocs(jobId: string) {
         output_config: { effort: "high" },
         messages: [{ role: "user", content: g }],
       });
-      outputs.push(res.text);
+      overloadRetries += res.retries || 0;
+      lastStopReason = res.stop_reason || lastStopReason;
+      const txt = (res.text || "").trim();
+      if (txt.length > 0) outputs.push(txt);
+      else console.warn(`stage3 batch produced empty output (stop_reason=${res.stop_reason}, retries=${res.retries})`);
     }
 
     if (outputs.length === 0) {
+      // Empty or deadline-hit — write FAILED marker so Stage 5 can see this
+      // topic did NOT complete cleanly.
       await saveStageResult(
         db,
         jobId,
         "document_facts",
-        `# Document Facts (Stage 3)\n\n> Stage hit ${STAGE3_DEADLINE_MS / 1000}-second server deadline before any batch completed.`,
+        `# Document Facts (Stage 3)\n\n> **FAILED:** No usable document-facts output produced.\n\n<!-- stage3 diagnostics\nempty_output: true\nlast_stop_reason: ${lastStopReason}\noverload_retries: ${overloadRetries}\nhit_deadline: ${Date.now() - startedAt > STAGE3_DEADLINE_MS}\n-->`,
       );
       return;
     }
 
-    const merged = outputs.length === 1
-      ? outputs[0]
-      : (await callClaude({
-          model: OPUS_MODEL,
-          system:
-            "Merge these batch outputs into a single Markdown report under the same seven headings. Preserve every document quote, page reference, and comparable-sales row.",
-          max_tokens: 12000,
-          thinking: { type: "adaptive" },
-          output_config: { effort: "high" },
-          messages: [{
-            role: "user",
-            content: outputs.map((o, i) => `--- BATCH ${i + 1} ---\n${o}`).join("\n\n"),
-          }],
-        })).text;
+    let merged: string;
+    if (outputs.length === 1) {
+      merged = outputs[0];
+    } else {
+      const mergedRes = await callClaude({
+        model: OPUS_MODEL,
+        system:
+          "Merge these batch outputs into a single Markdown report under the same seven headings. Preserve every document quote, page reference, and comparable-sales row.",
+        max_tokens: 12000,
+        thinking: { type: "adaptive" },
+        output_config: { effort: "high" },
+        messages: [{
+          role: "user",
+          content: outputs.map((o, i) => `--- BATCH ${i + 1} ---\n${o}`).join("\n\n"),
+        }],
+      });
+      overloadRetries += mergedRes.retries || 0;
+      lastStopReason = mergedRes.stop_reason || lastStopReason;
+      const mergedTxt = (mergedRes.text || "").trim();
+      if (mergedTxt.length === 0) {
+        console.warn(`stage3 merge produced empty output; falling back to concatenated batches`);
+        merged = outputs.map((o, i) => `### Batch ${i + 1}\n\n${o}`).join("\n\n");
+      } else {
+        merged = mergedTxt;
+      }
+    }
 
-    await saveStageResult(db, jobId, "document_facts", `# Document Facts (Stage 3)\n\n${merged}`);
+    const diag = `\n\n<!-- stage3 diagnostics\nempty_output: false\nbatches: ${outputs.length}\nlast_stop_reason: ${lastStopReason}\noverload_retries: ${overloadRetries}\n-->`;
+    await saveStageResult(db, jobId, "document_facts", `# Document Facts (Stage 3)\n\n${merged}${diag}`);
+
   } catch (e) {
     console.error("stage3 background error:", e);
     try {
