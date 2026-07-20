@@ -70,24 +70,19 @@ function apiKey(): string {
   return k;
 }
 
-/**
- * Non-streaming Claude call. Handles pause_turn tool loop up to 5 iterations.
- * Returns the final assistant message content blocks joined into text plus the raw blocks.
- */
-export async function callClaude(opts: ClaudeCallOptions): Promise<{
-  text: string;
-  blocks: any[];
-  stop_reason: string;
-  raw: any;
-}> {
-  let messages: Msg[] = [...opts.messages];
-  let iterations = 0;
-  let last: any = null;
-  const maxRetries = opts.maxPauseTurnRetries ?? 5;
+// Exponential backoff schedule for HTTP 429 / 529 (Anthropic overload).
+// Total added wall time: ~32s across 3 retries.
+const RETRY_BACKOFF_MS = [3_000, 9_000, 20_000];
 
-  while (iterations <= maxRetries) {
-    const body = buildBody({ ...opts, messages }, false);
-    const r = await fetch(ANTHROPIC_URL, {
+/**
+ * POSTs to Anthropic, retrying on transient overload (429/529) with exponential
+ * backoff. Returns { response, retries }. Non-retryable statuses (including
+ * other 5xx) return immediately so the caller sees the real error.
+ */
+async function postAnthropicWithRetry(body: unknown): Promise<{ response: Response; retries: number }> {
+  let retries = 0;
+  for (let attempt = 0; attempt <= RETRY_BACKOFF_MS.length; attempt++) {
+    const response = await fetch(ANTHROPIC_URL, {
       method: "POST",
       headers: {
         "x-api-key": apiKey(),
@@ -97,9 +92,47 @@ export async function callClaude(opts: ClaudeCallOptions): Promise<{
       },
       body: JSON.stringify(body),
     });
+    if (response.status !== 429 && response.status !== 529) {
+      return { response, retries };
+    }
+    if (attempt === RETRY_BACKOFF_MS.length) {
+      return { response, retries };
+    }
+    const wait = RETRY_BACKOFF_MS[attempt];
+    console.warn(`Anthropic ${response.status} overload; retry ${attempt + 1}/${RETRY_BACKOFF_MS.length} in ${wait}ms`);
+    try { await response.body?.cancel(); } catch { /* ignore */ }
+    await new Promise((r) => setTimeout(r, wait));
+    retries++;
+  }
+  // unreachable
+  throw new Error("postAnthropicWithRetry: exhausted without response");
+}
+
+
+/**
+ * Non-streaming Claude call. Handles pause_turn tool loop up to 5 iterations.
+ * Returns the final assistant message content blocks joined into text plus the raw blocks.
+ */
+export async function callClaude(opts: ClaudeCallOptions): Promise<{
+  text: string;
+  blocks: any[];
+  stop_reason: string;
+  raw: any;
+  retries: number;
+}> {
+  let messages: Msg[] = [...opts.messages];
+  let iterations = 0;
+  let last: any = null;
+  let totalRetries = 0;
+  const maxRetries = opts.maxPauseTurnRetries ?? 5;
+
+  while (iterations <= maxRetries) {
+    const body = buildBody({ ...opts, messages }, false);
+    const { response: r, retries } = await postAnthropicWithRetry(body);
+    totalRetries += retries;
     if (!r.ok) {
       const t = await r.text();
-      throw new Error(`Claude API error [${r.status}]: ${t.slice(0, 800)}`);
+      throw new Error(`Claude API error [${r.status}] after ${retries} retries: ${t.slice(0, 800)}`);
     }
     last = await r.json();
     const stop = last.stop_reason as string;
@@ -117,14 +150,15 @@ export async function callClaude(opts: ClaudeCallOptions): Promise<{
       .filter((b: any) => b.type === "text")
       .map((b: any) => b.text)
       .join("\n");
-    return { text, blocks: assistantBlocks, stop_reason: stop, raw: last };
+    return { text, blocks: assistantBlocks, stop_reason: stop, raw: last, retries: totalRetries };
   }
   const text = (last?.content ?? [])
     .filter((b: any) => b.type === "text")
     .map((b: any) => b.text)
     .join("\n");
-  return { text, blocks: last?.content ?? [], stop_reason: "pause_turn_exhausted", raw: last };
+  return { text, blocks: last?.content ?? [], stop_reason: "pause_turn_exhausted", raw: last, retries: totalRetries };
 }
+
 
 /**
  * Streams Claude output into storage via periodic partial callbacks. Meant for
@@ -136,22 +170,14 @@ export async function streamClaudeToStorage(
   onPartial: (fullText: string) => Promise<void>,
   onComplete: (fullText: string) => Promise<void>,
   partialIntervalMs = 2000,
-): Promise<{ text: string; stop_reason: string; output_tokens: number }> {
+): Promise<{ text: string; stop_reason: string; output_tokens: number; retries: number }> {
   const body = buildBody(opts, true);
-  const upstream = await fetch(ANTHROPIC_URL, {
-    method: "POST",
-    headers: {
-      "x-api-key": apiKey(),
-      "anthropic-version": ANTHROPIC_VERSION,
-      "anthropic-beta": ANTHROPIC_BETA,
-      "content-type": "application/json",
-    },
-    body: JSON.stringify(body),
-  });
+  const { response: upstream, retries } = await postAnthropicWithRetry(body);
   if (!upstream.ok || !upstream.body) {
     const t = await upstream.text();
-    throw new Error(`Claude API error [${upstream.status}]: ${t.slice(0, 800)}`);
+    throw new Error(`Claude API error [${upstream.status}] after ${retries} retries: ${t.slice(0, 800)}`);
   }
+
 
   const reader = upstream.body.getReader();
   const decoder = new TextDecoder();
@@ -197,8 +223,9 @@ export async function streamClaudeToStorage(
     }
   }
   await onComplete(full);
-  return { text: full, stop_reason: stopReason, output_tokens: outputTokens };
+  return { text: full, stop_reason: stopReason, output_tokens: outputTokens, retries };
 }
+
 
 /**
  * Streams Claude output directly to the browser as SSE `data:` chunks (plain text deltas).
@@ -209,23 +236,15 @@ export async function streamClaudeToBrowser(
   onComplete: (fullText: string) => Promise<void>,
 ): Promise<Response> {
   const body = buildBody(opts, true);
-  const upstream = await fetch(ANTHROPIC_URL, {
-    method: "POST",
-    headers: {
-      "x-api-key": apiKey(),
-      "anthropic-version": ANTHROPIC_VERSION,
-      "anthropic-beta": ANTHROPIC_BETA,
-      "content-type": "application/json",
-    },
-    body: JSON.stringify(body),
-  });
+  const { response: upstream, retries } = await postAnthropicWithRetry(body);
   if (!upstream.ok || !upstream.body) {
     const t = await upstream.text();
     return new Response(
-      JSON.stringify({ error: "Claude API error", status: upstream.status, details: t.slice(0, 800) }),
+      JSON.stringify({ error: "Claude API error", status: upstream.status, retries, details: t.slice(0, 800) }),
       { status: upstream.status, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   }
+
 
   const reader = upstream.body.getReader();
   const decoder = new TextDecoder();

@@ -288,7 +288,8 @@ Now produce the two sections in the required order: begin with "---VERIFICATION-
       messages: [{ role: "user" as const, content: userMsg }],
     };
 
-    const first = await streamClaudeToStorage(
+    let attemptCount = 0;
+    let first = await streamClaudeToStorage(
       streamOpts,
       async (partial) => {
         await saveStageResult(db, jobId, "marketing_plan", partial);
@@ -302,9 +303,32 @@ Now produce the two sections in the required order: begin with "---VERIFICATION-
       },
       2000,
     );
+    attemptCount++;
+
+    // Empty-output guard: if we streamed nothing (thinking-only response or
+    // upstream overload silently degrading to no deltas), retry ONCE in-process.
+    if (first.text.trim().length === 0 && first.stop_reason !== "max_tokens") {
+      console.warn(`stage5 empty output on attempt 1 (stop_reason=${first.stop_reason}, retries=${first.retries}); retrying once`);
+      first = await streamClaudeToStorage(
+        streamOpts,
+        async (partial) => {
+          await saveStageResult(db, jobId, "marketing_plan", partial);
+          await db
+            .from("marketing_plan_jobs")
+            .update({ updated_at: new Date().toISOString() })
+            .eq("id", jobId);
+        },
+        async (full) => {
+          await saveStageResult(db, jobId, "marketing_plan", full);
+        },
+        2000,
+      );
+      attemptCount++;
+    }
 
     let finalText = first.text;
     let finalStop = first.stop_reason;
+    let totalRetries = first.retries;
 
     // If truncated, issue ONE bounded continuation. The continuation replays the
     // original user turn, echoes the assistant's partial output, and asks it to
@@ -335,6 +359,7 @@ Now produce the two sections in the required order: begin with "---VERIFICATION-
       );
       finalText = first.text + cont.text;
       finalStop = cont.stop_reason;
+      totalRetries += cont.retries;
 
       if (cont.stop_reason === "max_tokens") {
         console.error("stage5 continuation ALSO hit max_tokens; surfacing warning");
@@ -343,10 +368,28 @@ Now produce the two sections in the required order: begin with "---VERIFICATION-
       }
     }
 
+    // FINAL empty check: if still empty after retry, fail — do not mark complete.
+    if (finalText.trim().length === 0) {
+      const diagMsg =
+        `Stage 5 produced empty output after ${attemptCount} attempts ` +
+        `(stop_reason=${finalStop}, overload_retries=${totalRetries}). ` +
+        `Marking job failed; use the retry button to try again.`;
+      console.error(diagMsg);
+      const diagBody = `# Marketing Plan (Stage 5)\n\n> **FAILED: empty output.**\n\n<!-- stage5 diagnostics\nempty_output: true\nattempts: ${attemptCount}\nstop_reason: ${finalStop}\noverload_retries: ${totalRetries}\n-->`;
+      await saveStageResult(db, jobId, "marketing_plan", diagBody);
+      await failJob(db, jobId, diagMsg);
+      return;
+    }
+
+    // Append diagnostics footer to the stored plan so operators can inspect the run.
+    const diagFooter = `\n\n<!-- stage5 diagnostics\nempty_output: false\nattempts: ${attemptCount}\nstop_reason: ${finalStop}\noverload_retries: ${totalRetries}\n-->`;
+    await saveStageResult(db, jobId, "marketing_plan", finalText + diagFooter);
+
     await db
       .from("marketing_plan_jobs")
       .update({ status: "complete", current_stage: "marketing_plan", updated_at: new Date().toISOString() })
       .eq("id", jobId);
+
   } catch (e) {
     console.error("stage5 background error:", e);
     try {

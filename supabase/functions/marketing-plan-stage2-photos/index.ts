@@ -137,6 +137,9 @@ async function runPhotoReview(jobId: string) {
         ? "\n\n> Visual coverage is limited (fewer than 5 photos) — layout findings are provisional."
         : "";
 
+    let overloadRetries = 0;
+    let lastStopReason = "unknown";
+
     for (let i = 0; i < items.length; i += BATCH) {
       if (Date.now() - startedAt > STAGE2_DEADLINE_MS) {
         console.warn(`stage2 hit ${STAGE2_DEADLINE_MS}ms deadline at batch ${Math.floor(i / BATCH) + 1}`);
@@ -167,7 +170,11 @@ async function runPhotoReview(jobId: string) {
         output_config: { effort: "low" },
         messages: [{ role: "user", content: blocks }],
       });
-      batchOutputs.push(res.text);
+      overloadRetries += res.retries || 0;
+      lastStopReason = res.stop_reason || lastStopReason;
+      const txt = (res.text || "").trim();
+      if (txt.length > 0) batchOutputs.push(txt);
+      else console.warn(`stage2 batch ${Math.floor(i / BATCH) + 1} produced empty output (stop_reason=${res.stop_reason}, retries=${res.retries})`);
 
       const batchNum = Math.floor(i / BATCH) + 1;
       await db
@@ -177,14 +184,14 @@ async function runPhotoReview(jobId: string) {
     }
 
     if (batchOutputs.length === 0) {
-      // Deadline hit before any batch completed — save skip note and continue
-      // (do NOT failJob; that stops the whole pipeline). Downstream gates can
-      // still open once Stages 1, 3, and area workers finish.
+      // Empty or deadline-hit — record as FAILED with diagnostics so downstream
+      // can see it did NOT complete cleanly. Do NOT open the Stage 5 gate here;
+      // the finally block deliberately skips advanceStage5Gate in this case.
       await saveStageResult(
         db,
         jobId,
         "photo_review",
-        `# Walkthrough Photo Review (Stage 2)\n\n> Stage hit ${STAGE2_DEADLINE_MS / 1000}-second server deadline before any batch completed.`,
+        `# Walkthrough Photo Review (Stage 2)\n\n> **FAILED:** No usable photo-review output produced.\n\n<!-- stage2 diagnostics\nempty_output: true\nbatches_attempted: ${Math.min(Math.ceil(items.length / BATCH), Math.floor((Date.now() - startedAt) / 1000))}\nlast_stop_reason: ${lastStopReason}\noverload_retries: ${overloadRetries}\nhit_deadline: ${Date.now() - startedAt > STAGE2_DEADLINE_MS}\n-->`,
       );
       return;
     }
@@ -208,15 +215,27 @@ async function runPhotoReview(jobId: string) {
           },
         ],
       });
-      finalMd = merged.text;
+      overloadRetries += merged.retries || 0;
+      lastStopReason = merged.stop_reason || lastStopReason;
+      const mergedTxt = (merged.text || "").trim();
+      if (mergedTxt.length === 0) {
+        // Merge came back empty — fall back to concatenating raw batch outputs
+        // rather than losing all research.
+        console.warn(`stage2 merge produced empty output; falling back to concatenated batches`);
+        finalMd = batchOutputs.map((o, i) => `### Batch ${i + 1}\n\n${o}`).join("\n\n");
+      } else {
+        finalMd = mergedTxt;
+      }
     }
 
+    const diag = `\n\n<!-- stage2 diagnostics\nempty_output: false\nbatches: ${batchOutputs.length}\nlast_stop_reason: ${lastStopReason}\noverload_retries: ${overloadRetries}\n-->`;
     await saveStageResult(
       db,
       jobId,
       "photo_review",
-      `# Walkthrough Photo Review (Stage 2)${limitedNote}\n\n${finalMd}`,
+      `# Walkthrough Photo Review (Stage 2)${limitedNote}\n\n${finalMd}${diag}`,
     );
+
   } catch (e) {
     console.error("stage2 background error:", e);
     try {

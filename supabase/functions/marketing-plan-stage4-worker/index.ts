@@ -76,9 +76,11 @@ async function runWorker(jobId: string, topic: Topic, context: any) {
   let searchCount = 0;
   let fetchCount = 0;
   let completed = false;
+  let emptyOutput = false;
   let hitDeadline = false;
   let stopReason = "unknown";
   let errorMsg = "";
+  let overloadRetries = 0;
 
   try {
     const system = `${SHARED_PREAMBLE}\n\n${TOPIC_INSTRUCTIONS[topic]}`;
@@ -116,10 +118,11 @@ ${context?.snapshot || "(no snapshot available — proceed with normal research)
       hitDeadline = true;
       console.warn(`stage4-worker(${topic}) hit ${DEADLINE_MS}ms deadline`);
       claudePromise.catch(() => {});
-      content = `## ${title}\n\n> Research unavailable for ${title} (hit ${DEADLINE_MS / 1000}s worker deadline).`;
+      content = `## ${title}\n\n> **FAILED:** Research unavailable for ${title} (hit ${DEADLINE_MS / 1000}s worker deadline).`;
     } else {
       const res = winner as Awaited<typeof claudePromise>;
       stopReason = res.stop_reason || "unknown";
+      overloadRetries += res.retries || 0;
       const blocks = res.blocks || [];
       for (const b of blocks) {
         if (b?.type === "server_tool_use") {
@@ -149,6 +152,7 @@ ${context?.snapshot || "(no snapshot available — proceed with normal research)
             tools: [],
           });
           const contTxt = (cont.text || "").trim();
+          overloadRetries += cont.retries || 0;
           if (contTxt) txt = `${txt}\n\n${contTxt}`;
           stopReason = `max_tokens+continued(${cont.stop_reason})`;
         } catch (e) {
@@ -156,15 +160,19 @@ ${context?.snapshot || "(no snapshot available — proceed with normal research)
         }
       }
 
-      completed = txt.length > 0;
-      content = completed
-        ? txt
-        : `## ${title}\n\n> Research unavailable for ${title} (empty response, stop_reason=${stopReason}).`;
+      if (txt.length === 0) {
+        emptyOutput = true;
+        completed = false;
+        content = `## ${title}\n\n> **FAILED:** empty output for ${title} (stop_reason=${stopReason}, overload_retries=${overloadRetries}). This topic was NOT researched — do not treat as a completed placeholder.`;
+      } else {
+        completed = true;
+        content = txt;
+      }
     }
   } catch (e) {
     errorMsg = e instanceof Error ? e.message : "unknown";
     console.error(`stage4-worker(${topic}) error:`, errorMsg);
-    content = `## ${title}\n\n> Research unavailable for ${title}: ${errorMsg}`;
+    content = `## ${title}\n\n> **FAILED:** ${title} — ${errorMsg}`;
   } finally {
     const elapsedMs = Date.now() - startedAt;
     // Append a diagnostics footer so partial waves show which topics ran long
@@ -178,15 +186,18 @@ ${context?.snapshot || "(no snapshot available — proceed with normal research)
       `web_search_used: ${searchCount}`,
       `web_fetch_used: ${fetchCount}`,
       `completed: ${completed}`,
+      `empty_output: ${emptyOutput}`,
       `hit_deadline: ${hitDeadline}`,
       `stop_reason: ${stopReason}`,
+      `overload_retries: ${overloadRetries}`,
       `error: ${errorMsg || "none"}`,
       `-->`,
     ].join("\n");
     content = `${content}\n${diag}`;
     console.log(
-      `stage4-worker(${topic}) done elapsed=${elapsedMs}ms searches=${searchCount} fetches=${fetchCount} completed=${completed} deadline=${hitDeadline} stop=${stopReason}`,
+      `stage4-worker(${topic}) done elapsed=${elapsedMs}ms searches=${searchCount} fetches=${fetchCount} completed=${completed} empty=${emptyOutput} deadline=${hitDeadline} stop=${stopReason} overload_retries=${overloadRetries}`,
     );
+
 
     // GUARANTEED WRITE — every code path lands here.
     try {
