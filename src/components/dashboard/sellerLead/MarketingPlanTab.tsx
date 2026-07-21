@@ -426,6 +426,27 @@ export default function MarketingPlanTab({ lead }: { lead: any }) {
   const planText = planStream || results.marketing_plan || "";
   const { seller: sellerFacing, internal: internalNotes } = splitPlan(planText);
 
+  // Parse the fenced JSON block emitted by Stage 5 under "## Structured unresolved items (JSON)".
+  const unresolvedItems: Array<{
+    claim: string;
+    source: string;
+    reason_unresolved: string;
+    what_would_confirm: string;
+    materiality: "high" | "medium" | "low" | string;
+    if_confirmed: string;
+  }> = (() => {
+    if (!internalNotes) return [];
+    const m = internalNotes.match(/```json\s*([\s\S]*?)```/i);
+    if (!m) return [];
+    try {
+      const parsed = JSON.parse(m[1]);
+      const arr = Array.isArray(parsed?.unresolved_items) ? parsed.unresolved_items : [];
+      return arr.filter((x: any) => x && typeof x.claim === "string");
+    } catch {
+      return [];
+    }
+  })();
+
   const stages = ["property_data", "photo_review", "document_facts", "area_research", "marketing_plan"];
   const status = existingJob?.status;
   const isRunning = existingJob && status !== "complete" && status !== "failed";
