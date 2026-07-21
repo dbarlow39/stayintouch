@@ -633,6 +633,15 @@ export default function MarketingPlanTab({ lead }: { lead: any }) {
         </Card>
       )}
 
+      {/* Unresolved items — agent action required */}
+      {existingJob && status === "complete" && unresolvedItems.length > 0 && (
+        <UnresolvedChecklist
+          items={unresolvedItems}
+          disabled={tweaking}
+          onSubmit={submitAgentConfirmations}
+        />
+      )}
+
       {/* Tweak / revise panel */}
       {existingJob && status === "complete" && results.marketing_plan && (
         <Card>
