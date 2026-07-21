@@ -63,6 +63,7 @@ export default function MarketingPlanTab({ lead }: { lead: any }) {
   const [targetDate, setTargetDate] = useState<string>("");
   const [unusualNotes, setUnusualNotes] = useState<string>("");
   const [mlsPaste, setMlsPaste] = useState<string>("");
+  const [agentNotes, setAgentNotes] = useState<string>("");
   const [pendingDocs, setPendingDocs] = useState<UploadedDoc[]>([]);
   const [uploading, setUploading] = useState(false);
   const [starting, setStarting] = useState(false);
@@ -205,6 +206,7 @@ export default function MarketingPlanTab({ lead }: { lead: any }) {
           target_on_market_date: targetDate || null,
           unusual_notes: unusualNotes || null,
           mls_paste: mlsPaste || null,
+          agent_notes: agentNotes || null,
           documents: pendingDocs.map((d) => ({
             storage_path: d.storage_path,
             doc_type: d.doc_type,
@@ -461,6 +463,15 @@ export default function MarketingPlanTab({ lead }: { lead: any }) {
               <Label>Paste MLS data (optional but recommended)</Label>
               <Textarea rows={6} value={mlsPaste} onChange={(e) => setMlsPaste(e.target.value)}
                 placeholder="Paste the full MLS sheet if available — this overrides Estated for sqft, year built, beds/baths, taxes." />
+            </div>
+
+            <div>
+              <Label>Additional agent context (optional)</Label>
+              <p className="text-xs text-muted-foreground mb-1">
+                Anything you know from talking to the seller or driving the property that isn't in a document — recent updates, neighbor history, buyer-attractive quirks, HOA verbal rules, etc. The plan will use these as agent assertions and list every one under "Agent-supplied, not documented" in the internal verification section.
+              </p>
+              <Textarea rows={4} value={agentNotes} onChange={(e) => setAgentNotes(e.target.value)}
+                placeholder="e.g. Homeowner says the lot backs to a wooded common area; furnace replaced 2022 per homeowner (no receipt yet); HOA verbally allows short-term rentals under 30 days." />
             </div>
 
             <div className="border rounded-md p-4 space-y-3">
