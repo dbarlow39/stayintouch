@@ -734,3 +734,113 @@ export default function MarketingPlanTab({ lead }: { lead: any }) {
     </div>
   );
 }
+
+type UnresolvedItem = {
+  claim: string;
+  source: string;
+  reason_unresolved: string;
+  what_would_confirm: string;
+  materiality: string;
+  if_confirmed: string;
+};
+
+function UnresolvedChecklist({
+  items,
+  disabled,
+  onSubmit,
+}: {
+  items: UnresolvedItem[];
+  disabled: boolean;
+  onSubmit: (items: Array<{ claim: string; source: string; action: "confirmed" | "rejected"; agent_note?: string }>) => void;
+}) {
+  const [decisions, setDecisions] = useState<Record<number, "confirmed" | "rejected" | "">>({});
+  const [notes, setNotes] = useState<Record<number, string>>({});
+
+  const materialityColor = (m: string) => {
+    const v = (m || "").toLowerCase();
+    if (v === "high") return "bg-red-500/15 text-red-700 border-red-500/40";
+    if (v === "medium") return "bg-amber-500/15 text-amber-700 border-amber-500/40";
+    return "bg-slate-500/15 text-slate-700 border-slate-500/40";
+  };
+
+  const pending = Object.values(decisions).filter((v) => v === "confirmed" || v === "rejected").length;
+
+  return (
+    <Card className="border-amber-500/40">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-base text-amber-700">
+          <AlertTriangle className="w-4 h-4" /> Unresolved — Agent Action Required
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <p className="text-sm text-muted-foreground">
+          The AI found claims in the evidence that could help this listing but weren't stated in the plan because they looked unverified or conflicting. Confirm or reject each item; confirmed items will be woven into the plan, rejected items will be scrubbed.
+        </p>
+        {items.map((it, i) => (
+          <div key={i} className="border rounded-md p-3 space-y-2">
+            <div className="flex items-start justify-between gap-2">
+              <p className="text-sm font-medium">{it.claim}</p>
+              <span className={`text-xs px-2 py-0.5 rounded border ${materialityColor(it.materiality)}`}>
+                {(it.materiality || "").toString() || "—"}
+              </span>
+            </div>
+            <div className="text-xs text-muted-foreground space-y-1">
+              <div><span className="font-semibold">Source:</span> {it.source}</div>
+              <div><span className="font-semibold">Why unresolved:</span> {it.reason_unresolved}</div>
+              <div><span className="font-semibold">Would confirm:</span> {it.what_would_confirm}</div>
+              <div><span className="font-semibold">If confirmed:</span> {it.if_confirmed}</div>
+            </div>
+            <div className="flex flex-wrap items-center gap-2 pt-1">
+              <Button
+                size="sm"
+                variant={decisions[i] === "confirmed" ? "default" : "outline"}
+                onClick={() => setDecisions((d) => ({ ...d, [i]: d[i] === "confirmed" ? "" : "confirmed" }))}
+                disabled={disabled}
+              >
+                Confirm
+              </Button>
+              <Button
+                size="sm"
+                variant={decisions[i] === "rejected" ? "destructive" : "outline"}
+                onClick={() => setDecisions((d) => ({ ...d, [i]: d[i] === "rejected" ? "" : "rejected" }))}
+                disabled={disabled}
+              >
+                Reject
+              </Button>
+              <Input
+                className="flex-1 min-w-[200px] h-9"
+                placeholder="Optional note (e.g. 'seller emailed receipt on 3/12')"
+                value={notes[i] || ""}
+                onChange={(e) => setNotes((n) => ({ ...n, [i]: e.target.value }))}
+                disabled={disabled}
+              />
+            </div>
+          </div>
+        ))}
+        <div className="flex justify-end">
+          <Button
+            disabled={disabled || pending === 0}
+            onClick={() => {
+              const payload = items
+                .map((it, i) => {
+                  const action = decisions[i];
+                  if (action !== "confirmed" && action !== "rejected") return null;
+                  return {
+                    claim: it.claim,
+                    source: it.source,
+                    action,
+                    agent_note: (notes[i] || "").trim() || undefined,
+                  };
+                })
+                .filter((x): x is NonNullable<typeof x> => !!x);
+              if (payload.length > 0) onSubmit(payload);
+            }}
+          >
+            {disabled ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Wand2 className="w-4 h-4 mr-2" />}
+            Apply {pending || ""} decision{pending === 1 ? "" : "s"}
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
