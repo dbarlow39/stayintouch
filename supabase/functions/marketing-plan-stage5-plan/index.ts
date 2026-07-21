@@ -224,7 +224,7 @@ async function runPlan(jobId: string, userId: string) {
 
     const { data: job } = await db
       .from("marketing_plan_jobs")
-      .select("id, seller_lead_id, user_id, list_price, target_on_market_date, unusual_notes, mls_paste")
+      .select("id, seller_lead_id, user_id, list_price, target_on_market_date, unusual_notes, mls_paste, agent_notes")
       .eq("id", jobId)
       .single();
     if (!job || job.user_id !== userId) throw new Error("job not found or unauthorized");
@@ -289,7 +289,7 @@ ${job.mls_paste || "(none pasted)"}
 - Name: ${agentName}
 - Phone: ${agentPhone || "(missing)"}
 - Email: ${agentEmail || "(missing)"}
-${missingEmail ? "- WARNING: agent business email missing — omit the email from the contact line entirely.\n" : ""}${missingPhone ? "- WARNING: agent cell phone missing — omit the phone from the contact line entirely.\n" : ""}
+${missingEmail ? "- WARNING: agent business email missing — omit the email from the contact line entirely.\n" : ""}${missingPhone ? "- WARNING: agent cell phone missing — omit the phone from the contact line entirely.\n" : ""}${(job.agent_notes || "").trim() ? `\n# Agent-supplied context (not documented)\nThe following came from the listing agent, not from a document. Treat these as agent assertions. They may be used in the plan, but every fact drawn from this block must be listed in the verification section under "## Agent-supplied, not documented." Agent context outranks a spoken homeowner claim but does not outrank a document.\n\n${(job.agent_notes as string).trim()}\n` : ""}
 # Stage 1 — Property Data
 ${byStage.property_data || "(not available)"}
 
