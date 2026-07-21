@@ -226,7 +226,7 @@ function joinContinuation(a: string, b: string): string {
   return `${a}\n\n${b}`;
 }
 
-async function runPlan(jobId: string, userId: string) {
+async function runPlan(jobId: string, userId: string, agentConfirmations?: any[] | null) {
   const db = serviceClient();
   try {
     await markStage(db, jobId, "marketing_plan", "running");
@@ -288,6 +288,51 @@ async function runPlan(jobId: string, userId: string) {
 
     const missingEmail = agentEmail === "";
     const missingPhone = agentPhone === "";
+
+    // Build the Agent Confirmations block from the resolved conflicts checklist.
+    // Confirmed items become established facts (verbatim value if provided).
+    // Rejected items — including "does not exist" candidates — must be scrubbed.
+    const DOES_NOT_EXIST_RE = /does not exist|\bno\s+[a-z][a-z\s]*\/\s*does not exist/i;
+    let agentConfirmationsBlock = "";
+    if (Array.isArray(agentConfirmations) && agentConfirmations.length > 0) {
+      const normalized = agentConfirmations.map((c: any) => {
+        const resolved = typeof c?.resolved_value === "string" ? c.resolved_value.trim() : "";
+        if (c?.action === "confirmed" && resolved && DOES_NOT_EXIST_RE.test(resolved)) {
+          return { ...c, action: "rejected", resolved_value: resolved, _denied_existence: true };
+        }
+        return { ...c, resolved_value: resolved || undefined };
+      });
+      const confirmed = normalized.filter((c: any) => c?.action === "confirmed");
+      const rejected = normalized.filter((c: any) => c?.action === "rejected");
+      const parts: string[] = ["# Agent confirmations (established facts — apply to the seller-facing plan)"];
+      if (confirmed.length > 0) {
+        parts.push("");
+        parts.push("CONFIRMED (treat as established facts. Incorporate into the seller-facing plan verbatim. Remove any hedging or objection language these facts refute. List each under the internal heading \"## Agent-confirmed\"):");
+        for (const c of confirmed) {
+          parts.push(`- Claim: ${String(c.claim || "").trim()}`);
+          parts.push(`  Source: ${String(c.source || "").trim()}`);
+          if (c.resolved_value) {
+            parts.push(`  Confirmed value (USE THIS EXACT FIGURE VERBATIM — do not hedge, do not qualify, do not present alternatives): ${c.resolved_value}`);
+          }
+          if (c.agent_note && String(c.agent_note).trim()) parts.push(`  Agent note: ${String(c.agent_note).trim()}`);
+          parts.push(`  Confirmed at: ${String(c.confirmed_at || new Date().toISOString())}`);
+        }
+      }
+      if (rejected.length > 0) {
+        parts.push("");
+        parts.push("REJECTED (agent has explicitly refuted these. They MUST NOT appear anywhere in the seller-facing plan. For items marked \"denied existence,\" the thing itself does not exist for this property — scrub every reference, including fee figures, amenities, rules, or objections that assume it exists):");
+        for (const c of rejected) {
+          parts.push(`- Claim: ${String(c.claim || "").trim()}`);
+          parts.push(`  Source: ${String(c.source || "").trim()}`);
+          if (c._denied_existence) parts.push(`  Denied existence: yes (agent selected "${c.resolved_value}")`);
+          if (c.agent_note && String(c.agent_note).trim()) parts.push(`  Agent note: ${String(c.agent_note).trim()}`);
+        }
+      }
+      parts.push("");
+      parts.push("When emitting the structured unresolved_items JSON block, OMIT any item whose claim matches a confirmed or rejected entry above.");
+      agentConfirmationsBlock = parts.join("\n") + "\n\n";
+    }
+
 
     const userMsg = `# Seller Lead
 - Name: ${lead?.first_name || ""} ${lead?.last_name || ""}
