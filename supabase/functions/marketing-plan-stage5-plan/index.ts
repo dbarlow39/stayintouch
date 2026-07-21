@@ -74,8 +74,11 @@ For every heading you produce in the seller-facing plan, list the heading follow
 ## Equipment claims audit
 List every sentence in the seller-facing plan that names a mechanical system, appliance, brand, model, replacement year, or warranty. For each, quote the exact document line or MLS field that establishes it. If the source is a photo inference rather than a document, mark it "PHOTO ONLY - remove brand/model/date claim." If the documents say an item is NOT present (for example, "no humidifier"), confirm the plan does not claim it exists. Any unsourced claim is a defect and must be removed before finalizing.
 
+## Lot evidence located
+Per Rule 11, before writing any objection about lot size, privacy, neighbor proximity, backyard, sight lines, or yard space, list every verbatim statement from the evidence about the lot, backyard, privacy, what the property backs to, tree lines, fencing, setback, or acreage. One bullet per quote with its source. If none exist, write "None found in evidence." This heading MUST appear even if you choose not to raise a lot/privacy objection at all.
+
 ## Objection offsets audit
-List every objection you raised in the "handle the cons honestly" section. For each, scan the Document Facts, MLS Data, and Photo Review for advantages that offset it (lot depth, tree line, setback, fence line, view, recent replacement, warranty coverage, etc.) and quote the specific evidence. If an offsetting fact exists in the evidence and your objection response does not cite it, that response is a defect and must be rewritten before finalizing.
+List every objection you raised in the "handle the cons honestly" section. For each, quote the specific offsetting evidence you cited (lot depth, tree line, setback, fence line, view, recent replacement, warranty coverage, amenities-included, etc.). For any lot/privacy objection, cross-reference the entries in "Lot evidence located" above and confirm the response quotes at least one of them. If an offsetting fact exists in the evidence and your objection response does not cite it, that response is a defect and must be rewritten before finalizing.
 
 ## Evidence completeness check
 For each item below, write "included" (and where), "not in evidence", or "in evidence but omitted, reason: ...": school district by name, square footage, year built, mechanical replacement dates (furnace, AC, roof, water heater), lot characteristics (backs to trees/field/other homes, corner, cul-de-sac, acreage), documented improvements with year. Anything in evidence but omitted without a stated reason is a defect that must be fixed before finalizing.
@@ -116,8 +119,10 @@ NON-NEGOTIABLE RULES
 8. ANTI-BOILERPLATE TEST. Before finalizing, read every sentence in every marketing section and ask: could this sentence appear unchanged in a marketing plan for a different house? If yes, rewrite it with something specific to THIS property, THIS buyer, or THIS neighborhood, or cut it. This rule applies to every section, not just the description of the home. Describing what the brokerage does in general is filler. State what will be done for THIS listing and why it fits THIS buyer. A subsection that only describes a channel's general capability is a failure and must be rewritten.
 9. PRICING SECTION IS STRATEGY ONLY. The list price is an input supplied by the agent. NEVER derive it, justify it, or state anything that conflicts with it. Do NOT cite comparable sale prices anywhere in this document (no comps, no ranges like "similar homes sold for $X to $Y"). The Pricing Strategy section is two to four sentences on strategy only: where the price sits relative to buyer search thresholds and psychological price breaks, how showing activity and feedback will be monitored, and what would trigger a price conversation. Nothing else.
 10. EQUIPMENT AND SYSTEMS. Before writing any sentence about a mechanical system, appliance, brand, model, replacement date, or warranty status, re-check the Document Facts and MLS Data blocks. If the documents identify a specific brand, model, or date, use that. If the documents contradict a common assumption (for example, a whole-home humidifier attached to the furnace when a listing sheet mentions "no humidifier"), the documents win and the plan must reflect what the documents establish. Never invent a brand, a model, or a replacement year.
-11. OBJECTION HANDLERS MUST USE THE EVIDENCE — EXPLICIT TRIGGER. Before writing any objection about lot size, privacy, neighbor proximity, backyard, sight lines, or "homes feel close," you MUST first scan the Document Facts, Market Analysis, MLS Data, and Photo Review for any statement about what the lot backs to (trees, field, common area, no homes directly behind), tree lines, fence lines, setback depth, or explicit privacy language. If ANY such statement exists in the evidence, the objection response MUST quote or cite that offsetting fact by name. If the evidence establishes that the home does not back to other homes, you MUST convert that from an objection into a stated selling point rather than raising it as a con at all. The same explicit-scan requirement applies before raising any objection about taxes (search for millage/school-district-value offsets), HOA cost (search for amenities/maintenance-included offsets), or an older mechanical system (search for replacement year documentation). An objection response that ignores an offsetting fact the evidence already establishes is a defect that must be rewritten before the "Objection offsets audit" is completed.
+11. OBJECTION HANDLERS — FORCED EVIDENCE RETRIEVAL FOR LOT AND PRIVACY. Before writing any objection about lot size, privacy, neighbor proximity, backyard, sight lines, yard space, or "homes feel close," you MUST first locate and quote verbatim every statement in the Document Facts, Market Analysis, MLS Data, Photo Review, and homeowner transcript that mentions the lot, the backyard, privacy, sight lines, what the property backs to (trees, field, common area, no homes directly behind), tree lines, fencing, setback, or acreage. Write those quotes into your internal verification section under a heading called "## Lot evidence located" — one bullet per quote, each labeled with its source (e.g., "Document Facts: '...'", "MLS paste: '...'", "Photo Review: '...'"). If no such statements exist in any evidence source, write "## Lot evidence located" followed by "None found in evidence." Only after writing that heading and its contents may you write the objection and its answer. The answer MUST incorporate what those quotes establish. If the evidence states the property does not back to other homes (or backs to trees, a field, common area, a tree line, etc.), that fact MUST appear in the answer, AND you MUST convert it from an objection into a stated selling point in the plan rather than raising it as a con at all. The same forced-retrieval procedure applies before raising any objection about taxes (locate and quote every millage / school-district-value / assessment statement), HOA cost (locate and quote every amenity / maintenance-included / community-benefit statement), or an older mechanical system (locate and quote every replacement year, warranty, or condition statement). An objection response that ignores an offsetting fact the evidence establishes is a defect and must be rewritten before finalizing.
 12. SCHOOL ASSIGNMENTS - HEDGE THE BUILDINGS, NOT THE DISTRICT. Name the school district confidently when the evidence establishes it. When naming specific school buildings (elementary, middle, high school) that came from Stage 4 area research or other web-sourced material, present them as "currently assigned to [Building Name], please confirm current assignments with the district" rather than as settled fact. Do not drop the building names - buyers want them - but mark them as confirmable. In the internal verification section, add a line noting that specific building assignments were web-sourced and should be verified against the current district boundary map before the listing goes live.
+13. LABELED DEMOGRAPHIC FIGURES ARE PRESERVED. Stage 4 area research labels every demographic figure with its exact geography and period (e.g., "ZIP 43016, ACS 2020-2024" or "City of Dublin, Census 2020"). When you present demographic evidence in the seller-facing plan, INCLUDE these figures with their labels intact, even when the Census-designated place name for a ZIP differs from the mailing city (a common Central Ohio pattern — Dublin mailing addresses that Census reports under Hilliard, Powell addresses under Liberty Township, etc.). Do NOT drop labeled ZIP-scoped figures because they do not match the mailing city; explain the naming difference in a single sentence and keep the figure. Empty demographic sections when Stage 4 supplied labeled numbers is a defect.
+14. TIMELINE ORDER AND UNITS. The execution list / timeline MUST be emitted in strict chronological order (earliest first) and MUST use ONE consistent unit throughout — either days or weeks, not both. Do not mix "Day 3", "Week 1", "Day 21" in the same list. Pick the unit that reads most naturally for the length of the plan and use it for every entry. If a valid Target On-Market Date is supplied, anchor Day 0 (or Week 0) to that date, otherwise use relative units only.
 
 STAGE 5 TASK
 
@@ -134,7 +139,7 @@ Then work through all of the following, in whatever section order and under what
 5. Explain, channel by channel, how we will reach the buyer described above. For each channel — professional photography and video, MLS and syndication, social media and digital advertising, email and agent network, print and direct mail — state who we are reaching, why that channel reaches them, and what specifically we will do for THIS listing. For social media and digital advertising, state plainly that real estate ads run under Meta's Housing Special Ad Category, so targeting is done through creative and geography rather than demographics.
 6. Include a farming plan specific to THIS listing: name the surrounding neighborhoods, subdivisions, or communities where the likely buyer lives now, and state what we will mail, post, or door-knock to reach them. Be geographically specific with real place names from the evidence and Stage 4 research.
 7. List specific short video and social content concepts for THIS listing, each tied to a feature of the home or to a buyer objection above. Not a generic content menu.
-8. Give the homeowner a concrete execution list of what happens next and when. If Form Inputs says "Target On-Market Date: (omitted - invalid or past)" you MUST NOT invent or print a specific calendar date; use relative days and weeks only ("Day 0: Preparation", "Week 1: Launch", "Day 21: Showing activity and feedback review — decision point", etc.). If a valid target date IS provided, anchor Day 0 to that date and state actual calendar dates for each milestone. Include a room-by-room preparation list specific to what the walkthrough photos actually show.
+8. Give the homeowner a concrete execution list of what happens next and when. Per Rule 14, the list MUST be in strict chronological order (earliest first) and MUST use ONE consistent unit throughout — either days or weeks, never mixed. If Form Inputs says "Target On-Market Date: (omitted - invalid or past)" you MUST NOT invent or print a specific calendar date; use relative units only (e.g., all "Day 0", "Day 7", "Day 21" OR all "Week 0", "Week 1", "Week 3", never both in the same list). If a valid target date IS provided, anchor Day 0 (or Week 0) to that date and state actual calendar dates for each milestone in chronological order. Include a room-by-room preparation list specific to what the walkthrough photos actually show.
 9. Include a Pricing Strategy passage of two to four sentences, strategy only per rule 9 above — where the price sits relative to buyer search thresholds and psychological price breaks, how showing activity and feedback will be monitored, and what would trigger a price conversation. No comps, no ranges, no justification of the number.
 
 Somewhere in the marketing plan you MUST also include the following verbatim brokerage copy blocks, each under an appropriate heading you choose. Do not paraphrase them.
@@ -182,6 +187,17 @@ function isValidFutureDate(s: string | null | undefined): boolean {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   return d.getTime() >= today.getTime();
+}
+
+// Safe concatenator: guarantees whitespace between the primary output and its
+// continuation chunk so mid-word merges like "friendsare" cannot happen.
+function joinContinuation(a: string, b: string): string {
+  if (!a) return b || "";
+  if (!b) return a;
+  const endsClean = /[\s\n]$/.test(a);
+  const startsClean = /^[\s\n]/.test(b);
+  if (endsClean || startsClean) return `${a}${b}`;
+  return `${a}\n\n${b}`;
 }
 
 async function runPlan(jobId: string, userId: string) {
@@ -347,18 +363,18 @@ Now produce the two sections in the required order: begin with "---VERIFICATION-
           ],
         },
         async (partial) => {
-          await saveStageResult(db, jobId, "marketing_plan", first.text + partial);
+          await saveStageResult(db, jobId, "marketing_plan", joinContinuation(first.text, partial));
           await db
             .from("marketing_plan_jobs")
             .update({ updated_at: new Date().toISOString() })
             .eq("id", jobId);
         },
         async (full) => {
-          await saveStageResult(db, jobId, "marketing_plan", first.text + full);
+          await saveStageResult(db, jobId, "marketing_plan", joinContinuation(first.text, full));
         },
         2000,
       );
-      finalText = first.text + cont.text;
+      finalText = joinContinuation(first.text, cont.text);
       finalStop = cont.stop_reason;
       totalRetries += cont.retries;
 

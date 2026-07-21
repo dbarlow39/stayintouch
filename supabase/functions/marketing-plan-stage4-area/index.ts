@@ -56,11 +56,18 @@ async function dispatch(jobId: string) {
       .single();
     if (!job) throw new Error("job not found");
 
-    const { data: lead } = await db
+    // NOTE: `subdivision` is NOT a column on public.leads. Selecting it here
+    // caused this query to error out and return null, which propagated a
+    // completely blank address/city/ZIP down to every Stage 4 worker. Pull the
+    // subdivision (if any) from the Stage 3 Neighborhood Snapshot instead.
+    const { data: lead, error: leadErr } = await db
       .from("leads")
-      .select("address, city, state, zip, subdivision")
+      .select("address, city, state, zip")
       .eq("id", job.seller_lead_id)
       .single();
+    if (leadErr) {
+      console.error("stage4 dispatcher: leads select failed:", leadErr);
+    }
 
     const { data: docRes } = await db
       .from("marketing_plan_results")
@@ -71,14 +78,24 @@ async function dispatch(jobId: string) {
 
     const snapshot = extractSnapshot(docRes?.content);
 
+    // Try to pull a subdivision line out of the snapshot for the worker context.
+    const subFromSnap = (() => {
+      const m = snapshot.match(/subdivision\s*[:\-]\s*([^\n]+)/i);
+      return m ? m[1].trim() : "";
+    })();
+
     const context = {
       address: (lead as any)?.address || "",
       city: (lead as any)?.city || "",
       state: (lead as any)?.state || "",
       zip: (lead as any)?.zip || "",
-      subdivision: (lead as any)?.subdivision || "",
+      subdivision: subFromSnap,
       snapshot,
     };
+
+    console.log(
+      `stage4 dispatcher context jobId=${jobId} addr="${context.address}" city="${context.city}" zip="${context.zip}" subdivision="${context.subdivision}"`,
+    );
 
     // Reset counter, record expected count.
     await db
