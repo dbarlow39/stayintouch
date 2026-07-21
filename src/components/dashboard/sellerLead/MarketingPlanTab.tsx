@@ -156,6 +156,10 @@ export default function MarketingPlanTab({ lead }: { lead: any }) {
       setExistingJob(data);
       await loadResults(data.id);
 
+      // Legacy safety net for old jobs that were queued before the conflicts
+      // pass existed. New flow: workers advance to `marketing-plan-conflicts`
+      // which sets status="awaiting_agent" — the UI shows the checklist and
+      // the agent fires Stage 5 manually via buttons below.
       if (data.status === "ready_for_plan" && !stage5Fired.current) {
         stage5Fired.current = true;
         void runStage5(data.id);
@@ -272,15 +276,15 @@ export default function MarketingPlanTab({ lead }: { lead: any }) {
   }
 
   // ---------- Stage 5 kickoff (backgrounded server-side; UI polls results) ----------
-  async function runStage5(jobId: string) {
+  async function runStage5(jobId: string, confirmations?: any[]) {
     setStreamingPlan(true);
     try {
-      const { error } = await supabase.functions.invoke("marketing-plan-stage5-plan", {
-        body: { jobId },
-      });
+      const body: any = { jobId };
+      if (confirmations) body.agent_confirmations = confirmations;
+      const { error } = await supabase.functions.invoke("marketing-plan-stage5-plan", { body });
       if (error) throw error;
-      // Polling loop (already running) will pick up partial writes to
-      // marketing_plan_results every ~2s and stream them into the UI.
+      // Optimistically flip status locally so awaiting_agent panel hides.
+      setExistingJob((j: any) => (j ? { ...j, status: "running", current_stage: "marketing_plan" } : j));
     } catch (err: any) {
       toast({ title: "Plan generation failed to start", description: err.message, variant: "destructive" });
     } finally {
@@ -651,7 +655,8 @@ export default function MarketingPlanTab({ lead }: { lead: any }) {
               const areaDone = topics.every((t) => !!results[`area_${t}`]);
               const missing = stages.filter((s) => s === "area_research" ? !areaDone && !results[s] : !results[s]);
               const stale = existingJob.updated_at
-                && (Date.now() - new Date(existingJob.updated_at).getTime()) > 3 * 60 * 1000;
+                && (Date.now() - new Date(existingJob.updated_at).getTime()) > 3 * 60 * 1000
+                && status !== "awaiting_agent";
               if (!isRunning || !stale || missing.length === 0) return null;
               return (
                 <div className="mt-3 p-2 rounded border border-amber-500/40 bg-amber-500/10 text-sm">
