@@ -164,6 +164,39 @@ export default function MarketingPlanTab({ lead }: { lead: any }) {
     return () => clearInterval(timer);
   }, [existingJob?.id, existingJob?.status]);
 
+  // ---------- Polling for tweak status ----------
+  // The pipeline may be `complete` but a tweak can still be running in the
+  // background. Poll independently so the UI reflects tweak progress.
+  useEffect(() => {
+    if (!existingJob?.id) return;
+    if (tweakStatus !== "running") return;
+    const timer = setInterval(async () => {
+      const { data } = await supabase
+        .from("marketing_plan_jobs")
+        .select("*")
+        .eq("id", existingJob.id)
+        .single();
+      if (!data) return;
+      const prev = tweakStatus;
+      setExistingJob(data);
+      if (prev === "running" && data.tweak_status === "complete") {
+        await loadResults(existingJob.id);
+        setTweakInstruction("");
+        setLastTweakPayload(null);
+        setTweakSuccessSignal((n) => n + 1);
+        toast({ title: "Plan updated", description: "Your changes were applied." });
+      } else if (prev === "running" && data.tweak_status === "failed") {
+        toast({
+          title: "Tweak failed",
+          description: data.tweak_error || "The plan was not changed. Your selections were preserved.",
+          variant: "destructive",
+        });
+      }
+    }, 3000);
+    return () => clearInterval(timer);
+  }, [existingJob?.id, tweakStatus]);
+
+
   // ---------- Upload ----------
   async function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files || []);
