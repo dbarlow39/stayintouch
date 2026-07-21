@@ -812,14 +812,26 @@ type UnresolvedItem = {
 function UnresolvedChecklist({
   items,
   disabled,
+  resetSignal,
   onSubmit,
 }: {
   items: UnresolvedItem[];
   disabled: boolean;
+  resetSignal: number;
   onSubmit: (items: Array<{ claim: string; source: string; action: "confirmed" | "rejected"; agent_note?: string }>) => void;
 }) {
   const [decisions, setDecisions] = useState<Record<number, "confirmed" | "rejected" | "">>({});
   const [notes, setNotes] = useState<Record<number, string>>({});
+
+  // Clear decisions ONLY after a successful tweak (parent bumps resetSignal).
+  // Failures leave the agent's selections intact for retry.
+  useEffect(() => {
+    if (resetSignal > 0) {
+      setDecisions({});
+      setNotes({});
+    }
+  }, [resetSignal]);
+
 
   const materialityColor = (m: string) => {
     const v = (m || "").toLowerCase();
