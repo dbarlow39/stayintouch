@@ -16,7 +16,8 @@ export const AREA_STAGE_KEYS = AREA_TOPICS.map((t) => `area_${t}`);
 // Stage 4 dispatcher runs once Stage 1 and Stage 3 have written their rows.
 export const STAGE4_REQUIRED = ["property_data", "document_facts"];
 
-// Stage 5 runs once Stages 1, 2, 3 AND all seven area_* workers have written rows.
+// After all evidence is in, the CONFLICTS detector runs (agent checklist).
+// Same required rows as Stage 5 used to gate on — Stage 5 no longer auto-runs.
 export const STAGE5_REQUIRED = [
   "property_data",
   "photo_review",
@@ -36,5 +37,6 @@ export const STAGE_LABELS: Record<string, string> = {
   area_community: "Area research: Community",
   area_demographics: "Area research: Demographics",
   area_market: "Area research: Market",
+  conflicts: "Conflict detection (agent review)",
   marketing_plan: "Marketing plan",
 };
