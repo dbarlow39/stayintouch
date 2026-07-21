@@ -189,6 +189,17 @@ function isValidFutureDate(s: string | null | undefined): boolean {
   return d.getTime() >= today.getTime();
 }
 
+// Safe concatenator: guarantees whitespace between the primary output and its
+// continuation chunk so mid-word merges like "friendsare" cannot happen.
+function joinContinuation(a: string, b: string): string {
+  if (!a) return b || "";
+  if (!b) return a;
+  const endsClean = /[\s\n]$/.test(a);
+  const startsClean = /^[\s\n]/.test(b);
+  if (endsClean || startsClean) return `${a}${b}`;
+  return `${a}\n\n${b}`;
+}
+
 async function runPlan(jobId: string, userId: string) {
   const db = serviceClient();
   try {
