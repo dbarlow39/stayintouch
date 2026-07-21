@@ -704,6 +704,42 @@ export default function MarketingPlanTab({ lead }: { lead: any }) {
         </Card>
       )}
 
+      {/* PRE-PLAN checklist — visible when evidence is in but Stage 5 hasn't run.
+          The agent resolves conflicts here so Stage 5 generates the FINAL plan
+          in one shot. "Generate anyway" skips the checklist. */}
+      {existingJob && status === "awaiting_agent" && (
+        <Card className="border-primary/40">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <AlertTriangle className="w-4 h-4 text-primary" /> Review before generating the plan
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              The AI finished gathering evidence. Before writing the plan, it flagged the items below where the sources conflict or a claim isn't verified. Confirm or reject each item, then generate the plan — you'll get one final document, not a draft plus a fix-up. Or skip and generate now with the AI's best guess.
+            </p>
+            {preConflictItems.length > 0 ? (
+              <UnresolvedChecklist
+                items={preConflictItems}
+                disabled={streamingPlan}
+                resetSignal={0}
+                onSubmit={submitPreConflicts}
+                submitLabel="Generate plan with my answers"
+              />
+            ) : (
+              <p className="text-sm">No conflicts to resolve. Click below to generate the plan.</p>
+            )}
+            <div className="flex justify-end">
+              <Button variant="outline" onClick={generateAnyway} disabled={streamingPlan}>
+                {streamingPlan ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Play className="w-4 h-4 mr-2" />}
+                Generate anyway (skip these questions)
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+
       {/* Tweak status banner — visible during background revision, and after failure */}
       {existingJob && status === "complete" && tweakStatus === "running" && (
         <div className="rounded-md border border-blue-500/40 bg-blue-500/10 p-3 text-sm flex items-center gap-2 text-blue-800">
