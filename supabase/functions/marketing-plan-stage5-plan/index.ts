@@ -59,8 +59,9 @@ Any place the property record, MLS paste, HOA docs, photo review, or seller note
 - If neither is missing, write: "Agent contact info complete."
 
 ## Timeline warnings
-- If the Target On-Market Date the agent entered is in the past or invalid, write: "INVALID TARGET DATE: [what they entered] - omitted from the seller plan; timeline uses relative weeks instead."
+- If the Target On-Market Date the agent entered is in the past or invalid (compared against the Generation Date supplied in the user message, which is calculated in America/New_York), write: "INVALID TARGET DATE: [what they entered] - omitted from the seller plan; timeline uses relative weeks instead."
 - Otherwise write: "Target on-market date valid."
+- After you draft the execution list, re-read every milestone. NO milestone (absolute calendar date or relative Day/Week anchor) may resolve to a date earlier than the Generation Date supplied in the user message. If the runway between the Generation Date and the Target On-Market Date is too short for the preparation steps you had planned, either (a) compress the preparation steps so every milestone falls on or after the Generation Date, or (b) switch the entire list to relative units (Day 0, Day 7, ...) anchored to the Generation Date. For each milestone list the calendar date you chose (or the relative anchor) and confirm "on or after generation date: yes". If any milestone is earlier than the Generation Date, that is a defect and the list must be rewritten before finalizing.
 
 ## Left out on purpose
 Anything you deliberately did not put in the seller plan and why.
@@ -96,7 +97,7 @@ List every fact that was promoted into the seller-facing plan via the agent conf
 Fair Housing, age-restriction wording, community-vs-private amenities, anything else.
 
 ## Structured unresolved items (JSON)
-At the very end of this verification section, after every other heading above and before the "---PLAN---" delimiter, emit a fenced JSON code block (\`\`\`json ... \`\`\`) containing exactly one object with a single key "unresolved_items" that is an array. Each array entry MUST have exactly these keys: "claim" (string, the factual claim in one sentence), "source" (string, which evidence source it came from), "reason_unresolved" (string, why you did not state it in the plan), "what_would_confirm" (string, the specific check that would settle it), "materiality" (string, one of "high", "medium", "low"), and "if_confirmed" (string, what changes in the plan if this is confirmed true). If there are no unresolved items, emit an empty array. NEVER omit the JSON block. Do not add commentary before or after it. The UI reads the checklist from this block only; the "## Unresolved, agent action required" markdown heading above is for the human agent to read.
+At the very end of this verification section, after every other heading above and before the "---PLAN---" delimiter, emit a fenced JSON code block (\`\`\`json ... \`\`\`) containing exactly one object with a single key "unresolved_items" that is an array. Each array entry MUST have exactly these keys: "claim" (string, the factual claim in one sentence), "source" (string, which evidence source it came from — for value conflicts, name the source you defaulted to or "conflicting" if there is no clear winner), "reason_unresolved" (string, why you did not state it in the plan), "what_would_confirm" (string, the specific check that would settle it), "materiality" (string, one of "high", "medium", "low"), "if_confirmed" (string, what changes in the plan if this is confirmed true), "conflict_type" (string, one of "existence" or "value" — use "existence" when the disagreement is whether the thing exists at all, use "value" when the sources agree the thing exists but disagree on a figure or attribute), and "candidate_values" (array). RULES FOR candidate_values: if conflict_type is "value", populate the array with one entry per distinct value observed across the evidence, each entry an object with exactly two keys "value" (string, the value as the source stated it) and "source" (string, which evidence source that value came from). If ANY source denies existence entirely (for example a Market Analysis JSON field like "HOA": "No", or a document that says "no humidifier"), you MUST include that denial as an explicit candidate with "value" set to a plain-English phrase such as "No HOA / does not exist" (or the equivalent for the item, e.g. "No humidifier / does not exist") and "source" set to the source that made the denial. If conflict_type is "existence", set candidate_values to an empty array. If there are no unresolved items overall, emit an empty unresolved_items array. NEVER omit the JSON block. Do not add commentary before or after it. The UI reads the checklist from this block only; the "## Unresolved, agent action required" markdown heading above is for the human agent to read.
 
 ======================================================================
 SELLER-FACING PLAN SECTION
@@ -134,7 +135,7 @@ NON-NEGOTIABLE RULES
 11. OBJECTION HANDLERS — FORCED EVIDENCE RETRIEVAL FOR LOT AND PRIVACY. Before writing any objection about lot size, privacy, neighbor proximity, backyard, sight lines, yard space, or "homes feel close," you MUST first locate and quote verbatim every statement in the Document Facts, Market Analysis, MLS Data, Photo Review, and homeowner transcript that mentions the lot, the backyard, privacy, sight lines, what the property backs to (trees, field, common area, no homes directly behind), tree lines, fencing, setback, or acreage. Write those quotes into your internal verification section under a heading called "## Lot evidence located" — one bullet per quote, each labeled with its source (e.g., "Document Facts: '...'", "MLS paste: '...'", "Photo Review: '...'"). If no such statements exist in any evidence source, write "## Lot evidence located" followed by "None found in evidence." Only after writing that heading and its contents may you write the objection and its answer. The answer MUST incorporate what those quotes establish. If the evidence states the property does not back to other homes (or backs to trees, a field, common area, a tree line, etc.), that fact MUST appear in the answer, AND you MUST convert it from an objection into a stated selling point in the plan rather than raising it as a con at all. The same forced-retrieval procedure applies before raising any objection about taxes (locate and quote every millage / school-district-value / assessment statement), HOA cost (locate and quote every amenity / maintenance-included / community-benefit statement), or an older mechanical system (locate and quote every replacement year, warranty, or condition statement). An objection response that ignores an offsetting fact the evidence establishes is a defect and must be rewritten before finalizing. Proximity on the sides of a lot and what a lot backs to at the rear are separate facts and do not contradict each other. A statement that neighboring homes are close by does NOT refute a statement that the property does not back to homes directly behind it. Only a direct observation of the rear lot line, such as a photo taken from the backyard showing houses across the rear boundary, or parcel or aerial data showing a structure on the adjacent rear parcel, can contradict a rear-adjacency claim. Never treat general subdivision-density observations as refuting a specific rear-adjacency statement. An objection that treats a general density observation as refuting a specific rear-adjacency statement is a defect and must be rewritten.
 12. SCHOOL ASSIGNMENTS. Name the school district confidently when the evidence establishes it. Do NOT name specific attendance buildings (elementary, middle, high school) unless (i) a district boundary tool result is present in Stage 4 area research matched to this exact address, or (ii) a document in the evidence names them. When neither condition is met, write instead: "For current elementary, middle, and high school assignments, use the [District Name] boundary locator at [district website URL if it appears in Stage 4 evidence, otherwise 'the district website']." Add a verification line under a heading of your choice in the internal section stating whether specific buildings were named in the seller-facing plan, and if so which evidence source established each one.
 13. LABELED DEMOGRAPHIC FIGURES ARE PRESERVED. Stage 4 area research labels every demographic figure with its exact geography and period (e.g., "ZIP 43016, ACS 2020-2024" or "City of Dublin, Census 2020"). When you present demographic evidence in the seller-facing plan, INCLUDE these figures with their labels intact, even when the Census-designated place name for a ZIP differs from the mailing city (a common Central Ohio pattern — Dublin mailing addresses that Census reports under Hilliard, Powell addresses under Liberty Township, etc.). Do NOT drop labeled ZIP-scoped figures because they do not match the mailing city; explain the naming difference in a single sentence and keep the figure. Empty demographic sections when Stage 4 supplied labeled numbers is a defect.
-14. TIMELINE ORDER AND UNITS. The execution list / timeline MUST be emitted in strict chronological order (earliest first) and MUST use ONE consistent unit throughout — either days or weeks, not both. Do not mix "Day 3", "Week 1", "Day 21" in the same list. Pick the unit that reads most naturally for the length of the plan and use it for every entry. If a valid Target On-Market Date is supplied, anchor Day 0 (or Week 0) to that date, otherwise use relative units only.
+14. TIMELINE ORDER, UNITS, AND FLOOR DATE. The execution list / timeline MUST be emitted in strict chronological order (earliest first) and MUST use ONE consistent unit throughout — either days or weeks, not both. Do not mix "Day 3", "Week 1", "Day 21" in the same list. Pick the unit that reads most naturally for the length of the plan and use it for every entry. NO milestone in the seller-facing plan may resolve to a date earlier than the Generation Date supplied in the user message (computed in America/New_York). If a valid Target On-Market Date is supplied, anchor Day 0 (or Week 0) to that date, otherwise use relative units only anchored to the Generation Date. If the runway between the Generation Date and the Target On-Market Date is insufficient to fit the preparation you had planned, either compress the preparation steps so every milestone lands on or after the Generation Date, or switch the entire list to relative units (Day 0, Day 7, ...) anchored to the Generation Date. Reconcile this against the "## Timeline warnings" verification block before finalizing.
 15. UNRESOLVED CONFLICTS ARE NEVER SILENTLY DROPPED. When the evidence contains a claim that would be a significant selling point, but you decline to state it because it is unverified or appears to conflict with other evidence, you must NOT silently omit it. Record it in the internal verification section under a heading "## Unresolved, agent action required," stating the claim, its source, what made you hesitate, and what would confirm it. Where the claim would materially change the marketing if true, say so plainly, for example: "If confirmed, this becomes a lead selling point and the lot objection should be removed." In addition to the human-readable heading, you must emit the same items as structured JSON per the schema described under "## Structured unresolved items (JSON)" above.
 
 STAGE 5 TASK
@@ -190,16 +191,28 @@ FOUR CONSTRAINTS
 3. Name real places. Schools by name, parks by name, neighborhoods and subdivisions by name, commute anchors by name. No generic praise.
 4. State demographic sources. Whenever you cite an income figure, home-value figure, appreciation rate, ownership rate, or demand signal, name where it came from (Stage 4 area research, Stage 1 property data, HOA documents, MLS paste) and the period it covers.`;
 
+// Central Ohio operates on America/New_York. Use that zone for ALL date
+// comparisons in this pipeline so an edge function running late in the evening
+// UTC does not report tomorrow's date and mis-classify same-day milestones.
+function todayInNY(): string {
+  // en-CA formats as YYYY-MM-DD.
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "America/New_York" }).format(new Date());
+}
+
 function isValidFutureDate(s: string | null | undefined): boolean {
   if (!s) return false;
   // Expect YYYY-MM-DD from the form input.
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s.trim());
   if (!m) return false;
-  const d = new Date(`${s}T12:00:00Z`);
-  if (isNaN(d.getTime())) return false;
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  return d.getTime() >= today.getTime();
+  const today = todayInNY(); // YYYY-MM-DD lexicographic compare is safe.
+  return s.trim() >= today;
+}
+
+function daysBetween(fromISO: string, toISO: string): number {
+  // Both YYYY-MM-DD; anchor at noon UTC to sidestep DST oddities.
+  const a = new Date(`${fromISO}T12:00:00Z`).getTime();
+  const b = new Date(`${toISO}T12:00:00Z`).getTime();
+  return Math.round((b - a) / 86400000);
 }
 
 // Safe concatenator: guarantees whitespace between the primary output and its
@@ -258,6 +271,8 @@ async function runPlan(jobId: string, userId: string) {
     // Target-date handling: pass the raw value ONLY if it's a valid, non-past date.
     // Otherwise pass a machine-readable "omitted" marker the prompt knows how to handle,
     // AND record the invalid input so the internal verification can call it out.
+    // All date math is anchored to America/New_York (Central Ohio) rather than UTC.
+    const generationDate = todayInNY();
     const rawTarget = job.target_on_market_date ?? null;
     const dateValid = isValidFutureDate(rawTarget);
     const targetDateLine = dateValid
@@ -266,6 +281,10 @@ async function runPlan(jobId: string, userId: string) {
     const invalidDateNote = rawTarget && !dateValid
       ? `The agent originally entered: ${rawTarget} (rejected as past or invalid — do not print this value anywhere)`
       : "";
+    const daysUntilTarget = dateValid ? daysBetween(generationDate, String(rawTarget)) : null;
+    const runwayLine = daysUntilTarget === null
+      ? "- Runway from Generation Date to Target On-Market Date: n/a (no valid target date; use relative units anchored to the Generation Date)"
+      : `- Runway from Generation Date to Target On-Market Date: ${daysUntilTarget} day(s). No milestone may fall earlier than the Generation Date. If this runway is too short, either compress the preparation or switch the whole list to relative units anchored to the Generation Date.`;
 
     const missingEmail = agentEmail === "";
     const missingPhone = agentPhone === "";
@@ -278,9 +297,12 @@ async function runPlan(jobId: string, userId: string) {
 - Year built (lead record): ${lead?.year_built || "?"}
 
 # Form Inputs
+- Generation Date (America/New_York, authoritative "today" for every date comparison in this plan): ${generationDate}
 - List Price: ${job.list_price ?? "not specified"}
 - Target On-Market Date: ${targetDateLine}
+${runwayLine}
 ${invalidDateNote ? `- Target Date Note: ${invalidDateNote}\n` : ""}- Anything Unusual: ${job.unusual_notes || "(none)"}
+
 
 # MLS Data (agent-pasted, HIGHEST PRECEDENCE for sqft, year built, beds/baths, taxes)
 ${job.mls_paste || "(none pasted)"}

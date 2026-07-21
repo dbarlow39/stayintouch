@@ -65,10 +65,23 @@ serve(async (req) => {
     }
 
     // Build the effective instruction from structured agent_confirmations or raw text.
+    // "does not exist" candidate rule: if a confirmed item's resolved_value looks like
+    // a denial-of-existence (e.g. "No HOA / does not exist"), treat that confirmation
+    // as a REJECTION — the claim gets scrubbed from the plan rather than stated with
+    // a figure. This matches the UI contract for value-type conflicts.
+    const DOES_NOT_EXIST_RE = /does not exist|\bno\s+[a-z][a-z\s]*\/\s*does not exist/i;
     let effectiveInstruction = "";
     if (agent_confirmations && agent_confirmations.length > 0) {
-      const confirmed = agent_confirmations.filter((c: any) => c?.action === "confirmed");
-      const rejected = agent_confirmations.filter((c: any) => c?.action === "rejected");
+      const normalized = agent_confirmations.map((c: any) => {
+        const resolved = typeof c?.resolved_value === "string" ? c.resolved_value.trim() : "";
+        // Auto-flip confirmations of a "does not exist" candidate into rejections.
+        if (c?.action === "confirmed" && resolved && DOES_NOT_EXIST_RE.test(resolved)) {
+          return { ...c, action: "rejected", resolved_value: resolved, _denied_existence: true };
+        }
+        return { ...c, resolved_value: resolved || undefined };
+      });
+      const confirmed = normalized.filter((c: any) => c?.action === "confirmed");
+      const rejected = normalized.filter((c: any) => c?.action === "rejected");
       const parts: string[] = [];
       parts.push("Apply the following agent confirmations to the plan. Do not change any other content.");
       parts.push("");
@@ -77,16 +90,20 @@ serve(async (req) => {
         for (const c of confirmed) {
           parts.push(`- Claim: ${String(c.claim || "").trim()}`);
           parts.push(`  Source: ${String(c.source || "").trim()}`);
+          if (c.resolved_value) {
+            parts.push(`  Confirmed value (USE THIS EXACT FIGURE VERBATIM in the seller-facing plan wherever this claim appears — do not hedge, do not qualify, do not present alternatives): ${c.resolved_value}`);
+          }
           if (c.agent_note && String(c.agent_note).trim()) parts.push(`  Agent note: ${String(c.agent_note).trim()}`);
           parts.push(`  Confirmed at: ${String(c.confirmed_at || new Date().toISOString())}`);
         }
         parts.push("");
       }
       if (rejected.length > 0) {
-        parts.push("REJECTED ITEMS (the agent has explicitly refuted these; they MUST NOT appear anywhere in the seller-facing plan, and any related objection or hedge should stand only on evidence other than these claims):");
+        parts.push("REJECTED ITEMS (the agent has explicitly refuted these; they MUST NOT appear anywhere in the seller-facing plan, and any related objection or hedge should stand only on evidence other than these claims. For items marked \"denied existence,\" the thing itself does not exist for this property — scrub every reference to it, including fee figures, amenities, rules, or objections that assume it exists):");
         for (const c of rejected) {
           parts.push(`- Claim: ${String(c.claim || "").trim()}`);
           parts.push(`  Source: ${String(c.source || "").trim()}`);
+          if (c._denied_existence) parts.push(`  Denied existence: yes (agent selected "${c.resolved_value}")`);
           if (c.agent_note && String(c.agent_note).trim()) parts.push(`  Agent note: ${String(c.agent_note).trim()}`);
         }
         parts.push("");

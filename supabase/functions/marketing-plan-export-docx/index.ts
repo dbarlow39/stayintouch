@@ -206,7 +206,9 @@ serve(async (req) => {
     const addressLine = lead?.address
       ? `${lead.address}, ${lead.city || ""} ${lead.state || ""} ${lead.zip || ""}`.replace(/\s+/g, " ").trim()
       : "";
-    const dateLine = new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+    // Central Ohio operates on America/New_York; format the header date in that zone
+    // so a late-evening UTC edge run doesn't stamp tomorrow's date on the export.
+    const dateLine = new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric", timeZone: "America/New_York" });
 
     let logoBytes: Uint8Array | null = null;
     try {
