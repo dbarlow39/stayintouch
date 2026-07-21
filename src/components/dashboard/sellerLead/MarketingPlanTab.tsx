@@ -494,7 +494,32 @@ export default function MarketingPlanTab({ lead }: { lead: any }) {
 
   const stages = ["property_data", "photo_review", "document_facts", "area_research", "marketing_plan"];
   const status = existingJob?.status;
-  const isRunning = existingJob && status !== "complete" && status !== "failed";
+  const isRunning = existingJob && status !== "complete" && status !== "failed" && status !== "awaiting_agent";
+
+  // Pre-plan conflicts (agent action required BEFORE Stage 5 runs).
+  // Parsed from marketing_plan_results.stage='conflicts', written by the
+  // marketing-plan-conflicts edge function.
+  const preConflictItems: UnresolvedItem[] = (() => {
+    if (!results.conflicts) return [];
+    try {
+      const parsed = JSON.parse(results.conflicts);
+      const arr = Array.isArray(parsed?.unresolved_items) ? parsed.unresolved_items : [];
+      return arr.filter((x: any) => x && typeof x.claim === "string");
+    } catch {
+      return [];
+    }
+  })();
+
+  async function submitPreConflicts(items: Array<{ claim: string; source: string; action: "confirmed" | "rejected"; agent_note?: string; resolved_value?: string }>) {
+    if (!existingJob) return;
+    const stamped = items.map((i) => ({ ...i, confirmed_at: new Date().toISOString() }));
+    await runStage5(existingJob.id, stamped);
+  }
+
+  async function generateAnyway() {
+    if (!existingJob) return;
+    await runStage5(existingJob.id, []);
+  }
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
