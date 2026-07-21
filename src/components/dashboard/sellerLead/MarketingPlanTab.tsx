@@ -285,39 +285,39 @@ export default function MarketingPlanTab({ lead }: { lead: any }) {
 
   async function handleTweak() {
     if (!existingJob || !tweakInstruction.trim()) return;
-    setTweaking(true);
-    try {
-      const { error } = await supabase.functions.invoke("marketing-plan-tweak", {
-        body: { job_id: existingJob.id, instruction: tweakInstruction.trim() },
-      });
-      if (error) throw error;
-      await loadResults(existingJob.id);
-      setTweakInstruction("");
-      toast({ title: "Plan updated", description: "Your requested change was applied." });
-    } catch (err: any) {
-      toast({ title: "Tweak failed", description: err.message, variant: "destructive" });
-    } finally {
-      setTweaking(false);
-    }
+    const payload = { job_id: existingJob.id, instruction: tweakInstruction.trim() };
+    await submitTweak(payload);
   }
 
   async function submitAgentConfirmations(items: Array<{ claim: string; source: string; action: "confirmed" | "rejected"; agent_note?: string }>) {
     if (!existingJob || items.length === 0) return;
-    setTweaking(true);
+    const stamped = items.map((i) => ({ ...i, confirmed_at: new Date().toISOString() }));
+    const payload = { job_id: existingJob.id, agent_confirmations: stamped };
+    await submitTweak(payload);
+  }
+
+  // Shared invoker for both the free-text tweak and the structured confirmations.
+  // Returns 202 immediately; polling below watches tweak_status for terminal state.
+  async function submitTweak(payload: any) {
+    if (!existingJob) return;
+    setLastTweakPayload(payload);
+    // Optimistically flip tweak_status locally so UI shows "running" instantly.
+    setExistingJob((j: any) => ({ ...j, tweak_status: "running", tweak_error: null }));
     try {
-      const stamped = items.map((i) => ({ ...i, confirmed_at: new Date().toISOString() }));
-      const { error } = await supabase.functions.invoke("marketing-plan-tweak", {
-        body: { job_id: existingJob.id, agent_confirmations: stamped },
-      });
+      const { error } = await supabase.functions.invoke("marketing-plan-tweak", { body: payload });
       if (error) throw error;
-      await loadResults(existingJob.id);
-      toast({ title: "Plan updated", description: `Applied ${items.length} confirmation(s).` });
     } catch (err: any) {
-      toast({ title: "Update failed", description: err.message, variant: "destructive" });
-    } finally {
-      setTweaking(false);
+      // The invoke itself failed before the server could set running/failed.
+      setExistingJob((j: any) => ({ ...j, tweak_status: "failed", tweak_error: err.message }));
+      toast({ title: "Could not start tweak", description: err.message, variant: "destructive" });
     }
   }
+
+  async function retryLastTweak() {
+    if (!lastTweakPayload) return;
+    await submitTweak(lastTweakPayload);
+  }
+
 
 
 
