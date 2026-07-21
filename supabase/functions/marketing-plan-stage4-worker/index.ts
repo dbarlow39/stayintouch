@@ -99,8 +99,11 @@ async function runWorker(jobId: string, topic: Topic, context: any) {
 
   try {
     const system = `${SHARED_PREAMBLE}\n\n${TOPIC_INSTRUCTIONS[topic]}`;
-    const userMsg = `Address: ${context?.address || ""}, ${context?.city || ""} ${context?.state || ""} ${context?.zip || ""}
+    const userMsg = `# Subject Property
+Address: ${context?.address || "(unknown)"}, ${context?.city || "(unknown city)"} ${context?.state || ""} ${context?.zip || "(unknown ZIP)"}
 Community / Subdivision: ${context?.subdivision || "unknown"}
+
+PRIMARY GEOGRAPHY for this research: City = "${context?.city || "(unknown)"}", ZIP = "${context?.zip || "(unknown)"}". Every figure you report must be labeled with the exact geography and period it covers.
 
 # NEIGHBORHOOD SNAPSHOT (authoritative — do NOT web-search these values)
 ${context?.snapshot || "(no snapshot available — proceed with normal research)"}`;
