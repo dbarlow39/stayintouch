@@ -1077,7 +1077,7 @@ function UnresolvedChecklist({
             }}
           >
             {disabled ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Wand2 className="w-4 h-4 mr-2" />}
-            Apply {pending || ""} decision{pending === 1 ? "" : "s"}
+            {submitLabel || `Apply ${pending || ""} decision${pending === 1 ? "" : "s"}`}
           </Button>
         </div>
       </CardContent>
