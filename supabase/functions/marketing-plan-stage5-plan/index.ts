@@ -363,18 +363,18 @@ Now produce the two sections in the required order: begin with "---VERIFICATION-
           ],
         },
         async (partial) => {
-          await saveStageResult(db, jobId, "marketing_plan", first.text + partial);
+          await saveStageResult(db, jobId, "marketing_plan", joinContinuation(first.text, partial));
           await db
             .from("marketing_plan_jobs")
             .update({ updated_at: new Date().toISOString() })
             .eq("id", jobId);
         },
         async (full) => {
-          await saveStageResult(db, jobId, "marketing_plan", first.text + full);
+          await saveStageResult(db, jobId, "marketing_plan", joinContinuation(first.text, full));
         },
         2000,
       );
-      finalText = first.text + cont.text;
+      finalText = joinContinuation(first.text, cont.text);
       finalStop = cont.stop_reason;
       totalRetries += cont.retries;
 
