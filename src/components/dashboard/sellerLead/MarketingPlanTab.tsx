@@ -295,6 +295,23 @@ export default function MarketingPlanTab({ lead }: { lead: any }) {
     }
   }
 
+  async function submitAgentConfirmations(items: Array<{ claim: string; source: string; action: "confirmed" | "rejected"; agent_note?: string }>) {
+    if (!existingJob || items.length === 0) return;
+    setTweaking(true);
+    try {
+      const stamped = items.map((i) => ({ ...i, confirmed_at: new Date().toISOString() }));
+      const { error } = await supabase.functions.invoke("marketing-plan-tweak", {
+        body: { job_id: existingJob.id, agent_confirmations: stamped },
+      });
+      if (error) throw error;
+      await loadResults(existingJob.id);
+      toast({ title: "Plan updated", description: `Applied ${items.length} confirmation(s).` });
+    } catch (err: any) {
+      toast({ title: "Update failed", description: err.message, variant: "destructive" });
+    } finally {
+      setTweaking(false);
+    }
+
   async function handleReset() {
     if (!existingJob) return;
     // Best-effort cleanup — actual file removal is optional.
