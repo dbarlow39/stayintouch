@@ -191,16 +191,28 @@ FOUR CONSTRAINTS
 3. Name real places. Schools by name, parks by name, neighborhoods and subdivisions by name, commute anchors by name. No generic praise.
 4. State demographic sources. Whenever you cite an income figure, home-value figure, appreciation rate, ownership rate, or demand signal, name where it came from (Stage 4 area research, Stage 1 property data, HOA documents, MLS paste) and the period it covers.`;
 
+// Central Ohio operates on America/New_York. Use that zone for ALL date
+// comparisons in this pipeline so an edge function running late in the evening
+// UTC does not report tomorrow's date and mis-classify same-day milestones.
+function todayInNY(): string {
+  // en-CA formats as YYYY-MM-DD.
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "America/New_York" }).format(new Date());
+}
+
 function isValidFutureDate(s: string | null | undefined): boolean {
   if (!s) return false;
   // Expect YYYY-MM-DD from the form input.
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s.trim());
   if (!m) return false;
-  const d = new Date(`${s}T12:00:00Z`);
-  if (isNaN(d.getTime())) return false;
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  return d.getTime() >= today.getTime();
+  const today = todayInNY(); // YYYY-MM-DD lexicographic compare is safe.
+  return s.trim() >= today;
+}
+
+function daysBetween(fromISO: string, toISO: string): number {
+  // Both YYYY-MM-DD; anchor at noon UTC to sidestep DST oddities.
+  const a = new Date(`${fromISO}T12:00:00Z`).getTime();
+  const b = new Date(`${toISO}T12:00:00Z`).getTime();
+  return Math.round((b - a) / 86400000);
 }
 
 // Safe concatenator: guarantees whitespace between the primary output and its
