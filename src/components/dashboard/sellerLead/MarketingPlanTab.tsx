@@ -322,7 +322,7 @@ export default function MarketingPlanTab({ lead }: { lead: any }) {
     await submitTweak(payload);
   }
 
-  async function submitAgentConfirmations(items: Array<{ claim: string; source: string; action: "confirmed" | "rejected"; agent_note?: string }>) {
+  async function submitAgentConfirmations(items: Array<{ claim: string; source: string; action: "confirmed" | "rejected"; agent_note?: string; resolved_value?: string }>) {
     if (!existingJob || items.length === 0) return;
     const stamped = items.map((i) => ({ ...i, confirmed_at: new Date().toISOString() }));
     const payload = { job_id: existingJob.id, agent_confirmations: stamped };
