@@ -473,6 +473,8 @@ export default function MarketingPlanTab({ lead }: { lead: any }) {
     what_would_confirm: string;
     materiality: "high" | "medium" | "low" | string;
     if_confirmed: string;
+    conflict_type?: "existence" | "value" | string;
+    candidate_values?: Array<{ value: string; source: string }>;
   }> = (() => {
     if (!internalNotes) return [];
     const m = internalNotes.match(/```json\s*([\s\S]*?)```/i);
