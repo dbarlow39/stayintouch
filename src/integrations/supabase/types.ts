@@ -1901,6 +1901,10 @@ export type Database = {
           seller_lead_id: string
           status: string
           target_on_market_date: string | null
+          tweak_error: string | null
+          tweak_started_at: string | null
+          tweak_status: string | null
+          tweak_updated_at: string | null
           unusual_notes: string | null
           updated_at: string
           user_id: string
@@ -1919,6 +1923,10 @@ export type Database = {
           seller_lead_id: string
           status?: string
           target_on_market_date?: string | null
+          tweak_error?: string | null
+          tweak_started_at?: string | null
+          tweak_status?: string | null
+          tweak_updated_at?: string | null
           unusual_notes?: string | null
           updated_at?: string
           user_id: string
@@ -1937,6 +1945,10 @@ export type Database = {
           seller_lead_id?: string
           status?: string
           target_on_market_date?: string | null
+          tweak_error?: string | null
+          tweak_started_at?: string | null
+          tweak_status?: string | null
+          tweak_updated_at?: string | null
           unusual_notes?: string | null
           updated_at?: string
           user_id?: string

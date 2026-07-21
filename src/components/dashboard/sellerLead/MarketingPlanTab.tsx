@@ -76,8 +76,14 @@ export default function MarketingPlanTab({ lead }: { lead: any }) {
   const [streamingPlan, setStreamingPlan] = useState(false);
   const [downloadingDocx, setDownloadingDocx] = useState(false);
   const [tweakInstruction, setTweakInstruction] = useState("");
-  const [tweaking, setTweaking] = useState(false);
+  const [lastTweakPayload, setLastTweakPayload] = useState<any>(null);
+  const [tweakSuccessSignal, setTweakSuccessSignal] = useState(0);
   const stage5Fired = useRef(false);
+
+  const tweakStatus: "running" | "complete" | "failed" | null =
+    (existingJob?.tweak_status as any) || null;
+  const tweakError: string | null = existingJob?.tweak_error || null;
+  const tweaking = tweakStatus === "running";
 
   // Agent profile - used to warn if the contact info that will land in the
   // plan's contact line is missing before the plan is generated.
@@ -157,6 +163,39 @@ export default function MarketingPlanTab({ lead }: { lead: any }) {
     }, 3500);
     return () => clearInterval(timer);
   }, [existingJob?.id, existingJob?.status]);
+
+  // ---------- Polling for tweak status ----------
+  // The pipeline may be `complete` but a tweak can still be running in the
+  // background. Poll independently so the UI reflects tweak progress.
+  useEffect(() => {
+    if (!existingJob?.id) return;
+    if (tweakStatus !== "running") return;
+    const timer = setInterval(async () => {
+      const { data } = await supabase
+        .from("marketing_plan_jobs")
+        .select("*")
+        .eq("id", existingJob.id)
+        .single();
+      if (!data) return;
+      const prev = tweakStatus;
+      setExistingJob(data);
+      if (prev === "running" && data.tweak_status === "complete") {
+        await loadResults(existingJob.id);
+        setTweakInstruction("");
+        setLastTweakPayload(null);
+        setTweakSuccessSignal((n) => n + 1);
+        toast({ title: "Plan updated", description: "Your changes were applied." });
+      } else if (prev === "running" && data.tweak_status === "failed") {
+        toast({
+          title: "Tweak failed",
+          description: data.tweak_error || "The plan was not changed. Your selections were preserved.",
+          variant: "destructive",
+        });
+      }
+    }, 3000);
+    return () => clearInterval(timer);
+  }, [existingJob?.id, tweakStatus]);
+
 
   // ---------- Upload ----------
   async function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
@@ -279,39 +318,39 @@ export default function MarketingPlanTab({ lead }: { lead: any }) {
 
   async function handleTweak() {
     if (!existingJob || !tweakInstruction.trim()) return;
-    setTweaking(true);
-    try {
-      const { error } = await supabase.functions.invoke("marketing-plan-tweak", {
-        body: { job_id: existingJob.id, instruction: tweakInstruction.trim() },
-      });
-      if (error) throw error;
-      await loadResults(existingJob.id);
-      setTweakInstruction("");
-      toast({ title: "Plan updated", description: "Your requested change was applied." });
-    } catch (err: any) {
-      toast({ title: "Tweak failed", description: err.message, variant: "destructive" });
-    } finally {
-      setTweaking(false);
-    }
+    const payload = { job_id: existingJob.id, instruction: tweakInstruction.trim() };
+    await submitTweak(payload);
   }
 
   async function submitAgentConfirmations(items: Array<{ claim: string; source: string; action: "confirmed" | "rejected"; agent_note?: string }>) {
     if (!existingJob || items.length === 0) return;
-    setTweaking(true);
+    const stamped = items.map((i) => ({ ...i, confirmed_at: new Date().toISOString() }));
+    const payload = { job_id: existingJob.id, agent_confirmations: stamped };
+    await submitTweak(payload);
+  }
+
+  // Shared invoker for both the free-text tweak and the structured confirmations.
+  // Returns 202 immediately; polling below watches tweak_status for terminal state.
+  async function submitTweak(payload: any) {
+    if (!existingJob) return;
+    setLastTweakPayload(payload);
+    // Optimistically flip tweak_status locally so UI shows "running" instantly.
+    setExistingJob((j: any) => ({ ...j, tweak_status: "running", tweak_error: null }));
     try {
-      const stamped = items.map((i) => ({ ...i, confirmed_at: new Date().toISOString() }));
-      const { error } = await supabase.functions.invoke("marketing-plan-tweak", {
-        body: { job_id: existingJob.id, agent_confirmations: stamped },
-      });
+      const { error } = await supabase.functions.invoke("marketing-plan-tweak", { body: payload });
       if (error) throw error;
-      await loadResults(existingJob.id);
-      toast({ title: "Plan updated", description: `Applied ${items.length} confirmation(s).` });
     } catch (err: any) {
-      toast({ title: "Update failed", description: err.message, variant: "destructive" });
-    } finally {
-      setTweaking(false);
+      // The invoke itself failed before the server could set running/failed.
+      setExistingJob((j: any) => ({ ...j, tweak_status: "failed", tweak_error: err.message }));
+      toast({ title: "Could not start tweak", description: err.message, variant: "destructive" });
     }
   }
+
+  async function retryLastTweak() {
+    if (!lastTweakPayload) return;
+    await submitTweak(lastTweakPayload);
+  }
+
 
 
 
@@ -633,14 +672,40 @@ export default function MarketingPlanTab({ lead }: { lead: any }) {
         </Card>
       )}
 
+      {/* Tweak status banner — visible during background revision, and after failure */}
+      {existingJob && status === "complete" && tweakStatus === "running" && (
+        <div className="rounded-md border border-blue-500/40 bg-blue-500/10 p-3 text-sm flex items-center gap-2 text-blue-800">
+          <Loader2 className="w-4 h-4 animate-spin" />
+          Applying your changes to the plan. This runs in the background and can take up to 2 minutes. Your selections stay put until it completes.
+        </div>
+      )}
+      {existingJob && status === "complete" && tweakStatus === "failed" && (
+        <div className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive space-y-2">
+          <div className="flex items-center gap-2 font-medium">
+            <AlertTriangle className="w-4 h-4" /> Tweak failed. The plan was not changed.
+          </div>
+          {tweakError && <p className="text-xs">{tweakError}</p>}
+          <p className="text-xs">Your confirm/reject selections and instruction text are preserved. Click Retry to try again.</p>
+          {lastTweakPayload && (
+            <div>
+              <Button size="sm" variant="outline" onClick={retryLastTweak}>
+                <RefreshCw className="w-3 h-3 mr-2" /> Retry
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Unresolved items — agent action required */}
       {existingJob && status === "complete" && unresolvedItems.length > 0 && (
         <UnresolvedChecklist
           items={unresolvedItems}
           disabled={tweaking}
+          resetSignal={tweakSuccessSignal}
           onSubmit={submitAgentConfirmations}
         />
       )}
+
 
       {/* Tweak / revise panel */}
       {existingJob && status === "complete" && results.marketing_plan && (
@@ -747,14 +812,26 @@ type UnresolvedItem = {
 function UnresolvedChecklist({
   items,
   disabled,
+  resetSignal,
   onSubmit,
 }: {
   items: UnresolvedItem[];
   disabled: boolean;
+  resetSignal: number;
   onSubmit: (items: Array<{ claim: string; source: string; action: "confirmed" | "rejected"; agent_note?: string }>) => void;
 }) {
   const [decisions, setDecisions] = useState<Record<number, "confirmed" | "rejected" | "">>({});
   const [notes, setNotes] = useState<Record<number, string>>({});
+
+  // Clear decisions ONLY after a successful tweak (parent bumps resetSignal).
+  // Failures leave the agent's selections intact for retry.
+  useEffect(() => {
+    if (resetSignal > 0) {
+      setDecisions({});
+      setNotes({});
+    }
+  }, [resetSignal]);
+
 
   const materialityColor = (m: string) => {
     const v = (m || "").toLowerCase();

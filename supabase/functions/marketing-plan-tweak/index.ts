@@ -1,11 +1,17 @@
 // Applies a user-requested revision to an existing marketing plan without
-// re-running stages 1-4. Loads the current plan text, sends it to Claude with
-// the user's instruction, and overwrites the stored result if valid.
+// re-running stages 1-4. Backgrounded via EdgeRuntime.waitUntil so long Claude
+// generations don't hit the 150s idle timeout. UI polls
+// marketing_plan_jobs.tweak_status to render progress / success / failure.
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { corsHeaders, callClaude } from "../_shared/marketing-plan-claude.ts";
 import { serviceClient, authUser, saveStageResult } from "../_shared/marketing-plan-common.ts";
 
 const MODEL = "claude-sonnet-4-5";
+// Wall-clock deadline for the background task. Keep below the edge idle cap
+// (150s) so we can always write a terminal status row before the runtime
+// shuts us down.
+const BACKGROUND_DEADLINE_MS = 140_000;
+const MAX_TOKENS = 16000;
 
 const SYSTEM_PROMPT = `You are revising an existing seller-facing marketing plan document.
 
@@ -16,6 +22,24 @@ RULES (non-negotiable):
 4. Do NOT use em-dashes (—) or en-dashes (–) anywhere. Use periods, commas, "to", or parentheses instead.
 5. Do not add commentary, preambles, or explanations. Output the revised plan text only.
 6. If the user's instruction is ambiguous or impossible to apply, return the original plan unchanged.`;
+
+// @ts-ignore - EdgeRuntime is provided by the Supabase edge runtime.
+declare const EdgeRuntime: { waitUntil(p: Promise<unknown>): void };
+
+async function setTweakStatus(
+  db: ReturnType<typeof serviceClient>,
+  jobId: string,
+  patch: { tweak_status: "running" | "complete" | "failed"; tweak_error?: string | null; started?: boolean },
+): Promise<void> {
+  const row: Record<string, unknown> = {
+    tweak_status: patch.tweak_status,
+    tweak_error: patch.tweak_error ?? null,
+    tweak_updated_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  };
+  if (patch.started) row.tweak_started_at = new Date().toISOString();
+  await db.from("marketing_plan_jobs").update(row).eq("id", jobId);
+}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -40,8 +64,7 @@ serve(async (req) => {
       });
     }
 
-    // Build a synthesized instruction from structured agent_confirmations,
-    // OR use the raw text instruction. One of the two must be provided.
+    // Build the effective instruction from structured agent_confirmations or raw text.
     let effectiveInstruction = "";
     if (agent_confirmations && agent_confirmations.length > 0) {
       const confirmed = agent_confirmations.filter((c: any) => c?.action === "confirmed");
@@ -85,7 +108,7 @@ serve(async (req) => {
 
     const db = serviceClient();
 
-    // Verify job ownership. Note: marketing_plan_jobs uses user_id for the owner.
+    // Verify job ownership.
     const { data: job, error: jobErr } = await db
       .from("marketing_plan_jobs")
       .select("id, user_id")
@@ -104,7 +127,7 @@ serve(async (req) => {
       });
     }
 
-    // Load current plan.
+    // Load current plan (required to send to Claude).
     const { data: resultRow, error: resErr } = await db
       .from("marketing_plan_results")
       .select("content")
@@ -119,6 +142,9 @@ serve(async (req) => {
     }
     const original = resultRow.content as string;
 
+    // Mark running BEFORE returning 202 so the UI sees the transition immediately.
+    await setTweakStatus(db, job_id, { tweak_status: "running", tweak_error: null, started: true });
+
     const userMsg = `CURRENT MARKETING PLAN:
 \`\`\`
 ${original}
@@ -129,30 +155,63 @@ ${effectiveInstruction}
 
 Return the full revised plan now.`;
 
-    const { text } = await callClaude({
-      model: MODEL,
-      system: SYSTEM_PROMPT,
-      max_tokens: 24000,
-      temperature: 0.2,
-      messages: [{ role: "user", content: userMsg }],
-    });
+    // Background task. TERMINAL WRITE on every code path (success, empty output,
+    // exception, deadline).
+    const task = (async () => {
+      const startedAt = Date.now();
+      let deadlineTimer: number | undefined;
+      const deadlinePromise = new Promise<never>((_, reject) => {
+        deadlineTimer = setTimeout(
+          () => reject(new Error("Tweak deadline reached (edge timeout guard). Plan was not changed.")),
+          BACKGROUND_DEADLINE_MS,
+        ) as unknown as number;
+      });
+      try {
+        const claudePromise = callClaude({
+          model: MODEL,
+          system: SYSTEM_PROMPT,
+          max_tokens: MAX_TOKENS,
+          temperature: 0.2,
+          messages: [{ role: "user", content: userMsg }],
+        });
+        const { text } = await Promise.race([claudePromise, deadlinePromise]);
 
-    // Sanity check: refuse to overwrite with truncated/empty output.
-    if (!text || text.trim().length < 500) {
-      return new Response(
-        JSON.stringify({ error: "Model returned too little content; original plan unchanged." }),
-        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
+        if (!text || text.trim().length < 500) {
+          await setTweakStatus(db, job_id, {
+            tweak_status: "failed",
+            tweak_error: "Model returned empty or too-short output. The existing plan was not changed. Please retry.",
+          });
+          console.error(`marketing-plan-tweak: empty output for job ${job_id} (len=${text?.length ?? 0})`);
+          return;
+        }
+
+        await saveStageResult(db, job_id, "marketing_plan", text);
+        await setTweakStatus(db, job_id, { tweak_status: "complete", tweak_error: null });
+        console.log(`marketing-plan-tweak: job ${job_id} complete in ${Date.now() - startedAt}ms`);
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        await setTweakStatus(db, job_id, {
+          tweak_status: "failed",
+          tweak_error: msg.slice(0, 500),
+        }).catch((writeErr) => {
+          console.error(`marketing-plan-tweak: FAILED to write terminal status for job ${job_id}:`, writeErr);
+        });
+        console.error(`marketing-plan-tweak: job ${job_id} failed:`, msg);
+      } finally {
+        if (deadlineTimer !== undefined) clearTimeout(deadlineTimer);
+      }
+    })();
+
+    try {
+      // @ts-ignore
+      EdgeRuntime.waitUntil(task);
+    } catch {
+      // Fallback: if waitUntil is unavailable, fire-and-forget.
+      void task;
     }
 
-    await saveStageResult(db, job_id, "marketing_plan", text);
-    await db
-      .from("marketing_plan_jobs")
-      .update({ updated_at: new Date().toISOString() })
-      .eq("id", job_id);
-
-    return new Response(JSON.stringify({ success: true }), {
-      status: 200,
+    return new Response(JSON.stringify({ accepted: true }), {
+      status: 202,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
