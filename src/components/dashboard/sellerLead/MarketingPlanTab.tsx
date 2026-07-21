@@ -76,8 +76,14 @@ export default function MarketingPlanTab({ lead }: { lead: any }) {
   const [streamingPlan, setStreamingPlan] = useState(false);
   const [downloadingDocx, setDownloadingDocx] = useState(false);
   const [tweakInstruction, setTweakInstruction] = useState("");
-  const [tweaking, setTweaking] = useState(false);
+  const [lastTweakPayload, setLastTweakPayload] = useState<any>(null);
+  const [tweakSuccessSignal, setTweakSuccessSignal] = useState(0);
   const stage5Fired = useRef(false);
+
+  const tweakStatus: "running" | "complete" | "failed" | null =
+    (existingJob?.tweak_status as any) || null;
+  const tweakError: string | null = existingJob?.tweak_error || null;
+  const tweaking = tweakStatus === "running";
 
   // Agent profile - used to warn if the contact info that will land in the
   // plan's contact line is missing before the plan is generated.
