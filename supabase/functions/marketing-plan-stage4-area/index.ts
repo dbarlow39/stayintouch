@@ -107,11 +107,12 @@ async function dispatch(jobId: string) {
       })
       .eq("id", jobId);
 
-    // Fan out.
+    // Fan out to seven distinct edge functions so Supabase allocates seven
+    // separate isolates (single-worker path serialized them on one instance).
     for (const topic of TOPICS) {
-      fireAndForget("marketing-plan-stage4-worker", { jobId, topic, context });
+      fireAndForget(`marketing-plan-stage4-${topic}`, { jobId, context });
     }
-    // Backstop.
+    // Backstop — extended to also cover the conflicts gate.
     fireAndForget("marketing-plan-stage4-sweeper", { jobId });
   } catch (e) {
     console.error("stage4 dispatcher error:", e);

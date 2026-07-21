@@ -1,6 +1,10 @@
-// Stage 4 SWEEPER. Backstop that runs 240s after dispatch. If any topic is
-// still missing at that point, upserts a "Research unavailable" placeholder
-// and advances the job to Stage 5. Idempotent — safe if all workers finished.
+// Stage 4 SWEEPER. Two-phase backstop:
+//   Phase 1 (240s): fill any missing area_* placeholder rows and try to open
+//                   the CONFLICTS gate.
+//   Phase 2 (+90s): if the conflicts row STILL never appears, write an empty
+//                   conflicts row + set status=awaiting_agent so the pipeline
+//                   is never wedged. If the job is already at awaiting_agent /
+//                   complete / failed, both phases short-circuit.
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import {
   assertInternalCaller,
@@ -21,48 +25,86 @@ const TITLES: Record<string, string> = {
   market: "Market Context",
 };
 
-const SLEEP_MS = 240_000;
+const PHASE1_MS = 240_000;
+const PHASE2_MS = 90_000;
+
+async function isTerminal(db: ReturnType<typeof serviceClient>, jobId: string): Promise<boolean> {
+  const { data: job } = await db
+    .from("marketing_plan_jobs")
+    .select("status")
+    .eq("id", jobId)
+    .single();
+  if (!job) return true;
+  const s = (job as any).status;
+  return s === "complete" || s === "failed" || s === "awaiting_agent";
+}
 
 async function sweep(jobId: string) {
-  await new Promise((r) => setTimeout(r, SLEEP_MS));
+  await new Promise((r) => setTimeout(r, PHASE1_MS));
   const db = serviceClient();
   try {
-    const { data: job } = await db
-      .from("marketing_plan_jobs")
-      .select("status")
-      .eq("id", jobId)
-      .single();
-    if (!job) return;
-    // If the plan is already generated or the job failed, do nothing.
-    if ((job as any).status === "complete" || (job as any).status === "failed") return;
+    if (await isTerminal(db, jobId)) return;
 
-    const { data: rows } = await db
+    // Phase 1: fill any missing area_* rows.
+    const { data: rows1 } = await db
       .from("marketing_plan_results")
       .select("stage")
       .eq("job_id", jobId);
-    const have = new Set((rows || []).map((r: any) => r.stage));
-
+    const have1 = new Set((rows1 || []).map((r: any) => r.stage));
     let filled = 0;
     for (const topic of AREA_TOPICS) {
       const key = `area_${topic}`;
-      if (!have.has(key)) {
+      if (!have1.has(key)) {
         const title = TITLES[topic];
         await saveStageResult(
           db,
           jobId,
           key,
-          `## ${title}\n\n> Research unavailable for ${title} (sweeper backstop after ${SLEEP_MS / 1000}s).`,
+          `## ${title}\n\n> Research unavailable for ${title} (sweeper backstop after ${PHASE1_MS / 1000}s).`,
         );
         filled++;
       }
     }
 
-    // Now that every required row exists, try the Stage 5 gate. Atomic —
-    // no-op if a worker already opened it.
-    await checkGateAndAdvance(db, jobId, STAGE5_REQUIRED, "marketing-plan-stage5-plan", "stage5_dispatch");
-    console.log(`stage4-sweeper filled ${filled} placeholder(s) for job ${jobId}`);
+    // Try to open the CONFLICTS gate now that every required row exists.
+    await checkGateAndAdvance(
+      db,
+      jobId,
+      STAGE5_REQUIRED,
+      "marketing-plan-conflicts",
+      "conflicts_dispatch",
+    );
+    console.log(`stage4-sweeper phase1: filled ${filled} placeholder(s), tried conflicts gate for job ${jobId}`);
   } catch (e) {
-    console.error("stage4-sweeper error:", e);
+    console.error("stage4-sweeper phase1 error:", e);
+  }
+
+  // Phase 2: if conflicts row never appears, advance past it.
+  await new Promise((r) => setTimeout(r, PHASE2_MS));
+  try {
+    if (await isTerminal(db, jobId)) return;
+
+    const { data: rows2 } = await db
+      .from("marketing_plan_results")
+      .select("stage")
+      .eq("job_id", jobId)
+      .eq("stage", "conflicts");
+    const conflictsPresent = (rows2 || []).length > 0;
+    if (conflictsPresent) return;
+
+    console.warn(`stage4-sweeper phase2: conflicts row missing after ${(PHASE1_MS + PHASE2_MS) / 1000}s for job ${jobId}; writing empty row and awaiting agent`);
+    await saveStageResult(
+      db,
+      jobId,
+      "conflicts",
+      JSON.stringify({ unresolved_items: [] }),
+    );
+    await db
+      .from("marketing_plan_jobs")
+      .update({ status: "awaiting_agent", current_stage: "conflicts", updated_at: new Date().toISOString() })
+      .eq("id", jobId);
+  } catch (e) {
+    console.error("stage4-sweeper phase2 error:", e);
   }
 }
 

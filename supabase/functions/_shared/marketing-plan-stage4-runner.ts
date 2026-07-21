@@ -1,21 +1,23 @@
-// Stage 4 WORKER. Invoked once per topic by the dispatcher. Runs one focused
-// Claude turn against web_search / web_fetch, writes exactly one result row
-// on every code path, atomically increments the completion counter, and if
-// it's the last worker advances the job to Stage 5.
+// Shared Stage 4 worker runtime. Each per-topic edge function is a thin shim
+// that calls `serveTopicWorker(topic)`; splitting the seven topics into seven
+// distinct function URLs forces Supabase to allocate seven separate edge
+// isolates rather than serializing them onto one warm instance.
+//
+// On completion, each worker tries to advance the CONFLICTS gate. Once all
+// evidence rows are written, `marketing-plan-conflicts` runs (agent
+// checklist) — Stage 5 is NOT invoked automatically anymore.
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import {
   assertInternalCaller,
+  checkGateAndAdvance,
   incrementAreaCompleted,
   saveStageResult,
   serviceClient,
-} from "../_shared/marketing-plan-common.ts";
-import {
-  callClaude,
-  corsHeaders,
-  OPUS_MODEL,
-} from "../_shared/marketing-plan-claude.ts";
+} from "./marketing-plan-common.ts";
+import { callClaude, corsHeaders, OPUS_MODEL } from "./marketing-plan-claude.ts";
+import { STAGE5_REQUIRED } from "./marketing-plan-gates.ts";
 
-type Topic =
+export type Topic =
   | "schools"
   | "recreation"
   | "convenience"
@@ -67,10 +69,6 @@ const TOPIC_INSTRUCTIONS: Record<Topic, string> = {
     `TOPIC: MARKET CONTEXT. Report median home value, appreciation trend, days on market, and current market conditions for this submarket (ZIP or subdivision). Prefer local MLS or board of Realtors data. Label every figure with the exact geography and period. Return Markdown under a single "## Market Context" heading.`,
 };
 
-// Safe concatenator: guarantees whitespace between two text chunks so mid-word
-// merges like "friendsare" cannot happen when we glue a continuation onto its
-// predecessor. Ensures at least a blank line between them if either side lacks
-// terminal / leading whitespace.
 function joinContinuation(a: string, b: string): string {
   if (!a) return b || "";
   if (!b) return a;
@@ -150,8 +148,6 @@ ${context?.snapshot || "(no snapshot available — proceed with normal research)
       }
       let txt = (res.text || "").trim();
 
-      // If the model was cut off mid-output, do ONE bounded no-tools retry to
-      // let it finish the write-up. Research is already done at this point.
       if (stopReason === "max_tokens") {
         console.warn(`stage4-worker(${topic}) hit max_tokens; issuing continuation without tools`);
         try {
@@ -193,8 +189,6 @@ ${context?.snapshot || "(no snapshot available — proceed with normal research)
     content = `## ${title}\n\n> **FAILED:** ${title} — ${errorMsg}`;
   } finally {
     const elapsedMs = Date.now() - startedAt;
-    // Append a diagnostics footer so partial waves show which topics ran long
-    // and how their tool budget was actually spent.
     const diag = [
       "",
       "---",
@@ -216,14 +210,9 @@ ${context?.snapshot || "(no snapshot available — proceed with normal research)
       `stage4-worker(${topic}) done elapsed=${elapsedMs}ms searches=${searchCount} fetches=${fetchCount} completed=${completed} empty=${emptyOutput} deadline=${hitDeadline} stop=${stopReason} overload_retries=${overloadRetries}`,
     );
 
+    try { await saveStageResult(db, jobId, stageKey, content); }
+    catch (e) { console.error(`stage4-worker(${topic}) save failed:`, e); }
 
-    // GUARANTEED WRITE — every code path lands here.
-    try {
-      await saveStageResult(db, jobId, stageKey, content);
-    } catch (e) {
-      console.error(`stage4-worker(${topic}) save failed:`, e);
-    }
-    // Atomic per-worker completion counter (drives the UI's N/7 label).
     try {
       const { data: job } = await db
         .from("marketing_plan_jobs")
@@ -236,32 +225,39 @@ ${context?.snapshot || "(no snapshot available — proceed with normal research)
     } catch (e) {
       console.error(`stage4-worker(${topic}) counter update failed:`, e);
     }
-    // Try to advance the Stage 5 gate. checkGateAndAdvance is atomic — only
-    // one worker will actually invoke Stage 5, even if several arrive at once.
+
+    // Advance to the CONFLICTS gate (evidence-only detector). Stage 5 no
+    // longer runs automatically — the agent reviews conflicts first.
     try {
-      const { STAGE5_REQUIRED } = await import("../_shared/marketing-plan-gates.ts");
-      const { checkGateAndAdvance } = await import("../_shared/marketing-plan-common.ts");
-      await checkGateAndAdvance(db, jobId, STAGE5_REQUIRED, "marketing-plan-stage5-plan", "stage5_dispatch");
+      await checkGateAndAdvance(
+        db,
+        jobId,
+        STAGE5_REQUIRED,
+        "marketing-plan-conflicts",
+        "conflicts_dispatch",
+      );
     } catch (e) {
-      console.error(`stage4-worker(${topic}) gate5 advance failed:`, e);
+      console.error(`stage4-worker(${topic}) conflicts gate advance failed:`, e);
     }
   }
 }
 
-serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
-  const unauth = assertInternalCaller(req);
-  if (unauth) return unauth;
-  const { jobId, topic, context } = await req.json();
-  if (!jobId || !topic) {
-    return new Response(JSON.stringify({ error: "jobId and topic required" }), {
-      status: 400,
+export function serveTopicWorker(topic: Topic) {
+  serve(async (req) => {
+    if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+    const unauth = assertInternalCaller(req);
+    if (unauth) return unauth;
+    const { jobId, context } = await req.json();
+    if (!jobId) {
+      return new Response(JSON.stringify({ error: "jobId required" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    // @ts-ignore EdgeRuntime
+    EdgeRuntime.waitUntil(runWorker(jobId, topic, context));
+    return new Response(JSON.stringify({ ok: true, backgrounded: true, topic }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
-  }
-  // @ts-ignore EdgeRuntime
-  EdgeRuntime.waitUntil(runWorker(jobId, topic as Topic, context));
-  return new Response(JSON.stringify({ ok: true, backgrounded: true, topic }), {
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
-});
+}

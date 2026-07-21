@@ -156,6 +156,10 @@ export default function MarketingPlanTab({ lead }: { lead: any }) {
       setExistingJob(data);
       await loadResults(data.id);
 
+      // Legacy safety net for old jobs that were queued before the conflicts
+      // pass existed. New flow: workers advance to `marketing-plan-conflicts`
+      // which sets status="awaiting_agent" — the UI shows the checklist and
+      // the agent fires Stage 5 manually via buttons below.
       if (data.status === "ready_for_plan" && !stage5Fired.current) {
         stage5Fired.current = true;
         void runStage5(data.id);
@@ -272,15 +276,15 @@ export default function MarketingPlanTab({ lead }: { lead: any }) {
   }
 
   // ---------- Stage 5 kickoff (backgrounded server-side; UI polls results) ----------
-  async function runStage5(jobId: string) {
+  async function runStage5(jobId: string, confirmations?: any[]) {
     setStreamingPlan(true);
     try {
-      const { error } = await supabase.functions.invoke("marketing-plan-stage5-plan", {
-        body: { jobId },
-      });
+      const body: any = { jobId };
+      if (confirmations) body.agent_confirmations = confirmations;
+      const { error } = await supabase.functions.invoke("marketing-plan-stage5-plan", { body });
       if (error) throw error;
-      // Polling loop (already running) will pick up partial writes to
-      // marketing_plan_results every ~2s and stream them into the UI.
+      // Optimistically flip status locally so awaiting_agent panel hides.
+      setExistingJob((j: any) => (j ? { ...j, status: "running", current_stage: "marketing_plan" } : j));
     } catch (err: any) {
       toast({ title: "Plan generation failed to start", description: err.message, variant: "destructive" });
     } finally {
@@ -490,7 +494,32 @@ export default function MarketingPlanTab({ lead }: { lead: any }) {
 
   const stages = ["property_data", "photo_review", "document_facts", "area_research", "marketing_plan"];
   const status = existingJob?.status;
-  const isRunning = existingJob && status !== "complete" && status !== "failed";
+  const isRunning = existingJob && status !== "complete" && status !== "failed" && status !== "awaiting_agent";
+
+  // Pre-plan conflicts (agent action required BEFORE Stage 5 runs).
+  // Parsed from marketing_plan_results.stage='conflicts', written by the
+  // marketing-plan-conflicts edge function.
+  const preConflictItems: UnresolvedItem[] = (() => {
+    if (!results.conflicts) return [];
+    try {
+      const parsed = JSON.parse(results.conflicts);
+      const arr = Array.isArray(parsed?.unresolved_items) ? parsed.unresolved_items : [];
+      return arr.filter((x: any) => x && typeof x.claim === "string");
+    } catch {
+      return [];
+    }
+  })();
+
+  async function submitPreConflicts(items: Array<{ claim: string; source: string; action: "confirmed" | "rejected"; agent_note?: string; resolved_value?: string }>) {
+    if (!existingJob) return;
+    const stamped = items.map((i) => ({ ...i, confirmed_at: new Date().toISOString() }));
+    await runStage5(existingJob.id, stamped);
+  }
+
+  async function generateAnyway() {
+    if (!existingJob) return;
+    await runStage5(existingJob.id, []);
+  }
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
@@ -651,7 +680,8 @@ export default function MarketingPlanTab({ lead }: { lead: any }) {
               const areaDone = topics.every((t) => !!results[`area_${t}`]);
               const missing = stages.filter((s) => s === "area_research" ? !areaDone && !results[s] : !results[s]);
               const stale = existingJob.updated_at
-                && (Date.now() - new Date(existingJob.updated_at).getTime()) > 3 * 60 * 1000;
+                && (Date.now() - new Date(existingJob.updated_at).getTime()) > 3 * 60 * 1000
+                && status !== "awaiting_agent";
               if (!isRunning || !stale || missing.length === 0) return null;
               return (
                 <div className="mt-3 p-2 rounded border border-amber-500/40 bg-amber-500/10 text-sm">
@@ -673,6 +703,42 @@ export default function MarketingPlanTab({ lead }: { lead: any }) {
           </CardContent>
         </Card>
       )}
+
+      {/* PRE-PLAN checklist — visible when evidence is in but Stage 5 hasn't run.
+          The agent resolves conflicts here so Stage 5 generates the FINAL plan
+          in one shot. "Generate anyway" skips the checklist. */}
+      {existingJob && status === "awaiting_agent" && (
+        <Card className="border-primary/40">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <AlertTriangle className="w-4 h-4 text-primary" /> Review before generating the plan
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              The AI finished gathering evidence. Before writing the plan, it flagged the items below where the sources conflict or a claim isn't verified. Confirm or reject each item, then generate the plan — you'll get one final document, not a draft plus a fix-up. Or skip and generate now with the AI's best guess.
+            </p>
+            {preConflictItems.length > 0 ? (
+              <UnresolvedChecklist
+                items={preConflictItems}
+                disabled={streamingPlan}
+                resetSignal={0}
+                onSubmit={submitPreConflicts}
+                submitLabel="Generate plan with my answers"
+              />
+            ) : (
+              <p className="text-sm">No conflicts to resolve. Click below to generate the plan.</p>
+            )}
+            <div className="flex justify-end">
+              <Button variant="outline" onClick={generateAnyway} disabled={streamingPlan}>
+                {streamingPlan ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Play className="w-4 h-4 mr-2" />}
+                Generate anyway (skip these questions)
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
 
       {/* Tweak status banner — visible during background revision, and after failure */}
       {existingJob && status === "complete" && tweakStatus === "running" && (
@@ -820,11 +886,13 @@ function UnresolvedChecklist({
   disabled,
   resetSignal,
   onSubmit,
+  submitLabel,
 }: {
   items: UnresolvedItem[];
   disabled: boolean;
   resetSignal: number;
-  onSubmit: (items: Array<{ claim: string; source: string; action: "confirmed" | "rejected"; agent_note?: string; resolved_value?: string }>) => void;
+  onSubmit: (items: Array<{ claim: string; source: string; action: "confirmed" | "rejected"; agent_note?: string; resolved_value?: string }>) => void | Promise<void>;
+  submitLabel?: string;
 }) {
   const [decisions, setDecisions] = useState<Record<number, "confirmed" | "rejected" | "">>({});
   const [notes, setNotes] = useState<Record<number, string>>({});
@@ -1009,7 +1077,7 @@ function UnresolvedChecklist({
             }}
           >
             {disabled ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Wand2 className="w-4 h-4 mr-2" />}
-            Apply {pending || ""} decision{pending === 1 ? "" : "s"}
+            {submitLabel || `Apply ${pending || ""} decision${pending === 1 ? "" : "s"}`}
           </Button>
         </div>
       </CardContent>
