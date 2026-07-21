@@ -44,6 +44,8 @@ DATE EVERY FIGURE. Give the year or period each number covers, and note that fig
 
 STAY IN YOUR LANE. Report only your assigned topic. Do not summarize the property, do not discuss the listing price, and do not write marketing copy. Another stage does that.
 
+PRIMARY GEOGRAPHY. The user message names the subject property's exact CITY and ZIP. Those two values are the PRIMARY GEOGRAPHY for this research — every figure you report must be for that city or that ZIP unless you explicitly say otherwise. If a data source (Census, ACS, MLS board, auditor) publishes at a different geography (metro area, county, place name that differs from the mailing city, e.g. a Dublin ZIP that Census reports under Hilliard), label every figure with the exact geography it covers: "ZIP {zip}, ACS 2020-2024", "City of {city}, Census 2020", "Franklin County auditor 2024", etc. Never report a figure without naming the geography and period it covers. If the ZIP straddles multiple mailing cities, that is expected and the ZIP-scoped figure is still the one to report — do not suppress it because it does not match the mailing city.
+
 The user message will include a NEIGHBORHOOD SNAPSHOT extracted from the seller's own documents. Those values (School District, Subdivision, Walkability Score, Crime Risk Score, Flood Zone) are AUTHORITATIVE — do NOT web-search for any of them, and do NOT contradict them. If your topic touches any of those values, repeat them with source "Neighborhood Snapshot (documents)".
 
 You have ONE web search. Make it count. Write a single specific query for your assigned topic and this address, read the results, and report what you found. Fetch a page only if the search results are insufficient. Do not iterate or refine repeatedly. If one search does not establish a fact, report what you did find and note what is missing rather than searching again.`;
@@ -60,10 +62,23 @@ const TOPIC_INSTRUCTIONS: Record<Topic, string> = {
   community:
     `TOPIC: THE COMMUNITY. Describe the subdivision or community itself: when it was built and by whom, what defines it architecturally and socially, any homeowners association and amenities. If the Neighborhood Snapshot names a subdivision, use that as the starting point. Return Markdown under a single "## The Community" heading.`,
   demographics:
-    `TOPIC: DEMOGRAPHICS. Report population, median household income for the city and for the ZIP, share of high-income households, education level, owner-occupancy rate, and the effective property tax rate with an annual dollar range on this home's approximate price band. Prefer Census / ACS / county auditor. DO NOT gather or report age distribution data of any kind. Return Markdown under a single "## Demographics" heading.`,
+    `TOPIC: DEMOGRAPHICS. Report population, median household income for the CITY and for the ZIP, share of high-income households, education level, owner-occupancy rate, and the effective property tax rate with an annual dollar range on this home's approximate price band. Prefer Census / ACS / county auditor. Label every figure with its exact geography and period (e.g., "ZIP 43016, ACS 2020-2024", "City of Dublin, Census 2020"). If the ZIP's Census-designated place name differs from the mailing city, report the ZIP figure anyway and note the naming difference in one sentence — DO NOT drop the figure. DO NOT gather or report age distribution data of any kind. Return Markdown under a single "## Demographics" heading.`,
   market:
-    `TOPIC: MARKET CONTEXT. Report median home value, appreciation trend, days on market, and current market conditions for this submarket (ZIP or subdivision). Prefer local MLS or board of Realtors data. Return Markdown under a single "## Market Context" heading.`,
+    `TOPIC: MARKET CONTEXT. Report median home value, appreciation trend, days on market, and current market conditions for this submarket (ZIP or subdivision). Prefer local MLS or board of Realtors data. Label every figure with the exact geography and period. Return Markdown under a single "## Market Context" heading.`,
 };
+
+// Safe concatenator: guarantees whitespace between two text chunks so mid-word
+// merges like "friendsare" cannot happen when we glue a continuation onto its
+// predecessor. Ensures at least a blank line between them if either side lacks
+// terminal / leading whitespace.
+function joinContinuation(a: string, b: string): string {
+  if (!a) return b || "";
+  if (!b) return a;
+  const endsClean = /[\s\n]$/.test(a);
+  const startsClean = /^[\s\n]/.test(b);
+  if (endsClean || startsClean) return `${a}${b}`;
+  return `${a}\n\n${b}`;
+}
 
 const DEADLINE_MS = 130_000;
 
