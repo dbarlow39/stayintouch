@@ -886,11 +886,13 @@ function UnresolvedChecklist({
   disabled,
   resetSignal,
   onSubmit,
+  submitLabel,
 }: {
   items: UnresolvedItem[];
   disabled: boolean;
   resetSignal: number;
-  onSubmit: (items: Array<{ claim: string; source: string; action: "confirmed" | "rejected"; agent_note?: string; resolved_value?: string }>) => void;
+  onSubmit: (items: Array<{ claim: string; source: string; action: "confirmed" | "rejected"; agent_note?: string; resolved_value?: string }>) => void | Promise<void>;
+  submitLabel?: string;
 }) {
   const [decisions, setDecisions] = useState<Record<number, "confirmed" | "rejected" | "">>({});
   const [notes, setNotes] = useState<Record<number, string>>({});
