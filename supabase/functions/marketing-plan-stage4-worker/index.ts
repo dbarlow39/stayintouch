@@ -171,7 +171,7 @@ ${context?.snapshot || "(no snapshot available — proceed with normal research)
           });
           const contTxt = (cont.text || "").trim();
           overloadRetries += cont.retries || 0;
-          if (contTxt) txt = `${txt}\n\n${contTxt}`;
+          if (contTxt) txt = joinContinuation(txt, contTxt);
           stopReason = `max_tokens+continued(${cont.stop_reason})`;
         } catch (e) {
           console.error(`stage4-worker(${topic}) continuation failed:`, e);
