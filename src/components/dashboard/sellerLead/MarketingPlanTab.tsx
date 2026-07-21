@@ -311,6 +311,9 @@ export default function MarketingPlanTab({ lead }: { lead: any }) {
     } finally {
       setTweaking(false);
     }
+  }
+
+
 
   async function handleReset() {
     if (!existingJob) return;
