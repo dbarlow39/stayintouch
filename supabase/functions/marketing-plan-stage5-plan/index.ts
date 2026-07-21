@@ -271,6 +271,8 @@ async function runPlan(jobId: string, userId: string) {
     // Target-date handling: pass the raw value ONLY if it's a valid, non-past date.
     // Otherwise pass a machine-readable "omitted" marker the prompt knows how to handle,
     // AND record the invalid input so the internal verification can call it out.
+    // All date math is anchored to America/New_York (Central Ohio) rather than UTC.
+    const generationDate = todayInNY();
     const rawTarget = job.target_on_market_date ?? null;
     const dateValid = isValidFutureDate(rawTarget);
     const targetDateLine = dateValid
@@ -279,6 +281,10 @@ async function runPlan(jobId: string, userId: string) {
     const invalidDateNote = rawTarget && !dateValid
       ? `The agent originally entered: ${rawTarget} (rejected as past or invalid — do not print this value anywhere)`
       : "";
+    const daysUntilTarget = dateValid ? daysBetween(generationDate, String(rawTarget)) : null;
+    const runwayLine = daysUntilTarget === null
+      ? "- Runway from Generation Date to Target On-Market Date: n/a (no valid target date; use relative units anchored to the Generation Date)"
+      : `- Runway from Generation Date to Target On-Market Date: ${daysUntilTarget} day(s). No milestone may fall earlier than the Generation Date. If this runway is too short, either compress the preparation or switch the whole list to relative units anchored to the Generation Date.`;
 
     const missingEmail = agentEmail === "";
     const missingPhone = agentPhone === "";
@@ -291,9 +297,12 @@ async function runPlan(jobId: string, userId: string) {
 - Year built (lead record): ${lead?.year_built || "?"}
 
 # Form Inputs
+- Generation Date (America/New_York, authoritative "today" for every date comparison in this plan): ${generationDate}
 - List Price: ${job.list_price ?? "not specified"}
 - Target On-Market Date: ${targetDateLine}
+${runwayLine}
 ${invalidDateNote ? `- Target Date Note: ${invalidDateNote}\n` : ""}- Anything Unusual: ${job.unusual_notes || "(none)"}
+
 
 # MLS Data (agent-pasted, HIGHEST PRECEDENCE for sqft, year built, beds/baths, taxes)
 ${job.mls_paste || "(none pasted)"}
