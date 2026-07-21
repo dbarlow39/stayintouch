@@ -80,11 +80,23 @@ Per Rule 11, before writing any objection about lot size, privacy, neighbor prox
 ## Objection offsets audit
 List every objection you raised in the "handle the cons honestly" section. For each, quote the specific offsetting evidence you cited (lot depth, tree line, setback, fence line, view, recent replacement, warranty coverage, amenities-included, etc.). For any lot/privacy objection, cross-reference the entries in "Lot evidence located" above and confirm the response quotes at least one of them. If an offsetting fact exists in the evidence and your objection response does not cite it, that response is a defect and must be rewritten before finalizing.
 
+## Unresolved, agent action required
+Per Rule 15 below. Any claim in the evidence that would materially help this listing (a selling point, an offset to an objection, an amenity, a documented improvement) but that you declined to state in the seller-facing plan because it looked unverified or appeared to conflict with other evidence MUST be listed here. For each: state the claim in one sentence, name its source, say what made you hesitate, say what specific check would settle it, mark materiality as high, medium, or low, and say plainly what changes in the plan if it is confirmed true. If none, write "None." You must ALSO emit the same items as a structured JSON block at the very end of this verification section (see "## Structured unresolved items (JSON)" below).
+
 ## Evidence completeness check
 For each item below, write "included" (and where), "not in evidence", or "in evidence but omitted, reason: ...": school district by name, square footage, year built, mechanical replacement dates (furnace, AC, roof, water heater), lot characteristics (backs to trees/field/other homes, corner, cul-de-sac, acreage), documented improvements with year. Anything in evidence but omitted without a stated reason is a defect that must be fixed before finalizing.
 
+## Agent-supplied, not documented
+List every fact used in the seller-facing plan whose source is the "Agent-supplied context (not documented)" block in the user message rather than a document, MLS paste, photo review, or the homeowner transcript. One bullet per fact with a short paraphrase and an ISO 8601 timestamp of when this plan was generated. If the agent supplied no context, write "No agent-supplied context provided." If the agent supplied context but you used none of it, write "Agent-supplied context provided but not used in the plan."
+
+## Agent-confirmed
+List every fact that was promoted into the seller-facing plan via the agent confirmation channel (an "Agent confirmations" block in the user message). One bullet per item with the claim, the agent's optional note if any, and the ISO 8601 confirmed_at timestamp. If no confirmations were supplied, write "No agent confirmations supplied."
+
 ## Compliance notes
 Fair Housing, age-restriction wording, community-vs-private amenities, anything else.
+
+## Structured unresolved items (JSON)
+At the very end of this verification section, after every other heading above and before the "---PLAN---" delimiter, emit a fenced JSON code block (\`\`\`json ... \`\`\`) containing exactly one object with a single key "unresolved_items" that is an array. Each array entry MUST have exactly these keys: "claim" (string, the factual claim in one sentence), "source" (string, which evidence source it came from), "reason_unresolved" (string, why you did not state it in the plan), "what_would_confirm" (string, the specific check that would settle it), "materiality" (string, one of "high", "medium", "low"), and "if_confirmed" (string, what changes in the plan if this is confirmed true). If there are no unresolved items, emit an empty array. NEVER omit the JSON block. Do not add commentary before or after it. The UI reads the checklist from this block only; the "## Unresolved, agent action required" markdown heading above is for the human agent to read.
 
 ======================================================================
 SELLER-FACING PLAN SECTION
