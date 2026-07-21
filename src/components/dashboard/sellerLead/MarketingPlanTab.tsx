@@ -63,6 +63,7 @@ export default function MarketingPlanTab({ lead }: { lead: any }) {
   const [targetDate, setTargetDate] = useState<string>("");
   const [unusualNotes, setUnusualNotes] = useState<string>("");
   const [mlsPaste, setMlsPaste] = useState<string>("");
+  const [agentNotes, setAgentNotes] = useState<string>("");
   const [pendingDocs, setPendingDocs] = useState<UploadedDoc[]>([]);
   const [uploading, setUploading] = useState(false);
   const [starting, setStarting] = useState(false);
@@ -205,6 +206,7 @@ export default function MarketingPlanTab({ lead }: { lead: any }) {
           target_on_market_date: targetDate || null,
           unusual_notes: unusualNotes || null,
           mls_paste: mlsPaste || null,
+          agent_notes: agentNotes || null,
           documents: pendingDocs.map((d) => ({
             storage_path: d.storage_path,
             doc_type: d.doc_type,
@@ -292,6 +294,26 @@ export default function MarketingPlanTab({ lead }: { lead: any }) {
       setTweaking(false);
     }
   }
+
+  async function submitAgentConfirmations(items: Array<{ claim: string; source: string; action: "confirmed" | "rejected"; agent_note?: string }>) {
+    if (!existingJob || items.length === 0) return;
+    setTweaking(true);
+    try {
+      const stamped = items.map((i) => ({ ...i, confirmed_at: new Date().toISOString() }));
+      const { error } = await supabase.functions.invoke("marketing-plan-tweak", {
+        body: { job_id: existingJob.id, agent_confirmations: stamped },
+      });
+      if (error) throw error;
+      await loadResults(existingJob.id);
+      toast({ title: "Plan updated", description: `Applied ${items.length} confirmation(s).` });
+    } catch (err: any) {
+      toast({ title: "Update failed", description: err.message, variant: "destructive" });
+    } finally {
+      setTweaking(false);
+    }
+  }
+
+
 
   async function handleReset() {
     if (!existingJob) return;
@@ -404,6 +426,27 @@ export default function MarketingPlanTab({ lead }: { lead: any }) {
   const planText = planStream || results.marketing_plan || "";
   const { seller: sellerFacing, internal: internalNotes } = splitPlan(planText);
 
+  // Parse the fenced JSON block emitted by Stage 5 under "## Structured unresolved items (JSON)".
+  const unresolvedItems: Array<{
+    claim: string;
+    source: string;
+    reason_unresolved: string;
+    what_would_confirm: string;
+    materiality: "high" | "medium" | "low" | string;
+    if_confirmed: string;
+  }> = (() => {
+    if (!internalNotes) return [];
+    const m = internalNotes.match(/```json\s*([\s\S]*?)```/i);
+    if (!m) return [];
+    try {
+      const parsed = JSON.parse(m[1]);
+      const arr = Array.isArray(parsed?.unresolved_items) ? parsed.unresolved_items : [];
+      return arr.filter((x: any) => x && typeof x.claim === "string");
+    } catch {
+      return [];
+    }
+  })();
+
   const stages = ["property_data", "photo_review", "document_facts", "area_research", "marketing_plan"];
   const status = existingJob?.status;
   const isRunning = existingJob && status !== "complete" && status !== "failed";
@@ -461,6 +504,15 @@ export default function MarketingPlanTab({ lead }: { lead: any }) {
               <Label>Paste MLS data (optional but recommended)</Label>
               <Textarea rows={6} value={mlsPaste} onChange={(e) => setMlsPaste(e.target.value)}
                 placeholder="Paste the full MLS sheet if available — this overrides Estated for sqft, year built, beds/baths, taxes." />
+            </div>
+
+            <div>
+              <Label>Additional agent context (optional)</Label>
+              <p className="text-xs text-muted-foreground mb-1">
+                Anything you know from talking to the seller or driving the property that isn't in a document — recent updates, neighbor history, buyer-attractive quirks, HOA verbal rules, etc. The plan will use these as agent assertions and list every one under "Agent-supplied, not documented" in the internal verification section.
+              </p>
+              <Textarea rows={4} value={agentNotes} onChange={(e) => setAgentNotes(e.target.value)}
+                placeholder="e.g. Homeowner says the lot backs to a wooded common area; furnace replaced 2022 per homeowner (no receipt yet); HOA verbally allows short-term rentals under 30 days." />
             </div>
 
             <div className="border rounded-md p-4 space-y-3">
@@ -581,6 +633,15 @@ export default function MarketingPlanTab({ lead }: { lead: any }) {
         </Card>
       )}
 
+      {/* Unresolved items — agent action required */}
+      {existingJob && status === "complete" && unresolvedItems.length > 0 && (
+        <UnresolvedChecklist
+          items={unresolvedItems}
+          disabled={tweaking}
+          onSubmit={submitAgentConfirmations}
+        />
+      )}
+
       {/* Tweak / revise panel */}
       {existingJob && status === "complete" && results.marketing_plan && (
         <Card>
@@ -671,5 +732,115 @@ export default function MarketingPlanTab({ lead }: { lead: any }) {
         </AlertDialogContent>
       </AlertDialog>
     </div>
+  );
+}
+
+type UnresolvedItem = {
+  claim: string;
+  source: string;
+  reason_unresolved: string;
+  what_would_confirm: string;
+  materiality: string;
+  if_confirmed: string;
+};
+
+function UnresolvedChecklist({
+  items,
+  disabled,
+  onSubmit,
+}: {
+  items: UnresolvedItem[];
+  disabled: boolean;
+  onSubmit: (items: Array<{ claim: string; source: string; action: "confirmed" | "rejected"; agent_note?: string }>) => void;
+}) {
+  const [decisions, setDecisions] = useState<Record<number, "confirmed" | "rejected" | "">>({});
+  const [notes, setNotes] = useState<Record<number, string>>({});
+
+  const materialityColor = (m: string) => {
+    const v = (m || "").toLowerCase();
+    if (v === "high") return "bg-red-500/15 text-red-700 border-red-500/40";
+    if (v === "medium") return "bg-amber-500/15 text-amber-700 border-amber-500/40";
+    return "bg-slate-500/15 text-slate-700 border-slate-500/40";
+  };
+
+  const pending = Object.values(decisions).filter((v) => v === "confirmed" || v === "rejected").length;
+
+  return (
+    <Card className="border-amber-500/40">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-base text-amber-700">
+          <AlertTriangle className="w-4 h-4" /> Unresolved — Agent Action Required
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <p className="text-sm text-muted-foreground">
+          The AI found claims in the evidence that could help this listing but weren't stated in the plan because they looked unverified or conflicting. Confirm or reject each item; confirmed items will be woven into the plan, rejected items will be scrubbed.
+        </p>
+        {items.map((it, i) => (
+          <div key={i} className="border rounded-md p-3 space-y-2">
+            <div className="flex items-start justify-between gap-2">
+              <p className="text-sm font-medium">{it.claim}</p>
+              <span className={`text-xs px-2 py-0.5 rounded border ${materialityColor(it.materiality)}`}>
+                {(it.materiality || "").toString() || "—"}
+              </span>
+            </div>
+            <div className="text-xs text-muted-foreground space-y-1">
+              <div><span className="font-semibold">Source:</span> {it.source}</div>
+              <div><span className="font-semibold">Why unresolved:</span> {it.reason_unresolved}</div>
+              <div><span className="font-semibold">Would confirm:</span> {it.what_would_confirm}</div>
+              <div><span className="font-semibold">If confirmed:</span> {it.if_confirmed}</div>
+            </div>
+            <div className="flex flex-wrap items-center gap-2 pt-1">
+              <Button
+                size="sm"
+                variant={decisions[i] === "confirmed" ? "default" : "outline"}
+                onClick={() => setDecisions((d) => ({ ...d, [i]: d[i] === "confirmed" ? "" : "confirmed" }))}
+                disabled={disabled}
+              >
+                Confirm
+              </Button>
+              <Button
+                size="sm"
+                variant={decisions[i] === "rejected" ? "destructive" : "outline"}
+                onClick={() => setDecisions((d) => ({ ...d, [i]: d[i] === "rejected" ? "" : "rejected" }))}
+                disabled={disabled}
+              >
+                Reject
+              </Button>
+              <Input
+                className="flex-1 min-w-[200px] h-9"
+                placeholder="Optional note (e.g. 'seller emailed receipt on 3/12')"
+                value={notes[i] || ""}
+                onChange={(e) => setNotes((n) => ({ ...n, [i]: e.target.value }))}
+                disabled={disabled}
+              />
+            </div>
+          </div>
+        ))}
+        <div className="flex justify-end">
+          <Button
+            disabled={disabled || pending === 0}
+            onClick={() => {
+              const payload = items
+                .map((it, i) => {
+                  const action = decisions[i];
+                  if (action !== "confirmed" && action !== "rejected") return null;
+                  return {
+                    claim: it.claim,
+                    source: it.source,
+                    action,
+                    agent_note: (notes[i] || "").trim() || undefined,
+                  };
+                })
+                .filter((x): x is NonNullable<typeof x> => !!x);
+              if (payload.length > 0) onSubmit(payload);
+            }}
+          >
+            {disabled ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Wand2 className="w-4 h-4 mr-2" />}
+            Apply {pending || ""} decision{pending === 1 ? "" : "s"}
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
   );
 }

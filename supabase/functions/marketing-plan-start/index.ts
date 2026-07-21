@@ -16,6 +16,7 @@ interface StartBody {
   target_on_market_date?: string | null;
   unusual_notes?: string | null;
   mls_paste?: string | null;
+  agent_notes?: string | null;
   documents?: DocIn[];
 }
 
@@ -59,6 +60,7 @@ serve(async (req) => {
         target_on_market_date: body.target_on_market_date ?? null,
         unusual_notes: body.unusual_notes ?? null,
         mls_paste: body.mls_paste ?? null,
+        agent_notes: body.agent_notes ?? null,
       })
       .select("id")
       .single();

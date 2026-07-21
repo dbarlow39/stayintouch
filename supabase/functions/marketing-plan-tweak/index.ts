@@ -28,15 +28,56 @@ serve(async (req) => {
       });
     }
 
-    const { job_id, instruction } = await req.json();
+    const body = await req.json();
+    const job_id = body?.job_id;
+    const instruction: string | undefined = body?.instruction;
+    const agent_confirmations = Array.isArray(body?.agent_confirmations) ? body.agent_confirmations : null;
+
     if (!job_id || typeof job_id !== "string") {
       return new Response(JSON.stringify({ error: "job_id required" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    if (!instruction || typeof instruction !== "string" || instruction.trim().length < 3) {
-      return new Response(JSON.stringify({ error: "instruction required" }), {
+
+    // Build a synthesized instruction from structured agent_confirmations,
+    // OR use the raw text instruction. One of the two must be provided.
+    let effectiveInstruction = "";
+    if (agent_confirmations && agent_confirmations.length > 0) {
+      const confirmed = agent_confirmations.filter((c: any) => c?.action === "confirmed");
+      const rejected = agent_confirmations.filter((c: any) => c?.action === "rejected");
+      const parts: string[] = [];
+      parts.push("Apply the following agent confirmations to the plan. Do not change any other content.");
+      parts.push("");
+      if (confirmed.length > 0) {
+        parts.push("CONFIRMED ITEMS (treat as established facts and incorporate into the seller-facing plan; remove any hedging or objection language that these facts refute; add each item as a bullet under the internal verification heading \"## Agent-confirmed\" with the claim, agent note if any, and confirmed_at timestamp):");
+        for (const c of confirmed) {
+          parts.push(`- Claim: ${String(c.claim || "").trim()}`);
+          parts.push(`  Source: ${String(c.source || "").trim()}`);
+          if (c.agent_note && String(c.agent_note).trim()) parts.push(`  Agent note: ${String(c.agent_note).trim()}`);
+          parts.push(`  Confirmed at: ${String(c.confirmed_at || new Date().toISOString())}`);
+        }
+        parts.push("");
+      }
+      if (rejected.length > 0) {
+        parts.push("REJECTED ITEMS (the agent has explicitly refuted these; they MUST NOT appear anywhere in the seller-facing plan, and any related objection or hedge should stand only on evidence other than these claims):");
+        for (const c of rejected) {
+          parts.push(`- Claim: ${String(c.claim || "").trim()}`);
+          parts.push(`  Source: ${String(c.source || "").trim()}`);
+          if (c.agent_note && String(c.agent_note).trim()) parts.push(`  Agent note: ${String(c.agent_note).trim()}`);
+        }
+        parts.push("");
+      }
+      parts.push("Also update the JSON block at the end of the verification section to REMOVE any unresolved_items entries whose claim matches a confirmed or rejected item above.");
+      if (instruction && instruction.trim().length >= 3) {
+        parts.push("");
+        parts.push(`Additional agent instruction: ${instruction.trim()}`);
+      }
+      effectiveInstruction = parts.join("\n");
+    } else if (instruction && typeof instruction === "string" && instruction.trim().length >= 3) {
+      effectiveInstruction = instruction.trim();
+    } else {
+      return new Response(JSON.stringify({ error: "instruction or agent_confirmations required" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -44,10 +85,10 @@ serve(async (req) => {
 
     const db = serviceClient();
 
-    // Verify job ownership.
+    // Verify job ownership. Note: marketing_plan_jobs uses user_id for the owner.
     const { data: job, error: jobErr } = await db
       .from("marketing_plan_jobs")
-      .select("id, agent_id")
+      .select("id, user_id")
       .eq("id", job_id)
       .single();
     if (jobErr || !job) {
@@ -56,7 +97,7 @@ serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    if (job.agent_id !== user.userId) {
+    if (job.user_id !== user.userId) {
       return new Response(JSON.stringify({ error: "Forbidden" }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -84,7 +125,7 @@ ${original}
 \`\`\`
 
 REQUESTED CHANGE:
-${instruction.trim()}
+${effectiveInstruction}
 
 Return the full revised plan now.`;
 
