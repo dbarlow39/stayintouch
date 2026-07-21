@@ -501,13 +501,14 @@ serve(async (req) => {
     // Internal-only OR job-owner entrypoint. Prevents any authenticated
     // caller who guesses a jobId from triggering Stage 5 for a job that
     // isn't theirs, while still allowing UI-driven retries by the owner.
-    const { jobId, userId: bodyUserId } = await req.json();
+    const body = await req.json();
+    const jobId = body?.jobId;
+    const bodyUserId = body?.userId;
+    const rawConfirmations = Array.isArray(body?.agent_confirmations) ? body.agent_confirmations : null;
     if (!jobId) throw new Error("jobId required");
     const unauth = await assertInternalOrJobOwner(req, jobId);
     if (unauth) return unauth;
 
-    // Prefer explicit userId from the caller. Fall back to the job's owner
-    // because internal invokes (sweeper, gate advance) don't pass one.
     let userId: string | undefined = bodyUserId;
     if (!userId) {
       const db = serviceClient();
@@ -525,8 +526,41 @@ serve(async (req) => {
       userId = job.user_id as string;
     }
 
+    // Persist confirmations so a retry can reuse them without a UI round-trip.
+    if (rawConfirmations && rawConfirmations.length > 0) {
+      try {
+        const db = serviceClient();
+        await db
+          .from("marketing_plan_results")
+          .upsert(
+            { job_id: jobId, stage: "agent_confirmations", content: JSON.stringify(rawConfirmations) },
+            { onConflict: "job_id,stage" },
+          );
+      } catch (e) {
+        console.error("stage5 persist confirmations failed:", e);
+      }
+    }
+
+    // If no confirmations in this request, try to reload the last-saved set.
+    let confirmations = rawConfirmations;
+    if (!confirmations) {
+      try {
+        const db = serviceClient();
+        const { data: row } = await db
+          .from("marketing_plan_results")
+          .select("content")
+          .eq("job_id", jobId)
+          .eq("stage", "agent_confirmations")
+          .maybeSingle();
+        if (row?.content) {
+          const parsed = JSON.parse(row.content);
+          if (Array.isArray(parsed)) confirmations = parsed;
+        }
+      } catch { /* ignore */ }
+    }
+
     // @ts-ignore EdgeRuntime is provided by Supabase edge-runtime
-    EdgeRuntime.waitUntil(runPlan(jobId, userId));
+    EdgeRuntime.waitUntil(runPlan(jobId, userId, confirmations));
 
     return new Response(JSON.stringify({ ok: true, backgrounded: true }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
