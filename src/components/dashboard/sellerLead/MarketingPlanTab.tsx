@@ -672,14 +672,40 @@ export default function MarketingPlanTab({ lead }: { lead: any }) {
         </Card>
       )}
 
+      {/* Tweak status banner — visible during background revision, and after failure */}
+      {existingJob && status === "complete" && tweakStatus === "running" && (
+        <div className="rounded-md border border-blue-500/40 bg-blue-500/10 p-3 text-sm flex items-center gap-2 text-blue-800">
+          <Loader2 className="w-4 h-4 animate-spin" />
+          Applying your changes to the plan. This runs in the background and can take up to 2 minutes. Your selections stay put until it completes.
+        </div>
+      )}
+      {existingJob && status === "complete" && tweakStatus === "failed" && (
+        <div className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive space-y-2">
+          <div className="flex items-center gap-2 font-medium">
+            <AlertTriangle className="w-4 h-4" /> Tweak failed. The plan was not changed.
+          </div>
+          {tweakError && <p className="text-xs">{tweakError}</p>}
+          <p className="text-xs">Your confirm/reject selections and instruction text are preserved. Click Retry to try again.</p>
+          {lastTweakPayload && (
+            <div>
+              <Button size="sm" variant="outline" onClick={retryLastTweak}>
+                <RefreshCw className="w-3 h-3 mr-2" /> Retry
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Unresolved items — agent action required */}
       {existingJob && status === "complete" && unresolvedItems.length > 0 && (
         <UnresolvedChecklist
           items={unresolvedItems}
           disabled={tweaking}
+          resetSignal={tweakSuccessSignal}
           onSubmit={submitAgentConfirmations}
         />
       )}
+
 
       {/* Tweak / revise panel */}
       {existingJob && status === "complete" && results.marketing_plan && (
