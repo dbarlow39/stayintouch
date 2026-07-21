@@ -334,7 +334,7 @@ async function runPlan(jobId: string, userId: string, agentConfirmations?: any[]
     }
 
 
-    const userMsg = `# Seller Lead
+    const userMsg = `${agentConfirmationsBlock}# Seller Lead
 - Name: ${lead?.first_name || ""} ${lead?.last_name || ""}
 - Address: ${addressFull}
 - Beds/Baths (lead record): ${lead?.bedrooms || "?"} / ${lead?.bathrooms || "?"}
