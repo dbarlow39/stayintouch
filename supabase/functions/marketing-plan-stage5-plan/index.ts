@@ -59,8 +59,9 @@ Any place the property record, MLS paste, HOA docs, photo review, or seller note
 - If neither is missing, write: "Agent contact info complete."
 
 ## Timeline warnings
-- If the Target On-Market Date the agent entered is in the past or invalid, write: "INVALID TARGET DATE: [what they entered] - omitted from the seller plan; timeline uses relative weeks instead."
+- If the Target On-Market Date the agent entered is in the past or invalid (compared against the Generation Date supplied in the user message, which is calculated in America/New_York), write: "INVALID TARGET DATE: [what they entered] - omitted from the seller plan; timeline uses relative weeks instead."
 - Otherwise write: "Target on-market date valid."
+- After you draft the execution list, re-read every milestone. NO milestone (absolute calendar date or relative Day/Week anchor) may resolve to a date earlier than the Generation Date supplied in the user message. If the runway between the Generation Date and the Target On-Market Date is too short for the preparation steps you had planned, either (a) compress the preparation steps so every milestone falls on or after the Generation Date, or (b) switch the entire list to relative units (Day 0, Day 7, ...) anchored to the Generation Date. For each milestone list the calendar date you chose (or the relative anchor) and confirm "on or after generation date: yes". If any milestone is earlier than the Generation Date, that is a defect and the list must be rewritten before finalizing.
 
 ## Left out on purpose
 Anything you deliberately did not put in the seller plan and why.
