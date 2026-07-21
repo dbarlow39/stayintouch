@@ -1888,6 +1888,7 @@ export type Database = {
       }
       marketing_plan_jobs: {
         Row: {
+          agent_notes: string | null
           created_at: string
           current_batch: number
           current_stage: string | null
@@ -1905,6 +1906,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          agent_notes?: string | null
           created_at?: string
           current_batch?: number
           current_stage?: string | null
@@ -1922,6 +1924,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          agent_notes?: string | null
           created_at?: string
           current_batch?: number
           current_stage?: string | null

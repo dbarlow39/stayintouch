@@ -1,0 +1,1 @@
+ALTER TABLE public.marketing_plan_jobs ADD COLUMN IF NOT EXISTS agent_notes text;
