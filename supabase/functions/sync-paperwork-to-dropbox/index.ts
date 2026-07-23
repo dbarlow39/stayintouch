@@ -458,9 +458,10 @@ async function runForAgent(
   }
 
 
-  // Existing closings map: norm addr -> { id, hasPaperwork }
+  // Existing closings: check GLOBALLY (not per-agent) because parser may reassign
+  // rows to a different listing agent, and the next sync run must still see them.
   const { data: existingClosings } = await serviceClient
-    .from("closings").select("id, property_address, paperwork_files").eq("agent_id", agentId);
+    .from("closings").select("id, property_address, paperwork_files");
   const { data: soldClients } = await serviceClient
     .from("clients").select("street_number, street_name")
     .eq("agent_id", agentId).eq("status", "S");
