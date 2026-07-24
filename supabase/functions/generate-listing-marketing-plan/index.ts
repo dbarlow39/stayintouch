@@ -142,50 +142,8 @@ function bytesToBase64(bytes: Uint8Array): string {
   return btoa(binary);
 }
 
-async function extractTaxFactsFromPdf(
-  apiKey: string,
-  pdfBytes: Uint8Array,
-  filename: string,
-): Promise<Record<string, unknown> | null> {
-  const b64 = bytesToBase64(pdfBytes);
-  const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-    method: "POST",
-    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model: "google/gemini-2.5-pro",
-      messages: [
-        {
-          role: "system",
-          content:
-            'You extract real-estate tax record facts from a PDF. Return ONLY compact JSON (no prose, no code fences) with any of these keys you can find: address, owners, beds, baths, half_baths, sqft, lot_size, year_built, school_district, elementary_school, middle_school, high_school, county, township, subdivision, parcel_id, annual_taxes, assessed_value, market_value, style, stories, basement, garage, zoning. Omit keys you cannot verify from the document. Do not guess.',
-        },
-        {
-          role: "user",
-          content: [
-            { type: "text", text: `Extract facts from this tax record: ${filename}` },
-            {
-              type: "file",
-              file: { filename, file_data: `data:application/pdf;base64,${b64}` },
-            },
-          ],
-        },
-      ],
-    }),
-  });
-  if (!res.ok) {
-    console.error("Tax extract AI failed", res.status, await res.text());
-    return null;
-  }
-  const data = await res.json();
-  const raw = data?.choices?.[0]?.message?.content?.trim() || "";
-  const cleaned = raw.replace(/^```(?:json)?/i, "").replace(/```$/, "").trim();
-  try {
-    return JSON.parse(cleaned);
-  } catch {
-    console.error("Tax extract JSON parse failed:", raw.slice(0, 400));
-    return null;
-  }
-}
+// PDF extraction removed — Claude reads the PDF directly in the single generation call below.
+
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
