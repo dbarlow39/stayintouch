@@ -228,7 +228,14 @@ When the Full Marketing Plan includes a "Digital Advertising Blitz" subsection, 
 - YouTube Pre-Roll Ads: Video ad (60-sec tour) targeted to married couples, ages 28–45, within a 20-mile radius of [nearest major suburb], with interests in: [local school district], family activities, real estate, homeownership
 - TikTok Ads: 30-second teaser video targeted to [local ZIP codes], ages 25–45, interests in home buying and family activities
 
-Replace the bracketed placeholders with the actual city, subdivision, school district, and ZIP codes for this property. Do not add any additional advertising bullets or channels.${factsInstruction}`;
+Replace the bracketed placeholders with the actual city, subdivision, school district, and ZIP codes for this property. Do not add any additional advertising bullets or channels.
+
+## Email Marketing Language (must follow verbatim)
+When the Full Marketing Plan includes an "Email Marketing" subsection, use exactly these two bullets (in this order, with this wording). Do NOT include any neighborhood farming, postcard, or third bullet here — farming belongs in its own section:
+- Agent-to-Agent Blast: Send to 5000+ Columbus area agents, emphasizing [local school district] and strong buyer demand
+- Past Client Database: Email to my past clients and other known buyers looking in the area with subject line: "Just Listed: [Local School District] Gem—Share with Friends!"
+
+Replace the bracketed placeholders with the actual school district for this property. Do not invent specific past-client counts.${factsInstruction}`;
 }
 
 async function updateJob(
