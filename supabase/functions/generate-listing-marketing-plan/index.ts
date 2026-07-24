@@ -210,7 +210,15 @@ When the Full Marketing Plan includes a "Property Prep & Staging" subsection, us
 - Exterior curb appeal: fresh mulch, trim hedges, refresh driveway and patio, add potted flowers at entry and a new front door mat that says "Welcome Home"
 - Minor repairs: patch any wall dings, touch up paint, replace burned-out bulbs, fix leaky faucets
 
-Do NOT use the words "depersonalize" or "power-wash" anywhere in the plan.${factsInstruction}`;
+Do NOT use the words "depersonalize" or "power-wash" anywhere in the plan.
+
+## Photography & Media Rules (must follow)
+When the Full Marketing Plan includes a "Photography & Media" subsection, follow these rules:
+- Always include: "40–50 high-res photos with HDR and twilight exterior shots".
+- Drone footage: ONLY include a drone bullet if the tax record shows the lot is 1.0 acre or larger. Otherwise omit any mention of drone footage entirely.
+- Do NOT mention Matterport or 3D virtual tours. Omit that bullet entirely.
+- Video tour bullet must read: "Cinematic video tour with upbeat, family-friendly music" (no fixed duration like "60-second").
+- Lifestyle B-roll: only include this bullet if you can name specific, verified nearby parks/streets/schools tied to this property's actual neighborhood. If you cannot verify specifics, omit the B-roll bullet entirely — do not invent locations.${factsInstruction}`;
 }
 
 async function updateJob(
