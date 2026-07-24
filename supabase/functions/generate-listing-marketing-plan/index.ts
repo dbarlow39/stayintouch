@@ -192,7 +192,17 @@ Build a full marketing plan for the listing. The goal is to generate as many off
 
 Include a neighborhood farming plan for this specific listing.
 
-Then turn the plan into an execution list: content/reels ideas (including reels that handle objections from the cons above) and a demographic targeting plan for reaching the right buyer.${factsInstruction}`;
+Then turn the plan into an execution list: content/reels ideas (including reels that handle objections from the cons above) and a demographic targeting plan for reaching the right buyer.
+
+## Buyer Profile Logic (must follow)
+Before naming the ideal buyer, cross-check the property's physical layout against the tax record (stories, bedroom locations, primary bedroom floor, stairs).
+
+- Two-story homes with all/most bedrooms upstairs:
+  - Primary persona: growing family with school-age or soon-to-be school-age children.
+  - Secondary persona: newly married / newly partnered couples planning for children in the next 1–3 years. Call this out explicitly when the property sits in a top-rated school district (e.g., Hilliard, Dublin, Olentangy, Upper Arlington, New Albany) and name the district by name as a driver.
+  - Do NOT list "empty nesters," "downsizers," or "aging-in-place" buyers as a target for this floor plan. Stairs to every bedroom disqualifies them.
+- Ranch / first-floor primary suite homes: empty nesters and downsizers are appropriate; growing families are secondary.
+- If the floor plan is ambiguous from the tax record, say so and pick the persona supported by the strongest evidence rather than guessing.${factsInstruction}`;
 }
 
 async function updateJob(
