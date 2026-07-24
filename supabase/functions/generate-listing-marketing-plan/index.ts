@@ -142,50 +142,8 @@ function bytesToBase64(bytes: Uint8Array): string {
   return btoa(binary);
 }
 
-async function extractTaxFactsFromPdf(
-  apiKey: string,
-  pdfBytes: Uint8Array,
-  filename: string,
-): Promise<Record<string, unknown> | null> {
-  const b64 = bytesToBase64(pdfBytes);
-  const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-    method: "POST",
-    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model: "google/gemini-2.5-pro",
-      messages: [
-        {
-          role: "system",
-          content:
-            'You extract real-estate tax record facts from a PDF. Return ONLY compact JSON (no prose, no code fences) with any of these keys you can find: address, owners, beds, baths, half_baths, sqft, lot_size, year_built, school_district, elementary_school, middle_school, high_school, county, township, subdivision, parcel_id, annual_taxes, assessed_value, market_value, style, stories, basement, garage, zoning. Omit keys you cannot verify from the document. Do not guess.',
-        },
-        {
-          role: "user",
-          content: [
-            { type: "text", text: `Extract facts from this tax record: ${filename}` },
-            {
-              type: "file",
-              file: { filename, file_data: `data:application/pdf;base64,${b64}` },
-            },
-          ],
-        },
-      ],
-    }),
-  });
-  if (!res.ok) {
-    console.error("Tax extract AI failed", res.status, await res.text());
-    return null;
-  }
-  const data = await res.json();
-  const raw = data?.choices?.[0]?.message?.content?.trim() || "";
-  const cleaned = raw.replace(/^```(?:json)?/i, "").replace(/```$/, "").trim();
-  try {
-    return JSON.parse(cleaned);
-  } catch {
-    console.error("Tax extract JSON parse failed:", raw.slice(0, 400));
-    return null;
-  }
-}
+// PDF extraction removed — Claude reads the PDF directly in the single generation call below.
+
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -226,19 +184,18 @@ serve(async (req) => {
       });
     }
 
-    const apiKey = Deno.env.get("LOVABLE_API_KEY");
-    if (!apiKey) {
-      return new Response(JSON.stringify({ error: "LOVABLE_API_KEY not configured" }), {
+    const anthropicKey = Deno.env.get("ANTHROPIC_API_KEY");
+    if (!anthropicKey) {
+      return new Response(JSON.stringify({ error: "ANTHROPIC_API_KEY not configured" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Try to pull authoritative facts from a Dropbox tax record. Best-effort.
-    let taxFacts: Record<string, unknown> | null = null;
+    // Try to pull the Dropbox tax record PDF. Best-effort.
+    let taxPdfB64: string | null = null;
     let taxFileName: string | null = null;
     try {
-      // Prefer the lead's agent; fall back to the caller.
       let agentId: string | null = lead.agent_id || null;
       if (!agentId) {
         const authHeader = req.headers.get("Authorization");
@@ -257,8 +214,7 @@ serve(async (req) => {
             const bytes = await downloadDropboxFile(token, hit.path);
             if (bytes) {
               taxFileName = hit.name;
-              taxFacts = await extractTaxFactsFromPdf(apiKey, bytes, hit.name);
-              console.log("Tax facts extracted:", taxFacts ? Object.keys(taxFacts) : "none");
+              taxPdfB64 = bytesToBase64(bytes);
             }
           } else {
             console.log("No Dropbox tax record match for", lead.address);
@@ -271,11 +227,11 @@ serve(async (req) => {
       console.error("Dropbox lookup error (non-fatal):", e);
     }
 
-    const factsBlock = taxFacts
-      ? `\n\nAuthoritative Property Facts (from tax record${taxFileName ? ` "${taxFileName}"` : ""} — use verbatim, do not contradict):\n\`\`\`json\n${JSON.stringify(taxFacts, null, 2)}\n\`\`\`\n`
+    const factsInstruction = taxPdfB64
+      ? `\n\nThe attached PDF is the authoritative county tax record for this property. Treat every fact in it (school district, beds, baths, sqft, year built, lot size, owners, taxes, etc.) as ground truth and do NOT contradict it. Weave those facts into the plan naturally.`
       : "";
 
-    const userPrompt = `I just took a new listing at ${fullAddress}. I want you to help me build a complete marketing plan. Work through all of the following:
+    const userText = `I just took a new listing at ${fullAddress}. I want you to help me build a complete marketing plan. Work through all of the following:
 
 Give me the highlights of the neighborhood.
 
@@ -293,20 +249,29 @@ Build a full marketing plan for the listing. The goal is to generate as many off
 
 Include a neighborhood farming plan for this specific listing.
 
-Then turn the plan into an execution list: content/reels ideas (including reels that handle objections from the cons above) and a demographic targeting plan for reaching the right buyer.${factsBlock}`;
+Then turn the plan into an execution list: content/reels ideas (including reels that handle objections from the cons above) and a demographic targeting plan for reaching the right buyer.${factsInstruction}`;
 
-    const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const userContent: any[] = [];
+    if (taxPdfB64) {
+      userContent.push({
+        type: "document",
+        source: { type: "base64", media_type: "application/pdf", data: taxPdfB64 },
+      });
+    }
+    userContent.push({ type: "text", text: userText });
+
+    const aiRes = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${apiKey}`,
+        "x-api-key": anthropicKey,
+        "anthropic-version": "2023-06-01",
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-pro",
-        messages: [
-          { role: "system", content: SYSTEM_PROMPT },
-          { role: "user", content: userPrompt },
-        ],
+        model: "claude-sonnet-4-5",
+        max_tokens: 8000,
+        system: SYSTEM_PROMPT,
+        messages: [{ role: "user", content: userContent }],
       }),
     });
 
@@ -316,15 +281,9 @@ Then turn the plan into an execution list: content/reels ideas (including reels 
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    if (aiRes.status === 402) {
-      return new Response(JSON.stringify({ error: "AI credits exhausted. Please add credits in Settings." }), {
-        status: 402,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
     if (!aiRes.ok) {
       const errText = await aiRes.text();
-      console.error("AI gateway error:", aiRes.status, errText);
+      console.error("Anthropic error:", aiRes.status, errText);
       return new Response(JSON.stringify({ error: `AI request failed (${aiRes.status})` }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -332,7 +291,11 @@ Then turn the plan into an execution list: content/reels ideas (including reels 
     }
 
     const data = await aiRes.json();
-    const markdown = data?.choices?.[0]?.message?.content?.trim();
+    const markdown = (data?.content || [])
+      .filter((b: any) => b.type === "text")
+      .map((b: any) => b.text)
+      .join("\n")
+      .trim();
     if (!markdown) {
       return new Response(JSON.stringify({ error: "AI returned empty response" }), {
         status: 500,
@@ -345,10 +308,10 @@ Then turn the plan into an execution list: content/reels ideas (including reels 
         markdown,
         address: fullAddress,
         taxRecordUsed: taxFileName,
-        taxFacts,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
+
   } catch (e) {
     console.error("generate-listing-marketing-plan error:", e);
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
