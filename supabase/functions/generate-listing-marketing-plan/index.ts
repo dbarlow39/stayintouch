@@ -182,7 +182,7 @@ Pull demographic data from this area.
 
 Identify the ideal buyer I should be marketing to.
 
-If I lived here, what would my lifestyle look like?
+Describe "The Vibe" of the neighborhood — its personality, character, energy, and what makes it feel distinct.
 
 Identify the biggest cons of living in this neighborhood.
 
