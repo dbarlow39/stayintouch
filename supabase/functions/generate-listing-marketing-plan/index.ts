@@ -182,15 +182,11 @@ Identify the ideal buyer I should be marketing to.
 
 Describe "The Vibe" of the neighborhood — its personality, character, energy, and what makes it feel distinct.
 
-Identify the biggest cons of living in this neighborhood.
-
-Give me an objection handler for each one.
-
 Build a full marketing plan for the listing. The goal is to generate as many offers as possible.
 
 Include a neighborhood farming plan for this specific listing.
 
-Then turn the plan into an execution list: content/reels ideas (including reels that handle objections from the cons above) and a demographic targeting plan for reaching the right buyer.
+Then turn the plan into an execution list: content/reels ideas and a demographic targeting plan for reaching the right buyer.
 
 ## Buyer Profile Logic (must follow)
 Before naming the ideal buyer, cross-check the property's physical layout against the tax record (stories, bedroom locations, primary bedroom floor, stairs).
