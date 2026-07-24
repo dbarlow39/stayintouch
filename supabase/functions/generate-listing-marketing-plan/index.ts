@@ -1,6 +1,10 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+declare const EdgeRuntime:
+  | { waitUntil?: (promise: Promise<unknown>) => void }
+  | undefined;
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -150,96 +154,27 @@ function bytesToBase64(bytes: Uint8Array): string {
   return btoa(binary);
 }
 
-// PDF extraction removed — Claude reads the PDF directly in the single generation call below.
+// PDF extraction removed — Claude reads the PDF directly during the background generation job.
 
+function jsonResponse(body: Record<string, unknown>, status = 200): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
 
-serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+function getRequiredEnv(name: string): string {
+  const value = Deno.env.get(name);
+  if (!value) throw new Error(`${name} not configured`);
+  return value;
+}
 
-  try {
-    const { leadId } = await req.json();
-    if (!leadId) {
-      return new Response(JSON.stringify({ error: "leadId required" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+function buildMarketingPrompt(fullAddress: string, hasTaxPdf: boolean): string {
+  const factsInstruction = hasTaxPdf
+    ? `\n\nThe attached PDF is the authoritative county tax record for this property. Treat every fact in it (school district, beds, baths, sqft, year built, lot size, owners, taxes, etc.) as ground truth and do NOT contradict it. Weave those facts into the plan naturally.`
+    : "";
 
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-    );
-
-    const { data: lead, error: leadErr } = await supabase
-      .from("leads")
-      .select("address, city, state, zip, agent_id")
-      .eq("id", leadId)
-      .single();
-    if (leadErr || !lead) {
-      return new Response(JSON.stringify({ error: "Lead not found" }), {
-        status: 404,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const fullAddress = [lead.address, lead.city, lead.state, lead.zip]
-      .filter(Boolean)
-      .join(", ");
-    if (!fullAddress) {
-      return new Response(JSON.stringify({ error: "Lead has no address" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const anthropicKey = Deno.env.get("ANTHROPIC_API_KEY");
-    if (!anthropicKey) {
-      return new Response(JSON.stringify({ error: "ANTHROPIC_API_KEY not configured" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    // Try to pull the Dropbox tax record PDF. Best-effort.
-    let taxPdfB64: string | null = null;
-    let taxFileName: string | null = null;
-    try {
-      let agentId: string | null = lead.agent_id || null;
-      if (!agentId) {
-        const authHeader = req.headers.get("Authorization");
-        if (authHeader) {
-          const jwt = authHeader.replace(/^Bearer\s+/i, "");
-          const { data: userData } = await supabase.auth.getUser(jwt);
-          agentId = userData?.user?.id || null;
-        }
-      }
-      if (agentId) {
-        const token = await getDropboxAccessToken(supabase, agentId);
-        if (token) {
-          const hit = await searchDropboxTaxRecord(token, lead.address || fullAddress);
-          if (hit) {
-            console.log("Tax record match:", hit.name);
-            const bytes = await downloadDropboxFile(token, hit.path);
-            if (bytes) {
-              taxFileName = hit.name;
-              taxPdfB64 = bytesToBase64(bytes);
-            }
-          } else {
-            console.log("No Dropbox tax record match for", lead.address);
-          }
-        } else {
-          console.log("Dropbox not connected for agent", agentId);
-        }
-      }
-    } catch (e) {
-      console.error("Dropbox lookup error (non-fatal):", e);
-    }
-
-    const factsInstruction = taxPdfB64
-      ? `\n\nThe attached PDF is the authoritative county tax record for this property. Treat every fact in it (school district, beds, baths, sqft, year built, lot size, owners, taxes, etc.) as ground truth and do NOT contradict it. Weave those facts into the plan naturally.`
-      : "";
-
-    const userText = `I just took a new listing at ${fullAddress}. I want you to help me build a complete marketing plan. Work through all of the following:
+  return `I just took a new listing at ${fullAddress}. I want you to help me build a complete marketing plan. Work through all of the following:
 
 Give me the highlights of the neighborhood.
 
@@ -258,6 +193,68 @@ Build a full marketing plan for the listing. The goal is to generate as many off
 Include a neighborhood farming plan for this specific listing.
 
 Then turn the plan into an execution list: content/reels ideas (including reels that handle objections from the cons above) and a demographic targeting plan for reaching the right buyer.${factsInstruction}`;
+}
+
+async function updateJob(
+  supabase: any,
+  jobId: string,
+  values: Record<string, unknown>,
+): Promise<void> {
+  await supabase
+    .from("marketing_plan_jobs")
+    .update({ ...values, updated_at: new Date().toISOString() })
+    .eq("id", jobId);
+}
+
+async function runMarketingPlanJob(params: {
+  supabase: any;
+  jobId: string;
+  agentId: string;
+  leadAddress: string;
+  fullAddress: string;
+}): Promise<void> {
+  const { supabase, jobId, agentId, leadAddress, fullAddress } = params;
+
+  try {
+    await updateJob(supabase, jobId, {
+      status: "processing",
+      current_stage: "Finding Realist tax record",
+      error: null,
+    });
+
+    const anthropicKey = getRequiredEnv("ANTHROPIC_API_KEY");
+    let taxPdfB64: string | null = null;
+    let taxFileName: string | null = null;
+
+    try {
+      const token = await getDropboxAccessToken(supabase, agentId);
+      if (token) {
+        const hit = await searchDropboxTaxRecord(token, leadAddress || fullAddress);
+        if (hit) {
+          console.log("Tax record match:", hit.name);
+          await updateJob(supabase, jobId, {
+            current_stage: `Reading tax record: ${hit.name}`,
+          });
+          const bytes = await downloadDropboxFile(token, hit.path);
+          if (bytes) {
+            taxFileName = hit.name;
+            taxPdfB64 = bytesToBase64(bytes);
+          }
+        } else {
+          console.log("No Dropbox tax record match for", leadAddress);
+        }
+      } else {
+        console.log("Dropbox not connected for agent", agentId);
+      }
+    } catch (e) {
+      console.error("Dropbox lookup error (non-fatal):", e);
+    }
+
+    await updateJob(supabase, jobId, {
+      current_stage: taxFileName
+        ? `Generating plan with tax record: ${taxFileName}`
+        : "Generating plan without tax record",
+    });
 
     const userContent: any[] = [];
     if (taxPdfB64) {
@@ -266,36 +263,32 @@ Then turn the plan into an execution list: content/reels ideas (including reels 
         source: { type: "base64", media_type: "application/pdf", data: taxPdfB64 },
       });
     }
-    userContent.push({ type: "text", text: userText });
+    userContent.push({ type: "text", text: buildMarketingPrompt(fullAddress, Boolean(taxPdfB64)) });
 
     const aiRes = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
         "x-api-key": anthropicKey,
         "anthropic-version": "2023-06-01",
+        "anthropic-beta": "pdfs-2024-09-25",
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "claude-sonnet-4-5",
+        model: "claude-sonnet-4-5-20250929",
         max_tokens: 8000,
         system: SYSTEM_PROMPT,
         messages: [{ role: "user", content: userContent }],
       }),
     });
 
-    if (aiRes.status === 429) {
-      return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again shortly." }), {
-        status: 429,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
     if (!aiRes.ok) {
       const errText = await aiRes.text();
       console.error("Anthropic error:", aiRes.status, errText);
-      return new Response(JSON.stringify({ error: `AI request failed (${aiRes.status})` }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      throw new Error(
+        aiRes.status === 429
+          ? "Rate limit exceeded. Please try again shortly."
+          : `AI request failed (${aiRes.status})`,
+      );
     }
 
     const data = await aiRes.json();
@@ -304,27 +297,113 @@ Then turn the plan into an execution list: content/reels ideas (including reels 
       .map((b: any) => b.text)
       .join("\n")
       .trim();
-    if (!markdown) {
-      return new Response(JSON.stringify({ error: "AI returned empty response" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+
+    if (!markdown) throw new Error("AI returned empty response");
+
+    await supabase.from("marketing_plan_results").insert({
+      job_id: jobId,
+      stage: "final_plan",
+      content: markdown,
+    });
+
+    await updateJob(supabase, jobId, {
+      status: "completed",
+      current_stage: taxFileName ? `Completed using ${taxFileName}` : "Completed",
+      error: null,
+    });
+  } catch (e) {
+    const message = e instanceof Error ? e.message : "Unknown error";
+    console.error("Marketing plan background job failed:", message);
+    await updateJob(supabase, jobId, {
+      status: "failed",
+      current_stage: "Failed",
+      error: message,
+    });
+  }
+}
+
+serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+
+  try {
+    let body: any;
+    try {
+      body = await req.json();
+    } catch {
+      return jsonResponse({ error: "Invalid request body" }, 400);
     }
 
-    return new Response(
-      JSON.stringify({
-        markdown,
-        address: fullAddress,
-        taxRecordUsed: taxFileName,
-      }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
-    );
+    const leadId = typeof body?.leadId === "string" ? body.leadId : "";
+    if (!leadId) return jsonResponse({ error: "leadId required" }, 400);
 
+    const supabaseUrl = getRequiredEnv("SUPABASE_URL");
+    const serviceRoleKey = getRequiredEnv("SUPABASE_SERVICE_ROLE_KEY");
+    const supabase = createClient(supabaseUrl, serviceRoleKey);
+
+    const authHeader = req.headers.get("Authorization") || "";
+    const jwt = authHeader.replace(/^Bearer\s+/i, "").trim();
+    if (!jwt) return jsonResponse({ error: "Authentication required" }, 401);
+
+    const { data: userData, error: userErr } = await supabase.auth.getUser(jwt);
+    const requestingUserId = userData?.user?.id;
+    if (userErr || !requestingUserId) {
+      return jsonResponse({ error: "Authentication required" }, 401);
+    }
+
+    const { data: lead, error: leadErr } = await supabase
+      .from("leads")
+      .select("address, city, state, zip, agent_id")
+      .eq("id", leadId)
+      .single();
+
+    if (leadErr || !lead) return jsonResponse({ error: "Lead not found" }, 404);
+
+    const agentId = lead.agent_id || requestingUserId;
+    if (agentId !== requestingUserId) return jsonResponse({ error: "Forbidden" }, 403);
+
+    const fullAddress = [lead.address, lead.city, lead.state, lead.zip]
+      .filter(Boolean)
+      .join(", ");
+
+    if (!fullAddress) return jsonResponse({ error: "Lead has no address" }, 400);
+
+    const { data: job, error: jobErr } = await supabase
+      .from("marketing_plan_jobs")
+      .insert({
+        seller_lead_id: leadId,
+        user_id: agentId,
+        status: "queued",
+        current_stage: "Queued",
+      })
+      .select("id")
+      .single();
+
+    if (jobErr || !job?.id) {
+      console.error("Failed to create marketing plan job:", jobErr);
+      return jsonResponse({ error: "Failed to start marketing plan job" }, 500);
+    }
+
+    const backgroundJob = runMarketingPlanJob({
+      supabase,
+      jobId: job.id,
+      agentId,
+      leadAddress: lead.address || fullAddress,
+      fullAddress,
+    });
+
+    if (typeof EdgeRuntime !== "undefined" && EdgeRuntime?.waitUntil) {
+      EdgeRuntime.waitUntil(backgroundJob);
+    } else {
+      backgroundJob.catch((e) => console.error("Background job error:", e));
+    }
+
+    return jsonResponse({
+      jobId: job.id,
+      status: "queued",
+      address: fullAddress,
+    });
   } catch (e) {
     console.error("generate-listing-marketing-plan error:", e);
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return jsonResponse({ error: e instanceof Error ? e.message : "Unknown error" }, 500);
   }
 });
