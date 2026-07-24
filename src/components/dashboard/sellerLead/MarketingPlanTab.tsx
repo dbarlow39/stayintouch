@@ -257,7 +257,7 @@ export default function MarketingPlanTab({ lead }: { lead: any }) {
           new Paragraph({
             heading: HeadingLevel.HEADING_3,
             spacing: { before: 160, after: 80 },
-            children: [new TextRun({ text: line.slice(4), bold: true, font: "Arial", size: 24 })],
+            children: [new TextRun({ text: line.slice(4), bold: true, font: "Arial", size: 24, color: RUBY })],
           }),
         );
       } else if (line.startsWith("## ")) {
@@ -275,7 +275,7 @@ export default function MarketingPlanTab({ lead }: { lead: any }) {
           new Paragraph({
             heading: HeadingLevel.HEADING_1,
             spacing: { before: 300, after: 160 },
-            children: [new TextRun({ text: line.slice(2), bold: true, font: "Arial", size: 32 })],
+            children: [new TextRun({ text: line.slice(2), bold: true, font: "Arial", size: 32, color: RUBY })],
           }),
         );
       } else if (/^\s*[-*]\s+/.test(line)) {
