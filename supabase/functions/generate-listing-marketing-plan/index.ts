@@ -101,7 +101,8 @@ async function searchDropboxTaxRecord(
     .filter((m: any) => m && m[".tag"] === "file" && /\.pdf$/i.test(m.name));
   if (matches.length === 0) return null;
 
-  // Prefer files whose name contains the street number
+  // Prefer the Realist tax-record PDF (filename contains "reallist"/"realist").
+  // Downrank other same-address PDFs (market analysis, mls, photos, etc.) so they don't win ties.
   const streetNum = address.match(/^\s*(\d+)/)?.[1];
   const streetWord = address.match(/^\s*\d+\s+([A-Za-z0-9'\-]+)/)?.[1]?.toLowerCase();
   const scored = matches
@@ -110,11 +111,18 @@ async function searchDropboxTaxRecord(
       let score = 0;
       if (streetNum && name.includes(streetNum)) score += 2;
       if (streetWord && name.includes(streetWord)) score += 2;
+      if (/reallist|realist/.test(name)) score += 20;
+      if (/\b(tax|parcel|auditor)\b/.test(name)) score += 5;
+      if (/market analysis|cma|zillow|redfin|\bmls\b|photos?|history|notes|residential work sheet/.test(name)) score -= 20;
       return { m, score };
     })
     .sort((a: any, b: any) => b.score - a.score);
   const best = scored[0];
-  if (!best || best.score === 0) return null;
+  // Require a positive score AND that the filename actually looks like a tax record.
+  // Sending the wrong PDF (e.g. Market Analysis) is worse than sending none.
+  if (!best || best.score <= 0) return null;
+  const bestName = String(best.m.name).toLowerCase();
+  if (!/reallist|realist|\b(tax|parcel|auditor)\b/.test(bestName)) return null;
   return { path: best.m.path_lower || best.m.path_display, name: best.m.name };
 }
 
