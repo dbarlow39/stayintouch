@@ -4,7 +4,32 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
-import { Loader2, Sparkles, Copy, Printer, FileDown } from "lucide-react";
+import {
+  Loader2, Sparkles, Copy, Printer, FileDown,
+  MessageSquare, Target, DollarSign, Handshake, ClipboardCheck,
+  DoorOpen, Signpost, Mail, Megaphone, Camera, Home as HomeIcon,
+  Clapperboard, Users, ChevronRight,
+} from "lucide-react";
+
+// Subsection name -> { Lucide icon, emoji for docx export }
+const SUBSECTION_ICONS: Array<{ match: RegExp; Icon: any; emoji: string }> = [
+  { match: /feedback loop/i,                Icon: MessageSquare,   emoji: "💬" },
+  { match: /retargeting/i,                  Icon: Target,          emoji: "🎯" },
+  { match: /price strategy|pricing/i,       Icon: DollarSign,      emoji: "💵" },
+  { match: /offer review|negotiation/i,     Icon: Handshake,       emoji: "🤝" },
+  { match: /transaction management/i,       Icon: ClipboardCheck,  emoji: "✅" },
+  { match: /open house|broker open/i,       Icon: DoorOpen,        emoji: "🚪" },
+  { match: /signage|ground game/i,          Icon: Signpost,        emoji: "🪧" },
+  { match: /email marketing/i,              Icon: Mail,            emoji: "✉️" },
+  { match: /digital advertising|ads?\b/i,   Icon: Megaphone,       emoji: "📣" },
+  { match: /photo|media/i,                  Icon: Camera,          emoji: "📷" },
+  { match: /property prep|staging/i,        Icon: HomeIcon,        emoji: "🏠" },
+  { match: /content|reels/i,                Icon: Clapperboard,    emoji: "🎬" },
+  { match: /demographic|targeting plan/i,   Icon: Users,           emoji: "👥" },
+];
+
+const pickSubsectionIcon = (text: string) =>
+  SUBSECTION_ICONS.find((s) => s.match.test(text)) ?? { Icon: ChevronRight, emoji: "▶" };
 import {
   Document,
   Packer,
@@ -270,6 +295,15 @@ export default function MarketingPlanTab({ lead }: { lead: any }) {
             ],
           }),
         );
+      } else if (line.startsWith("#### ")) {
+        const text = line.slice(5);
+        const { emoji } = pickSubsectionIcon(text);
+        out.push(
+          new Paragraph({
+            spacing: { before: 200, after: 80 },
+            children: [new TextRun({ text: `${emoji}  ${text}`, bold: true, font: "Arial", size: 22, color: RUBY })],
+          }),
+        );
       } else if (line.startsWith("# ")) {
         out.push(
           new Paragraph({
@@ -515,7 +549,24 @@ export default function MarketingPlanTab({ lead }: { lead: any }) {
       {markdown && (
         <Card className="p-6">
           <div className="prose prose-sm max-w-none dark:prose-invert">
-            <ReactMarkdown>{markdown}</ReactMarkdown>
+            <ReactMarkdown
+              components={{
+                h4: ({ children }) => {
+                  const text = Array.isArray(children)
+                    ? children.map((c: any) => (typeof c === "string" ? c : c?.props?.children ?? "")).join("")
+                    : String(children ?? "");
+                  const { Icon } = pickSubsectionIcon(text);
+                  return (
+                    <h4 className="flex items-center gap-2 mt-4 mb-2 font-semibold" style={{ color: "#9B111E" }}>
+                      <Icon className="h-4 w-4 shrink-0" />
+                      <span>{text}</span>
+                    </h4>
+                  );
+                },
+              }}
+            >
+              {markdown}
+            </ReactMarkdown>
           </div>
         </Card>
       )}
