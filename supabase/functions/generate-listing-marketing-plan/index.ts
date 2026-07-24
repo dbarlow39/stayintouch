@@ -24,9 +24,10 @@ Output rules:
   ## Ideal Buyer
   ## The Vibe
   ## Full Marketing Plan
-  ## Content & Reels Ideas
   ## Execution List
+  ## Content & Reels Ideas
 - Under "Execution List", include one subsection: "### Demographic Targeting Plan".
+
 
 - Be concrete and local. Use bullet points, short paragraphs, and specific numbers where reasonable.
 - If an "Authoritative Property Facts" block is provided, treat every field in it as ground truth. Do NOT contradict it (especially school district, beds, baths, sqft, year built, lot size, owners). Weave those facts into the plan naturally.
