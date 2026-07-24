@@ -295,6 +295,15 @@ export default function MarketingPlanTab({ lead }: { lead: any }) {
             ],
           }),
         );
+      } else if (line.startsWith("#### ")) {
+        const text = line.slice(5);
+        const { emoji } = pickSubsectionIcon(text);
+        out.push(
+          new Paragraph({
+            spacing: { before: 200, after: 80 },
+            children: [new TextRun({ text: `${emoji}  ${text}`, bold: true, font: "Arial", size: 22, color: RUBY })],
+          }),
+        );
       } else if (line.startsWith("# ")) {
         out.push(
           new Paragraph({
