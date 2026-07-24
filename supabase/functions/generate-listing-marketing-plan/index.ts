@@ -196,7 +196,21 @@ Before naming the ideal buyer, cross-check the property's physical layout agains
   - Secondary persona: newly married / newly partnered couples planning for children in the next 1–3 years. Call this out explicitly when the property sits in a top-rated school district (e.g., Hilliard, Dublin, Olentangy, Upper Arlington, New Albany) and name the district by name as a driver.
   - Do NOT list "empty nesters," "downsizers," or "aging-in-place" buyers as a target for this floor plan. Stairs to every bedroom disqualifies them.
 - Ranch / first-floor primary suite homes: empty nesters and downsizers are appropriate; growing families are secondary.
-- If the floor plan is ambiguous from the tax record, say so and pick the persona supported by the strongest evidence rather than guessing.${factsInstruction}`;
+- If the floor plan is ambiguous from the tax record, say so and pick the persona supported by the strongest evidence rather than guessing.
+
+## Property Prep & Staging Language (must follow verbatim)
+When the Full Marketing Plan includes a "Property Prep & Staging" subsection, use exactly these bullets (in this order, with this wording):
+- Professional deep clean, including windows, baseboards, and all surfaces
+- Declutter, remove excess furniture, and personal collections
+- Stage to highlight family functionality:
+  - Primary bedroom: create a serene adult retreat
+  - Secondary bedrooms: one as kid's room, one as tween/teen room, one as home office/nursery
+  - Finished basement: playroom/rec room setup with cozy seating
+  - Dining room: family dinner scene with tasteful place settings
+- Exterior curb appeal: fresh mulch, trim hedges, refresh driveway and patio, add potted flowers at entry and a new front door mat that says "Welcome Home"
+- Minor repairs: patch any wall dings, touch up paint, replace burned-out bulbs, fix leaky faucets
+
+Do NOT use the words "depersonalize" or "power-wash" anywhere in the plan.${factsInstruction}`;
 }
 
 async function updateJob(
