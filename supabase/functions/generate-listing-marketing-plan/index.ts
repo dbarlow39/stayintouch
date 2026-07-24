@@ -230,6 +230,9 @@ When the Full Marketing Plan includes a "Digital Advertising Blitz" subsection, 
 
 Replace the bracketed placeholders with the actual city, subdivision, school district, and ZIP codes for this property. Do not add any additional advertising bullets or channels.
 
+## Forbidden Sections (must follow)
+Do NOT include a "Social Media Organic Push" section or any organic-social subsection (Instagram, Facebook, TikTok, LinkedIn grid posts, Reels, Stories, group shares, hashtag lists, etc.) anywhere in the Full Marketing Plan. Organic social content ideas belong ONLY in the "Content & Reels Ideas" subsection under the Execution List. Paid social lives in the Digital Advertising Blitz subsection.
+
 ## Email Marketing Language (must follow verbatim)
 When the Full Marketing Plan includes an "Email Marketing" subsection, use exactly these two bullets (in this order, with this wording). Do NOT include any neighborhood farming, postcard, or third bullet here — farming belongs in its own section:
 - Agent-to-Agent Blast: Send to 5000+ Columbus area agents, emphasizing [local school district] and strong buyer demand
