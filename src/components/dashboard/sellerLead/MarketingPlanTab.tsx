@@ -39,6 +39,36 @@ export default function MarketingPlanTab({ lead }: { lead: any }) {
     .join(", ");
 
   useEffect(() => {
+    if (!lead?.id) return;
+    let cancelled = false;
+    (async () => {
+      const { data: job } = await supabase
+        .from("marketing_plan_jobs")
+        .select("id")
+        .eq("seller_lead_id", lead.id)
+        .eq("status", "completed")
+        .order("updated_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (cancelled || !job) return;
+      const { data: result } = await supabase
+        .from("marketing_plan_results")
+        .select("content")
+        .eq("job_id", (job as any).id)
+        .eq("stage", "final_plan")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (cancelled) return;
+      const content = (result as any)?.content;
+      if (content) setMarkdown(content);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [lead?.id]);
+
+  useEffect(() => {
     if (!jobId) return;
 
     pollingStoppedRef.current = false;
