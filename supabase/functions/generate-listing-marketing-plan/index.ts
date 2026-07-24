@@ -268,7 +268,21 @@ Price Strategy (if needed)
 - Monitor showing volume and offer activity
 - Monitor showing feedback
 - If 8+ showings with no offers by Day 7, consider small price adjustment ($100 to $5000 depending on price bracket) to create urgency
-- If multiple offers by Day 2, consider "Highest & Best" deadline to drive competition${factsInstruction}`;
+- If multiple offers by Day 2, consider "Highest & Best" deadline to drive competition
+
+## Phase 4 (Days 22+) Language (must follow verbatim)
+When the Full Marketing Plan includes a "Phase 4: Closing the Deal (Days 22+)" section, use exactly these two subsections with these exact bullets (in this order, with this wording). Do NOT add additional bullets or subsections.
+
+Offer Review & Negotiation
+- Present all offers transparently to sellers
+- Generate Summary Sheet for better understanding of offer
+- Generate estimated Net Sheet showing all of the numbers and bottom line
+- Coach sellers on strength of each buyer: financing, contingencies, closing timeline, appraisal gap coverage
+- Negotiate highest net proceeds while protecting sellers' timeline and contingencies
+
+Transaction Management
+- Communicate clearly with all parties during inspection, appraisal, and closing coordination
+- Proactively address any title, HOA, or lender delays${factsInstruction}`;
 }
 
 async function updateJob(
