@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -30,10 +30,107 @@ export default function MarketingPlanTab({ lead }: { lead: any }) {
   const [loading, setLoading] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [markdown, setMarkdown] = useState<string>("");
+  const [jobId, setJobId] = useState<string | null>(null);
+  const [statusMessage, setStatusMessage] = useState<string>("");
+  const pollingStoppedRef = useRef(false);
 
   const fullAddress = [lead?.address, lead?.city, lead?.state, lead?.zip]
     .filter(Boolean)
     .join(", ");
+
+  useEffect(() => {
+    if (!jobId) return;
+
+    pollingStoppedRef.current = false;
+
+    const pollJob = async () => {
+      const { data: job, error: jobError } = await supabase
+        .from("marketing_plan_jobs")
+        .select("id, status, current_stage, error")
+        .eq("id", jobId)
+        .maybeSingle();
+
+      if (pollingStoppedRef.current) return;
+
+      if (jobError) {
+        setLoading(false);
+        setJobId(null);
+        toast({
+          title: "Failed to check marketing plan status",
+          description: jobError.message,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const jobRow = job as any;
+      if (!jobRow) {
+        setStatusMessage("Waiting for the marketing plan job to start…");
+        return;
+      }
+
+      setStatusMessage(jobRow.current_stage || "Building marketing plan…");
+
+      if (jobRow.status === "failed") {
+        setLoading(false);
+        setJobId(null);
+        toast({
+          title: "Failed to generate marketing plan",
+          description: jobRow.error || "Unknown error",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (jobRow.status !== "completed") return;
+
+      const { data: result, error: resultError } = await supabase
+        .from("marketing_plan_results")
+        .select("content")
+        .eq("job_id", jobId)
+        .eq("stage", "final_plan")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (pollingStoppedRef.current) return;
+
+      if (resultError) {
+        setLoading(false);
+        setJobId(null);
+        toast({
+          title: "Marketing plan completed, but could not load",
+          description: resultError.message,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const resultRow = result as any;
+      if (!resultRow?.content) {
+        setStatusMessage("Marketing plan completed. Loading final document…");
+        return;
+      }
+
+      setMarkdown(resultRow.content);
+      setLoading(false);
+      setJobId(null);
+      setStatusMessage("");
+      toast({ title: "Marketing plan ready" });
+    };
+
+    void pollJob();
+    const interval = window.setInterval(() => {
+      void pollJob();
+    }, 5000);
+
+    return () => {
+      pollingStoppedRef.current = true;
+      window.clearInterval(interval);
+    };
+  }, [jobId]);
+
+  const isWorking = loading || Boolean(jobId);
 
   const generate = async () => {
     if (!lead?.id) {
@@ -45,6 +142,7 @@ export default function MarketingPlanTab({ lead }: { lead: any }) {
       return;
     }
     setLoading(true);
+    setStatusMessage("Starting marketing plan job…");
     try {
       const { data, error } = await supabase.functions.invoke(
         "generate-listing-marketing-plan",
@@ -52,15 +150,20 @@ export default function MarketingPlanTab({ lead }: { lead: any }) {
       );
       if (error) throw error;
       if ((data as any)?.error) throw new Error((data as any).error);
-      setMarkdown((data as any)?.markdown || "");
+      const newJobId = (data as any)?.jobId;
+      if (!newJobId) throw new Error("Marketing plan job did not start");
+      setMarkdown("");
+      setJobId(newJobId);
+      setStatusMessage("Queued. This can take a few minutes.");
     } catch (e: any) {
+      setJobId(null);
+      setLoading(false);
+      setStatusMessage("");
       toast({
         title: "Failed to generate marketing plan",
         description: e?.message || "Unknown error",
         variant: "destructive",
       });
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -369,8 +472,8 @@ export default function MarketingPlanTab({ lead }: { lead: any }) {
               </Button>
             </>
           )}
-          <Button onClick={generate} disabled={loading || !fullAddress}>
-            {loading ? (
+          <Button onClick={generate} disabled={isWorking || !fullAddress}>
+            {isWorking ? (
               <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Generating…</>
             ) : (
               <><Sparkles className="h-4 w-4 mr-2" /> {markdown ? "Regenerate" : "Generate Marketing Plan"}</>
@@ -379,9 +482,9 @@ export default function MarketingPlanTab({ lead }: { lead: any }) {
         </div>
       </div>
 
-      {loading && !markdown && (
+      {isWorking && !markdown && (
         <Card className="p-8 text-center text-sm text-muted-foreground">
-          Building your marketing plan. This usually takes 30–60 seconds.
+          {statusMessage || "Building your marketing plan. This can take a few minutes."}
         </Card>
       )}
 
@@ -393,7 +496,7 @@ export default function MarketingPlanTab({ lead }: { lead: any }) {
         </Card>
       )}
 
-      {!markdown && !loading && (
+      {!markdown && !isWorking && (
         <Card className="p-8 text-center text-sm text-muted-foreground">
           Click "Generate Marketing Plan" to build a full plan for this listing.
         </Card>
