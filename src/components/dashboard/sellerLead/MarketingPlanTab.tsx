@@ -418,7 +418,7 @@ export default function MarketingPlanTab({ lead }: { lead: any }) {
             },
             children: [
               header,
-              new Paragraph({ spacing: { before: 200, after: 200 }, children: [new TextRun("")] }),
+              new Paragraph({ spacing: { after: 200 }, border: { bottom: { style: BorderStyle.SINGLE, size: 3, color: "CC0000" } }, children: [] }),
               ...body,
             ],
           },
