@@ -243,7 +243,14 @@ Replace the bracketed placeholders with the actual school district for this prop
 ## Open Houses Language (must follow verbatim)
 When the Full Marketing Plan includes an "Open Houses" subsection, use exactly these two bullets (in this order, with this wording). Do NOT include Broker Opens, catering, specific days/times, weekend schedules, or any additional bullets:
 - We do offer to do Open Houses and have agents on staff who will do Open Houses for you. What we have found over the years is 99% of all home buyers who have a serious interest in buying will schedule an individual private showing to look your home. Open House's typically bring in tire kickers and your neighbors but if you feel strongly about them we will schedule an Open House after the 2nd weekend on the market. Why after the 2nd weekend? Typically, a home that is priced right and is in good cosmetic condition will find a buyer within the first 10 to 14 days of being on the market. After that we will want to start to turn every rock we can to try and find your right buyer.
-- Promote all open houses via Zillow, Realtor.com, Facebook Events, Instagram Stories, and email blasts 48 hours in advance${factsInstruction}`;
+- Promote all open houses via Zillow, Realtor.com, Facebook Events, Instagram Stories, and email blasts 48 hours in advance
+
+## Signage & Ground Game Language (must follow verbatim)
+When the Full Marketing Plan includes a "Signage & Ground Game" subsection, use exactly these four bullets (in this order, with this wording). Do NOT include specific sign counts, street/intersection names, door-hangers, distances, or any additional bullets:
+- Install For Sale sign
+- Place directional signs where it makes sense
+- Send 100 Just Listed Postcards to your surrounding neighbors "Your Neighbor's Home is For Sale—Spread the Word!"
+- Generate a targeted marketing campaign on Facebook and Instagram targeting your neighborhood${factsInstruction}`;
 }
 
 async function updateJob(
