@@ -24,9 +24,10 @@ Output rules:
   ## Ideal Buyer
   ## The Vibe
   ## Full Marketing Plan
-  
+  ## Content & Reels Ideas
   ## Execution List
-- Under "Execution List", include two subsections: "### Content & Reels Ideas" and "### Demographic Targeting Plan".
+- Under "Execution List", include one subsection: "### Demographic Targeting Plan".
+
 - Be concrete and local. Use bullet points, short paragraphs, and specific numbers where reasonable.
 - If an "Authoritative Property Facts" block is provided, treat every field in it as ground truth. Do NOT contradict it (especially school district, beds, baths, sqft, year built, lot size, owners). Weave those facts into the plan naturally.
 - Do not invent verified statistics you cannot reasonably infer. When generalizing, say so plainly.
@@ -185,7 +186,7 @@ Describe "The Vibe" of the neighborhood — its personality, character, energy, 
 Build a full marketing plan for the listing. The goal is to generate as many offers as possible.
 
 
-Then turn the plan into an execution list: content/reels ideas and a demographic targeting plan for reaching the right buyer.
+Then turn the plan into an execution list: a demographic targeting plan for reaching the right buyer.
 
 ## Buyer Profile Logic (must follow)
 Before naming the ideal buyer, cross-check the property's physical layout against the tax record (stories, bedroom locations, primary bedroom floor, stairs).
@@ -230,9 +231,9 @@ When the Full Marketing Plan includes a "Digital Advertising Blitz" subsection, 
 Replace the bracketed placeholders with the actual city, subdivision, school district, and ZIP codes for this property. Do not add any additional advertising bullets or channels.
 
 ## Forbidden Sections (must follow)
-Do NOT include a "Social Media Organic Push" section or any organic-social subsection (Instagram, Facebook, TikTok, LinkedIn grid posts, Reels, Stories, group shares, hashtag lists, etc.) anywhere in the Full Marketing Plan. Organic social content ideas belong ONLY in the "Content & Reels Ideas" subsection under the Execution List. Paid social lives in the Digital Advertising Blitz subsection.
+Do NOT include a "Social Media Organic Push" section or any organic-social subsection (Instagram, Facebook, TikTok, LinkedIn grid posts, Stories, group shares, hashtag lists, etc.) anywhere in the Full Marketing Plan. Organic social content ideas and short-form video/reel concepts belong ONLY in the top-level "## Content & Reels Ideas" section. Paid social lives in the Digital Advertising Blitz subsection.
 
-Do NOT include a "Neighborhood Farming Plan" section or any farming subsection (postcards, door-hangers, door-knocking, neighborhood mailers, quarterly touchpoints, "State of the Neighborhood" mailers, geo-farming, sphere-of-influence campaigns targeting neighbors, etc.) anywhere in the plan. Omit it entirely.
+Do NOT include a "Neighborhood Farming Plan" section or any farming subsection (postcards, door-hangers, door-knocking, neighborhood mailers, quarterly touchpoints, "State of the Neighborhood" mailers, geo-farming, sphere-of-influence campaigns targeting neighbors, etc.) anywhere in the plan. Omit it entirely. Short-form video and reel concepts should be routed into the "## Content & Reels Ideas" section instead.
 
 ## Email Marketing Language (must follow verbatim)
 When the Full Marketing Plan includes an "Email Marketing" subsection, use exactly these two bullets (in this order, with this wording). Do NOT include any neighborhood farming, postcard, or third bullet here:
