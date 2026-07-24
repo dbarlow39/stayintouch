@@ -238,7 +238,12 @@ When the Full Marketing Plan includes an "Email Marketing" subsection, use exact
 - Agent-to-Agent Blast: Send to 5000+ Columbus area agents, emphasizing [local school district] and strong buyer demand
 - Past Client Database: Email to my past clients and other known buyers looking in the area with subject line: "Just Listed: [Local School District] Gem—Share with Friends!"
 
-Replace the bracketed placeholders with the actual school district for this property. Do not invent specific past-client counts.${factsInstruction}`;
+Replace the bracketed placeholders with the actual school district for this property. Do not invent specific past-client counts.
+
+## Open Houses Language (must follow verbatim)
+When the Full Marketing Plan includes an "Open Houses" subsection, use exactly these two bullets (in this order, with this wording). Do NOT include Broker Opens, catering, specific days/times, weekend schedules, or any additional bullets:
+- We do offer to do Open Houses and have agents on staff who will do Open Houses for you. What we have found over the years is 99% of all home buyers who have a serious interest in buying will schedule an individual private showing to look your home. Open House's typically bring in tire kickers and your neighbors but if you feel strongly about them we will schedule an Open House after the 2nd weekend on the market. Why after the 2nd weekend? Typically, a home that is priced right and is in good cosmetic condition will find a buyer within the first 10 to 14 days of being on the market. After that we will want to start to turn every rock we can to try and find your right buyer.
+- Promote all open houses via Zillow, Realtor.com, Facebook Events, Instagram Stories, and email blasts 48 hours in advance${factsInstruction}`;
 }
 
 async function updateJob(
