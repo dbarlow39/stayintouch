@@ -275,6 +275,9 @@ export default function MarketingPlanTab({ lead }: { lead: any }) {
   };
 
   const buildHeaderTable = async (agent: string, dateStr: string): Promise<Table> => {
+    const DARK_SCARLET = "8B0000";
+    const SCARLET = "CC0000";
+
     let logoRun: ImageRun | null = null;
     try {
       const res = await fetch("/logo-sellfor1percent.jpg");
@@ -282,7 +285,7 @@ export default function MarketingPlanTab({ lead }: { lead: any }) {
       logoRun = new ImageRun({
         type: "jpg",
         data: new Uint8Array(buf),
-        transformation: { width: 140, height: 140 },
+        transformation: { width: 252, height: 117 },
         altText: { title: "Logo", description: "Sell for 1 Percent Realtors", name: "Logo" },
       });
     } catch {
@@ -290,20 +293,18 @@ export default function MarketingPlanTab({ lead }: { lead: any }) {
     }
 
     const noBorder = { style: BorderStyle.NONE, size: 0, color: "FFFFFF" };
-    const borders = { top: noBorder, bottom: noBorder, left: noBorder, right: noBorder };
-    const leftBorder = {
-      ...borders,
-      left: { style: BorderStyle.SINGLE, size: 12, color: RUBY },
+    const borders = {
+      top: noBorder,
+      bottom: noBorder,
+      left: noBorder,
+      right: noBorder,
     };
 
     return new Table({
       width: { size: 9360, type: WidthType.DXA },
-      columnWidths: [3120, 6240],
+      columnWidths: [3000, 6360],
       borders: {
-        top: noBorder,
-        bottom: noBorder,
-        left: noBorder,
-        right: noBorder,
+        ...borders,
         insideHorizontal: noBorder,
         insideVertical: noBorder,
       },
@@ -312,9 +313,8 @@ export default function MarketingPlanTab({ lead }: { lead: any }) {
           children: [
             new TableCell({
               borders,
-              width: { size: 3120, type: WidthType.DXA },
+              width: { size: 3000, type: WidthType.DXA },
               verticalAlign: VerticalAlign.CENTER,
-              margins: { top: 80, bottom: 80, left: 80, right: 160 },
               children: [
                 new Paragraph({
                   alignment: AlignmentType.LEFT,
@@ -325,34 +325,28 @@ export default function MarketingPlanTab({ lead }: { lead: any }) {
               ],
             }),
             new TableCell({
-              borders: leftBorder,
-              width: { size: 6240, type: WidthType.DXA },
+              borders,
+              width: { size: 6360, type: WidthType.DXA },
               verticalAlign: VerticalAlign.CENTER,
-              margins: { top: 80, bottom: 80, left: 240, right: 80 },
               children: [
                 new Paragraph({
-                  alignment: AlignmentType.LEFT,
-                  spacing: { after: 60 },
+                  alignment: AlignmentType.RIGHT,
                   children: [
-                    new TextRun({ text: "MARKETING PLAN", bold: true, font: "Arial", size: 40, color: RUBY }),
+                    new TextRun({ text: "MARKETING PLAN", bold: true, color: DARK_SCARLET, font: "Arial", size: 32 }),
                   ],
                 }),
                 new Paragraph({
-                  alignment: AlignmentType.LEFT,
-                  spacing: { after: 60 },
+                  alignment: AlignmentType.RIGHT,
+                  spacing: { before: 60 },
                   children: [
-                    new TextRun({ text: fullAddress, bold: true, font: "Arial", size: 24, color: RUBY }),
+                    new TextRun({ text: fullAddress, bold: true, color: SCARLET, font: "Arial", size: 20 }),
                   ],
                 }),
                 new Paragraph({
-                  alignment: AlignmentType.LEFT,
+                  alignment: AlignmentType.RIGHT,
+                  spacing: { before: 60 },
                   children: [
-                    new TextRun({
-                      text: `Prepared by: ${agent}  |  ${dateStr}`,
-                      font: "Arial",
-                      size: 20,
-                      color: RUBY,
-                    }),
+                    new TextRun({ text: `Prepared by ${agent} | ${dateStr}`, color: DARK_SCARLET, font: "Arial", size: 18 }),
                   ],
                 }),
               ],
@@ -424,7 +418,7 @@ export default function MarketingPlanTab({ lead }: { lead: any }) {
             },
             children: [
               header,
-              new Paragraph({ spacing: { before: 200, after: 200 }, children: [new TextRun("")] }),
+              new Paragraph({ spacing: { after: 200 }, border: { bottom: { style: BorderStyle.SINGLE, size: 3, color: "CC0000" } }, children: [] }),
               ...body,
             ],
           },
