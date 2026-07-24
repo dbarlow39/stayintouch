@@ -549,7 +549,24 @@ export default function MarketingPlanTab({ lead }: { lead: any }) {
       {markdown && (
         <Card className="p-6">
           <div className="prose prose-sm max-w-none dark:prose-invert">
-            <ReactMarkdown>{markdown}</ReactMarkdown>
+            <ReactMarkdown
+              components={{
+                h4: ({ children }) => {
+                  const text = Array.isArray(children)
+                    ? children.map((c: any) => (typeof c === "string" ? c : c?.props?.children ?? "")).join("")
+                    : String(children ?? "");
+                  const { Icon } = pickSubsectionIcon(text);
+                  return (
+                    <h4 className="flex items-center gap-2 mt-4 mb-2 font-semibold" style={{ color: "#9B111E" }}>
+                      <Icon className="h-4 w-4 shrink-0" />
+                      <span>{text}</span>
+                    </h4>
+                  );
+                },
+              }}
+            >
+              {markdown}
+            </ReactMarkdown>
           </div>
         </Card>
       )}
