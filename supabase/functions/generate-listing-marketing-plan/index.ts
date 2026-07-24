@@ -22,7 +22,7 @@ Output rules:
   ## Neighborhood Highlights
   ## Demographics
   ## Ideal Buyer
-  ## Lifestyle If I Lived Here
+  ## The Vibe
   ## Biggest Cons of the Neighborhood
   ## Objection Handlers
   ## Full Marketing Plan
