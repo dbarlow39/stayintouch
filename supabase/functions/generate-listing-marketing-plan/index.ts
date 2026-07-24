@@ -24,7 +24,7 @@ Output rules:
   ## Ideal Buyer
   ## The Vibe
   ## Full Marketing Plan
-  ## Neighborhood Farming Plan
+  
   ## Execution List
 - Under "Execution List", include two subsections: "### Content & Reels Ideas" and "### Demographic Targeting Plan".
 - Be concrete and local. Use bullet points, short paragraphs, and specific numbers where reasonable.
@@ -184,7 +184,6 @@ Describe "The Vibe" of the neighborhood — its personality, character, energy, 
 
 Build a full marketing plan for the listing. The goal is to generate as many offers as possible.
 
-Include a neighborhood farming plan for this specific listing.
 
 Then turn the plan into an execution list: content/reels ideas and a demographic targeting plan for reaching the right buyer.
 
@@ -233,8 +232,10 @@ Replace the bracketed placeholders with the actual city, subdivision, school dis
 ## Forbidden Sections (must follow)
 Do NOT include a "Social Media Organic Push" section or any organic-social subsection (Instagram, Facebook, TikTok, LinkedIn grid posts, Reels, Stories, group shares, hashtag lists, etc.) anywhere in the Full Marketing Plan. Organic social content ideas belong ONLY in the "Content & Reels Ideas" subsection under the Execution List. Paid social lives in the Digital Advertising Blitz subsection.
 
+Do NOT include a "Neighborhood Farming Plan" section or any farming subsection (postcards, door-hangers, door-knocking, neighborhood mailers, quarterly touchpoints, "State of the Neighborhood" mailers, geo-farming, sphere-of-influence campaigns targeting neighbors, etc.) anywhere in the plan. Omit it entirely.
+
 ## Email Marketing Language (must follow verbatim)
-When the Full Marketing Plan includes an "Email Marketing" subsection, use exactly these two bullets (in this order, with this wording). Do NOT include any neighborhood farming, postcard, or third bullet here — farming belongs in its own section:
+When the Full Marketing Plan includes an "Email Marketing" subsection, use exactly these two bullets (in this order, with this wording). Do NOT include any neighborhood farming, postcard, or third bullet here:
 - Agent-to-Agent Blast: Send to 5000+ Columbus area agents, emphasizing [local school district] and strong buyer demand
 - Past Client Database: Email to my past clients and other known buyers looking in the area with subject line: "Just Listed: [Local School District] Gem—Share with Friends!"
 
