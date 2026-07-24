@@ -4,7 +4,32 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
-import { Loader2, Sparkles, Copy, Printer, FileDown } from "lucide-react";
+import {
+  Loader2, Sparkles, Copy, Printer, FileDown,
+  MessageSquare, Target, DollarSign, Handshake, ClipboardCheck,
+  DoorOpen, Signpost, Mail, Megaphone, Camera, Home as HomeIcon,
+  Clapperboard, Users, ChevronRight,
+} from "lucide-react";
+
+// Subsection name -> { Lucide icon, emoji for docx export }
+const SUBSECTION_ICONS: Array<{ match: RegExp; Icon: any; emoji: string }> = [
+  { match: /feedback loop/i,                Icon: MessageSquare,   emoji: "💬" },
+  { match: /retargeting/i,                  Icon: Target,          emoji: "🎯" },
+  { match: /price strategy|pricing/i,       Icon: DollarSign,      emoji: "💵" },
+  { match: /offer review|negotiation/i,     Icon: Handshake,       emoji: "🤝" },
+  { match: /transaction management/i,       Icon: ClipboardCheck,  emoji: "✅" },
+  { match: /open house|broker open/i,       Icon: DoorOpen,        emoji: "🚪" },
+  { match: /signage|ground game/i,          Icon: Signpost,        emoji: "🪧" },
+  { match: /email marketing/i,              Icon: Mail,            emoji: "✉️" },
+  { match: /digital advertising|ads?\b/i,   Icon: Megaphone,       emoji: "📣" },
+  { match: /photo|media/i,                  Icon: Camera,          emoji: "📷" },
+  { match: /property prep|staging/i,        Icon: HomeIcon,        emoji: "🏠" },
+  { match: /content|reels/i,                Icon: Clapperboard,    emoji: "🎬" },
+  { match: /demographic|targeting plan/i,   Icon: Users,           emoji: "👥" },
+];
+
+const pickSubsectionIcon = (text: string) =>
+  SUBSECTION_ICONS.find((s) => s.match.test(text)) ?? { Icon: ChevronRight, emoji: "▶" };
 import {
   Document,
   Packer,
