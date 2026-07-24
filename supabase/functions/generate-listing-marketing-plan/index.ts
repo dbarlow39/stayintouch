@@ -184,7 +184,6 @@ Describe "The Vibe" of the neighborhood — its personality, character, energy, 
 
 Build a full marketing plan for the listing. The goal is to generate as many offers as possible.
 
-Include a neighborhood farming plan for this specific listing.
 
 Then turn the plan into an execution list: content/reels ideas and a demographic targeting plan for reaching the right buyer.
 
