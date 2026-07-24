@@ -24,7 +24,7 @@ Output rules:
   ## Ideal Buyer
   ## The Vibe
   ## Full Marketing Plan
-  ## Neighborhood Farming Plan
+  
   ## Execution List
 - Under "Execution List", include two subsections: "### Content & Reels Ideas" and "### Demographic Targeting Plan".
 - Be concrete and local. Use bullet points, short paragraphs, and specific numbers where reasonable.
