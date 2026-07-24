@@ -218,7 +218,17 @@ When the Full Marketing Plan includes a "Photography & Media" subsection, follow
 - Drone footage: ONLY include a drone bullet if the tax record shows the lot is 1.0 acre or larger. Otherwise omit any mention of drone footage entirely.
 - Do NOT mention Matterport or 3D virtual tours. Omit that bullet entirely.
 - Video tour bullet must read: "Cinematic video tour with upbeat, family-friendly music" (no fixed duration like "60-second").
-- Lifestyle B-roll: only include this bullet if you can name specific, verified nearby parks/streets/schools tied to this property's actual neighborhood. If you cannot verify specifics, omit the B-roll bullet entirely — do not invent locations.${factsInstruction}`;
+- Lifestyle B-roll: only include this bullet if you can name specific, verified nearby parks/streets/schools tied to this property's actual neighborhood. If you cannot verify specifics, omit the B-roll bullet entirely — do not invent locations.
+
+## Digital Advertising Blitz Language (must follow verbatim)
+When the Full Marketing Plan includes a "Digital Advertising Blitz" subsection, use exactly these bullets (in this order, with this wording). Do NOT include budgets, dollar amounts, day counts, Google Ads, Google Display, parenting blogs, or any other channels beyond those listed:
+- Facebook & Instagram Ads: Carousel ads featuring 8–10 best photos
+- Retargeting pixel installed on property website to re-engage viewers
+- Search ads targeting keywords tailored to this listing (e.g., "[City] homes for sale," "[Bedroom count] bedroom [City] OH," "[Subdivision] homes," "family homes near me")
+- YouTube Pre-Roll Ads: Video ad (60-sec tour) targeted to married couples, ages 28–45, within a 20-mile radius of [nearest major suburb], with interests in: [local school district], family activities, real estate, homeownership
+- TikTok Ads: 30-second teaser video targeted to [local ZIP codes], ages 25–45, interests in home buying and family activities
+
+Replace the bracketed placeholders with the actual city, subdivision, school district, and ZIP codes for this property. Do not add any additional advertising bullets or channels.${factsInstruction}`;
 }
 
 async function updateJob(
