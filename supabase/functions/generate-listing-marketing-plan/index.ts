@@ -250,7 +250,25 @@ When the Full Marketing Plan includes a "Signage & Ground Game" subsection, use 
 - Install For Sale sign
 - Place directional signs where it makes sense
 - Send 100 Just Listed Postcards to your surrounding neighbors "Your Neighbor's Home is For Sale—Spread the Word!"
-- Generate a targeted marketing campaign on Facebook and Instagram targeting your neighborhood${factsInstruction}`;
+- Generate a targeted marketing campaign on Facebook and Instagram targeting your neighborhood
+
+## Phase 3 (Days 13–21) Language (must follow verbatim)
+When the Full Marketing Plan includes a "Phase 3: Momentum & Follow-Up (Days 13–21)" section, use exactly these three subsections with these exact bullets (in this order, with this wording). Do NOT include a "Second Wave Content" subsection or any other subsection in Phase 3. Do NOT add additional bullets.
+
+Feedback Loop
+- Email every showing agent within 1 hour of their showing for feedback
+- Adjust messaging or price if consistent objections emerge
+
+Retargeting Campaign
+- Facebook/Instagram retargeting ads to everyone who clicked on initial ads or visited property website
+- Messaging: "Don't miss out—schedule your showing today before it's gone!"
+
+Price Strategy (if needed)
+- Monitor online views through Zillow and MLS
+- Monitor showing volume and offer activity
+- Monitor showing feedback
+- If 8+ showings with no offers by Day 7, consider small price adjustment ($100 to $5000 depending on price bracket) to create urgency
+- If multiple offers by Day 2, consider "Highest & Best" deadline to drive competition${factsInstruction}`;
 }
 
 async function updateJob(
