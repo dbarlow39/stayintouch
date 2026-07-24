@@ -23,16 +23,14 @@ Output rules:
   ## Demographics
   ## Ideal Buyer
   ## The Vibe
-  ## Biggest Cons of the Neighborhood
-  ## Objection Handlers
   ## Full Marketing Plan
   ## Neighborhood Farming Plan
   ## Execution List
-- Under "Objection Handlers", pair each con from the previous section 1:1.
-- Under "Execution List", include two subsections: "### Content & Reels Ideas" (with at least one reel per objection above) and "### Demographic Targeting Plan".
+- Under "Execution List", include two subsections: "### Content & Reels Ideas" and "### Demographic Targeting Plan".
 - Be concrete and local. Use bullet points, short paragraphs, and specific numbers where reasonable.
 - If an "Authoritative Property Facts" block is provided, treat every field in it as ground truth. Do NOT contradict it (especially school district, beds, baths, sqft, year built, lot size, owners). Weave those facts into the plan naturally.
 - Do not invent verified statistics you cannot reasonably infer. When generalizing, say so plainly.
+- Do NOT include a Pricing Strategy, price recommendation, or list-price section — pricing lives in the Market Analysis, not here.
 - No preamble, no closing pleasantries. Start with the first H2.`;
 
 async function getDropboxAccessToken(supabase: any, agentId: string): Promise<string | null> {
