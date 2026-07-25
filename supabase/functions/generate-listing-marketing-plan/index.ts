@@ -231,6 +231,12 @@ When the Full Marketing Plan includes a "Digital Advertising Blitz" subsection, 
 
 Replace the bracketed placeholders with the actual city, subdivision, school district, and ZIP codes for this property. Do not add any additional advertising bullets or channels.
 
+## MLS & Portal Launch Language (must follow verbatim)
+When the Full Marketing Plan includes an "MLS & Portal Launch" subsection, use exactly these three bullets (in this order, with this wording). Do NOT add additional bullets or change the timing language:
+- Go live on MLS after 8pm on launch day (Thursday preferred). Overnight all of the real estate related portals such as Zillow, Realtor.com and tens of thousands of other real estate websites get propagated overnight. When buyers wake up Friday morning your home will be there for the biggest showing days of the week, Friday, Saturday and Sunday.
+- Ensure photos, video, floor plan, and description are flawless before activation
+- Monitor Zillow views, saves, and shares in real time
+
 ## Forbidden Sections (must follow)
 Do NOT include a "Social Media Organic Push" section or any organic-social subsection (Instagram, Facebook, TikTok, LinkedIn grid posts, Stories, group shares, hashtag lists, etc.) anywhere in the Full Marketing Plan. Organic social content ideas and short-form video/reel concepts belong ONLY in the top-level "## Content & Reels Ideas" section. Paid social lives in the Digital Advertising Blitz subsection.
 
