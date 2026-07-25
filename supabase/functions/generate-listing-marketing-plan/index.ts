@@ -242,6 +242,8 @@ Do NOT include a "Social Media Organic Push" section or any organic-social subse
 
 Do NOT include a "Neighborhood Farming Plan" section or any farming subsection (postcards, door-hangers, door-knocking, neighborhood mailers, quarterly touchpoints, "State of the Neighborhood" mailers, geo-farming, sphere-of-influence campaigns targeting neighbors, etc.) anywhere in the plan. Omit it entirely. Short-form video and reel concepts should be routed into the "## Content & Reels Ideas" section instead.
 
+Do NOT include an "Email Newsletter", "Agent's List", "This Week's Hottest Listing", weekly newsletter, or any additional email subsection or bullet beyond the two bullets defined in the Email Marketing Language block below.
+
 ## Email Marketing Language (must follow verbatim)
 When the Full Marketing Plan includes an "Email Marketing" subsection, use exactly these two bullets (in this order, with this wording). Do NOT include any neighborhood farming, postcard, or third bullet here:
 - Agent-to-Agent Blast: Send to 5000+ Columbus area agents, emphasizing [local school district] and strong buyer demand
