@@ -18,7 +18,7 @@ const bannerOptions = [
   { value: 'auto', label: 'Auto-detect from Status' },
   { value: 'new-listing', label: 'NEW LISTING' },
   { value: 'just-sold', label: 'JUST SOLD' },
-  { value: 'price-change', label: 'PRICE CHANGE' },
+  { value: 'new-price', label: 'NEW PRICE' },
   { value: 'open-house', label: 'OPEN HOUSE' },
   { value: 'under-contract', label: 'UNDER CONTRACT' },
   { value: 'back-on-market', label: 'BACK ON MARKET' },

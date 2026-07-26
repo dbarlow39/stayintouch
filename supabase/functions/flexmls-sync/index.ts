@@ -835,7 +835,7 @@ Deno.serve(async (req) => {
                               listing: listingForAd,
                               bannerText: item.type === 'new' ? 'NEW LISTING'
                                 : item.type === 'price_change'
-                                  ? ((item.newPrice || 0) < (item.oldPrice || 0) ? 'PRICE REDUCED!' : 'PRICE UPDATED')
+                                  ? ((item.newPrice || 0) < (item.oldPrice || 0) ? 'NEW PRICE' : 'PRICE UPDATED')
                                   : 'BACK ON MARKET',
                               agentPhone: agentPhoneVal,
                             }),
