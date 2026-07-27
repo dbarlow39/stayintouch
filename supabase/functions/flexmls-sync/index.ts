@@ -234,6 +234,8 @@ Deno.serve(async (req) => {
 
     const allDetailFields = 'ListingId,ListPrice,BedsTotal,BathroomsTotalInteger,BathroomsTotalDecimal,BathsFull,BathsHalf,BuildingAreaTotal,LivingArea,City,StateOrProvince,PostalCode,UnparsedFirstLineAddress,StreetNumber,StreetDirPrefix,StreetName,StreetSuffix,PropertyType,PropertyTypeLabel,PropertySubType,PropertyClass,MlsStatus,StandardStatus,ListOfficeMlsId,ListAgentMlsId,ListAgentName,ListAgentFirstName,ListAgentLastName,ListAgentDirectPhone,ListAgentCellPhone,ListAgentPreferredPhone,ListAgentOfficePhone,ListAgentEmail,YearBuilt,LotSizeArea,LotSizeUnits,LotSizeAcres,DaysOnMarket,PublicRemarks,Latitude,Longitude,CurrentPrice,MLSNumber,CountyOrParish,SubdivisionName,Heating,Cooling,ParkingFeatures,GarageSpaces,Flooring,Appliances,Basement,Roof,ConstructionMaterials,Stories,StoriesTotal,Levels,TaxAnnualAmount,TaxAmount,TaxYear,AssociationFee,AssociationFeeFrequency,WaterSource,Sewer,SchoolDistrict,ElementarySchool,MiddleSchool,HighSchool,ListingContractDate,OnMarketDate,ExteriorFeatures,InteriorFeatures,PatioAndPorchFeatures,Fencing,FoundationDetails,ParcelNumber,NewConstructionYN,OtherStructures,CommonWalls,SpecialListingConditions,NumberOfUnitsTotal,GrossIncome,NetOperatingIncome';
 
+
+
     // ─── MY LISTINGS ───
     if (action === 'my_listings') {
       const syncStart = Date.now();
@@ -245,7 +247,7 @@ Deno.serve(async (req) => {
 
       const perPage = 1000;
       const scanFields = 'ListOfficeMlsId,MlsStatus';
-      const SCAN_PARALLEL = 2;
+      const SCAN_PARALLEL = 5;
 
       // Helper: fetch with retry on 429
       async function fetchWithRetry(url: string, opts: RequestInit, retries = 3): Promise<Response> {
@@ -280,7 +282,10 @@ Deno.serve(async (req) => {
           const pages = Array.from({ length: SCAN_PARALLEL }, (_, i) => startPage + i).filter(p => p <= 20);
           const results = await Promise.all(
             pages.map(async p => {
-              const url = `${baseUrl}/listings?_limit=${perPage}&_page=${p}&_select=${scanFields}`;
+              // /office/listings returns only this office's listings (server-side scoped).
+              // ListOfficeMlsId is NOT searchable via _filter on /listings, so scanning the
+              // full MLS feed was timing out. This endpoint returns ~1 page instead of 20k rows.
+              const url = `${baseUrl}/office/listings?_limit=${perPage}&_page=${p}&_select=${scanFields}`;
               const r = await fetchWithRetry(url, { method: 'GET', headers: sparkHeaders });
               if (!r.ok) {
                 const body = await r.text().catch(() => '');
