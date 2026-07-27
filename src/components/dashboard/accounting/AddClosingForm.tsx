@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { useAgentsList } from "./useAgentsList";
+import { splitsForAgent } from "./agentSplits";
 import { GooglePlacesAddressInput } from "@/components/dashboard/residential/GooglePlacesAddressInput";
 import ClosingPaperworkUpload, { type PaperworkFile } from "./ClosingPaperworkUpload";
 import ClosingPaperworkChecklist, { type ChecklistState, type ChecklistNAState } from "./ClosingPaperworkChecklist";
@@ -174,6 +175,12 @@ const AddClosingForm = ({ onBack }: AddClosingFormProps) => {
       zip: client.zip || prev.zip,
       sale_price: client.price ? String(client.price) : prev.sale_price,
       agent_name: matchedAgent || prev.agent_name,
+      ...(matchedAgent
+        ? {
+            company_split_pct: splitsForAgent(matchedAgent).company,
+            agent_split_pct: splitsForAgent(matchedAgent).agent,
+          }
+        : {}),
     }));
     setAddressQuery(address);
     setShowSuggestions(false);
@@ -201,8 +208,8 @@ const AddClosingForm = ({ onBack }: AddClosingFormProps) => {
     sale_price: "",
     total_check: "",
     admin_fee: "499",
-    company_split_pct: "40",
-    agent_split_pct: "60",
+    company_split_pct: "0",
+    agent_split_pct: "100",
     caliber_title_bonus: true,
     caliber_title_amount: "150",
     notes: "",
@@ -286,10 +293,10 @@ const AddClosingForm = ({ onBack }: AddClosingFormProps) => {
         for (const { name, side } of sides) {
           const lower = name.toLowerCase().trim();
           const exact = agentOptions.find(a => a.full_name.toLowerCase() === lower);
-          if (exact) { next.agent_name = exact.full_name; detectedRep = side; filled.push(`agent (${side})`); break; }
+          if (exact) { next.agent_name = exact.full_name; next.company_split_pct = splitsForAgent(exact.full_name).company; next.agent_split_pct = splitsForAgent(exact.full_name).agent; detectedRep = side; filled.push(`agent (${side})`); break; }
           const lastName = lower.split(/\s+/).pop() || "";
           const byLast = agentOptions.find(a => a.full_name.toLowerCase().split(/\s+/).pop() === lastName);
-          if (byLast) { next.agent_name = byLast.full_name; detectedRep = side; filled.push(`agent (${side})`); break; }
+          if (byLast) { next.agent_name = byLast.full_name; next.company_split_pct = splitsForAgent(byLast.full_name).company; next.agent_split_pct = splitsForAgent(byLast.full_name).agent; detectedRep = side; filled.push(`agent (${side})`); break; }
         }
         // Fallback: if no agent matched the dropdown but we extracted at least one side,
         // still set representation so the user knows what the AI saw.
@@ -450,7 +457,7 @@ const AddClosingForm = ({ onBack }: AddClosingFormProps) => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Agent Name *</Label>
-              <Select value={form.agent_name} onValueChange={v => update("agent_name", v)}>
+              <Select value={form.agent_name} onValueChange={v => setForm(prev => ({ ...prev, agent_name: v, company_split_pct: splitsForAgent(v).company, agent_split_pct: splitsForAgent(v).agent }))}>
                 <SelectTrigger><SelectValue placeholder="Select agent" /></SelectTrigger>
                 <SelectContent>
                   {agentOptions.map(a => (
