@@ -237,13 +237,14 @@ Deno.serve(async (req) => {
     // ─── PROBE (temporary diagnostic): test office filter syntaxes ───
     if (action === 'probe_office_filter') {
       const variants = [
-        `ListOfficeMlsId Eq '${officeId}'`,
-        `ListOfficeId Eq '${officeId}'`,
+        `ListOfficeId Eq ${officeId}`,
+        `ListOfficeMlsId Eq ${officeId}`,
         `ListOfficeMlsId Eq '${officeId}' And MlsStatus Eq 'Active'`,
+        `MlsStatus Eq 'Active'`,
       ];
       const out: any[] = [];
       for (const f of variants) {
-        const url = `${baseUrl}/listings?_limit=25&_select=ListOfficeMlsId,MlsStatus&_filter=${encodeURIComponent(f)}`;
+        const url = `${baseUrl}/listings?_limit=25&_select=ListOfficeMlsId,ListOfficeId,MlsStatus&_filter=${encodeURIComponent(f)}`;
         const r = await fetch(url, { method: 'GET', headers: sparkHeaders });
         const txt = await r.text();
         let parsed: any = null;
