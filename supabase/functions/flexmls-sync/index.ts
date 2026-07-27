@@ -234,34 +234,6 @@ Deno.serve(async (req) => {
 
     const allDetailFields = 'ListingId,ListPrice,BedsTotal,BathroomsTotalInteger,BathroomsTotalDecimal,BathsFull,BathsHalf,BuildingAreaTotal,LivingArea,City,StateOrProvince,PostalCode,UnparsedFirstLineAddress,StreetNumber,StreetDirPrefix,StreetName,StreetSuffix,PropertyType,PropertyTypeLabel,PropertySubType,PropertyClass,MlsStatus,StandardStatus,ListOfficeMlsId,ListAgentMlsId,ListAgentName,ListAgentFirstName,ListAgentLastName,ListAgentDirectPhone,ListAgentCellPhone,ListAgentPreferredPhone,ListAgentOfficePhone,ListAgentEmail,YearBuilt,LotSizeArea,LotSizeUnits,LotSizeAcres,DaysOnMarket,PublicRemarks,Latitude,Longitude,CurrentPrice,MLSNumber,CountyOrParish,SubdivisionName,Heating,Cooling,ParkingFeatures,GarageSpaces,Flooring,Appliances,Basement,Roof,ConstructionMaterials,Stories,StoriesTotal,Levels,TaxAnnualAmount,TaxAmount,TaxYear,AssociationFee,AssociationFeeFrequency,WaterSource,Sewer,SchoolDistrict,ElementarySchool,MiddleSchool,HighSchool,ListingContractDate,OnMarketDate,ExteriorFeatures,InteriorFeatures,PatioAndPorchFeatures,Fencing,FoundationDetails,ParcelNumber,NewConstructionYN,OtherStructures,CommonWalls,SpecialListingConditions,NumberOfUnitsTotal,GrossIncome,NetOperatingIncome';
 
-    // ─── PROBE (temporary diagnostic): test office filter syntaxes ───
-    if (action === 'probe_office_filter') {
-      const out: any[] = [];
-      const urls = [
-        `${baseUrl}/my/listings?_limit=5&_select=ListOfficeMlsId,MlsStatus`,
-        `${baseUrl}/office/listings?_limit=5&_select=ListOfficeMlsId,MlsStatus`,
-        `${baseUrl}/listings?_limit=5&_select=ListOfficeMlsId,MlsStatus&_filter=${encodeURIComponent(`ListOfficeName Eq 'Sell for 1 Percent'`)}`,
-        `${baseUrl}/listings?_limit=5&_select=ListOfficeMlsId,MlsStatus&_filter=${encodeURIComponent(`ListOfficeMlsId Eq '${officeId}'`)}&_expand=`,
-      ];
-      for (const url of urls) {
-        const r = await fetch(url, { method: 'GET', headers: sparkHeaders });
-        const txt = await r.text();
-        let parsed: any = null;
-        try { parsed = JSON.parse(txt); } catch { /* ignore */ }
-        const results = parsed?.D?.Results || [];
-        out.push({
-          url: url.replace(baseUrl, ''),
-          status: r.status,
-          count: results.length,
-          offices: results.map((x: any) => x.StandardFields?.ListOfficeMlsId),
-          sparkqlErrors: parsed?.D?.SparkQLErrors ?? null,
-          raw: r.ok ? null : txt.slice(0, 300),
-        });
-      }
-      return new Response(JSON.stringify({ success: true, officeId, out }, null, 2), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
 
 
     // ─── MY LISTINGS ───
