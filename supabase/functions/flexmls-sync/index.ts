@@ -236,33 +236,33 @@ Deno.serve(async (req) => {
 
     // ─── PROBE (temporary diagnostic): test office filter syntaxes ───
     if (action === 'probe_office_filter') {
-      const variants = [
-        `ListOfficeId Eq ${officeId}`,
-        `ListOfficeMlsId Eq ${officeId}`,
-        `ListOfficeMlsId Eq '${officeId}' And MlsStatus Eq 'Active'`,
-        `MlsStatus Eq 'Active'`,
-      ];
       const out: any[] = [];
-      for (const f of variants) {
-        const url = `${baseUrl}/listings?_limit=25&_select=ListOfficeMlsId,ListOfficeId,MlsStatus&_filter=${encodeURIComponent(f)}`;
+      const urls = [
+        `${baseUrl}/my/listings?_limit=5&_select=ListOfficeMlsId,MlsStatus`,
+        `${baseUrl}/office/listings?_limit=5&_select=ListOfficeMlsId,MlsStatus`,
+        `${baseUrl}/listings?_limit=5&_select=ListOfficeMlsId,MlsStatus&_filter=${encodeURIComponent(`ListOfficeName Eq 'Sell for 1 Percent'`)}`,
+        `${baseUrl}/listings?_limit=5&_select=ListOfficeMlsId,MlsStatus&_filter=${encodeURIComponent(`ListOfficeMlsId Eq '${officeId}'`)}&_expand=`,
+      ];
+      for (const url of urls) {
         const r = await fetch(url, { method: 'GET', headers: sparkHeaders });
         const txt = await r.text();
         let parsed: any = null;
         try { parsed = JSON.parse(txt); } catch { /* ignore */ }
         const results = parsed?.D?.Results || [];
         out.push({
-          filter: f,
+          url: url.replace(baseUrl, ''),
           status: r.status,
           count: results.length,
-          total: parsed?.D?.Pagination?.TotalRows ?? null,
-          sample: results.slice(0, 3).map((x: any) => x.StandardFields),
-          error: r.ok ? null : txt.slice(0, 300),
+          offices: results.map((x: any) => x.StandardFields?.ListOfficeMlsId),
+          sparkqlErrors: parsed?.D?.SparkQLErrors ?? null,
+          raw: r.ok ? null : txt.slice(0, 300),
         });
       }
-      return new Response(JSON.stringify({ success: true, officeId, out }), {
+      return new Response(JSON.stringify({ success: true, officeId, out }, null, 2), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
+
 
     // ─── MY LISTINGS ───
     if (action === 'my_listings') {
