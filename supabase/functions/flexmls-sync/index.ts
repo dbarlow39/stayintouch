@@ -255,7 +255,7 @@ Deno.serve(async (req) => {
           status: r.status,
           count: results.length,
           total: parsed?.D?.Pagination?.TotalRows ?? null,
-          firstOffice: results[0]?.StandardFields?.ListOfficeMlsId ?? null,
+          sample: results.slice(0, 3).map((x: any) => x.StandardFields),
           error: r.ok ? null : txt.slice(0, 300),
         });
       }
