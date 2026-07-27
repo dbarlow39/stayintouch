@@ -10,8 +10,12 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  const _auth = await requireUserOrServiceRole(req);
-  if (_auth instanceof Response) return _auth;
+  const cronToken = Deno.env.get('MLS_CRON_TOKEN');
+  const isCron = !!cronToken && req.headers.get('x-cron-secret') === cronToken;
+  if (!isCron) {
+    const _auth = await requireUserOrServiceRole(req);
+    if (_auth instanceof Response) return _auth;
+  }
 
 
   try {
