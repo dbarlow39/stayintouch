@@ -16,6 +16,7 @@ import { useAgentsList } from "./useAgentsList";
 import ClosingPaperworkUpload, { type PaperworkFile } from "./ClosingPaperworkUpload";
 import ClosingPaperworkChecklist, { type ChecklistState, type ChecklistNAState } from "./ClosingPaperworkChecklist";
 import ClosingNotificationDialog from "./ClosingNotificationDialog";
+import { splitsForAgent } from "./agentSplits";
 
 interface EditClosingFormProps {
   closingId: string;
@@ -339,7 +340,7 @@ const EditClosingForm = ({ closingId, onBack }: EditClosingFormProps) => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Agent Name *</Label>
-              <Select value={form.agent_name} onValueChange={v => update("agent_name", v)}>
+              <Select value={form.agent_name} onValueChange={v => setForm(prev => ({ ...prev, agent_name: v, company_split_pct: splitsForAgent(v).company, agent_split_pct: splitsForAgent(v).agent }))}>
                 <SelectTrigger><SelectValue placeholder="Select agent" /></SelectTrigger>
                 <SelectContent>
                   {agentOptions.map(a => (
