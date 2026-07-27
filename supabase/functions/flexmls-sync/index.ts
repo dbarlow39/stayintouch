@@ -234,6 +234,35 @@ Deno.serve(async (req) => {
 
     const allDetailFields = 'ListingId,ListPrice,BedsTotal,BathroomsTotalInteger,BathroomsTotalDecimal,BathsFull,BathsHalf,BuildingAreaTotal,LivingArea,City,StateOrProvince,PostalCode,UnparsedFirstLineAddress,StreetNumber,StreetDirPrefix,StreetName,StreetSuffix,PropertyType,PropertyTypeLabel,PropertySubType,PropertyClass,MlsStatus,StandardStatus,ListOfficeMlsId,ListAgentMlsId,ListAgentName,ListAgentFirstName,ListAgentLastName,ListAgentDirectPhone,ListAgentCellPhone,ListAgentPreferredPhone,ListAgentOfficePhone,ListAgentEmail,YearBuilt,LotSizeArea,LotSizeUnits,LotSizeAcres,DaysOnMarket,PublicRemarks,Latitude,Longitude,CurrentPrice,MLSNumber,CountyOrParish,SubdivisionName,Heating,Cooling,ParkingFeatures,GarageSpaces,Flooring,Appliances,Basement,Roof,ConstructionMaterials,Stories,StoriesTotal,Levels,TaxAnnualAmount,TaxAmount,TaxYear,AssociationFee,AssociationFeeFrequency,WaterSource,Sewer,SchoolDistrict,ElementarySchool,MiddleSchool,HighSchool,ListingContractDate,OnMarketDate,ExteriorFeatures,InteriorFeatures,PatioAndPorchFeatures,Fencing,FoundationDetails,ParcelNumber,NewConstructionYN,OtherStructures,CommonWalls,SpecialListingConditions,NumberOfUnitsTotal,GrossIncome,NetOperatingIncome';
 
+    // ─── PROBE (temporary diagnostic): test office filter syntaxes ───
+    if (action === 'probe_office_filter') {
+      const variants = [
+        `ListOfficeMlsId Eq '${officeId}'`,
+        `ListOfficeId Eq '${officeId}'`,
+        `ListOfficeMlsId Eq '${officeId}' And MlsStatus Eq 'Active'`,
+      ];
+      const out: any[] = [];
+      for (const f of variants) {
+        const url = `${baseUrl}/listings?_limit=25&_select=ListOfficeMlsId,MlsStatus&_filter=${encodeURIComponent(f)}`;
+        const r = await fetch(url, { method: 'GET', headers: sparkHeaders });
+        const txt = await r.text();
+        let parsed: any = null;
+        try { parsed = JSON.parse(txt); } catch { /* ignore */ }
+        const results = parsed?.D?.Results || [];
+        out.push({
+          filter: f,
+          status: r.status,
+          count: results.length,
+          total: parsed?.D?.Pagination?.TotalRows ?? null,
+          firstOffice: results[0]?.StandardFields?.ListOfficeMlsId ?? null,
+          error: r.ok ? null : txt.slice(0, 300),
+        });
+      }
+      return new Response(JSON.stringify({ success: true, officeId, out }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     // ─── MY LISTINGS ───
     if (action === 'my_listings') {
       const syncStart = Date.now();
