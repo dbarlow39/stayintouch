@@ -10,6 +10,6 @@ export function splitsForAgent(agentName: string | null | undefined): {
     name.includes("barlow") && (name.includes("jaysen") || name.includes("jaime"));
 
   return isBarlowPrincipal
-    ? { company: "40", agent: "60" }
+    ? { company: "35", agent: "65" }
     : { company: "0", agent: "100" };
 }
