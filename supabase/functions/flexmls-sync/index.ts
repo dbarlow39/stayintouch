@@ -280,7 +280,10 @@ Deno.serve(async (req) => {
           const pages = Array.from({ length: SCAN_PARALLEL }, (_, i) => startPage + i).filter(p => p <= 20);
           const results = await Promise.all(
             pages.map(async p => {
-              const url = `${baseUrl}/listings?_limit=${perPage}&_page=${p}&_select=${scanFields}`;
+              const officeFilter = officeId
+                ? `&_filter=${encodeURIComponent(`ListOfficeMlsId Eq '${String(officeId).trim()}'`)}`
+                : '';
+              const url = `${baseUrl}/listings?_limit=${perPage}&_page=${p}&_select=${scanFields}${officeFilter}`;
               const r = await fetchWithRetry(url, { method: 'GET', headers: sparkHeaders });
               if (!r.ok) {
                 const body = await r.text().catch(() => '');
