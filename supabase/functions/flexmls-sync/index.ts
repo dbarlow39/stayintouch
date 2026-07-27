@@ -310,10 +310,10 @@ Deno.serve(async (req) => {
           const pages = Array.from({ length: SCAN_PARALLEL }, (_, i) => startPage + i).filter(p => p <= 20);
           const results = await Promise.all(
             pages.map(async p => {
-              const officeFilter = officeId
-                ? `&_filter=${encodeURIComponent(`ListOfficeMlsId Eq '${String(officeId).trim()}'`)}`
-                : '';
-              const url = `${baseUrl}/listings?_limit=${perPage}&_page=${p}&_select=${scanFields}${officeFilter}`;
+              // /office/listings returns only this office's listings (server-side scoped).
+              // ListOfficeMlsId is NOT searchable via _filter on /listings, so scanning the
+              // full MLS feed was timing out. This endpoint returns ~1 page instead of 20k rows.
+              const url = `${baseUrl}/office/listings?_limit=${perPage}&_page=${p}&_select=${scanFields}`;
               const r = await fetchWithRetry(url, { method: 'GET', headers: sparkHeaders });
               if (!r.ok) {
                 const body = await r.text().catch(() => '');
