@@ -245,7 +245,7 @@ Deno.serve(async (req) => {
 
       const perPage = 1000;
       const scanFields = 'ListOfficeMlsId,MlsStatus';
-      const SCAN_PARALLEL = 2;
+      const SCAN_PARALLEL = 5;
 
       // Helper: fetch with retry on 429
       async function fetchWithRetry(url: string, opts: RequestInit, retries = 3): Promise<Response> {
