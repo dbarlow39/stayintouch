@@ -660,7 +660,7 @@ Deno.serve(async (req) => {
               body: JSON.stringify({
                 from: 'MLS Alerts <updates@resend.sellfor1percent.com>',
                 to: ['dave@sellfor1percent.com'],
-                subject: `Sellfor1Percent.com MLS Changes: ${changes.newListings.length} new, ${changes.priceChanges.length} price, ${changes.statusChanges.length} status, ${changes.removedListings.length} removed, ${changes.backOnMarket.length} returned qqqqq`,
+                subject: `Sellfor1Percent.com MLS Changes: ${changes.newListings.length} new, ${changes.priceChanges.length} price, ${changes.statusChanges.length} status, ${changes.removedListings.length} removed, ${changes.backOnMarket.length} returned`,
                 html,
               }),
             });
@@ -671,6 +671,25 @@ Deno.serve(async (req) => {
         }
 
         console.log(`Changes detected: ${hasChanges} (new: ${changes.newListings.length}, removed: ${changes.removedListings.length}, price: ${changes.priceChanges.length}, status: ${changes.statusChanges.length}, returned: ${changes.backOnMarket.length})`);
+        // Log sync
+        await fetch(`${supabaseUrl}/rest/v1/sync_log`, {
+          method: 'POST',
+          headers: { ...dbHeaders, 'Prefer': 'return=minimal' },
+          body: JSON.stringify({ sync_type: 'mls_listings', record_count: transformed.length }),
+        });
+
+        // Update listings cache with the verified-complete snapshot
+        await fetch(`${supabaseUrl}/rest/v1/listings_cache?id=eq.current`, {
+          method: 'DELETE',
+          headers: { ...dbHeaders, 'Prefer': 'return=minimal' },
+        });
+        await fetch(`${supabaseUrl}/rest/v1/listings_cache`, {
+          method: 'POST',
+          headers: { ...dbHeaders, 'Prefer': 'return=minimal' },
+          body: JSON.stringify({ id: 'current', listings: transformed, updated_at: new Date().toISOString() }),
+        });
+        console.log('Listings cache updated with', transformed.length, 'listings');
+
 
         // ─── AUTO-POST TO FACEBOOK ───
         // Check if auto-posting is enabled and there are relevant changes
@@ -926,24 +945,6 @@ Deno.serve(async (req) => {
           }
         }
 
-        // Log sync
-        await fetch(`${supabaseUrl}/rest/v1/sync_log`, {
-          method: 'POST',
-          headers: { ...dbHeaders, 'Prefer': 'return=minimal' },
-          body: JSON.stringify({ sync_type: 'mls_listings', record_count: transformed.length }),
-        });
-
-        // Update listings cache with the verified-complete snapshot
-        await fetch(`${supabaseUrl}/rest/v1/listings_cache?id=eq.current`, {
-          method: 'DELETE',
-          headers: { ...dbHeaders, 'Prefer': 'return=minimal' },
-        });
-        await fetch(`${supabaseUrl}/rest/v1/listings_cache`, {
-          method: 'POST',
-          headers: { ...dbHeaders, 'Prefer': 'return=minimal' },
-          body: JSON.stringify({ id: 'current', listings: transformed, updated_at: new Date().toISOString() }),
-        });
-        console.log('Listings cache updated with', transformed.length, 'listings');
       } catch (e) {
         console.log('Failed to finalize sync:', e);
       }
