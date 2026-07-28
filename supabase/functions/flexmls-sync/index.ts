@@ -10,15 +10,18 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  const cronToken = Deno.env.get('MLS_CRON_TOKEN');
-  const isCron = !!cronToken && req.headers.get('x-cron-secret') === cronToken;
-  if (!isCron) {
-    const _auth = await requireUserOrServiceRole(req);
-    if (_auth instanceof Response) return _auth;
-  }
-
-
   try {
+    const { action, params } = await req.json();
+    const publicActions = new Set(['single_listing']);
+    const cronToken = Deno.env.get('MLS_CRON_TOKEN');
+    const isCron = !!cronToken && req.headers.get('x-cron-secret') === cronToken;
+    const isPublicAction = publicActions.has(action);
+
+    if (!isCron && !isPublicAction) {
+      const _auth = await requireUserOrServiceRole(req);
+      if (_auth instanceof Response) return _auth;
+    }
+
     const apiKey = Deno.env.get('FLEXMLS_API_KEY');
     if (!apiKey) {
       return new Response(
@@ -28,7 +31,6 @@ Deno.serve(async (req) => {
     }
 
     const officeId = Deno.env.get('FLEXMLS_OFFICE_ID');
-    const { action, params } = await req.json();
 
     const baseUrl = 'https://replication.sparkapi.com/v1';
     const sparkHeaders = {
