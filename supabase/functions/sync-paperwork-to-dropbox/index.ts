@@ -693,10 +693,21 @@ async function runForAgent(
             }
             if (addrMatches && !isMulti) {
               const { data: cur } = await serviceClient
-                .from("closings").select("sale_price, closing_date, city, zip").eq("id", upd.id).maybeSingle();
+                .from("closings")
+                .select("sale_price, closing_date, city, zip, total_commission, admin_fee, company_split_pct, agent_split_pct")
+                .eq("id", upd.id).maybeSingle();
               if (cur) {
                 if ((!cur.sale_price || Number(cur.sale_price) === 0) && Number(extracted.sale_price) > 0) {
                   patch.sale_price = Number(extracted.sale_price);
+                  // Only fill in the check when no commission has been entered yet.
+                  if (!cur.total_commission || Number(cur.total_commission) === 0) {
+                    const fee = Number(cur.admin_fee ?? 499) || 0;
+                    const check = Math.max(Number(extracted.sale_price) * 0.01, 2250) + 499;
+                    const base = Math.max(check - fee, 0);
+                    patch.total_commission = check;
+                    patch.company_share = base * ((Number(cur.company_split_pct) || 0) / 100);
+                    patch.agent_share = base * ((Number(cur.agent_split_pct) || 0) / 100);
+                  }
                 }
                 if (!cur.city && extracted.city) patch.city = extracted.city;
                 if (!cur.zip && extracted.zip) patch.zip = extracted.zip;
@@ -705,6 +716,7 @@ async function runForAgent(
                 }
               }
             }
+
           }
           const { error: updErr } = await serviceClient.from("closings").update(patch).eq("id", upd.id);
           if (updErr) {
