@@ -1752,6 +1752,30 @@ export type Database = {
         }
         Relationships: []
       }
+      listing_videos: {
+        Row: {
+          created_at: string
+          listing_id: string
+          tour_video_url: string | null
+          updated_at: string
+          youtube_url: string | null
+        }
+        Insert: {
+          created_at?: string
+          listing_id: string
+          tour_video_url?: string | null
+          updated_at?: string
+          youtube_url?: string | null
+        }
+        Update: {
+          created_at?: string
+          listing_id?: string
+          tour_video_url?: string | null
+          updated_at?: string
+          youtube_url?: string | null
+        }
+        Relationships: []
+      }
       listings_cache: {
         Row: {
           id: string
