@@ -54,6 +54,13 @@ serve(async (req) => {
     // Get request body
     const body = await req.json().catch(() => ({}));
     const { agent_id, sync_all_agents = false, max_results = 100, days_back = null } = body;
+
+    if (sync_all_agents && !isServiceCall) {
+      return new Response(JSON.stringify({ error: "Forbidden" }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
     
     // Calculate date filter if days_back is provided
     let afterDate: string | null = null;
