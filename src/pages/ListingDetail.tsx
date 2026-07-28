@@ -9,6 +9,7 @@ import {
   Thermometer, Wind, Car, Layers, DollarSign, GraduationCap, Droplets, Building,
   Ruler, Clock, FileText, Facebook, Instagram, Twitter, Megaphone, Sparkles, Youtube, Linkedin, ImageIcon,
   Link2, Check, Loader2, Mail, MessageSquare, Copy, BarChart3
+  Video,
 } from 'lucide-react';
 import {
   DropdownMenu,
