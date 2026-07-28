@@ -754,11 +754,14 @@ async function runForAgent(
           const salePrice = useParsed ? (Number(extracted.sale_price) || 0) : 0;
           const calculatedCheck = salePrice > 0 ? Math.max(salePrice * 0.01, 2250) + 499 : 0;
           const adminFee = 499;
-          const totalCommission = Math.max(calculatedCheck - adminFee, 0);
+          // total_commission stores the FULL check (admin fee included), matching the manual forms.
+          const totalCommission = calculatedCheck;
+          const commissionBase = Math.max(calculatedCheck - adminFee, 0);
           const companyPct = 40;
           const agentPct = 60;
-          const companyShare = totalCommission * (companyPct / 100);
-          const agentShare = totalCommission * (agentPct / 100);
+          const companyShare = commissionBase * (companyPct / 100);
+          const agentShare = commissionBase * (agentPct / 100);
+
           const caliberDetected = useParsed && (extracted.caliber_title_detected === true
             || /caliber/i.test(String(extracted.title_company || "")));
 
