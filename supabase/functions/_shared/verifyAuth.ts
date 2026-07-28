@@ -52,3 +52,57 @@ export async function requireUserOrServiceRole(
   if (error || !data?.user) return unauthorized();
   return { userId: data.user.id, isService: false };
 }
+
+export function forbidden(msg = "Forbidden"): Response {
+  return new Response(JSON.stringify({ error: msg }), {
+    status: 403,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
+
+/**
+ * Requires a valid user JWT (or the service role key when allowService is true)
+ * and, when the JSON body carries an agent_id/user_id, verifies it belongs to
+ * the caller. Returns a rebuilt Request so downstream `req.json()` still works.
+ */
+export async function requireAgentOwner(
+  req: Request,
+  opts: { allowService?: boolean } = {},
+): Promise<
+  { req: Request; userId: string | null; isService: boolean; body: any } | Response
+> {
+  const auth = opts.allowService
+    ? await requireUserOrServiceRole(req)
+    : await requireUser(req);
+  if (auth instanceof Response) return auth;
+  const userId = "userId" in auth ? auth.userId : null;
+  const isService = "isService" in auth ? auth.isService : false;
+
+  const raw = await req.text();
+  let body: any = {};
+  if (raw) {
+    try {
+      body = JSON.parse(raw);
+    } catch {
+      body = {};
+    }
+  }
+
+  if (!isService) {
+    const claimed = body?.agent_id ?? body?.user_id;
+    if (claimed && claimed !== userId) return forbidden("agent_id mismatch");
+  }
+
+  const rebuilt = new Request(req.url, {
+    method: req.method,
+    headers: req.headers,
+    body: raw || null,
+  });
+
+  return { req: rebuilt, userId, isService, body };
+}
+
+/** True when a storage path lives under the caller's own user-id folder. */
+export function ownsStoragePath(userId: string | null, path: unknown): boolean {
+  return typeof path === "string" && !!userId && path.startsWith(`${userId}/`);
+}
