@@ -97,12 +97,16 @@ Deno.serve(async (req) => {
     return json({ error: 'Upload failed' }, 500);
   }
 
-  const { data: pub } = supabase.storage.from('listing-videos').getPublicUrl(path);
+  // Bucket is private (workspace policy blocks public buckets), so hand back a
+  // long-lived signed URL. The listing page mints its own signed URL on load.
+  const { data: signed } = await supabase.storage
+    .from('listing-videos')
+    .createSignedUrl(path, 60 * 60 * 24 * 365);
 
   return json({
     success: true,
     listingId,
     path,
-    url: pub.publicUrl,
+    url: signed?.signedUrl ?? null,
   });
 });
