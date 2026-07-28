@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { requireAgentOwner } from "../_shared/verifyAuth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -9,6 +10,13 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
+
+  const __auth = await requireAgentOwner(req, { allowService: true });
+  if (__auth instanceof Response) return __auth;
+  req = __auth.req;
+  const authUserId = __auth.userId;
+  const isServiceCall = __auth.isService;
+
 
   try {
     const body = await req.json().catch(() => ({}));

@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { requireAgentOwner } from "../_shared/verifyAuth.ts";
 
 // Bump this when deploying to positively identify which code is running.
 const VERSION = "sync-gmail-emails@2026-02-02.1-CLIENT-OWNER-FIX";
@@ -32,6 +33,13 @@ serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
+
+  const __auth = await requireAgentOwner(req, { allowService: true });
+  if (__auth instanceof Response) return __auth;
+  req = __auth.req;
+  const authUserId = __auth.userId;
+  const isServiceCall = __auth.isService;
+
 
   try {
     console.log(`[DISMISSED FIX] ${VERSION} invoked at ${new Date().toISOString()}`);
