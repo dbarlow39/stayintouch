@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { accessToken } from '@/utils/authToken';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Copy, Check, RefreshCw, Sparkles, Facebook, Instagram, Youtube, Linkedin, Twitter, Megaphone } from 'lucide-react';
@@ -53,7 +54,7 @@ const ListingToolPanel = ({ platform, listing, autoGenerate = false }: ListingTo
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          Authorization: `Bearer ${await accessToken()}`,
         },
         body: JSON.stringify({ listing, platform }),
       });
