@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { requireUser } from "../_shared/verifyAuth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -9,6 +10,11 @@ serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
+
+  const __auth = await requireUser(req);
+  if (__auth instanceof Response) return __auth;
+  const authUserId = __auth.userId;
+
 
   try {
     const { article } = await req.json();

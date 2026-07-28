@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { accessToken } from '@/utils/authToken';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
@@ -46,7 +47,7 @@ const BoostPostForm = ({ postId, agentId, zip }: BoostPostFormProps) => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${ANON_KEY}`,
+          Authorization: `Bearer ${await accessToken()}`,
         },
         body: JSON.stringify({
           agent_id: agentId,

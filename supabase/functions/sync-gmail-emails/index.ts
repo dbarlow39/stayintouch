@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { requireAgentOwner } from "../_shared/verifyAuth.ts";
 
 // Bump this when deploying to positively identify which code is running.
 const VERSION = "sync-gmail-emails@2026-02-02.1-CLIENT-OWNER-FIX";
@@ -33,6 +34,13 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const __auth = await requireAgentOwner(req, { allowService: true });
+  if (__auth instanceof Response) return __auth;
+  req = __auth.req;
+  const authUserId = __auth.userId;
+  const isServiceCall = __auth.isService;
+
+
   try {
     console.log(`[DISMISSED FIX] ${VERSION} invoked at ${new Date().toISOString()}`);
 
@@ -46,6 +54,13 @@ serve(async (req) => {
     // Get request body
     const body = await req.json().catch(() => ({}));
     const { agent_id, sync_all_agents = false, max_results = 100, days_back = null } = body;
+
+    if (sync_all_agents && !isServiceCall) {
+      return new Response(JSON.stringify({ error: "Forbidden" }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
     
     // Calculate date filter if days_back is provided
     let afterDate: string | null = null;

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { accessToken } from '@/utils/authToken';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
@@ -135,7 +136,7 @@ const FacebookPostPanel = ({ listing }: FacebookPostPanelProps) => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${ANON_KEY}`,
+          Authorization: `Bearer ${await accessToken()}`,
         },
         body: JSON.stringify({ agent_id: user!.id, app_origin: window.location.origin }),
       });
@@ -188,7 +189,7 @@ const FacebookPostPanel = ({ listing }: FacebookPostPanelProps) => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${ANON_KEY}`,
+          Authorization: `Bearer ${await accessToken()}`,
         },
         body: JSON.stringify(body),
       });
@@ -225,7 +226,7 @@ const FacebookPostPanel = ({ listing }: FacebookPostPanelProps) => {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              Authorization: `Bearer ${ANON_KEY}`,
+              Authorization: `Bearer ${await accessToken()}`,
             },
             body: JSON.stringify({
               agent_id: user!.id,

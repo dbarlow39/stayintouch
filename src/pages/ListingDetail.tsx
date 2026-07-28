@@ -1,4 +1,5 @@
 import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { accessToken } from '@/utils/authToken';
 import { useState, useEffect } from 'react';
 import { mockMarketingListings, formatListingPrice, MarketingListing } from '@/data/marketingListings';
 import { flexmlsApi } from '@/lib/api/flexmls';
@@ -275,7 +276,7 @@ const ListingDetail = () => {
     try {
       const resp = await fetch(`${SUPABASE_URL}/functions/v1/facebook-auth-url`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${ANON_KEY}` },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${await accessToken()}` },
         body: JSON.stringify({ agent_id: user.id, app_origin: window.location.origin }),
       });
       const data = await resp.json();

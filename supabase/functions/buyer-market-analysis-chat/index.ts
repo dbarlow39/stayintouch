@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import JSZip from "https://esm.sh/jszip@3.10.1";
+import { requireUser, ownsStoragePath, forbidden } from "../_shared/verifyAuth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -45,8 +46,20 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const __auth = await requireUser(req);
+  if (__auth instanceof Response) return __auth;
+  const authUserId = __auth.userId;
+
+
   try {
     const { messages, documents, agentNotes } = await req.json();
+
+    for (const doc of (Array.isArray(documents) ? documents : [])) {
+      if (doc?.filePath && doc.filePath !== "__database__" && !ownsStoragePath(authUserId, doc.filePath)) {
+        return forbidden("Document path not owned by caller");
+      }
+    }
+
 
     const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
     if (!ANTHROPIC_API_KEY) {

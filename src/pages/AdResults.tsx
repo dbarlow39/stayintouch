@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { accessToken } from '@/utils/authToken';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -134,7 +135,7 @@ const AdResultsPage = () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${ANON_KEY}`,
+          Authorization: `Bearer ${await accessToken()}`,
         },
         body: JSON.stringify({ agent_id: user.id, post_id: postId, listing_address: listingAddress }),
       });

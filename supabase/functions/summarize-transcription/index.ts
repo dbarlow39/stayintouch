@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { requireUser, forbidden } from "../_shared/verifyAuth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -8,11 +9,22 @@ const corsHeaders = {
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  const __auth = await requireUser(req);
+  if (__auth instanceof Response) return __auth;
+  const authUserId = __auth.userId;
   try {
     const { transcriptionId, transcription: providedTranscription } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
     const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    if (transcriptionId) {
+      const { data: owner } = await supabase
+        .from("audio_transcriptions")
+        .select("user_id")
+        .eq("id", transcriptionId)
+        .maybeSingle();
+      if (!owner || owner.user_id !== authUserId) return forbidden("Transcription not owned by caller");
+    }
     let transcriptionText = providedTranscription;
     if (!transcriptionText) {
       for (let attempt = 0; attempt < 3; attempt++) {

@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { requireAgentOwner } from "../_shared/verifyAuth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -10,6 +11,13 @@ serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
+
+  const __auth = await requireAgentOwner(req, { allowService: true });
+  if (__auth instanceof Response) return __auth;
+  req = __auth.req;
+  const authUserId = __auth.userId;
+  const isServiceCall = __auth.isService;
+
 
   try {
     const { agent_id, message, photo_url, link, instagram_image_url } = await req.json();
