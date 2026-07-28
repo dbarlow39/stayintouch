@@ -8,7 +8,7 @@ import {
   ArrowLeft, Bed, Bath, Maximize, Calendar, MapPin, Home, Share2, Heart, X,
   Thermometer, Wind, Car, Layers, DollarSign, GraduationCap, Droplets, Building,
   Ruler, Clock, FileText, Facebook, Instagram, Twitter, Megaphone, Sparkles, Youtube, Linkedin, ImageIcon,
-  Link2, Check, Loader2, Mail, MessageSquare, Copy, BarChart3
+  Link2, Check, Loader2, Mail, MessageSquare, Copy, BarChart3, Video,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -20,6 +20,8 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import ListingToolPanel from '@/components/dashboard/marketing/ListingToolPanel';
+import ListingVideoPanel from '@/components/dashboard/marketing/ListingVideoPanel';
+import ListingVideoPlayer from '@/components/dashboard/marketing/ListingVideoPlayer';
 import FacebookPostPanel from '@/components/dashboard/marketing/FacebookPostPanel';
 import AdGeneratorPanel from '@/components/dashboard/marketing/AdGeneratorPanel';
 import FacebookAdResultsPanel from '@/components/dashboard/marketing/FacebookAdResultsListingPanel';
@@ -356,6 +358,7 @@ const ListingDetail = () => {
     { id: 'linkedin', label: 'LinkedIn', icon: Linkedin, group: 'social' },
     { id: 'twitter', label: 'X / Twitter', icon: Twitter, group: 'social' },
     { id: 'paid-ads', label: 'Paid Ads', icon: Megaphone, group: 'advertising' },
+    { id: 'video', label: 'Branded Video', icon: Video, group: 'advertising' },
     { id: 'ai-suggestions', label: 'AI Suggestions', icon: Sparkles, group: 'ai' },
   ];
 
@@ -488,6 +491,8 @@ const ListingDetail = () => {
             <FacebookPostPanel listing={listing} />
           ) : activeTool === 'ad-results' ? (
             <FacebookAdResultsPanel listingId={listing.id} listingAddress={fullAddress} />
+          ) : activeTool === 'video' ? (
+            <ListingVideoPanel listing={listing} />
           ) : (
             <ListingToolPanel platform={activeTool} listing={listing} autoGenerate={activeTool === 'ai-suggestions'} />
           )}
@@ -564,6 +569,9 @@ const ListingDetail = () => {
 
       {/* Photo Gallery */}
       <PhotoGallery photos={photos} address={listing.address} />
+
+      {/* Branded video tour (renders only when a video has been uploaded) */}
+      <ListingVideoPlayer listingId={listing.id} address={fullAddress} />
 
       <main className="container mx-auto px-6 py-8">
         {/* Price + Address Header */}
