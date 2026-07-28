@@ -20,6 +20,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import ListingToolPanel from '@/components/dashboard/marketing/ListingToolPanel';
+import ListingVideoPanel from '@/components/dashboard/marketing/ListingVideoPanel';
 import FacebookPostPanel from '@/components/dashboard/marketing/FacebookPostPanel';
 import AdGeneratorPanel from '@/components/dashboard/marketing/AdGeneratorPanel';
 import FacebookAdResultsPanel from '@/components/dashboard/marketing/FacebookAdResultsListingPanel';
@@ -356,6 +357,7 @@ const ListingDetail = () => {
     { id: 'linkedin', label: 'LinkedIn', icon: Linkedin, group: 'social' },
     { id: 'twitter', label: 'X / Twitter', icon: Twitter, group: 'social' },
     { id: 'paid-ads', label: 'Paid Ads', icon: Megaphone, group: 'advertising' },
+    { id: 'video', label: 'Branded Video', icon: Video, group: 'advertising' },
     { id: 'ai-suggestions', label: 'AI Suggestions', icon: Sparkles, group: 'ai' },
   ];
 
@@ -488,6 +490,8 @@ const ListingDetail = () => {
             <FacebookPostPanel listing={listing} />
           ) : activeTool === 'ad-results' ? (
             <FacebookAdResultsPanel listingId={listing.id} listingAddress={fullAddress} />
+          ) : activeTool === 'video' ? (
+            <ListingVideoPanel listing={listing} />
           ) : (
             <ListingToolPanel platform={activeTool} listing={listing} autoGenerate={activeTool === 'ai-suggestions'} />
           )}
