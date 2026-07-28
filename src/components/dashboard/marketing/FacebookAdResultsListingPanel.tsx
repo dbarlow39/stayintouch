@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { accessToken } from '@/utils/authToken';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/lib/auth';
 import { Button } from '@/components/ui/button';
@@ -97,7 +98,7 @@ const FacebookAdResultsListingPanel = ({ listingId, listingAddress }: FacebookAd
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${ANON_KEY}`,
+          Authorization: `Bearer ${await accessToken()}`,
         },
         body: JSON.stringify({ agent_id: user.id }),
       });

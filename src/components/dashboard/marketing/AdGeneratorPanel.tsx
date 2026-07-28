@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { accessToken } from '@/utils/authToken';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
@@ -147,7 +148,7 @@ const AdGeneratorPanel = ({ listing, autoGenerate = false }: AdGeneratorPanelPro
     try {
       const resp = await fetch(`${SUPABASE_URL}/functions/v1/facebook-auth-url`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${ANON_KEY}` },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${await accessToken()}` },
         body: JSON.stringify({ agent_id: user!.id, app_origin: window.location.origin }),
       });
       const data = await resp.json();
@@ -233,7 +234,7 @@ const AdGeneratorPanel = ({ listing, autoGenerate = false }: AdGeneratorPanelPro
 
       const postResp = await fetch(`${SUPABASE_URL}/functions/v1/facebook-post-listing`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${ANON_KEY}` },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${await accessToken()}` },
         body: JSON.stringify({
           agent_id: user.id,
           message,
@@ -256,7 +257,7 @@ const AdGeneratorPanel = ({ listing, autoGenerate = false }: AdGeneratorPanelPro
         try {
           const boostResp = await fetch(`${SUPABASE_URL}/functions/v1/boost-facebook-post`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${ANON_KEY}` },
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${await accessToken()}` },
             body: JSON.stringify({
               agent_id: user.id,
               post_id: returnedPostId,
