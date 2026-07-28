@@ -54,6 +54,13 @@ serve(async (req) => {
   try {
     const { messages, documents, agentNotes } = await req.json();
 
+    for (const doc of (Array.isArray(documents) ? documents : [])) {
+      if (doc?.filePath && doc.filePath !== "__database__" && !ownsStoragePath(authUserId, doc.filePath)) {
+        return forbidden("Document path not owned by caller");
+      }
+    }
+
+
     const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
     if (!ANTHROPIC_API_KEY) {
       throw new Error("ANTHROPIC_API_KEY is not configured");

@@ -226,6 +226,13 @@ serve(async (req) => {
   try {
     const { documents, agentNotes, buyerNames } = await req.json();
 
+    for (const doc of (Array.isArray(documents) ? documents : [])) {
+      if (doc?.filePath && doc.filePath !== "__database__" && !ownsStoragePath(authUserId, doc.filePath)) {
+        return forbidden("Document path not owned by caller");
+      }
+    }
+
+
     if (!documents || !Array.isArray(documents) || documents.length === 0) {
       return new Response(
         JSON.stringify({ error: "No documents provided" }),
