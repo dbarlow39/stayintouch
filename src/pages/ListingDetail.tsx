@@ -21,6 +21,7 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import ListingToolPanel from '@/components/dashboard/marketing/ListingToolPanel';
 import ListingVideoPanel from '@/components/dashboard/marketing/ListingVideoPanel';
+import ListingVideoPlayer from '@/components/dashboard/marketing/ListingVideoPlayer';
 import FacebookPostPanel from '@/components/dashboard/marketing/FacebookPostPanel';
 import AdGeneratorPanel from '@/components/dashboard/marketing/AdGeneratorPanel';
 import FacebookAdResultsPanel from '@/components/dashboard/marketing/FacebookAdResultsListingPanel';
@@ -568,6 +569,9 @@ const ListingDetail = () => {
 
       {/* Photo Gallery */}
       <PhotoGallery photos={photos} address={listing.address} />
+
+      {/* Branded video tour (renders only when a video has been uploaded) */}
+      <ListingVideoPlayer listingId={listing.id} address={fullAddress} />
 
       <main className="container mx-auto px-6 py-8">
         {/* Price + Address Header */}
