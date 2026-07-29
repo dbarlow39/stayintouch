@@ -270,16 +270,13 @@ const ClosedReferralLetterView = ({ propertyData, propertyId, onBack, onEdit, on
               ) : (
                 <>
                   <p className="mb-4">
-                    I wanted to take a moment to thank you for trusting me (and my team) to help sell your home on {streetOnly}. It was truly a pleasure working with you, from our initial conversations through the negotiations and all the way to a successful closing.
+                    I wanted to take a moment to thank you for trusting me (and my team) to help sell your home on {streetOnly}. I enjoyed the opportunity to work with you, from our initial conversations through the negotiations and all the way to a successful closing.
                   </p>
 
                   <p className="mb-4">
                     I know you chose to work with us in part because of our discounted commission structure. Even with the reduced rate, my goal is always to deliver the same (or better!) level of service, expertise, and dedication that any full-commission agent would provide and hopefully even exceed expectations.
                   </p>
 
-                  <p className="mb-4">
-                    We're constantly working to refine and improve our service, so if there was anything big or small that we could have done better, or any area where you felt we fell short of your expectations, please don't hesitate to let me know. Your honest feedback is incredibly valuable and helps us continue to grow our business.
-                  </p>
 
                   <p className="mb-4">
                     A huge part of our business comes from referrals from wonderful clients like you. If you're ever in a position to recommend our services to friends, family, or colleagues who might be thinking about buying or selling, we would appreciate the referral. It means the world to us and allows us to keep offering great value to more people.
