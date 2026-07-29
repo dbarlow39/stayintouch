@@ -19,6 +19,10 @@ export const setEmailClientPreference = (client: EmailClient): void => {
   localStorage.setItem('emailClientPreference', client);
 };
 
+// All app-generated Gmail compose windows are pinned to this account so every
+// letter lands in one sent folder (the one that is OAuth-synced).
+export const PINNED_GMAIL_ACCOUNT = 'dbarlow39@barlow.com';
+
 export const getEmailLink = (email: string, client?: EmailClient, subject?: string): string => {
   const emailClient = client || getEmailClientPreference();
   const encodedEmail = encodeURIComponent(email);
@@ -26,7 +30,8 @@ export const getEmailLink = (email: string, client?: EmailClient, subject?: stri
 
   switch (emailClient) {
     case 'gmail':
-      return `https://mail.google.com/mail/?view=cm&to=${encodedEmail}${encodedSubject ? `&su=${encodedSubject}` : ''}`;
+      return `https://mail.google.com/mail/?authuser=${encodeURIComponent(PINNED_GMAIL_ACCOUNT)}&view=cm&fs=1&to=${encodedEmail}${encodedSubject ? `&su=${encodedSubject}` : ''}`;
+
     case 'outlook':
       return `https://outlook.live.com/mail/0/deeplink/compose?to=${encodedEmail}${encodedSubject ? `&subject=${encodedSubject}` : ''}`;
     case 'yahoo':
