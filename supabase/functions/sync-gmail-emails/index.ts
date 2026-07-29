@@ -251,23 +251,31 @@ async function syncAgentEmails(
   const showingTimeMessageIds: Set<string> = new Set();
   const seenMessageIds: Set<string> = new Set();
 
-  const listQueries: Array<{ name: string; q: string; isShowingTime: boolean }> = [
+  const listQueries: Array<{ name: string; q: string; isShowingTime: boolean; limit: number }> = [
     {
       name: "showingtime",
       q: `(from:showingtime.com OR from:callcenter@showingtime.com)${dateFilter}`,
       isShowingTime: true,
+      limit: effectiveMaxResults,
     },
     {
-      name: "recent",
-      q: `(in:inbox OR in:sent)${dateFilter}`,
+      name: "inbox",
+      q: `in:inbox${dateFilter}`,
       isShowingTime: false,
+      limit: effectiveMaxResults,
+    },
+    {
+      name: "sent",
+      q: `in:sent${dateFilter}`,
+      isShowingTime: false,
+      limit: effectiveMaxResults,
     },
   ];
 
   const idsToFetch: Array<{ id: string; isShowingTime: boolean }> = [];
 
-  for (const { name, q, isShowingTime } of listQueries) {
-    const listUrl = `https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=${effectiveMaxResults}&q=${encodeURIComponent(q)}`;
+  for (const { name, q, isShowingTime, limit } of listQueries) {
+    const listUrl = `https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=${limit}&q=${encodeURIComponent(q)}`;
 
     const listResponse = await fetch(listUrl, {
       headers: { Authorization: `Bearer ${accessToken}` },
