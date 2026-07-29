@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { getClientFirstNames } from "@/utils/nameUtils";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -260,7 +261,7 @@ const AdResultsLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavig
     }
   };
 
-  const clientFirstNames = propertyData.name?.split(/\s*[&,]\s*/).map(n => n.split(' ')[0]).join(' & ') || "there";
+  const clientFirstNames = getClientFirstNames(propertyData.name);
   const fullAddress = `${propertyData.streetAddress}${propertyData.city ? `, ${propertyData.city}` : ""}${propertyData.state ? `, ${propertyData.state}` : ""}${propertyData.zip ? ` ${propertyData.zip}` : ""}`;
 
   const formatNumber = (num: number) => num.toLocaleString();

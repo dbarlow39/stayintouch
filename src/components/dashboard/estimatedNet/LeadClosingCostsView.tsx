@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { getClientFirstNames } from "@/utils/nameUtils";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -26,7 +27,7 @@ interface LeadClosingCostsViewProps {
 const LeadClosingCostsView = ({ propertyData, propertyId, onBack, onEdit, onNavigate }: LeadClosingCostsViewProps) => {
   const closingCosts = calculateClosingCosts(propertyData);
   const [emailClient, setEmailClient] = useState<EmailClient>(getEmailClientPreference);
-  const sellerFirstName = propertyData.name ? propertyData.name.split(/\s*[&,]\s*/).map((n: string) => n.split(' ')[0]).join(' & ') : 'there';
+  const sellerFirstName = getClientFirstNames(propertyData.name);
   const [introText, setIntroText] = useState(`Hi ${sellerFirstName},\n\nThank you for the time you spent with me talking about the sale of your home. As promised here is a breakdown of all of the fees associated with the sale of your home. All of these fees come from the standard Columbus Realtors purchase contract including the buyer agent's commission. As we talked about, we recommend making the buyer's commission negotiable, but you can count on the buyer asking you to pay their Realtors fee. While most of these fees are not negotiable, we recommend you build them into your sales price to get a satisfactory bottom line number including the buyer agents commission.`);
   const [closingText, setClosingText] = useState("Once you have had a chance to review please let me know if you have any questions. Once again thanks for your time and I look forward to working you in the near future.");
   const { toast } = useToast();
@@ -99,9 +100,7 @@ const LeadClosingCostsView = ({ propertyData, propertyId, onBack, onEdit, onNavi
   };
 
   const getEmailPayload = async () => {
-    const clientFirstNames = propertyData.name
-      ? propertyData.name.split(/\s*[&,]\s*/).map((n: string) => n.split(' ')[0]).join(' & ')
-      : 'there';
+    const clientFirstNames = getClientFirstNames(propertyData.name);
 
     let logoBase64 = '';
     try {

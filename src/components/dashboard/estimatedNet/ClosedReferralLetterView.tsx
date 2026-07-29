@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { getClientFirstNames } from "@/utils/nameUtils";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -163,9 +164,7 @@ const ClosedReferralLetterView = ({ propertyData, propertyId, onBack, onEdit, on
   const nameSource = isBuyer
     ? [propertyData.buyerName1, propertyData.buyerName2].filter(Boolean).join(' & ')
     : (propertyData.name || '');
-  const clientFirstNames = nameSource
-    ? nameSource.split(/\s*(?:&|and|,)\s*/i).map(n => n.trim().split(' ')[0]).filter(Boolean).join(' & ')
-    : "there";
+  const clientFirstNames = getClientFirstNames(nameSource);
   const streetOnly = propertyData.streetAddress?.replace(/,.*$/, '').trim() || "";
 
   const navigationItems = [

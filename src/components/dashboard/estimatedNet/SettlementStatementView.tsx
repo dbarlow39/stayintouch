@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { getClientFirstNames } from "@/utils/nameUtils";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -71,7 +72,7 @@ const SettlementStatementView = ({ propertyData, propertyId, onBack, onEdit, onN
     setEmailClientPreference(client);
   };
 
-  const ownerFirstName = propertyData.name.split(' ')[0];
+  const ownerFirstName = getClientFirstNames(propertyData.name);
 
   const handleCopyToClipboard = async () => {
     const content = document.getElementById('settlement-statement-content');

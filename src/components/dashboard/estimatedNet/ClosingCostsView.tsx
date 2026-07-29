@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { getClientFirstNames } from "@/utils/nameUtils";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -26,7 +27,7 @@ interface ClosingCostsViewProps {
 const ClosingCostsView = ({ propertyData, propertyId, onBack, onEdit, onNavigate }: ClosingCostsViewProps) => {
   const closingCosts = calculateClosingCosts(propertyData);
   const [emailClient, setEmailClient] = useState<EmailClient>(getEmailClientPreference);
-  const sellerFirstName = propertyData.name ? propertyData.name.split(/\s*[&,]\s*/).map((n: string) => n.split(' ')[0]).join(' & ') : 'there';
+  const sellerFirstName = getClientFirstNames(propertyData.name);
   const [introText, setIntroText] = useState(`Hi ${sellerFirstName},\n\nPlease find attached an updated Estimated Net Sheet for your review.`);
   const [closingText, setClosingText] = useState("Once you have had a chance to take a look let me know if you have any questions.");
   const { toast } = useToast();
@@ -99,9 +100,7 @@ const ClosingCostsView = ({ propertyData, propertyId, onBack, onEdit, onNavigate
   };
 
   const getEmailPayload = async () => {
-    const clientFirstNames = propertyData.name
-      ? propertyData.name.split(/\s*[&,]\s*/).map((n: string) => n.split(' ')[0]).join(' & ')
-      : 'there';
+    const clientFirstNames = getClientFirstNames(propertyData.name);
 
     let logoBase64 = '';
     try {
