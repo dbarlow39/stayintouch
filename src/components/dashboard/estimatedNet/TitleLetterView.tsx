@@ -8,6 +8,7 @@ import { ArrowLeft, List, Mail, Calendar, FileText, Copy, DollarSign, ClipboardL
 import { EmailClient, EMAIL_CLIENT_OPTIONS, getEmailClientPreference, setEmailClientPreference, getEmailLink } from "@/utils/emailClientUtils";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { markNoticeComplete } from "@/utils/noticeCompletion";
 import logo from "@/assets/logo.jpg";
 
 interface TitleLetterViewProps {
@@ -154,6 +155,8 @@ const TitleLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate 
           'text/plain': new Blob([plainText], { type: 'text/plain' })
         })
       ]);
+
+      await markNoticeComplete(propertyId, 'title-letter-sent');
 
       toast({
         title: "Copied to clipboard",
