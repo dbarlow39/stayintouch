@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { getClientFirstNames } from "@/utils/nameUtils";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -235,7 +236,7 @@ const ClearToCloseLetterView = ({ propertyData, propertyId, onBack, onEdit, onNa
 
           <Card className="p-8 mb-6 print:shadow-none">
             <div className="prose prose-lg max-w-none text-foreground">
-              <p className="mb-4">Hey {propertyData.name?.split(' ')[0] || "there"},</p>
+              <p className="mb-4">Hey {getClientFirstNames(propertyData.name)},</p>
 
               <p className="mb-4">
                 Just a quick note that the buyer's lender has issued a "Clear to Close" notice. What that means is the buyer's loan has been fully reviewed by underwriting and all we are doing at this point is waiting to close.

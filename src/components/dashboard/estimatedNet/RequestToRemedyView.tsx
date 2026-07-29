@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { getClientFirstNames } from "@/utils/nameUtils";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -73,7 +74,7 @@ const RequestToRemedyView = ({ propertyData, propertyId, onBack, onEdit, onNavig
   };
 
   // Extract first name
-  const ownerFirstName = propertyData.name.split(' ')[0];
+  const ownerFirstName = getClientFirstNames(propertyData.name);
 
   // Calculate remedy dates
   const inContractDate = propertyData.inContract ? new Date(propertyData.inContract) : new Date();

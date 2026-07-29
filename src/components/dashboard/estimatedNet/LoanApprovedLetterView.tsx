@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { getClientFirstNames } from "@/utils/nameUtils";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -57,9 +58,7 @@ const LoanApprovedLetterView = ({ propertyData, propertyId, onBack, onEdit, onNa
   };
 
   // Seller first name(s)
-  const sellerFirstNames = propertyData.name
-    ? propertyData.name.split(/\s*(?:&|and)\s*/i).map(n => n.trim().split(' ')[0]).join(' & ')
-    : "there";
+  const sellerFirstNames = getClientFirstNames(propertyData.name);
 
   // Buyer agent first name
   const buyerAgentFirstName = propertyData.agentName

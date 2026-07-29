@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { getClientFirstNames } from "@/utils/nameUtils";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -232,7 +233,7 @@ const HomeInspectionLetterView = ({ propertyData, propertyId, onBack, onEdit, on
 
           <Card className="p-8 mb-6 print:shadow-none">
             <div className="prose prose-lg max-w-none text-foreground">
-              <p className="mb-4">Hey {propertyData.name?.split(' ')[0] || "there"},</p>
+              <p className="mb-4">Hey {getClientFirstNames(propertyData.name)},</p>
 
               <p className="mb-4">
                 The home inspection has been confirmed. The biggest item is to make sure all of the utilities are turned on so the inspector can test everything. If for some reason you have something turned off go ahead and turn it back on and after the inspection you can turn it off again. If a utility cannot be turned back on let me know so I can let the buyer agent know.

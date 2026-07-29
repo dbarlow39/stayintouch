@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { getClientFirstNames } from "@/utils/nameUtils";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -47,7 +48,7 @@ const ImportantDatesView = ({ propertyData, propertyId, onBack, onEdit, onNaviga
   };
 
   // Extract first names
-  const ownerFirstName = propertyData.name.split(' ')[0];
+  const ownerFirstName = getClientFirstNames(propertyData.name);
   const listingAgentFirstName = propertyData.listingAgentName?.split(' ')[0] || 'Dave';
 
   useEffect(() => {

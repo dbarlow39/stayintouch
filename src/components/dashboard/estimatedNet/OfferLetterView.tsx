@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from "react";
+import { getClientFirstNames } from "@/utils/nameUtils";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -44,7 +45,7 @@ const OfferLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Extract first name from seller
-  const ownerFirstName = propertyData.name.split(' ')[0];
+  const ownerFirstName = getClientFirstNames(propertyData.name);
 
   const closingCosts = calculateClosingCosts(propertyData);
 
