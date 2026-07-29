@@ -33,6 +33,10 @@ interface NoticesViewProps {
 }
 
 type NoticeType = 
+  | "offer-letter-sent"
+  | "important-dates-letter-sent"
+  | "title-letter-sent"
+  | "agent-letter-sent"
   | "deposit-received"
   | "home-inspection-scheduled"
   | "request-to-remedy"
@@ -226,6 +230,10 @@ const NoticesView = ({
     const hudSettlementDueDate = closingDate ? subDays(closingDate, 2) : null;
 
     return [
+      { value: "offer-letter-sent", label: "Offer Letter", dueDate: formatDueDate(null), dueDateObj: null },
+      { value: "important-dates-letter-sent", label: "Important Dates Letter", dueDate: formatDueDate(null), dueDateObj: null },
+      { value: "title-letter-sent", label: "Title Letter", dueDate: formatDueDate(null), dueDateObj: null },
+      { value: "agent-letter-sent", label: "Agent Letter", dueDate: formatDueDate(null), dueDateObj: null },
       { value: "deposit-received", label: "Deposit Received", dueDate: formatDueDate(depositDueDate), dueDateObj: depositDueDate },
       { value: "home-inspection-scheduled", label: "Home Inspection Scheduled", dueDate: formatDueDate(inspectionDueDate), dueDateObj: inspectionDueDate },
       { value: "request-to-remedy", label: "Request to Remedy", dueDate: formatDueDate(remedyDueDate), dueDateObj: remedyDueDate },
@@ -309,6 +317,22 @@ const NoticesView = ({
   const displayNavItems = filterNavForRepType(navigationItems, propertyData.representationType);
 
   const handleSendNotice = (noticeType: NoticeType) => {
+    if (noticeType === "offer-letter-sent") {
+      onNavigate("offer-letter");
+      return;
+    }
+    if (noticeType === "important-dates-letter-sent") {
+      onNavigate("important-dates");
+      return;
+    }
+    if (noticeType === "title-letter-sent") {
+      onNavigate("title-letter");
+      return;
+    }
+    if (noticeType === "agent-letter-sent") {
+      onNavigate("agent-letter");
+      return;
+    }
     if (noticeType === "clear-to-close") {
       onNavigate("clear-to-close-letter");
       return;
