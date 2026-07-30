@@ -41,6 +41,7 @@ import {
   Copy,
   Heart,
   Megaphone,
+  MapPin,
 } from "lucide-react";
 
 
