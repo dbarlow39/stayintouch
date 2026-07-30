@@ -165,7 +165,10 @@ const TitleLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate 
 
       // Open email client with pre-filled subject and title company + lender recipients
       const subject = `${propertyData.streetAddress} into contract`;
-      let recipients = "jonadeguzman0330@gmail.com,Kameron.Faulkner@titlefirst.com,chris.furrow@titlefirst.com,polaris@titlefirst.com";
+      let recipients = propertyData.titleEmail
+        ? propertyData.titleEmail
+        : "jonadeguzman0330@gmail.com,Kameron.Faulkner@titlefirst.com,chris.furrow@titlefirst.com,polaris@titlefirst.com";
+
       if (propertyData.lendingOfficerEmail) {
         recipients += `,${propertyData.lendingOfficerEmail}`;
       }
@@ -367,7 +370,7 @@ const TitleLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate 
                 Lender is <strong>{propertyData.lenderName}</strong>  Loan Officer: <strong>{propertyData.lendingOfficer}</strong>  phone: {propertyData.lendingOfficerPhone}  email: {propertyData.lendingOfficerEmail}
               </p>
               <p className="mb-4">
-                Title Agency is <strong>Caliber Title / Title First</strong>  Processor: <strong>Kameron Faulkner</strong> or <strong>Shina Painter</strong>  phone: 614-854-0980  email: polaris@titlefirst.com
+                Title Agency is <strong>{propertyData.titleCompanyName || "Caliber Title / Title First"}</strong>  Processor: <strong>{propertyData.titleProcessor || "Kameron Faulkner or Shina Painter"}</strong>  phone: {propertyData.titlePhone || "614-854-0980"}  email: {propertyData.titleEmail || "polaris@titlefirst.com"}
               </p>
               <p className="mb-4">Let know if you need anything else.</p>
               <p className="mb-0">Thanks</p>
