@@ -49,6 +49,7 @@ import PhoneCallTextLink from "@/components/PhoneCallTextLink";
 import logo from "@/assets/logo.jpg";
 import ClientFeedbackPage from "@/components/dashboard/ClientFeedbackPage";
 import ClientCommunicationsView from "@/components/dashboard/ClientCommunicationsView";
+import ClientActivityLog from "@/components/dashboard/ClientActivityLog";
 import ClientEditForm from "@/components/dashboard/ClientEditForm";
 import ClientAnalysisView from "@/components/dashboard/weeklyUpdate/ClientAnalysisView";
 import ResidentialWorkSheetTab from "@/components/dashboard/ResidentialWorkSheetTab";
