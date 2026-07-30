@@ -421,12 +421,13 @@ const AgentLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate 
               </div>
 
               <div className="bg-muted/50 p-4 rounded-lg">
-                <h3 className="font-semibold mb-2">Caliber Title / Title First</h3>
-                <p>Kameron Faulkner or Shina Painter</p>
+                <h3 className="font-semibold mb-2">{propertyData.titleCompanyName || "Caliber Title / Title First"}</h3>
+                <p>{propertyData.titleProcessor || "Kameron Faulkner or Shina Painter"}</p>
                 <p className="text-sm text-muted-foreground">Processor</p>
-                <p>Phone: 614-854-0980</p>
-                <p>polaris@titlefirst.com</p>
+                <p>Phone: {propertyData.titlePhone || "614-854-0980"}</p>
+                <p>{propertyData.titleEmail || "polaris@titlefirst.com"}</p>
               </div>
+
 
               <div>
                 <h2 className="text-xl font-semibold mb-4">Important Dates</h2>
