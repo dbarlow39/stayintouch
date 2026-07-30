@@ -673,8 +673,20 @@ const ClientDetail = () => {
                       </div>
                     )}
                   </div>
+
+                  <Separator />
+
+                  <div className="space-y-4">
+                    <h3 className="font-semibold">Email &amp; Notice Log</h3>
+                    <ClientActivityLog
+                      clientId={client.id}
+                      clientEmail={client.email}
+                      propertyAddress={[client.street_number, client.street_name].filter(Boolean).join(" ").trim() || null}
+                    />
+                  </div>
                 </div>
               )}
+
 
               {activeTab === "communications" && (
                 <ClientCommunicationsView clientEmail={client.email} propertyAddress={[client.street_number, client.street_name].filter(Boolean).join(" ").trim() || null} />
