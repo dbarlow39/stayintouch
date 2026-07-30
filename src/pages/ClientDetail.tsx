@@ -41,6 +41,7 @@ import {
   Copy,
   Heart,
   Megaphone,
+  MapPin,
 } from "lucide-react";
 
 
@@ -496,6 +497,21 @@ const ClientDetail = () => {
                             .join(", ") || "—"}
                         </p>
                       </div>
+                      {[client.street_number, client.street_name, client.city, client.state, client.zip].filter(Boolean).length > 0 && (
+                        <a
+                          href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(
+                            [client.street_number, client.street_name, client.city, client.state, client.zip]
+                              .filter(Boolean)
+                              .join(" ")
+                          )}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
+                        >
+                          <MapPin className="h-4 w-4" /> Get Directions
+                        </a>
+                      )}
+
                       <div className="grid grid-cols-2 gap-4">
                         <div>
                           <Label className="text-sm font-semibold text-muted-foreground">Price</Label>
