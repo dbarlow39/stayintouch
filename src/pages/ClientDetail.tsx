@@ -49,6 +49,7 @@ import PhoneCallTextLink from "@/components/PhoneCallTextLink";
 import logo from "@/assets/logo.jpg";
 import ClientFeedbackPage from "@/components/dashboard/ClientFeedbackPage";
 import ClientCommunicationsView from "@/components/dashboard/ClientCommunicationsView";
+import ClientActivityLog from "@/components/dashboard/ClientActivityLog";
 import ClientEditForm from "@/components/dashboard/ClientEditForm";
 import ClientAnalysisView from "@/components/dashboard/weeklyUpdate/ClientAnalysisView";
 import ResidentialWorkSheetTab from "@/components/dashboard/ResidentialWorkSheetTab";
@@ -673,8 +674,20 @@ const ClientDetail = () => {
                       </div>
                     )}
                   </div>
+
+                  <Separator />
+
+                  <div className="space-y-4">
+                    <h3 className="font-semibold">Email &amp; Notice Log</h3>
+                    <ClientActivityLog
+                      clientId={client.id}
+                      clientEmail={client.email}
+                      propertyAddress={[client.street_number, client.street_name].filter(Boolean).join(" ").trim() || null}
+                    />
+                  </div>
                 </div>
               )}
+
 
               {activeTab === "communications" && (
                 <ClientCommunicationsView clientEmail={client.email} propertyAddress={[client.street_number, client.street_name].filter(Boolean).join(" ").trim() || null} />
