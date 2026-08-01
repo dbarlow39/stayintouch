@@ -355,6 +355,20 @@ const AdGeneratorPanel = ({ listing, autoGenerate = false }: AdGeneratorPanelPro
             <img src={previewUrl} alt="Generated ad" className="w-full" />
           </div>
 
+          {/* X cross-post toggle */}
+          <div className="border border-border rounded-lg p-3 mb-3 flex items-center gap-2">
+            <Checkbox
+              id="x-toggle"
+              checked={xEnabled}
+              onCheckedChange={(checked) => setXEnabled(checked as boolean)}
+            />
+            <label htmlFor="x-toggle" className="text-sm font-medium text-card-foreground cursor-pointer">
+              Also post to X
+            </label>
+          </div>
+
+
+
           {/* Boost toggle */}
           {fbConnected && (
             <div className="border border-border rounded-lg p-3 mb-3">
