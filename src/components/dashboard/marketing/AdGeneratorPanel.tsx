@@ -278,21 +278,9 @@ const AdGeneratorPanel = ({ listing, autoGenerate = false }: AdGeneratorPanelPro
         toast.success('Ad posted to Facebook! 🎉');
       }
 
-      // Optional cross-post to X (non-blocking)
-      if (xEnabled) {
-        try {
-          const xResp = await fetch(`${SUPABASE_URL}/functions/v1/x-post-listing`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${await accessToken()}` },
-            body: JSON.stringify({ text: message, image_url: fbPublicUrl }),
-          });
-          const xData = await xResp.json();
-          if (xData.error) throw new Error(xData.details || xData.error);
-          toast.success('Also posted to X 🐦');
-        } catch (err: any) {
-          toast.warning('X post failed: ' + (err.message || 'Unknown error'));
-        }
-      }
+      if (postData.warning) toast.warning(postData.warning);
+
+
 
       // Reset boost state after posting
       setBoostEnabled(false);
