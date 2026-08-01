@@ -160,14 +160,44 @@ serve(async (req) => {
       }
     }
 
+    // ── Automatic cross-post to X (never blocks the Facebook post) ──
+    let xPostId: string | null = null;
+    let xWarning: string | undefined;
+    try {
+      const xImage = (typeof photo_url === "string" && photo_url.trim())
+        || (typeof instagram_image_url === "string" && instagram_image_url.trim())
+        || "";
+      const xResp = await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/x-post-listing`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+        },
+        body: JSON.stringify({ text: message, image_url: xImage || undefined }),
+      });
+      const xData = await xResp.json();
+      if (xData.error) {
+        xWarning = "X post failed: " + (xData.details || xData.error);
+        console.error("[facebook-post] X cross-post failed:", xData);
+      } else {
+        xPostId = xData.tweet_id ?? null;
+        console.log("[facebook-post] X post published:", xPostId);
+      }
+    } catch (xErr) {
+      xWarning = "X cross-post failed: " + (xErr instanceof Error ? xErr.message : "Unknown error");
+      console.error("[facebook-post] X error:", xErr);
+    }
+
     return new Response(JSON.stringify({
       success: true,
       post_id: finalPostId,
       instagram_post_id: instagramPostId,
-      warning: warning || instagramWarning || undefined,
+      x_post_id: xPostId,
+      warning: warning || instagramWarning || xWarning || undefined,
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
+
 
   } catch (err) {
     console.error("Facebook post error:", err);
