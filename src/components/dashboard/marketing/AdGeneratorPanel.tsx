@@ -85,6 +85,7 @@ const AdGeneratorPanel = ({ listing, autoGenerate = false }: AdGeneratorPanelPro
   
   // Boost config
   const [boostEnabled, setBoostEnabled] = useState(false);
+  const [xEnabled, setXEnabled] = useState(false);
   const [boostConfig, setBoostConfig] = useState({ 
     dailyBudget: '10', 
     duration: '7', 
@@ -277,6 +278,22 @@ const AdGeneratorPanel = ({ listing, autoGenerate = false }: AdGeneratorPanelPro
         toast.success('Ad posted to Facebook! 🎉');
       }
 
+      // Optional cross-post to X (non-blocking)
+      if (xEnabled) {
+        try {
+          const xResp = await fetch(`${SUPABASE_URL}/functions/v1/x-post-listing`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${await accessToken()}` },
+            body: JSON.stringify({ text: message, image_url: fbPublicUrl }),
+          });
+          const xData = await xResp.json();
+          if (xData.error) throw new Error(xData.details || xData.error);
+          toast.success('Also posted to X 🐦');
+        } catch (err: any) {
+          toast.warning('X post failed: ' + (err.message || 'Unknown error'));
+        }
+      }
+
       // Reset boost state after posting
       setBoostEnabled(false);
     } catch (err: any) {
@@ -337,6 +354,20 @@ const AdGeneratorPanel = ({ listing, autoGenerate = false }: AdGeneratorPanelPro
           <div className="border border-border rounded-lg overflow-hidden mb-3">
             <img src={previewUrl} alt="Generated ad" className="w-full" />
           </div>
+
+          {/* X cross-post toggle */}
+          <div className="border border-border rounded-lg p-3 mb-3 flex items-center gap-2">
+            <Checkbox
+              id="x-toggle"
+              checked={xEnabled}
+              onCheckedChange={(checked) => setXEnabled(checked as boolean)}
+            />
+            <label htmlFor="x-toggle" className="text-sm font-medium text-card-foreground cursor-pointer">
+              Also post to X
+            </label>
+          </div>
+
+
 
           {/* Boost toggle */}
           {fbConnected && (
