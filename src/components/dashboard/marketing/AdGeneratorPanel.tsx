@@ -85,7 +85,6 @@ const AdGeneratorPanel = ({ listing, autoGenerate = false }: AdGeneratorPanelPro
   
   // Boost config
   const [boostEnabled, setBoostEnabled] = useState(false);
-  const [xEnabled, setXEnabled] = useState(false);
   const [boostConfig, setBoostConfig] = useState({ 
     dailyBudget: '10', 
     duration: '7', 
