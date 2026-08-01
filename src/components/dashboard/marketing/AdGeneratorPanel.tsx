@@ -273,9 +273,22 @@ const AdGeneratorPanel = ({ listing, autoGenerate = false }: AdGeneratorPanelPro
           toast.success(`Posted and boosted! $${Number(boostConfig.dailyBudget) * Number(boostConfig.duration)} over ${boostConfig.duration} days 🚀`);
         } catch (err: any) {
           toast.warning('Post created but boost failed: ' + (err.message || 'Unknown error'));
+      }
+
+      // Optional cross-post to X (non-blocking)
+      if (xEnabled) {
+        try {
+          const xResp = await fetch(`${SUPABASE_URL}/functions/v1/x-post-listing`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${await accessToken()}` },
+            body: JSON.stringify({ text: message, image_url: fbPublicUrl }),
+          });
+          const xData = await xResp.json();
+          if (xData.error) throw new Error(xData.details || xData.error);
+          toast.success('Also posted to X 🐦');
+        } catch (err: any) {
+          toast.warning('X post failed: ' + (err.message || 'Unknown error'));
         }
-      } else {
-        toast.success('Ad posted to Facebook! 🎉');
       }
 
       // Reset boost state after posting
