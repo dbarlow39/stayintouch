@@ -273,6 +273,9 @@ const AdGeneratorPanel = ({ listing, autoGenerate = false }: AdGeneratorPanelPro
           toast.success(`Posted and boosted! $${Number(boostConfig.dailyBudget) * Number(boostConfig.duration)} over ${boostConfig.duration} days 🚀`);
         } catch (err: any) {
           toast.warning('Post created but boost failed: ' + (err.message || 'Unknown error'));
+        }
+      } else {
+        toast.success('Ad posted to Facebook! 🎉');
       }
 
       // Optional cross-post to X (non-blocking)
