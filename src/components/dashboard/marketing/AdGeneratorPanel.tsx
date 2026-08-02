@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Image, Loader2, Check, Link2, Facebook, DollarSign, Calendar, MapPin } from 'lucide-react';
+import { Image, Loader2, Check, Link2, Facebook, DollarSign, Calendar, MapPin, Download } from 'lucide-react';
 import { toast } from 'sonner';
 import { MarketingListing, formatListingPrice } from '@/data/marketingListings';
 import { supabase } from '@/integrations/supabase/client';
@@ -202,6 +202,24 @@ const AdGeneratorPanel = ({ listing, autoGenerate = false }: AdGeneratorPanelPro
   };
 
   generateRef.current = generateAd;
+
+  const downloadForTikTok = () => {
+    if (!previewUrl) {
+      toast.error('Generate the ad image first');
+      return;
+    }
+    const slug = `${listing.mlsNumber || listing.id}-${listing.address}`
+      .replace(/[^a-zA-Z0-9]+/g, '-')
+      .replace(/^-|-$/g, '')
+      .toLowerCase();
+    const a = document.createElement('a');
+    a.href = previewUrl;
+    a.download = `tiktok-${slug}.png`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    toast.success('Ad saved to your downloads folder');
+  };
 
   const postToFacebook = async () => {
     if (!previewUrl || !fbPreviewUrl || !user) return;
@@ -452,6 +470,14 @@ const AdGeneratorPanel = ({ listing, autoGenerate = false }: AdGeneratorPanelPro
               )}
             </Button>
           )}
+
+          <Button
+            onClick={downloadForTikTok}
+            className="w-full mt-3 !bg-[#14b8a6] hover:!bg-[#0d9488] !text-white"
+            size="sm"
+          >
+            <Download className="w-4 h-4 mr-2" /> Download for TikTok
+          </Button>
         </>
       )}
     </div>
