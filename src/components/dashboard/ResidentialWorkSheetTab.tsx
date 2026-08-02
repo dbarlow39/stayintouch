@@ -29,6 +29,8 @@ interface LeadData {
   city?: string | null;
   state?: string | null;
   zip?: string | null;
+  phone?: string | null;
+  email?: string | null;
   // Cached Estated property facts — used to seed worksheet WITHOUT calling Estated again
   bedrooms?: number | null;
   bathrooms?: number | null;
