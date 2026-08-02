@@ -99,6 +99,17 @@ const ResidentialWorkSheetTab = ({ lead, client }: ResidentialWorkSheetTabProps)
       return;
     }
 
+    // Fill phone/email from the lead ONLY when the worksheet field is empty
+    const fillContactIfEmpty = () => {
+      setInspectionData((prev: any) => {
+        const info = prev?.['property-info'] || {};
+        const nextPhone = info.phone?.trim() ? info.phone : (lead.phone || '');
+        const nextEmail = info.email?.trim() ? info.email : (lead.email || '');
+        if (nextPhone === (info.phone || '') && nextEmail === (info.email || '')) return prev;
+        return { ...prev, 'property-info': { ...info, phone: nextPhone, email: nextEmail } };
+      });
+    };
+
     const initForLead = async () => {
       // 1) Check if we already mapped this lead to an inspection (survives address changes)
       const cachedId = sessionStorage.getItem(`inspection-lead-${lead.id}`);
