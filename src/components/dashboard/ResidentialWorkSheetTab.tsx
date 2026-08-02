@@ -130,6 +130,7 @@ const ResidentialWorkSheetTab = ({ lead, client }: ResidentialWorkSheetTabProps)
           if (currentAddr) {
             await supabase.from("inspections").update({ property_address: currentAddr }).eq("id", cachedId);
           }
+          fillContactIfEmpty();
           setLeadLoaded(true);
           return;
         }
