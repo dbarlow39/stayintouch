@@ -170,6 +170,7 @@ const ResidentialWorkSheetTab = ({ lead, client }: ResidentialWorkSheetTabProps)
           await handleLoad(data[0].id);
           // Cache the mapping so address changes don't lose it
           sessionStorage.setItem(`inspection-lead-${lead.id}`, data[0].id);
+          fillContactIfEmpty();
           setLeadLoaded(true);
           return;
         }
@@ -182,6 +183,8 @@ const ResidentialWorkSheetTab = ({ lead, client }: ResidentialWorkSheetTabProps)
           address: address || '',
           city: lead.city || '',
           zip: lead.zip || '',
+          phone: lead.phone || '',
+          email: lead.email || '',
           bedrooms: lead.bedrooms != null ? String(lead.bedrooms) : '',
           bathrooms: lead.bathrooms != null ? String(lead.bathrooms) : '',
           sqft: lead.square_feet != null ? String(lead.square_feet) : '',
