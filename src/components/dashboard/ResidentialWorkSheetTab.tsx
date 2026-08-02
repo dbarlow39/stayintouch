@@ -29,6 +29,8 @@ interface LeadData {
   city?: string | null;
   state?: string | null;
   zip?: string | null;
+  phone?: string | null;
+  email?: string | null;
   // Cached Estated property facts — used to seed worksheet WITHOUT calling Estated again
   bedrooms?: number | null;
   bathrooms?: number | null;
@@ -99,6 +101,17 @@ const ResidentialWorkSheetTab = ({ lead, client }: ResidentialWorkSheetTabProps)
       return;
     }
 
+    // Fill phone/email from the lead ONLY when the worksheet field is empty
+    const fillContactIfEmpty = () => {
+      setInspectionData((prev: any) => {
+        const info = prev?.['property-info'] || {};
+        const nextPhone = info.phone?.trim() ? info.phone : (lead.phone || '');
+        const nextEmail = info.email?.trim() ? info.email : (lead.email || '');
+        if (nextPhone === (info.phone || '') && nextEmail === (info.email || '')) return prev;
+        return { ...prev, 'property-info': { ...info, phone: nextPhone, email: nextEmail } };
+      });
+    };
+
     const initForLead = async () => {
       // 1) Check if we already mapped this lead to an inspection (survives address changes)
       const cachedId = sessionStorage.getItem(`inspection-lead-${lead.id}`);
@@ -117,6 +130,7 @@ const ResidentialWorkSheetTab = ({ lead, client }: ResidentialWorkSheetTabProps)
           if (currentAddr) {
             await supabase.from("inspections").update({ property_address: currentAddr }).eq("id", cachedId);
           }
+          fillContactIfEmpty();
           setLeadLoaded(true);
           return;
         }
@@ -156,6 +170,7 @@ const ResidentialWorkSheetTab = ({ lead, client }: ResidentialWorkSheetTabProps)
           await handleLoad(data[0].id);
           // Cache the mapping so address changes don't lose it
           sessionStorage.setItem(`inspection-lead-${lead.id}`, data[0].id);
+          fillContactIfEmpty();
           setLeadLoaded(true);
           return;
         }
@@ -168,6 +183,8 @@ const ResidentialWorkSheetTab = ({ lead, client }: ResidentialWorkSheetTabProps)
           address: address || '',
           city: lead.city || '',
           zip: lead.zip || '',
+          phone: lead.phone || '',
+          email: lead.email || '',
           bedrooms: lead.bedrooms != null ? String(lead.bedrooms) : '',
           bathrooms: lead.bathrooms != null ? String(lead.bathrooms) : '',
           sqft: lead.square_feet != null ? String(lead.square_feet) : '',
