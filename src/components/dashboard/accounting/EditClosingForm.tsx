@@ -54,6 +54,7 @@ const EditClosingForm = ({ closingId, onBack }: EditClosingFormProps) => {
     agent_split_pct: "60",
     caliber_title_bonus: true,
     caliber_title_amount: "150",
+    bonus_amount: "",
     check_received: false,
     paperwork_received: false,
     notes: "",
@@ -94,6 +95,7 @@ const EditClosingForm = ({ closingId, onBack }: EditClosingFormProps) => {
         agent_split_pct: String(closing.agent_split_pct || "60"),
         caliber_title_bonus: closing.caliber_title_bonus ?? true,
         caliber_title_amount: String(closing.caliber_title_amount ?? "150"),
+        bonus_amount: (closing as any).bonus_amount ? String((closing as any).bonus_amount) : "",
         check_received: closing.status === "received",
         paperwork_received: closing.paperwork_status === "received",
         notes: closing.notes || "",
@@ -129,7 +131,9 @@ const EditClosingForm = ({ closingId, onBack }: EditClosingFormProps) => {
   const companyShare = totalCommission * (companyPct / 100);
   const agentShare = totalCommission * (agentPct / 100);
   const caliberAmount = form.caliber_title_bonus ? (parseFloat(form.caliber_title_amount) || 150) : 0;
-  const agentCheckTotal = agentShare + caliberAmount;
+  const bonusAmount = parseFloat(String(form.bonus_amount).replace(/,/g, "")) || 0;
+  const agentCheckTotal = agentShare + caliberAmount + bonusAmount;
+
 
   const handleSplitChange = (field: "company_split_pct" | "agent_split_pct", value: string) => {
     const num = parseFloat(value) || 0;
@@ -232,6 +236,7 @@ const EditClosingForm = ({ closingId, onBack }: EditClosingFormProps) => {
         agent_share: agentShare,
         caliber_title_bonus: form.caliber_title_bonus,
         caliber_title_amount: caliberAmount > 0 ? caliberAmount : 150,
+        bonus_amount: bonusAmount,
         status: form.check_received ? "received" : "not_received",
         paperwork_status: form.paperwork_received || paperworkFiles.length > 0 ? "received" : "not_received",
         notes: form.notes,
@@ -498,7 +503,7 @@ const EditClosingForm = ({ closingId, onBack }: EditClosingFormProps) => {
           <Card className="bg-muted/30 border-0">
             <CardContent className="pt-6">
               <h3 className="text-sm font-medium mb-4">Commission Split Preview</h3>
-              <div className="grid grid-cols-2 gap-4 mb-4">
+              <div className="grid grid-cols-3 gap-4 mb-4">
                 <div className="space-y-2">
                   <Label>Company %</Label>
                   <Input type="number" value={form.company_split_pct} onChange={e => handleSplitChange("company_split_pct", e.target.value)} />
@@ -507,8 +512,12 @@ const EditClosingForm = ({ closingId, onBack }: EditClosingFormProps) => {
                   <Label>Agent %</Label>
                   <Input type="number" value={form.agent_split_pct} onChange={e => handleSplitChange("agent_split_pct", e.target.value)} />
                 </div>
+                <div className="space-y-2">
+                  <Label>Bonus $</Label>
+                  <Input type="number" step="0.01" placeholder="0.00" value={form.bonus_amount} onChange={e => update("bonus_amount", e.target.value)} />
+                </div>
               </div>
-              <div className={`grid ${form.caliber_title_bonus ? 'grid-cols-3' : 'grid-cols-2'} gap-4 text-center`}>
+              <div className={`grid ${(form.caliber_title_bonus || bonusAmount > 0) ? 'grid-cols-4' : 'grid-cols-2'} gap-4 text-center`}>
                 <div className="bg-background rounded-lg p-4">
                   <p className="text-xs text-muted-foreground mb-1">Company Share</p>
                   <p className="text-lg font-semibold">{formatCurrency(companyShare)}</p>
@@ -517,14 +526,21 @@ const EditClosingForm = ({ closingId, onBack }: EditClosingFormProps) => {
                   <p className="text-xs text-muted-foreground mb-1">Agent Share</p>
                   <p className="text-lg font-semibold text-emerald-700">{formatCurrency(agentShare)}</p>
                 </div>
-                {form.caliber_title_bonus && (
-                  <div className="bg-background rounded-lg p-4">
-                    <p className="text-xs text-muted-foreground mb-1">Agent Check Total</p>
-                    <p className="text-xs text-muted-foreground mb-1">(incl. Caliber Bonus)</p>
-                    <p className="text-lg font-semibold text-emerald-700">{formatCurrency(agentCheckTotal)}</p>
-                  </div>
+                {(form.caliber_title_bonus || bonusAmount > 0) && (
+                  <>
+                    <div className="bg-background rounded-lg p-4">
+                      <p className="text-xs text-muted-foreground mb-1">Bonus</p>
+                      <p className="text-lg font-semibold text-emerald-700">{formatCurrency(bonusAmount)}</p>
+                    </div>
+                    <div className="bg-background rounded-lg p-4">
+                      <p className="text-xs text-muted-foreground mb-1">Agent Check Total</p>
+                      <p className="text-xs text-muted-foreground mb-1">(incl. bonuses)</p>
+                      <p className="text-lg font-semibold text-emerald-700">{formatCurrency(agentCheckTotal)}</p>
+                    </div>
+                  </>
                 )}
               </div>
+
             </CardContent>
           </Card>
 
