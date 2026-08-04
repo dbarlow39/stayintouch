@@ -90,7 +90,8 @@ export function AudioRecorder({ inspectionId, userId, onInspectionCreated, getPr
       .select("id, audio_file_path, created_at")
       .eq("user_id", userId)
       .eq("inspection_id", inspectionId)
-      .in("status", ["error", "processing", "pending"])
+      .in("status", ["error", "processing", "pending", "recording"])
+      .lt("created_at", new Date(Date.now() - 10 * 60 * 1000).toISOString())
       .order("created_at", { ascending: false })
       .limit(5);
     if (!error && data) setFailedRecordings(data);
