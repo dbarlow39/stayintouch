@@ -140,20 +140,22 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
     if (!user || !lead?.address) return;
     (async () => {
       try {
-        // Normalize: lowercase, strip non-alphanumeric except spaces
-        const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9 ]/g, '').replace(/\s+/g, ' ').trim();
-        const leadAddr = normalize(lead.address);
-        if (!leadAddr) return;
+        // Tokenize on any non-alphanumeric so addresses like "1/2 Elliott" work
+        const tokenize = (s: string) => (s || '').toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
+        const leadTokens = tokenize(lead.address);
+        if (leadTokens.length === 0) return;
 
-        // Build a loose ilike pattern: street number + first street-name word.
-        // Avoids failures from typos like "Pontious" vs "Pontius" or "Road" vs "Rd".
-        const words = leadAddr.split(' ').filter((w: string) => w.length > 1);
-        if (words.length === 0) return;
-        const leadNumber = leadAddr.match(/^\d+/)?.[0];
-        const firstWord = words.find((w) => !/^\d+$/.test(w));
-        const pattern = leadNumber && firstWord
-          ? `%${leadNumber}%${firstWord.slice(0, 4)}%`
-          : `%${words.slice(0, 2).join('%')}%`;
+        // Leading numeric tokens make up the street number ("1","2" for "1/2")
+        const leadNumTokens: string[] = [];
+        for (const t of leadTokens) {
+          if (/^\d+$/.test(t)) leadNumTokens.push(t);
+          else break;
+        }
+        const leadNumber = leadNumTokens.join('');
+        const firstWord = leadTokens.find((w) => !/^\d+$/.test(w));
+        const pattern = leadNumTokens.length && firstWord
+          ? `%${leadNumTokens.join('%')}%${firstWord.slice(0, 4)}%`
+          : `%${leadTokens.slice(0, 2).join('%')}%`;
 
         const { data, error } = await supabase
           .from("inspections")
@@ -167,9 +169,16 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
 
         const inspection = data[0];
         // Verify: street number must match
-        const inspAddr = normalize(inspection.property_address);
-        const inspNumber = inspAddr.match(/^\d+/)?.[0];
+        const inspTokens = tokenize(inspection.property_address);
+        const inspNumTokens: string[] = [];
+        for (const t of inspTokens) {
+          if (/^\d+$/.test(t)) inspNumTokens.push(t);
+          else break;
+        }
+        const inspNumber = inspNumTokens.join('');
         if (leadNumber && inspNumber && leadNumber !== inspNumber) return;
+
+
 
         // Filter photos to only the sections relevant for market analysis
         const allowedPhotoSections = [
