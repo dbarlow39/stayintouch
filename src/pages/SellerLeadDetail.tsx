@@ -167,11 +167,19 @@ const SellerLeadDetail = () => {
 
       // If the address changed, sync the matching inspection record so worksheet & market analysis stay linked
       if (user && oldAddress && newAddress && oldAddress !== newAddress) {
-        const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9\s]/g, '').split(/\s+/).filter(Boolean);
+        const normalize = (s: string) => (s || '').toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
         const oldWords = normalize(oldAddress);
         if (oldWords.length > 0) {
-          const oldStreetNum = oldWords[0];
-          const shortPattern = oldWords.length > 1 ? `%${oldStreetNum}%${oldWords[1]}%` : `%${oldStreetNum}%`;
+          const oldNumTokens: string[] = [];
+          for (const t of oldWords) {
+            if (/^\d+$/.test(t)) oldNumTokens.push(t);
+            else break;
+          }
+          const oldStreetNum = oldNumTokens.join('') || oldWords[0];
+          const firstWord = oldWords.find((w) => !/^\d+$/.test(w));
+          const shortPattern = oldNumTokens.length && firstWord
+            ? `%${oldNumTokens.join('%')}%${firstWord.slice(0, 4)}%`
+            : `%${oldWords.slice(0, 2).join('%')}%`;
 
           const { data: inspections } = await supabase
             .from("inspections")
@@ -183,8 +191,13 @@ const SellerLeadDetail = () => {
 
           if (inspections && inspections.length > 0) {
             const match = inspections.find(r => {
-              const dbNum = r.property_address?.match(/\d+/)?.[0];
-              return dbNum === oldStreetNum;
+              const t = normalize(r.property_address || '');
+              const nums: string[] = [];
+              for (const x of t) {
+                if (/^\d+$/.test(x)) nums.push(x);
+                else break;
+              }
+              return nums.join('') === oldStreetNum;
             });
             if (match) {
               await supabase.from("inspections").update({ property_address: newAddress }).eq("id", match.id);
