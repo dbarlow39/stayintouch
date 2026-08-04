@@ -131,7 +131,9 @@ const EditClosingForm = ({ closingId, onBack }: EditClosingFormProps) => {
   const companyShare = totalCommission * (companyPct / 100);
   const agentShare = totalCommission * (agentPct / 100);
   const caliberAmount = form.caliber_title_bonus ? (parseFloat(form.caliber_title_amount) || 150) : 0;
-  const agentCheckTotal = agentShare + caliberAmount;
+  const bonusAmount = parseFloat(String(form.bonus_amount).replace(/,/g, "")) || 0;
+  const agentCheckTotal = agentShare + caliberAmount + bonusAmount;
+
 
   const handleSplitChange = (field: "company_split_pct" | "agent_split_pct", value: string) => {
     const num = parseFloat(value) || 0;
