@@ -1,0 +1,1 @@
+ALTER TABLE public.closings ADD COLUMN IF NOT EXISTS bonus_amount numeric NOT NULL DEFAULT 0;

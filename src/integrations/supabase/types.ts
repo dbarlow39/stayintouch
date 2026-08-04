@@ -596,6 +596,7 @@ export type Database = {
           agent_name: string
           agent_share: number
           agent_split_pct: number
+          bonus_amount: number
           caliber_title_amount: number
           caliber_title_bonus: boolean
           city: string | null
@@ -628,6 +629,7 @@ export type Database = {
           agent_name: string
           agent_share?: number
           agent_split_pct?: number
+          bonus_amount?: number
           caliber_title_amount?: number
           caliber_title_bonus?: boolean
           city?: string | null
@@ -660,6 +662,7 @@ export type Database = {
           agent_name?: string
           agent_share?: number
           agent_split_pct?: number
+          bonus_amount?: number
           caliber_title_amount?: number
           caliber_title_bonus?: boolean
           city?: string | null
