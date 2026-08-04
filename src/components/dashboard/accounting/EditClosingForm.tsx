@@ -54,6 +54,7 @@ const EditClosingForm = ({ closingId, onBack }: EditClosingFormProps) => {
     agent_split_pct: "60",
     caliber_title_bonus: true,
     caliber_title_amount: "150",
+    bonus_amount: "",
     check_received: false,
     paperwork_received: false,
     notes: "",
