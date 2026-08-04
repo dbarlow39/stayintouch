@@ -95,6 +95,7 @@ const EditClosingForm = ({ closingId, onBack }: EditClosingFormProps) => {
         agent_split_pct: String(closing.agent_split_pct || "60"),
         caliber_title_bonus: closing.caliber_title_bonus ?? true,
         caliber_title_amount: String(closing.caliber_title_amount ?? "150"),
+        bonus_amount: (closing as any).bonus_amount ? String((closing as any).bonus_amount) : "",
         check_received: closing.status === "received",
         paperwork_received: closing.paperwork_status === "received",
         notes: closing.notes || "",
