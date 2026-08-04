@@ -139,7 +139,7 @@ const ResidentialWorkSheetTab = ({ lead, client }: ResidentialWorkSheetTabProps)
       // 2) Fall back to address-based search
       const address = lead.address?.trim();
       if (address) {
-        const words = address.toLowerCase().replace(/[^a-z0-9\s]/g, '').split(/\s+/).filter(Boolean);
+        const words = address.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
         const loosePattern = `%${words.join('%')}%`;
         const streetNumber = words[0] || '';
         const shortPattern = words.length > 1 ? `%${streetNumber}%${words[1]}%` : loosePattern;
@@ -149,6 +149,7 @@ const ResidentialWorkSheetTab = ({ lead, client }: ResidentialWorkSheetTabProps)
           .select("id, property_address")
           .eq("user_id", user.id)
           .ilike("property_address", loosePattern)
+          .order("updated_at", { ascending: false })
           .limit(1);
         
         if ((!data || data.length === 0) && shortPattern !== loosePattern) {
@@ -157,6 +158,7 @@ const ResidentialWorkSheetTab = ({ lead, client }: ResidentialWorkSheetTabProps)
             .select("id, property_address")
             .eq("user_id", user.id)
             .ilike("property_address", shortPattern)
+            .order("updated_at", { ascending: false })
             .limit(5);
           if (result.data) {
             data = result.data.filter(r => {
