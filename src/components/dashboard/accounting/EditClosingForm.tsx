@@ -236,6 +236,7 @@ const EditClosingForm = ({ closingId, onBack }: EditClosingFormProps) => {
         agent_share: agentShare,
         caliber_title_bonus: form.caliber_title_bonus,
         caliber_title_amount: caliberAmount > 0 ? caliberAmount : 150,
+        bonus_amount: bonusAmount,
         status: form.check_received ? "received" : "not_received",
         paperwork_status: form.paperwork_received || paperworkFiles.length > 0 ? "received" : "not_received",
         notes: form.notes,
