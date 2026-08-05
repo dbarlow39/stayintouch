@@ -114,22 +114,59 @@ const Account = () => {
     try {
       const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
       const { data: { session } } = await supabase.auth.getSession();
-      const resp = await fetch(
-        `https://${projectId}.supabase.co/functions/v1/download-mls-roster`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
-          },
+
+      const csvEscape = (value: any): string => {
+        if (value === null || value === undefined) return '';
+        const str = String(value);
+        return /[",\n\r]/.test(str) ? `"${str.replace(/"/g, '""')}"` : str;
+      };
+
+      const headers = [
+        'Full Name', 'First Name', 'Last Name', 'Email',
+        'Direct Phone', 'Office Phone', 'Mobile Phone',
+        'Office Name', 'Office MLS ID', 'License Number', 'Member MLS ID',
+        'Member Key', 'Status', 'City', 'State', 'Postal Code',
+      ];
+
+      const allRows: string[][] = [];
+      let skip: number | null = 0;
+      let total = 0;
+      let guard = 0;
+
+      while (skip !== null && guard < 40) {
+        guard++;
+        const resp = await fetch(
+          `https://${projectId}.supabase.co/functions/v1/download-mls-roster`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+            },
+            body: JSON.stringify({ skip, total }),
+          }
+        );
+        if (!resp.ok) {
+          const text = await resp.text();
+          throw new Error(text || `HTTP ${resp.status}`);
         }
-      );
-      if (!resp.ok) {
-        const text = await resp.text();
-        throw new Error(text || `HTTP ${resp.status}`);
+        const json = await resp.json();
+        if (!json.success) throw new Error(json.error || 'Roster fetch failed');
+        allRows.push(...(json.rows || []));
+        total = json.total || total;
+        skip = json.nextSkip ?? null;
+        if (skip !== null) {
+          toast({
+            title: "Downloading roster…",
+            description: `${allRows.length}${total ? ` of ${total}` : ''} agents fetched`,
+          });
+        }
       }
-      const blob = await resp.blob();
-      const total = resp.headers.get('X-Total-Count');
+
+      const lines = [headers.join(',')];
+      for (const row of allRows) lines.push(row.map(csvEscape).join(','));
+
+      const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -138,7 +175,7 @@ const Account = () => {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      toast({ title: "Roster downloaded", description: `${total || 'All'} agents exported to CSV` });
+      toast({ title: "Roster downloaded", description: `${allRows.length} agents exported to CSV` });
     } catch (err) {
       console.error("Roster download error:", err);
       toast({
@@ -150,6 +187,7 @@ const Account = () => {
       setRosterDownloading(false);
     }
   };
+
 
   // Check if user is admin
   const { data: isAdmin } = useQuery({
