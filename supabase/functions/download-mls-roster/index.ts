@@ -42,21 +42,33 @@ Deno.serve(async (req) => {
     let nextLink: string | null = null;
     let pageCount = 0;
     const maxPages = 500; // safety cap
-    const pageSize = 200;
+    const pageSize = 1000;
     const startTime = Date.now();
     const timeBudgetMs = 130_000; // stay under 150s edge timeout
+    let partial = false;
+
+    const selectFields = [
+      'MemberFullName','MemberFirstName','MemberLastName','MemberEmail',
+      'MemberDirectPhone','MemberOfficePhone','MemberMobilePhone',
+      'OfficeName','OfficeMlsId','MemberStateLicense','MemberNationalAssociationId',
+      'MemberMlsId','MemberKey','MemberStatus','MemberCity','MemberStateOrProvince','MemberPostalCode',
+    ].join(',');
 
     const filterClause = `$filter=${encodeURIComponent("MemberStatus eq 'Active'")}`;
+    const selectClause = `$select=${encodeURIComponent(selectFields)}`;
     const buildUrl = (skip: number) =>
-      `${baseUrl}/Member?$top=${pageSize}&$skip=${skip}&${filterClause}`;
+      `${baseUrl}/Member?$top=${pageSize}&$skip=${skip}&${filterClause}&${selectClause}`;
 
     let url: string = buildUrl(0);
 
+
     do {
       if (Date.now() - startTime > timeBudgetMs) {
+        partial = true;
         console.warn(`Time budget reached after ${pageCount} pages, ${allMembers.length} members. Returning partial roster.`);
         break;
       }
+
 
       const fetchUrl: string = nextLink || url;
       const resp = await fetch(fetchUrl, { headers: sparkHeaders });
@@ -115,8 +127,13 @@ Deno.serve(async (req) => {
       lines.push(row.join(','));
     }
 
+    if (partial) {
+      lines.push('');
+      lines.push(csvEscape(`INCOMPLETE EXPORT: time limit reached after ${allMembers.length} agents. Re-run to get a full roster.`));
+    }
+
     const csv = lines.join('\n');
-    const filename = `mls-agent-roster-${new Date().toISOString().split('T')[0]}.csv`;
+    const filename = `mls-agent-roster-${new Date().toISOString().split('T')[0]}${partial ? '-PARTIAL' : ''}.csv`;
 
     return new Response(csv, {
       status: 200,
@@ -125,7 +142,9 @@ Deno.serve(async (req) => {
         'Content-Type': 'text/csv; charset=utf-8',
         'Content-Disposition': `attachment; filename="${filename}"`,
         'X-Total-Count': String(allMembers.length),
+        'X-Partial': String(partial),
       },
+
     });
   } catch (err) {
     console.error('download-mls-roster error:', err);
