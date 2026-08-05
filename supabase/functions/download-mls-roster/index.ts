@@ -127,8 +127,13 @@ Deno.serve(async (req) => {
       lines.push(row.join(','));
     }
 
+    if (partial) {
+      lines.push('');
+      lines.push(csvEscape(`INCOMPLETE EXPORT: time limit reached after ${allMembers.length} agents. Re-run to get a full roster.`));
+    }
+
     const csv = lines.join('\n');
-    const filename = `mls-agent-roster-${new Date().toISOString().split('T')[0]}.csv`;
+    const filename = `mls-agent-roster-${new Date().toISOString().split('T')[0]}${partial ? '-PARTIAL' : ''}.csv`;
 
     return new Response(csv, {
       status: 200,
@@ -137,7 +142,9 @@ Deno.serve(async (req) => {
         'Content-Type': 'text/csv; charset=utf-8',
         'Content-Disposition': `attachment; filename="${filename}"`,
         'X-Total-Count': String(allMembers.length),
+        'X-Partial': String(partial),
       },
+
     });
   } catch (err) {
     console.error('download-mls-roster error:', err);
