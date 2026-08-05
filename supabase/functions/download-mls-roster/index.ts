@@ -39,9 +39,6 @@ Deno.serve(async (req) => {
     };
 
     const allMembers: any[] = [];
-    let nextLink: string | null = null;
-    let pageCount = 0;
-    const maxPages = 500; // safety cap
     const pageSize = 1000;
     const startTime = Date.now();
     const timeBudgetMs = 130_000; // stay under 150s edge timeout
@@ -51,43 +48,65 @@ Deno.serve(async (req) => {
     const buildUrl = (skip: number) =>
       `${baseUrl}/Member?$top=${pageSize}&$skip=${skip}&${filterClause}`;
 
-
-    let url: string = buildUrl(0);
-
-
-    do {
-      if (Date.now() - startTime > timeBudgetMs) {
-        partial = true;
-        console.warn(`Time budget reached after ${pageCount} pages, ${allMembers.length} members. Returning partial roster.`);
-        break;
+    // Step 1: exact count of Active members
+    let total = 0;
+    try {
+      const countResp = await fetch(`${baseUrl}/Member?$count=true&$top=1&${filterClause}`, { headers: sparkHeaders });
+      if (countResp.ok) {
+        const cj = await countResp.json();
+        total = Number(cj['@odata.count'] || 0);
       }
+    } catch (e) {
+      console.warn('count request failed', e);
+    }
+    if (!total || Number.isNaN(total)) total = 20000; // fallback upper bound
+    console.log(`Active member count: ${total}`);
 
+    const totalPages = Math.ceil(total / pageSize);
+    const concurrency = 4;
 
-      const fetchUrl: string = nextLink || url;
-      const resp = await fetch(fetchUrl, { headers: sparkHeaders });
-
+    const fetchPage = async (pageIdx: number, retry = true): Promise<any[] | null> => {
+      const resp = await fetch(buildUrl(pageIdx * pageSize), { headers: sparkHeaders });
       if (!resp.ok) {
         const text = await resp.text();
-        console.error('OData Member error:', resp.status, text);
-        return new Response(
-          JSON.stringify({ success: false, error: `OData Member error: ${resp.status} ${text}` }),
-          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+        console.error(`page ${pageIdx} error`, resp.status, text.slice(0, 200));
+        if (retry) {
+          await new Promise((r) => setTimeout(r, 1500));
+          return fetchPage(pageIdx, false);
+        }
+        return null;
       }
-
       const json = await resp.json();
-      const results = json.value || [];
-      allMembers.push(...results);
-      nextLink = json['@odata.nextLink'] || null;
-      pageCount++;
+      return json.value || [];
+    };
 
-      // Manual pagination fallback if no nextLink but we got a full page
-      if (!nextLink && results.length === pageSize && pageCount < maxPages) {
-        nextLink = buildUrl(pageCount * pageSize);
+    const pageResults: (any[] | null)[] = new Array(totalPages).fill(null);
+    let stopped = false;
+
+    for (let batchStart = 0; batchStart < totalPages; batchStart += concurrency) {
+      if (Date.now() - startTime > timeBudgetMs) {
+        partial = true;
+        stopped = true;
+        console.warn(`Time budget reached at page ${batchStart} of ${totalPages}.`);
+        break;
       }
-    } while (nextLink && pageCount < maxPages);
+      const batch: number[] = [];
+      for (let i = batchStart; i < Math.min(batchStart + concurrency, totalPages); i++) batch.push(i);
+      const results = await Promise.all(batch.map((i) => fetchPage(i)));
+      results.forEach((r, idx) => {
+        pageResults[batch[idx]] = r;
+        if (r === null) partial = true;
+      });
+      // short-circuit if an entire batch came back empty (past the end)
+      if (results.every((r) => r !== null && r.length === 0)) break;
+    }
 
-    console.log(`Fetched ${allMembers.length} members across ${pageCount} pages`);
+    for (const p of pageResults) {
+      if (p) allMembers.push(...p);
+    }
+
+    console.log(`Fetched ${allMembers.length} members of ${total} (partial: ${partial}, stopped: ${stopped})`);
+
 
     // Build CSV
     const headers = [
