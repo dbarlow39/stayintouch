@@ -64,9 +64,11 @@ Deno.serve(async (req) => {
 
     do {
       if (Date.now() - startTime > timeBudgetMs) {
+        partial = true;
         console.warn(`Time budget reached after ${pageCount} pages, ${allMembers.length} members. Returning partial roster.`);
         break;
       }
+
 
       const fetchUrl: string = nextLink || url;
       const resp = await fetch(fetchUrl, { headers: sparkHeaders });
