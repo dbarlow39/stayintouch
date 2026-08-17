@@ -1,14 +1,9 @@
 /**
- * Filters navigation items for buyer representation views.
- * When representationType is 'buyer', only Back, Back to Property Info, and My Properties are shown.
- * Seller representation keeps all navigation items unchanged.
+ * Navigation items are no longer filtered by representation type.
+ * Buyer Working Deals now show the same navigation as Seller Working Deals.
+ * Kept as a pass-through so all call sites remain unchanged.
  */
 export const filterNavForRepType = <T extends { label: string }>(
   navigationItems: T[],
-  representationType?: string
-): T[] => {
-  if (representationType !== 'buyer') return navigationItems;
-  
-  const allowedLabels = ['Back', 'Back to Property Info', 'My Properties', 'Notices'];
-  return navigationItems.filter(item => allowedLabels.includes(item.label));
-};
+  _representationType?: string
+): T[] => navigationItems;
