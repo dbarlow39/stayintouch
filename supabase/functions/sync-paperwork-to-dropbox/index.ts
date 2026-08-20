@@ -362,6 +362,53 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Read-only diagnostic: dump the MIME part tree of a single message. No writes.
+    if (typeof body?.debug_message_id === "string" && body.debug_message_id.trim()) {
+      if (!agentId) {
+        const { data: agents } = await serviceClient.from("gmail_oauth_tokens").select("agent_id").limit(1);
+        agentId = agents?.[0]?.agent_id || null;
+      }
+      if (!agentId) {
+        return new Response(JSON.stringify({ error: "No Gmail agent available" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const gToken = await getGmailAccessToken(serviceClient, agentId);
+      const r = await fetch(
+        `https://gmail.googleapis.com/gmail/v1/users/me/messages/${body.debug_message_id.trim()}?format=full`,
+        { headers: { Authorization: `Bearer ${gToken}` } },
+      );
+      if (!r.ok) {
+        return new Response(JSON.stringify({ error: "Gmail fetch failed", details: await r.text() }), {
+          status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const msg = await r.json();
+      const parts: any[] = [];
+      const walk = (p: any, depth = 0) => {
+        if (!p) return;
+        parts.push({
+          depth,
+          mimeType: p.mimeType || "",
+          filename: p.filename || "",
+          size: p.body?.size || 0,
+          has_attachment_id: !!p.body?.attachmentId,
+        });
+        for (const c of p.parts || []) walk(c, depth + 1);
+      };
+      walk(msg.payload);
+      const headers = (msg.payload?.headers || []).filter((h: any) =>
+        ["subject", "from", "to", "date"].includes(String(h.name).toLowerCase()));
+      return new Response(JSON.stringify({
+        ok: true,
+        message_id: msg.id,
+        label_ids: msg.labelIds || [],
+        headers,
+        snippet: msg.snippet || "",
+        parts,
+      }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
 
     // Cron convenience: if no agent_id supplied, iterate all agents who have Dropbox connected.
     if (!agentId && mode === "incremental") {
