@@ -141,13 +141,26 @@ function parseAddressesFromSubject(subject: string): AddrHit[] {
   return out;
 }
 
-function extractAddressesFromText(text: string): string[] {
+// Remove dates/timestamps so a year like "2026" is never mistaken for a house number.
+function stripDates(text: string): string {
+  return (text || "")
+    .replace(/\b(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)[a-z]*,?\s+/gi, " ")
+    .replace(/\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s+\d{1,2},?\s+(?:19|20)\d{2}\b/gi, " ")
+    .replace(/\b\d{1,2}\/\d{1,2}\/(?:19|20)?\d{2}\b/g, " ")
+    .replace(/\b(?:19|20)\d{2}-\d{2}-\d{2}\b/g, " ")
+    .replace(/\b\d{1,2}:\d{2}\s*(?:AM|PM)\b/gi, " ");
+}
+
+function extractAddressesFromText(rawText: string): string[] {
+  const text = stripDates(rawText);
   if (!text) return [];
   const out = new Set<string>();
   let m: RegExpExecArray | null;
   const re = new RegExp(ADDRESS_RE.source, "gi");
   while ((m = re.exec(text)) !== null) {
-    out.add(m[1].replace(/\s+/g, " ").trim());
+    const addr = m[1].replace(/\s+/g, " ").trim();
+    if (/^(?:19|20)\d{2}\s/.test(addr)) continue; // year mistaken for house number
+    out.add(addr);
   }
   return Array.from(out);
 }
@@ -356,7 +369,7 @@ Deno.serve(async (req) => {
       const results: any[] = [];
       for (const id of ids) {
         try {
-          const r = await runForAgent(serviceClient, id, "incremental", limit, maxRuntimeMs, null);
+          const r = await runForAgent(serviceClient, id, "incremental", limit, maxRuntimeMs, null, typeof body?.window === "string" ? body.window : "90d");
           results.push({ agent_id: id, ...r });
         } catch (e) {
           results.push({ agent_id: id, error: String(e) });
@@ -373,7 +386,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const result = await runForAgent(serviceClient, agentId, mode, limit, maxRuntimeMs, userAuthHeader);
+    const result = await runForAgent(serviceClient, agentId, mode, limit, maxRuntimeMs, userAuthHeader, typeof body?.window === "string" ? body.window : "90d");
     return new Response(JSON.stringify({ ok: true, mode, ...result }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
@@ -393,6 +406,7 @@ async function runForAgent(
   limit: number,
   maxRuntimeMs: number,
   userAuthHeader: string | null,
+  windowSpec: string = "90d",
 ) {
   const startedAt = Date.now();
 
@@ -494,9 +508,32 @@ async function runForAgent(
   }
 
   // Gmail query — widened to also catch multi-address subjects ending in "Paperwork"
+  const incrementalWindow = windowSpec;
   const baseQuery = mode === "backfill"
     ? '(subject:"Compiled Paperwork" OR subject:Paperwork) has:attachment'
-    : '(subject:"Compiled Paperwork" OR subject:Paperwork) newer_than:7d has:attachment';
+    : `(subject:"Compiled Paperwork" OR subject:Paperwork) newer_than:${incrementalWindow} has:attachment`;
+
+  // Seen-list: message ids already fully handled in a previous run. Skipped before
+  // any download/parse/write, so widening the window cannot reprocess old emails.
+  const seenMessageIds = new Set<string>();
+  {
+    const { data: seenRows } = await serviceClient
+      .from("paperwork_sync_messages").select("message_id");
+    for (const r of (seenRows || [])) seenMessageIds.add(r.message_id);
+  }
+  const markMessageDone = async (
+    messageId: string, subject: string, status: string, addresses: string[]
+  ) => {
+    seenMessageIds.add(messageId);
+    await serviceClient.from("paperwork_sync_messages").upsert({
+      message_id: messageId,
+      agent_id: agentId,
+      subject,
+      status,
+      addresses,
+      processed_at: new Date().toISOString(),
+    });
+  };
 
 
   const summary: any[] = [];
@@ -546,6 +583,9 @@ async function runForAgent(
         exhausted = true; break outer;
       }
 
+      // Already handled in a previous run — skip before any fetch/download/write.
+      if (seenMessageIds.has(m.id)) continue;
+
       scannedThisRun++;
 
       try {
@@ -558,7 +598,11 @@ async function runForAgent(
         const headers = msg.payload?.headers || [];
         const subject = headers.find((h: any) => h.name.toLowerCase() === "subject")?.value || "";
         const attachments = findPdfParts(msg.payload);
-        if (attachments.length === 0) continue;
+        if (attachments.length === 0) {
+          await markMessageDone(m.id, subject, "no_attachments", []);
+          continue;
+        }
+
 
         // Discover ALL addresses in this email: subject -> body -> attachment filenames
         const hits: AddrHit[] = parseAddressesFromSubject(subject);
@@ -580,6 +624,7 @@ async function runForAgent(
         }
         if (addressHits.length === 0) {
           summary.push({ message_id: m.id, subject, status: "no_address_found" });
+          await markMessageDone(m.id, subject, "no_address_found", []);
           continue;
         }
 
@@ -601,7 +646,14 @@ async function runForAgent(
           }
           toUpdate.push({ hit: h, id: ex.id });
         }
-        if (toCreate.length === 0 && toUpdate.length === 0) continue;
+        if (toCreate.length === 0 && toUpdate.length === 0) {
+          // Nothing left to do for this email — every address is already complete.
+          await markMessageDone(
+            m.id, subject, "nothing_to_do", addressHits.map((h) => h.address)
+          );
+          continue;
+        }
+
 
         // Multi-address emails: we'll create bare closings below for any missing addresses so paperwork isn't lost.
 
@@ -672,6 +724,10 @@ async function runForAgent(
         }
         const isMulti = addressHits.length > 1;
 
+        // If any address in this email fails (parse failure, insert/update error) we do
+        // NOT mark the message done, so the next run retries it.
+        let messageIncomplete = false;
+
         // -------- UPDATE existing closings (attach paperwork to rows created from just a commission check) --------
         for (const upd of toUpdate) {
           const patch: any = {
@@ -721,6 +777,7 @@ async function runForAgent(
           const { error: updErr } = await serviceClient.from("closings").update(patch).eq("id", upd.id);
           if (updErr) {
             summary.push({ address: upd.hit.address, status: "closing_update_failed", error: updErr.message });
+            messageIncomplete = true;
             continue;
           }
           existingMap.set(normalizeAddr(upd.hit.address), { id: upd.id, hasPaperwork: true });
@@ -743,6 +800,7 @@ async function runForAgent(
 
           if (isSingle && !parseOk) {
             summary.push({ address, status: "parse_failed_will_retry" });
+            messageIncomplete = true;
             continue;
           }
 
@@ -829,6 +887,7 @@ async function runForAgent(
           const { error: insErr } = await serviceClient.from("closings").insert(row);
           if (insErr) {
             summary.push({ address, status: "closing_insert_failed", error: insErr.message });
+            messageIncomplete = true;
           } else {
             createdCount++;
             if (!dbxOk) dbxFailCount++;
@@ -840,6 +899,12 @@ async function runForAgent(
               file_count: paperworkFiles.length,
             });
           }
+        }
+
+        if (!messageIncomplete) {
+          await markMessageDone(
+            m.id, subject, "processed", addressHits.map((h) => h.address)
+          );
         }
       } catch (e) {
         console.error("Per-message error:", e);

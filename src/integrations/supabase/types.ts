@@ -2095,6 +2095,33 @@ export type Database = {
         }
         Relationships: []
       }
+      paperwork_sync_messages: {
+        Row: {
+          addresses: string[]
+          agent_id: string | null
+          message_id: string
+          processed_at: string
+          status: string
+          subject: string | null
+        }
+        Insert: {
+          addresses?: string[]
+          agent_id?: string | null
+          message_id: string
+          processed_at?: string
+          status?: string
+          subject?: string | null
+        }
+        Update: {
+          addresses?: string[]
+          agent_id?: string | null
+          message_id?: string
+          processed_at?: string
+          status?: string
+          subject?: string | null
+        }
+        Relationships: []
+      }
       payout_closing_links: {
         Row: {
           agent_share: number
