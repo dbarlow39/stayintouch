@@ -710,6 +710,10 @@ async function runForAgent(
         }
         const isMulti = addressHits.length > 1;
 
+        // If any address in this email fails (parse failure, insert/update error) we do
+        // NOT mark the message done, so the next run retries it.
+        let messageIncomplete = false;
+
         // -------- UPDATE existing closings (attach paperwork to rows created from just a commission check) --------
         for (const upd of toUpdate) {
           const patch: any = {
