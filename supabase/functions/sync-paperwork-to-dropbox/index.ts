@@ -494,9 +494,32 @@ async function runForAgent(
   }
 
   // Gmail query — widened to also catch multi-address subjects ending in "Paperwork"
+  const incrementalWindow: string = typeof body?.window === "string" ? body.window : "90d";
   const baseQuery = mode === "backfill"
     ? '(subject:"Compiled Paperwork" OR subject:Paperwork) has:attachment'
-    : '(subject:"Compiled Paperwork" OR subject:Paperwork) newer_than:7d has:attachment';
+    : `(subject:"Compiled Paperwork" OR subject:Paperwork) newer_than:${incrementalWindow} has:attachment`;
+
+  // Seen-list: message ids already fully handled in a previous run. Skipped before
+  // any download/parse/write, so widening the window cannot reprocess old emails.
+  const seenMessageIds = new Set<string>();
+  {
+    const { data: seenRows } = await serviceClient
+      .from("paperwork_sync_messages").select("message_id");
+    for (const r of (seenRows || [])) seenMessageIds.add(r.message_id);
+  }
+  const markMessageDone = async (
+    messageId: string, subject: string, status: string, addresses: string[]
+  ) => {
+    seenMessageIds.add(messageId);
+    await serviceClient.from("paperwork_sync_messages").upsert({
+      message_id: messageId,
+      agent_id: agentId,
+      subject,
+      status,
+      addresses,
+      processed_at: new Date().toISOString(),
+    });
+  };
 
 
   const summary: any[] = [];
