@@ -288,6 +288,8 @@ Deno.serve(async (req) => {
     const mode: "backfill" | "incremental" = body?.mode === "backfill" ? "backfill" : "incremental";
     const limit: number = Math.max(1, Math.min(200, body?.limit ?? (mode === "backfill" ? 1 : 3)));
     const maxRuntimeMs: number = Math.max(10_000, Math.min(140_000, body?.max_runtime_ms ?? 30_000));
+    const subjectQuery: string | null = typeof body?.subject_query === "string" && body.subject_query.trim()
+      ? body.subject_query.trim() : null;
 
     const serviceClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
     const userAuthHeader = req.headers.get("Authorization");
