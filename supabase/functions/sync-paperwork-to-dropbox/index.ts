@@ -407,6 +407,7 @@ async function runForAgent(
   maxRuntimeMs: number,
   userAuthHeader: string | null,
   windowSpec: string = "90d",
+  subjectQuery: string | null = null,
 ) {
   const startedAt = Date.now();
 
