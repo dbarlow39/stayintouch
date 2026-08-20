@@ -589,7 +589,8 @@ async function runForAgent(
       }
 
       // Already handled in a previous run — skip before any fetch/download/write.
-      if (seenMessageIds.has(m.id)) continue;
+      // Targeted subject lookups intentionally re-process the matched message.
+      if (!subjectQuery && seenMessageIds.has(m.id)) continue;
 
       scannedThisRun++;
 
