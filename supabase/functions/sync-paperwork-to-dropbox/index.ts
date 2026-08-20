@@ -388,7 +388,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const result = await runForAgent(serviceClient, agentId, mode, limit, maxRuntimeMs, userAuthHeader, typeof body?.window === "string" ? body.window : "90d");
+    const result = await runForAgent(serviceClient, agentId, mode, limit, maxRuntimeMs, userAuthHeader, typeof body?.window === "string" ? body.window : "90d", subjectQuery);
     return new Response(JSON.stringify({ ok: true, mode, ...result }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
