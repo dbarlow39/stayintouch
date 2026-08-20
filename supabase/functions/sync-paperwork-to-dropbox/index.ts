@@ -610,6 +610,7 @@ async function runForAgent(
         }
         if (addressHits.length === 0) {
           summary.push({ message_id: m.id, subject, status: "no_address_found" });
+          await markMessageDone(m.id, subject, "no_address_found", []);
           continue;
         }
 
@@ -631,7 +632,14 @@ async function runForAgent(
           }
           toUpdate.push({ hit: h, id: ex.id });
         }
-        if (toCreate.length === 0 && toUpdate.length === 0) continue;
+        if (toCreate.length === 0 && toUpdate.length === 0) {
+          // Nothing left to do for this email — every address is already complete.
+          await markMessageDone(
+            m.id, subject, "nothing_to_do", addressHits.map((h) => h.address)
+          );
+          continue;
+        }
+
 
         // Multi-address emails: we'll create bare closings below for any missing addresses so paperwork isn't lost.
 
