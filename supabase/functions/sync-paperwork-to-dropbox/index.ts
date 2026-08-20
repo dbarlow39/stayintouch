@@ -510,9 +510,13 @@ async function runForAgent(
 
   // Gmail query — widened to also catch multi-address subjects ending in "Paperwork"
   const incrementalWindow = windowSpec;
-  const baseQuery = mode === "backfill"
-    ? '(subject:"Compiled Paperwork" OR subject:Paperwork) has:attachment'
-    : `(subject:"Compiled Paperwork" OR subject:Paperwork) newer_than:${incrementalWindow} has:attachment`;
+  const baseQuery = subjectQuery
+    // Targeted lookup: exact subject, including Trash/Spam, no attachment requirement.
+    ? `subject:"${subjectQuery.replace(/"/g, "")}" in:anywhere`
+    : mode === "backfill"
+      ? '(subject:"Compiled Paperwork" OR subject:Paperwork) has:attachment'
+      : `(subject:"Compiled Paperwork" OR subject:Paperwork) newer_than:${incrementalWindow} has:attachment`;
+
 
   // Seen-list: message ids already fully handled in a previous run. Skipped before
   // any download/parse/write, so widening the window cannot reprocess old emails.
