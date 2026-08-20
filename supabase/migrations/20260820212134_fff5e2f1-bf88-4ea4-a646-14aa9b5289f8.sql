@@ -1,0 +1,1 @@
+DELETE FROM public.closings WHERE created_at > '2026-08-20 21:15:00+00';
