@@ -763,6 +763,7 @@ async function runForAgent(
           const { error: updErr } = await serviceClient.from("closings").update(patch).eq("id", upd.id);
           if (updErr) {
             summary.push({ address: upd.hit.address, status: "closing_update_failed", error: updErr.message });
+            messageIncomplete = true;
             continue;
           }
           existingMap.set(normalizeAddr(upd.hit.address), { id: upd.id, hasPaperwork: true });
@@ -785,6 +786,7 @@ async function runForAgent(
 
           if (isSingle && !parseOk) {
             summary.push({ address, status: "parse_failed_will_retry" });
+            messageIncomplete = true;
             continue;
           }
 
@@ -871,6 +873,7 @@ async function runForAgent(
           const { error: insErr } = await serviceClient.from("closings").insert(row);
           if (insErr) {
             summary.push({ address, status: "closing_insert_failed", error: insErr.message });
+            messageIncomplete = true;
           } else {
             createdCount++;
             if (!dbxOk) dbxFailCount++;
@@ -882,6 +885,12 @@ async function runForAgent(
               file_count: paperworkFiles.length,
             });
           }
+        }
+
+        if (!messageIncomplete) {
+          await markMessageDone(
+            m.id, subject, "processed", addressHits.map((h) => h.address)
+          );
         }
       } catch (e) {
         console.error("Per-message error:", e);
