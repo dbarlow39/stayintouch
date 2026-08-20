@@ -569,6 +569,9 @@ async function runForAgent(
         exhausted = true; break outer;
       }
 
+      // Already handled in a previous run — skip before any fetch/download/write.
+      if (seenMessageIds.has(m.id)) continue;
+
       scannedThisRun++;
 
       try {
@@ -581,7 +584,11 @@ async function runForAgent(
         const headers = msg.payload?.headers || [];
         const subject = headers.find((h: any) => h.name.toLowerCase() === "subject")?.value || "";
         const attachments = findPdfParts(msg.payload);
-        if (attachments.length === 0) continue;
+        if (attachments.length === 0) {
+          await markMessageDone(m.id, subject, "no_attachments", []);
+          continue;
+        }
+
 
         // Discover ALL addresses in this email: subject -> body -> attachment filenames
         const hits: AddrHit[] = parseAddressesFromSubject(subject);
