@@ -399,6 +399,24 @@ Deno.serve(async (req) => {
       walk(msg.payload);
       const headers = (msg.payload?.headers || []).filter((h: any) =>
         ["subject", "from", "to", "date"].includes(String(h.name).toLowerCase()));
+      const decodeB64 = (d: string) => {
+        try {
+          return new TextDecoder().decode(
+            Uint8Array.from(atob(d.replace(/-/g, "+").replace(/_/g, "/")), (c) => c.charCodeAt(0)),
+          );
+        } catch { return ""; }
+      };
+      const bodies: Record<string, string> = {};
+      const collect = (p: any) => {
+        if (!p) return;
+        if ((p.mimeType === "text/plain" || p.mimeType === "text/html") && p.body?.data) {
+          bodies[p.mimeType] = decodeB64(p.body.data).slice(0, 8000);
+        }
+        for (const c of p.parts || []) collect(c);
+      };
+      collect(msg.payload);
+      const allText = `${bodies["text/plain"] || ""}\n${bodies["text/html"] || ""}`;
+      const links = Array.from(new Set((allText.match(/https?:\/\/[^\s"'<>)]+/g) || []))).slice(0, 40);
       return new Response(JSON.stringify({
         ok: true,
         message_id: msg.id,
@@ -406,6 +424,8 @@ Deno.serve(async (req) => {
         headers,
         snippet: msg.snippet || "",
         parts,
+        bodies,
+        links,
       }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
