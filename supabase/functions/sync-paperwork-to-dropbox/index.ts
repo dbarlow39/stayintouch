@@ -494,7 +494,7 @@ async function runForAgent(
   }
 
   // Gmail query — widened to also catch multi-address subjects ending in "Paperwork"
-  const incrementalWindow: string = typeof body?.window === "string" ? body.window : "90d";
+  const incrementalWindow = "90d";
   const baseQuery = mode === "backfill"
     ? '(subject:"Compiled Paperwork" OR subject:Paperwork) has:attachment'
     : `(subject:"Compiled Paperwork" OR subject:Paperwork) newer_than:${incrementalWindow} has:attachment`;
