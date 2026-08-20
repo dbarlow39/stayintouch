@@ -141,13 +141,26 @@ function parseAddressesFromSubject(subject: string): AddrHit[] {
   return out;
 }
 
-function extractAddressesFromText(text: string): string[] {
+// Remove dates/timestamps so a year like "2026" is never mistaken for a house number.
+function stripDates(text: string): string {
+  return (text || "")
+    .replace(/\b(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)[a-z]*,?\s+/gi, " ")
+    .replace(/\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s+\d{1,2},?\s+(?:19|20)\d{2}\b/gi, " ")
+    .replace(/\b\d{1,2}\/\d{1,2}\/(?:19|20)?\d{2}\b/g, " ")
+    .replace(/\b(?:19|20)\d{2}-\d{2}-\d{2}\b/g, " ")
+    .replace(/\b\d{1,2}:\d{2}\s*(?:AM|PM)\b/gi, " ");
+}
+
+function extractAddressesFromText(rawText: string): string[] {
+  const text = stripDates(rawText);
   if (!text) return [];
   const out = new Set<string>();
   let m: RegExpExecArray | null;
   const re = new RegExp(ADDRESS_RE.source, "gi");
   while ((m = re.exec(text)) !== null) {
-    out.add(m[1].replace(/\s+/g, " ").trim());
+    const addr = m[1].replace(/\s+/g, " ").trim();
+    if (/^(?:19|20)\d{2}\s/.test(addr)) continue; // year mistaken for house number
+    out.add(addr);
   }
   return Array.from(out);
 }
