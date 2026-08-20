@@ -288,6 +288,8 @@ Deno.serve(async (req) => {
     const mode: "backfill" | "incremental" = body?.mode === "backfill" ? "backfill" : "incremental";
     const limit: number = Math.max(1, Math.min(200, body?.limit ?? (mode === "backfill" ? 1 : 3)));
     const maxRuntimeMs: number = Math.max(10_000, Math.min(140_000, body?.max_runtime_ms ?? 30_000));
+    const subjectQuery: string | null = typeof body?.subject_query === "string" && body.subject_query.trim()
+      ? body.subject_query.trim() : null;
 
     const serviceClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
     const userAuthHeader = req.headers.get("Authorization");
@@ -386,7 +388,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const result = await runForAgent(serviceClient, agentId, mode, limit, maxRuntimeMs, userAuthHeader, typeof body?.window === "string" ? body.window : "90d");
+    const result = await runForAgent(serviceClient, agentId, mode, limit, maxRuntimeMs, userAuthHeader, typeof body?.window === "string" ? body.window : "90d", subjectQuery);
     return new Response(JSON.stringify({ ok: true, mode, ...result }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
@@ -407,6 +409,7 @@ async function runForAgent(
   maxRuntimeMs: number,
   userAuthHeader: string | null,
   windowSpec: string = "90d",
+  subjectQuery: string | null = null,
 ) {
   const startedAt = Date.now();
 
@@ -509,9 +512,13 @@ async function runForAgent(
 
   // Gmail query — widened to also catch multi-address subjects ending in "Paperwork"
   const incrementalWindow = windowSpec;
-  const baseQuery = mode === "backfill"
-    ? '(subject:"Compiled Paperwork" OR subject:Paperwork) has:attachment'
-    : `(subject:"Compiled Paperwork" OR subject:Paperwork) newer_than:${incrementalWindow} has:attachment`;
+  const baseQuery = subjectQuery
+    // Targeted lookup: exact subject, including Trash/Spam, no attachment requirement.
+    ? `subject:"${subjectQuery.replace(/"/g, "")}" in:anywhere`
+    : mode === "backfill"
+      ? '(subject:"Compiled Paperwork" OR subject:Paperwork) has:attachment'
+      : `(subject:"Compiled Paperwork" OR subject:Paperwork) newer_than:${incrementalWindow} has:attachment`;
+
 
   // Seen-list: message ids already fully handled in a previous run. Skipped before
   // any download/parse/write, so widening the window cannot reprocess old emails.
@@ -584,7 +591,8 @@ async function runForAgent(
       }
 
       // Already handled in a previous run — skip before any fetch/download/write.
-      if (seenMessageIds.has(m.id)) continue;
+      // Targeted subject lookups intentionally re-process the matched message.
+      if (!subjectQuery && seenMessageIds.has(m.id)) continue;
 
       scannedThisRun++;
 
