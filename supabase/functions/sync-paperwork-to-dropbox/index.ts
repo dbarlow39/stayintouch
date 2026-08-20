@@ -356,7 +356,7 @@ Deno.serve(async (req) => {
       const results: any[] = [];
       for (const id of ids) {
         try {
-          const r = await runForAgent(serviceClient, id, "incremental", limit, maxRuntimeMs, null);
+          const r = await runForAgent(serviceClient, id, "incremental", limit, maxRuntimeMs, null, typeof body?.window === "string" ? body.window : "90d");
           results.push({ agent_id: id, ...r });
         } catch (e) {
           results.push({ agent_id: id, error: String(e) });
@@ -373,7 +373,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const result = await runForAgent(serviceClient, agentId, mode, limit, maxRuntimeMs, userAuthHeader);
+    const result = await runForAgent(serviceClient, agentId, mode, limit, maxRuntimeMs, userAuthHeader, typeof body?.window === "string" ? body.window : "90d");
     return new Response(JSON.stringify({ ok: true, mode, ...result }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
