@@ -157,7 +157,19 @@ export async function buildWorkSheetContext(supabase: any, user: any, leadId: st
     }
   } catch (_) { /* non-fatal */ }
 
-  const factsText = `PROPERTY FACTS:\n${JSON.stringify(facts, null, 2)}${loveBlock}${notesBlock}${cmaBlock}\n\nAI SUMMARY OF WORK SHEET:\n${summary || "(none)"}\n\nFULL TRANSCRIPTION:\n${transcription || "(none)"}\n\nINSPECTION SECTION NOTES:\n${JSON.stringify(inspection.inspection_data, null, 2).slice(0, 8000)}\n\nNow write the MLS description. Remember: under 1000 characters, no em dashes, evocative storytelling, end with an imagined call to action.`;
+  // Verbatim public remarks pulled from the comparable listings in the CMA /
+  // Property Detail Report. Style inspiration only, never facts about the subject.
+  let compRemarksBlock = "";
+  try {
+    const remarks = await getCompRemarks(supabase, user, leadId);
+    if (remarks.length) {
+      const listed = remarks.map((r, i) => `${i + 1}. ${r}`).join("\n\n").slice(0, 8000);
+      compRemarksBlock = `\n\nPUBLIC REMARKS FROM COMPARABLE LISTINGS (STYLE INSPIRATION ONLY):\nThese are the MLS descriptions written for OTHER nearby homes that recently sold or are listed. They are NOT descriptions of the subject property. Study them for tone, phrasing, sentence rhythm, neighborhood angles, and lifestyle hooks that resonate with buyers in this market, then write in that spirit. You may NOT borrow any feature, finish, material, appliance, upgrade, view, or condition from these remarks as a fact about the subject home. Never mention comps, other addresses, or pricing in the description.\n\n${listed}\n`;
+    }
+  } catch (_) { /* non-fatal */ }
+
+  const factsText = `PROPERTY FACTS:\n${JSON.stringify(facts, null, 2)}${loveBlock}${notesBlock}${cmaBlock}${compRemarksBlock}\n\nAI SUMMARY OF WORK SHEET:\n${summary || "(none)"}\n\nFULL TRANSCRIPTION:\n${transcription || "(none)"}\n\nINSPECTION SECTION NOTES:\n${JSON.stringify(inspection.inspection_data, null, 2).slice(0, 8000)}\n\nNow write the MLS description. Remember: under 1000 characters, no em dashes, evocative storytelling, end with an imagined call to action.`;
+
 
   return { factsText, allPhotos };
 }
