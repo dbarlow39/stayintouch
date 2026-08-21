@@ -280,6 +280,7 @@ export async function getCompRemarks(
     const parsed = JSON.parse(match ? match[0] : text);
     if (Array.isArray(parsed)) remarks = parsed.filter((r: any) => typeof r === "string" && r.trim().length > 30);
   } catch (_) { /* leave empty */ }
+  console.log("comp remarks: parsed", remarks.length, "remark(s) for lead", leadId);
 
   // 3. Cache (even an empty result, to avoid re-reading the PDF every run).
   try {
