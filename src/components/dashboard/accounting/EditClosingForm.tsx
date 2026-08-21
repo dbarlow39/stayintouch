@@ -591,6 +591,8 @@ const EditClosingForm = ({ closingId, onBack }: EditClosingFormProps) => {
             onChange={setChecklist}
             naState={naState}
             onNAChange={setNAState}
+            unverified={unverified as any}
+            evidence={evidence as any}
           />
 
           <div className="space-y-2">
