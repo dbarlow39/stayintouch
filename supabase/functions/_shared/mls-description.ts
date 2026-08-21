@@ -124,7 +124,40 @@ export async function buildWorkSheetContext(supabase: any, user: any, leadId: st
     }
   } catch (_) { /* non-fatal */ }
 
-  const factsText = `PROPERTY FACTS:\n${JSON.stringify(facts, null, 2)}${loveBlock}${notesBlock}\n\nAI SUMMARY OF WORK SHEET:\n${summary || "(none)"}\n\nFULL TRANSCRIPTION:\n${transcription || "(none)"}\n\nINSPECTION SECTION NOTES:\n${JSON.stringify(inspection.inspection_data, null, 2).slice(0, 8000)}\n\nNow write the MLS description. Remember: under 1000 characters, no em dashes, evocative storytelling, end with an imagined call to action.`;
+  // CMA / property detail data from the Market Analysis page (features + narrative).
+  let cmaBlock = "";
+  try {
+    const { data: maRows } = await supabase
+      .from("market_analysis_files")
+      .select("analysis_json")
+      .eq("lead_id", leadId)
+      .eq("agent_id", user.id)
+      .not("analysis_json", "is", null)
+      .order("updated_at", { ascending: false })
+      .limit(1);
+    const analysis: any = maRows?.[0]?.analysis_json;
+    if (analysis) {
+      const parts: string[] = [];
+      const features = Array.isArray(analysis.features)
+        ? analysis.features.filter((f: any) => typeof f === "string" && f.trim())
+        : [];
+      if (features.length) parts.push(`FEATURES:\n${features.map((f: string) => `- ${f.trim()}`).join("\n")}`);
+      const prop = analysis.property || {};
+      const propFacts = Object.entries(prop)
+        .filter(([, v]) => typeof v === "string" && (v as string).trim())
+        .map(([k, v]) => `${k}: ${v}`);
+      if (propFacts.length) parts.push(`PROPERTY DETAIL:\n${propFacts.join("\n")}`);
+      const narrative = [analysis.propertyDescription, analysis.overview, analysis.summary]
+        .filter((t: any) => typeof t === "string" && t.trim())
+        .join("\n\n");
+      if (narrative) parts.push(`NARRATIVE:\n${narrative}`);
+      if (parts.length) {
+        cmaBlock = `\n\nCMA / PROPERTY DETAIL DATA (from the Market Analysis page. Use for concrete upgrades, build facts, and distinctive features the walk-through may have missed. Do not mention pricing, comps, or the CMA itself in the description):\n${parts.join("\n\n").slice(0, 6000)}\n`;
+      }
+    }
+  } catch (_) { /* non-fatal */ }
+
+  const factsText = `PROPERTY FACTS:\n${JSON.stringify(facts, null, 2)}${loveBlock}${notesBlock}${cmaBlock}\n\nAI SUMMARY OF WORK SHEET:\n${summary || "(none)"}\n\nFULL TRANSCRIPTION:\n${transcription || "(none)"}\n\nINSPECTION SECTION NOTES:\n${JSON.stringify(inspection.inspection_data, null, 2).slice(0, 8000)}\n\nNow write the MLS description. Remember: under 1000 characters, no em dashes, evocative storytelling, end with an imagined call to action.`;
 
   return { factsText, allPhotos };
 }
