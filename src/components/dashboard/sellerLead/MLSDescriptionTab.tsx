@@ -644,7 +644,7 @@ const MLSDescriptionTab = ({ leadId, initialDescription, initialClaude, initialF
 
           <div className="space-y-2 border-t pt-4">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <Label className="text-sm font-semibold">Ideas from comparable listings</Label>
+              <Label className="text-sm font-semibold">Area &amp; neighborhood ideas</Label>
               <div className="flex gap-2">
                 <Button
                   size="sm"
@@ -667,7 +667,7 @@ const MLSDescriptionTab = ({ leadId, initialDescription, initialClaude, initialF
               </div>
             </div>
             <p className="text-xs text-muted-foreground">
-              Short selling angles and phrases pulled from the descriptions of the comparable listings in your CMA / Property Detail Report. Delete anything that doesn't fit this home, then save. Only what you save here is given to ChatGPT and Claude, and only as language ideas, never as facts about this home.
+              Location and neighborhood angles pulled from the comparable listings in your CMA / Property Detail Report (close to shopping, easy highway access, quiet established streets, parks, schools). No interior features or finishes, since those belong to the other homes. Delete anything that doesn't fit, then save. Only what you save here is given to ChatGPT and Claude.
             </p>
 
             {!compLoaded && (
@@ -678,7 +678,7 @@ const MLSDescriptionTab = ({ leadId, initialDescription, initialClaude, initialF
 
             {compLoaded && compRemarks.length === 0 && (
               <p className="text-sm text-muted-foreground italic">
-                No ideas yet. Pull them from the CMA / Property Detail Report to give the writer neighborhood language.
+                No area ideas yet. Pull them from the CMA / Property Detail Report to give the writer neighborhood language.
               </p>
             )}
 
