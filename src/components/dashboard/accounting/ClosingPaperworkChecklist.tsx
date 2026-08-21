@@ -122,24 +122,34 @@ const ClosingPaperworkChecklist = ({
         <div>
           <Label className="text-sm font-semibold">Required Closing Documents</Label>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Confirm each required document is present and signed, or mark N/A. The AI will pre-check items it finds.
+            Confirm each required document is present and signed, or mark N/A. Items found in the
+            scanned packet are pre-checked with the page number they were found on.
           </p>
         </div>
-        <div
-          className={`flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded ${
-            allDone
-              ? "text-emerald-700 bg-emerald-100"
-              : "text-amber-700 bg-amber-100"
-          }`}
-        >
-          {allDone ? (
-            <CheckCircle2 className="w-3.5 h-3.5" />
-          ) : (
-            <AlertCircle className="w-3.5 h-3.5" />
+        <div className="flex items-center gap-2">
+          {unverifiedCount > 0 && (
+            <div className="flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded text-red-700 bg-red-100">
+              <HelpCircle className="w-3.5 h-3.5" />
+              {unverifiedCount} can&apos;t verify
+            </div>
           )}
-          {completed} of {total} confirmed
+          <div
+            className={`flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded ${
+              allDone
+                ? "text-emerald-700 bg-emerald-100"
+                : "text-amber-700 bg-amber-100"
+            }`}
+          >
+            {allDone ? (
+              <CheckCircle2 className="w-3.5 h-3.5" />
+            ) : (
+              <AlertCircle className="w-3.5 h-3.5" />
+            )}
+            {completed} of {total} confirmed
+          </div>
         </div>
       </div>
+
 
       <div className="grid grid-cols-[auto_auto_1fr] gap-x-3 items-center pt-2 pb-1 text-xs text-muted-foreground">
         <span className="w-4" />
