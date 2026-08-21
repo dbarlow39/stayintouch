@@ -610,10 +610,13 @@ export type Database = {
           id: string
           notes: string | null
           paid: boolean
+          paperwork_audit: Json | null
           paperwork_checklist: Json
+          paperwork_evidence: Json
           paperwork_files: Json
           paperwork_na: Json
           paperwork_status: string
+          paperwork_unverified: Json
           property_address: string
           representation: string | null
           sale_price: number
@@ -643,10 +646,13 @@ export type Database = {
           id?: string
           notes?: string | null
           paid?: boolean
+          paperwork_audit?: Json | null
           paperwork_checklist?: Json
+          paperwork_evidence?: Json
           paperwork_files?: Json
           paperwork_na?: Json
           paperwork_status?: string
+          paperwork_unverified?: Json
           property_address: string
           representation?: string | null
           sale_price?: number
@@ -676,10 +682,13 @@ export type Database = {
           id?: string
           notes?: string | null
           paid?: boolean
+          paperwork_audit?: Json | null
           paperwork_checklist?: Json
+          paperwork_evidence?: Json
           paperwork_files?: Json
           paperwork_na?: Json
           paperwork_status?: string
+          paperwork_unverified?: Json
           property_address?: string
           representation?: string | null
           sale_price?: number
