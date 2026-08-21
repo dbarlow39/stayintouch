@@ -5,7 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Sparkles, Wand2, Copy, Loader2, Save, Combine } from "lucide-react";
+import { Sparkles, Wand2, Copy, Loader2, Save, Combine, FileSearch, Plus, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface Props {
