@@ -180,3 +180,113 @@ export function aiGatewayErrorResponse(status: number) {
   if (status === 402) return new Response(JSON.stringify({ error: "AI credits exhausted. Add credits in Settings > Workspace > Usage." }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   return new Response(JSON.stringify({ error: "AI gateway error" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 }
+
+// ---------------------------------------------------------------------------
+// Comparable-listing public remarks
+// Opens the CMA / Property Detail Report PDF attached to the lead and extracts
+// the verbatim public remarks written for each comparable listing. Results are
+// cached on a `comp_remarks` row so the PDF is only read once per lead.
+// ---------------------------------------------------------------------------
+const COMP_REMARKS_PROMPT = `This document is a CMA / Property Detail Report containing several comparable listings.
+
+Extract the PUBLIC REMARKS / agent remarks / marketing description paragraph for each comparable listing in the document, verbatim.
+
+Rules:
+- Return ONLY a JSON array of strings, nothing else. Example: ["remark one", "remark two"]
+- One array entry per listing that has a remarks/description paragraph.
+- Copy the text exactly as written. Do not summarize, merge, or rewrite.
+- Skip listings with no remarks paragraph. Skip tables of numbers, tax data, and agent contact info.
+- If no remarks paragraphs exist anywhere, return [].`;
+
+export async function getCompRemarks(supabase: any, user: any, leadId: string): Promise<string[]> {
+  // 1. Cached?
+  const { data: cached } = await supabase
+    .from("market_analysis_files")
+    .select("id, analysis_json")
+    .eq("lead_id", leadId)
+    .eq("agent_id", user.id)
+    .eq("file_type", "comp_remarks")
+    .limit(1);
+  const cachedList = (cached?.[0]?.analysis_json as any)?.compRemarks;
+  if (Array.isArray(cachedList)) return cachedList.filter((r: any) => typeof r === "string" && r.trim());
+
+  // 2. Find the CMA / Property Detail Report document.
+  const { data: docs } = await supabase
+    .from("market_analysis_files")
+    .select("file_path, file_name, document_label, mime_type")
+    .eq("lead_id", leadId)
+    .eq("agent_id", user.id)
+    .not("file_path", "is", null)
+    .order("created_at", { ascending: false });
+
+  const isCma = (d: any) =>
+    `${d.document_label || ""} ${d.file_name || ""}`.toLowerCase().includes("cma") ||
+    `${d.document_label || ""} ${d.file_name || ""}`.toLowerCase().includes("property detail");
+  const doc = (docs || []).find(isCma) || (docs || []).find((d: any) => (d.mime_type || "").includes("pdf"));
+  if (!doc?.file_path) return [];
+
+  const { data: signed } = await supabase.storage
+    .from("market-analysis-docs")
+    .createSignedUrl(doc.file_path, 600);
+  if (!signed?.signedUrl) return [];
+
+  const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
+  if (!ANTHROPIC_API_KEY) return [];
+
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "x-api-key": ANTHROPIC_API_KEY,
+      "anthropic-version": "2023-06-01",
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "claude-sonnet-4-5",
+      max_tokens: 4096,
+      messages: [{
+        role: "user",
+        content: [
+          { type: "document", source: { type: "url", url: signed.signedUrl } },
+          { type: "text", text: COMP_REMARKS_PROMPT },
+        ],
+      }],
+    }),
+  });
+
+  if (!res.ok) {
+    console.error("comp remarks extraction failed:", res.status, (await res.text()).slice(0, 300));
+    return [];
+  }
+
+  const json = await res.json();
+  const text: string = (json.content || []).map((c: any) => c?.text || "").join("").trim();
+  const match = text.match(/\[[\s\S]*\]/);
+  let remarks: string[] = [];
+  try {
+    const parsed = JSON.parse(match ? match[0] : text);
+    if (Array.isArray(parsed)) remarks = parsed.filter((r: any) => typeof r === "string" && r.trim().length > 30);
+  } catch (_) { /* leave empty */ }
+
+  // 3. Cache (even an empty result, to avoid re-reading the PDF every run).
+  try {
+    if (cached?.[0]?.id) {
+      await supabase.from("market_analysis_files")
+        .update({ analysis_json: { compRemarks: remarks } })
+        .eq("id", cached[0].id);
+    } else {
+      await supabase.from("market_analysis_files").insert({
+        lead_id: leadId,
+        agent_id: user.id,
+        file_name: "Comparable Listing Remarks",
+        file_path: null,
+        file_type: "comp_remarks",
+        mime_type: "application/json",
+        document_label: "Comp Remarks Cache",
+        source_type: "storage",
+        analysis_json: { compRemarks: remarks },
+      });
+    }
+  } catch (e) { console.error("comp remarks cache failed:", e); }
+
+  return remarks;
+}
