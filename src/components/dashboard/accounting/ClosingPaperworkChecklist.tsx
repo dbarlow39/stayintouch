@@ -47,6 +47,8 @@ const ClosingPaperworkChecklist = ({
   onChange,
   naState = {},
   onNAChange,
+  unverified = {},
+  evidence = {},
 }: Props) => {
   const items: Item[] = [
     { key: "settlement_statement", label: "Settlement Statement" },
