@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { DollarSign, FileCheck, Clock, Users, CheckCircle2, XCircle, Store, Search } from "lucide-react";
+import { DollarSign, FileCheck, Clock, Users, CheckCircle2, XCircle, Store, Search, HelpCircle } from "lucide-react";
 import ReadyToPayDialog from "./ReadyToPayDialog";
 import { format } from "date-fns";
 
