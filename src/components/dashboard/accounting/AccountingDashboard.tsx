@@ -45,6 +45,58 @@ const AccountingDashboard = ({ onNavigate }: AccountingDashboardProps) => {
     closing.paperwork_status === "received" ||
     (closing.notes?.toLowerCase().includes("paperwork complete") ?? false);
 
+  // The 9 documents the closing checklist tracks. Seller-only and buyer-only
+  // items are excluded when the representation says they do not apply.
+  const requiredChecklistKeys = (closing: any): string[] => {
+    const keys = [
+      "settlement_statement",
+      "consumer_guide",
+      "agency_disclosure",
+      "signed_contract",
+      "representation_agreement",
+      "residential_property_disclosure",
+      "lead_based_paint_disclosure",
+    ];
+    if (closing.representation === "seller") keys.push("affiliated_business_arrangement");
+    if (closing.representation === "buyer") keys.push("home_inspection");
+    return keys;
+  };
+
+  /**
+   * "complete" — every required document confirmed or marked N/A
+   * "review"   — paperwork is here but items are missing or unverifiable
+   * "none"     — no paperwork at all
+   */
+  const paperworkState = (closing: any): "complete" | "review" | "none" => {
+    if (!hasPaperworkReceived(closing)) return "none";
+    const checklist = (closing.paperwork_checklist || {}) as Record<string, boolean>;
+    const na = (closing.paperwork_na || {}) as Record<string, boolean>;
+    const unverified = (closing.paperwork_unverified || {}) as Record<string, boolean>;
+    const outstanding = requiredChecklistKeys(closing).filter(
+      k => !checklist[k] && !na[k],
+    );
+    const anyUnverified = Object.values(unverified).some(Boolean);
+    return outstanding.length === 0 && !anyUnverified ? "complete" : "review";
+  };
+
+  const paperworkTooltip = (closing: any): string => {
+    const checklist = (closing.paperwork_checklist || {}) as Record<string, boolean>;
+    const na = (closing.paperwork_na || {}) as Record<string, boolean>;
+    const unverified = (closing.paperwork_unverified || {}) as Record<string, boolean>;
+    const label = (k: string) =>
+      k.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+    const missing = requiredChecklistKeys(closing)
+      .filter(k => !checklist[k] && !na[k] && !unverified[k])
+      .map(label);
+    const cantVerify = Object.keys(unverified)
+      .filter(k => unverified[k] && !checklist[k] && !na[k])
+      .map(label);
+    const parts: string[] = [];
+    if (missing.length) parts.push(`Missing: ${missing.join(", ")}`);
+    if (cantVerify.length) parts.push(`Can't verify: ${cantVerify.join(", ")}`);
+    return parts.join(" — ") || "Needs review";
+  };
+
   const { data: pendingChecks = [] } = useQuery({
     queryKey: ["accounting-pending-checks"],
     queryFn: async () => {
