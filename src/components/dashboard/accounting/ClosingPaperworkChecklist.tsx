@@ -160,6 +160,8 @@ const ClosingPaperworkChecklist = ({
         {items.map(item => {
           const isNA = !!naState[item.key];
           const isChecked = !!checklist[item.key];
+          const pages = evidence[item.key] || [];
+          const isUnverified = !!unverified[item.key] && !isChecked && !isNA;
           return (
             <Fragment key={item.key}>
               <li className="grid grid-cols-[auto_auto_1fr] gap-x-3 items-start">
