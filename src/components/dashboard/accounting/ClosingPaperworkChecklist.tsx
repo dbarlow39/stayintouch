@@ -1,7 +1,7 @@
 import { Fragment } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { CheckCircle2, AlertCircle } from "lucide-react";
+import { CheckCircle2, AlertCircle, HelpCircle } from "lucide-react";
 
 export type ChecklistKey =
   | "consumer_guide"
