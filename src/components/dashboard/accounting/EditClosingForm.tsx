@@ -118,6 +118,14 @@ const EditClosingForm = ({ closingId, onBack }: EditClosingFormProps) => {
       if (savedNA && typeof savedNA === "object") {
         setNAState(savedNA as ChecklistNAState);
       }
+      const savedUnverified = (closing as any).paperwork_unverified;
+      if (savedUnverified && typeof savedUnverified === "object") {
+        setUnverified(savedUnverified as Record<string, boolean>);
+      }
+      const savedEvidence = (closing as any).paperwork_evidence;
+      if (savedEvidence && typeof savedEvidence === "object") {
+        setEvidence(savedEvidence as Record<string, number[]>);
+      }
     }
   }, [closing]);
 
