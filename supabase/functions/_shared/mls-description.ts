@@ -190,14 +190,16 @@ export function aiGatewayErrorResponse(status: number) {
 // ---------------------------------------------------------------------------
 const COMP_REMARKS_PROMPT = `This document is a CMA / Property Detail Report containing several comparable listings.
 
-Extract the PUBLIC REMARKS / agent remarks / marketing description paragraph for each comparable listing in the document, verbatim.
+Read the PUBLIC REMARKS / marketing description paragraphs written for those comparable listings, then distill them into a short list of interesting selling angles, lifestyle hooks, neighborhood references, and vivid phrases that a listing agent could reuse when writing a new description.
 
 Rules:
-- Return ONLY a JSON array of strings, nothing else. Example: ["remark one", "remark two"]
-- One array entry per listing that has a remarks/description paragraph.
-- Copy the text exactly as written. Do not summarize, merge, or rewrite.
-- Skip listings with no remarks paragraph. Skip tables of numbers, tax data, and agent contact info.
-- If no remarks paragraphs exist anywhere, return [].`;
+- Return ONLY a JSON array of strings, nothing else. Example: ["walkable to Uptown shops and dining", "oversized covered patio built for entertaining"]
+- 8 to 12 items total, each one short (under 15 words). One idea per item.
+- Do NOT copy whole paragraphs and do NOT return one entry per listing. Merge repeated ideas into a single item.
+- Focus on angles and phrasing, not raw specs like bedroom counts, square footage, or prices.
+- Skip tables of numbers, tax data, and agent contact info.
+- If the document has no marketing description text anywhere, return [].`;
+
 
 export async function getCompRemarks(
   supabase: any,
