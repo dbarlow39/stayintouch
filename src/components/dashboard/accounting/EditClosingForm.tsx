@@ -35,6 +35,8 @@ const EditClosingForm = ({ closingId, onBack }: EditClosingFormProps) => {
   const [builtBefore1978, setBuiltBefore1978] = useState(false);
   const [checklist, setChecklist] = useState<ChecklistState>({});
   const [naState, setNAState] = useState<ChecklistNAState>({});
+  const [unverified, setUnverified] = useState<Record<string, boolean>>({});
+  const [evidence, setEvidence] = useState<Record<string, number[]>>({});
   const initialReceivedRef = useRef<{ paperwork: boolean; check: boolean } | null>(null);
   const [notifyDialog, setNotifyDialog] = useState<{ open: boolean; paperwork: boolean; check: boolean; agentEmail: string; agentName: string; address: string }>({
     open: false, paperwork: false, check: false, agentEmail: "", agentName: "", address: "",
@@ -115,6 +117,14 @@ const EditClosingForm = ({ closingId, onBack }: EditClosingFormProps) => {
       const savedNA = (closing as any).paperwork_na;
       if (savedNA && typeof savedNA === "object") {
         setNAState(savedNA as ChecklistNAState);
+      }
+      const savedUnverified = (closing as any).paperwork_unverified;
+      if (savedUnverified && typeof savedUnverified === "object") {
+        setUnverified(savedUnverified as Record<string, boolean>);
+      }
+      const savedEvidence = (closing as any).paperwork_evidence;
+      if (savedEvidence && typeof savedEvidence === "object") {
+        setEvidence(savedEvidence as Record<string, number[]>);
       }
     }
   }, [closing]);
@@ -581,6 +591,8 @@ const EditClosingForm = ({ closingId, onBack }: EditClosingFormProps) => {
             onChange={setChecklist}
             naState={naState}
             onNAChange={setNAState}
+            unverified={unverified as any}
+            evidence={evidence as any}
           />
 
           <div className="space-y-2">

@@ -11,10 +11,18 @@ row with **Paperwork Received** marked.
 1. **Install Python 3.10+** from https://www.python.org/downloads/
    (during install, check **Add Python to PATH**).
 
-2. **Install the one dependency** (open Command Prompt):
+2. **Install the dependencies** (open Command Prompt):
    ```
-   pip install requests
+   pip install requests pdfplumber pytesseract pdf2image
    ```
+
+   For OCR of scanned pages you also need two free programs:
+   - **Tesseract** — https://github.com/UB-Mannheim/tesseract/wiki (accept the default install path)
+   - **Poppler for Windows** — https://github.com/oschwartz10612/poppler-windows/releases
+     (unzip, then add its `Library\bin` folder to your PATH)
+
+   The sync still runs without them — it just reports scanned pages as
+   "can't verify" instead of reading them.
 
 3. **Copy this folder** to your PC, e.g. `C:\Tools\compiled-sync\`.
 
@@ -59,6 +67,7 @@ Repeat steps 1–6 for the evening run:
 |---|---|
 | Cached login token | `%APPDATA%\compiled-sync\token.json` |
 | Run log | `%APPDATA%\compiled-sync\sync.log` |
+| OCR cache (safe to delete) | `%APPDATA%\compiled-sync\ocr-cache\` |
 | Print queue list | `C:\Users\dbarl\Dropbox\0 Sell for 1 Percent\Closed Deals\to_print.txt` |
 | Downloaded PDFs | `…\Closed Deals\<property address>\<original filename>` |
 

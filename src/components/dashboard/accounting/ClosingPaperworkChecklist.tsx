@@ -1,7 +1,7 @@
 import { Fragment } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { CheckCircle2, AlertCircle } from "lucide-react";
+import { CheckCircle2, AlertCircle, HelpCircle } from "lucide-react";
 
 export type ChecklistKey =
   | "consumer_guide"
@@ -16,6 +16,10 @@ export type ChecklistKey =
 
 export type ChecklistState = Partial<Record<ChecklistKey, boolean>>;
 export type ChecklistNAState = Partial<Record<ChecklistKey, boolean>>;
+/** Documents the audit could not confirm because pages were unreadable scans. */
+export type ChecklistUnverifiedState = Partial<Record<ChecklistKey, boolean>>;
+/** Page numbers where each document was found, as proof for the checkmark. */
+export type ChecklistEvidence = Partial<Record<ChecklistKey, number[]>>;
 
 interface Props {
   representation: "seller" | "buyer" | null;
@@ -25,6 +29,8 @@ interface Props {
   onChange: (next: ChecklistState) => void;
   naState?: ChecklistNAState;
   onNAChange?: (next: ChecklistNAState) => void;
+  unverified?: ChecklistUnverifiedState;
+  evidence?: ChecklistEvidence;
 }
 
 interface Item {
@@ -41,6 +47,8 @@ const ClosingPaperworkChecklist = ({
   onChange,
   naState = {},
   onNAChange,
+  unverified = {},
+  evidence = {},
 }: Props) => {
   const items: Item[] = [
     { key: "settlement_statement", label: "Settlement Statement" },
@@ -103,6 +111,10 @@ const ClosingPaperworkChecklist = ({
   const completed = items.filter(i => checklist[i.key] || naState[i.key]).length;
   const total = items.length;
   const allDone = completed === total;
+  const unverifiedCount = items.filter(
+    i => unverified[i.key] && !checklist[i.key] && !naState[i.key],
+  ).length;
+
 
   return (
     <div className="space-y-3 border rounded-md p-4 bg-muted/20">
@@ -110,24 +122,34 @@ const ClosingPaperworkChecklist = ({
         <div>
           <Label className="text-sm font-semibold">Required Closing Documents</Label>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Confirm each required document is present and signed, or mark N/A. The AI will pre-check items it finds.
+            Confirm each required document is present and signed, or mark N/A. Items found in the
+            scanned packet are pre-checked with the page number they were found on.
           </p>
         </div>
-        <div
-          className={`flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded ${
-            allDone
-              ? "text-emerald-700 bg-emerald-100"
-              : "text-amber-700 bg-amber-100"
-          }`}
-        >
-          {allDone ? (
-            <CheckCircle2 className="w-3.5 h-3.5" />
-          ) : (
-            <AlertCircle className="w-3.5 h-3.5" />
+        <div className="flex items-center gap-2">
+          {unverifiedCount > 0 && (
+            <div className="flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded text-red-700 bg-red-100">
+              <HelpCircle className="w-3.5 h-3.5" />
+              {unverifiedCount} can&apos;t verify
+            </div>
           )}
-          {completed} of {total} confirmed
+          <div
+            className={`flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded ${
+              allDone
+                ? "text-emerald-700 bg-emerald-100"
+                : "text-amber-700 bg-amber-100"
+            }`}
+          >
+            {allDone ? (
+              <CheckCircle2 className="w-3.5 h-3.5" />
+            ) : (
+              <AlertCircle className="w-3.5 h-3.5" />
+            )}
+            {completed} of {total} confirmed
+          </div>
         </div>
       </div>
+
 
       <div className="grid grid-cols-[auto_auto_1fr] gap-x-3 items-center pt-2 pb-1 text-xs text-muted-foreground">
         <span className="w-4" />
@@ -138,6 +160,8 @@ const ClosingPaperworkChecklist = ({
         {items.map(item => {
           const isNA = !!naState[item.key];
           const isChecked = !!checklist[item.key];
+          const pages = evidence[item.key] || [];
+          const isUnverified = !!unverified[item.key] && !isChecked && !isNA;
           return (
             <Fragment key={item.key}>
               <li className="grid grid-cols-[auto_auto_1fr] gap-x-3 items-start">
@@ -162,6 +186,17 @@ const ClosingPaperworkChecklist = ({
                   <span className={isChecked || isNA ? "line-through text-muted-foreground" : ""}>
                     {item.label}
                   </span>
+                  {isChecked && pages.length > 0 && (
+                    <span className="ml-2 text-xs text-muted-foreground">
+                      (p. {pages.slice(0, 6).join(", ")}{pages.length > 6 ? "…" : ""})
+                    </span>
+                  )}
+                  {isUnverified && (
+                    <span className="ml-2 inline-flex items-center gap-1 text-xs font-medium text-red-700">
+                      <HelpCircle className="w-3 h-3" />
+                      Can&apos;t verify — unreadable pages
+                    </span>
+                  )}
                   {item.hint && (
                     <span className="block text-xs text-muted-foreground mt-0.5">
                       {item.hint}

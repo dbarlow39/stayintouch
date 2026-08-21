@@ -34,6 +34,14 @@ from pathlib import Path
 
 import requests
 
+try:
+    from closing_audit import audit_packet
+except Exception as _audit_import_err:  # pragma: no cover
+    audit_packet = None
+    _AUDIT_IMPORT_ERROR = str(_audit_import_err)
+else:
+    _AUDIT_IMPORT_ERROR = ""
+
 # ---- Configuration ----
 SUPABASE_URL = "https://ujhohggsvijjqoatvwnl.supabase.co"
 SUPABASE_ANON_KEY = (
@@ -314,6 +322,7 @@ def process_email(access_token, agent_id, agent_name, email):
     folder_id = str(uuid.uuid4())
     paperwork_files = []
     signed_urls = []
+    local_paths = []
 
     for att in email["attachments"]:
         log(f"  Downloading: {att['filename']}")
@@ -336,6 +345,7 @@ def process_email(access_token, agent_id, agent_name, email):
         local_path = target_dir / safe_name
         local_path.write_bytes(pdf_bytes)
         log(f"    Saved to {local_path} ({len(pdf_bytes)} bytes)")
+        local_paths.append(local_path)
 
         # Upload to Supabase storage
         storage_path = f"{folder_id}/{int(time.time() * 1000)}-{safe_name}"
@@ -432,6 +442,54 @@ def process_email(access_token, agent_id, agent_name, email):
     # Prefer listing agent name from paperwork over the logged-in user
     row_agent_name = extracted.get("listing_agent_name") or agent_name
 
+    # ---- Deterministic audit (code decides presence, not the model) ----
+    paperwork_unverified = {}
+    paperwork_evidence = {}
+    audit = None
+    if audit_packet is None:
+        log(f"  Audit skipped (module unavailable: {_AUDIT_IMPORT_ERROR})")
+    elif local_paths:
+        try:
+            log(f"  Running deterministic audit on {len(local_paths)} PDF(s)...")
+            audit = audit_packet([str(p) for p in local_paths],
+                                 cover_checklist=checklist_detected, logger=log)
+        except Exception as e:
+            log(f"  Audit FAILED (non-fatal): {e}")
+            audit = None
+
+    if audit:
+        log(f"    Audit: side={audit['side']} pages={audit['pages']} "
+            f"unreadable={len(audit['unreadable_pages'])} "
+            f"missing={audit['missing_required']} unverifiable={audit['unverifiable']}")
+        if audit.get("cover_sheet_wrong"):
+            log(f"    Cover sheet disagreed on: {[c['doc'] for c in audit['cover_sheet_wrong']]}")
+
+        # Deterministic findings override the model's checklist.
+        paperwork_checklist = {
+            **paperwork_checklist,
+            **audit["ui_checklist"],
+        }
+        paperwork_unverified = audit["ui_unverified"]
+        paperwork_evidence = audit["ui_evidence"]
+
+        # Coordinate-matched values beat reading-order values.
+        if audit.get("closing_date"):
+            closing_date_str = audit["closing_date"]
+        if audit.get("listing_agent"):
+            row_agent_name = audit["listing_agent"]
+        if audit.get("side") == "buyer_side":
+            representation = "buyer"
+        elif audit.get("side") == "seller_side":
+            representation = "seller"
+        # ABA/Caliber bonus only when Caliber is on the settlement statement.
+        caliber_detected = bool(audit.get("caliber_on_settlement")) or caliber_detected
+        if audit.get("sale_price") and not sale_price:
+            sale_price = float(audit["sale_price"])
+            total_check = max(sale_price * 0.01, 2250.0) + 499.0
+            total_commission_net = total_check - admin_fee
+            company_share = total_commission_net * (company_split_pct / 100.0)
+            agent_share = total_commission_net * (agent_split_pct / 100.0)
+
     row = {
         "agent_id": agent_id,
         "agent_name": row_agent_name,
@@ -452,6 +510,9 @@ def process_email(access_token, agent_id, agent_name, email):
         "caliber_title_amount": 150,
         "representation": representation,
         "paperwork_checklist": paperwork_checklist,
+        "paperwork_unverified": paperwork_unverified,
+        "paperwork_evidence": paperwork_evidence,
+        "paperwork_audit": audit,
         "paperwork_na": {},
         "status": "pending",
         "paperwork_files": paperwork_files,
