@@ -5,7 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Sparkles, Wand2, Copy, Loader2, Save, Combine } from "lucide-react";
+import { Sparkles, Wand2, Copy, Loader2, Save, Combine, FileSearch, Plus, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface Props {
@@ -286,6 +286,101 @@ const MLSDescriptionTab = ({ leadId, initialDescription, initialClaude, initialF
     return () => { cancelled = true; };
   }, [leadId]);
 
+  // ---- Comparable listing remarks (reviewed/edited before generating) ----
+  const [compRemarks, setCompRemarks] = useState<string[]>([]);
+  const [compRowId, setCompRowId] = useState<string | null>(null);
+  const [compLoaded, setCompLoaded] = useState(false);
+  const [pullingComps, setPullingComps] = useState(false);
+  const [savingComps, setSavingComps] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setCompLoaded(false);
+      const { data } = await supabase
+        .from("market_analysis_files")
+        .select("id, analysis_json")
+        .eq("lead_id", leadId)
+        .eq("file_type", "comp_remarks")
+        .limit(1)
+        .maybeSingle();
+      if (cancelled) return;
+      const list = (data as any)?.analysis_json?.compRemarks;
+      setCompRowId((data as any)?.id ?? null);
+      setCompRemarks(Array.isArray(list) ? list.filter((r: any) => typeof r === "string") : []);
+      setCompLoaded(true);
+    })();
+    return () => { cancelled = true; };
+  }, [leadId]);
+
+  const pullCompRemarks = async (force = false) => {
+    setPullingComps(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("extract-comp-remarks", {
+        body: { leadId, force },
+      });
+      if (error) throw error;
+      const list = Array.isArray((data as any)?.remarks) ? (data as any).remarks : [];
+      setCompRemarks(list);
+      const { data: row } = await supabase
+        .from("market_analysis_files")
+        .select("id")
+        .eq("lead_id", leadId)
+        .eq("file_type", "comp_remarks")
+        .limit(1)
+        .maybeSingle();
+      setCompRowId((row as any)?.id ?? null);
+      toast({
+        title: list.length ? `Pulled ${list.length} comp remark${list.length === 1 ? "" : "s"}` : "No comp remarks found",
+        description: list.length
+          ? "Review and edit them below. Only what you save is used when generating."
+          : "The CMA / Property Detail Report didn't contain any description paragraphs.",
+      });
+    } catch (e: any) {
+      toast({ title: "Couldn't pull comp remarks", description: e.message, variant: "destructive" });
+    } finally {
+      setPullingComps(false);
+    }
+  };
+
+  const saveCompRemarks = async (list?: string[]) => {
+    const clean = (list ?? compRemarks).map((r) => r.trim()).filter(Boolean);
+    setSavingComps(true);
+    try {
+      if (compRowId) {
+        const { error } = await supabase
+          .from("market_analysis_files")
+          .update({ analysis_json: { compRemarks: clean } as any })
+          .eq("id", compRowId);
+        if (error) throw error;
+      } else {
+        const { data: { user } } = await supabase.auth.getUser();
+        const { data, error } = await supabase
+          .from("market_analysis_files")
+          .insert({
+            lead_id: leadId,
+            agent_id: user?.id,
+            file_name: "Comparable Listing Remarks",
+            file_type: "comp_remarks",
+            mime_type: "application/json",
+            document_label: "Comp Remarks Cache",
+            source_type: "storage",
+            analysis_json: { compRemarks: clean } as any,
+          } as any)
+          .select("id")
+          .single();
+        if (error) throw error;
+        setCompRowId((data as any)?.id ?? null);
+      }
+      setCompRemarks(clean);
+      toast({ title: "Comp remarks saved", description: "These are what ChatGPT and Claude will see." });
+    } catch (e: any) {
+      toast({ title: "Save failed", description: e.message, variant: "destructive" });
+    } finally {
+      setSavingComps(false);
+    }
+  };
+
   // Debounced auto-save for the notes field
   useEffect(() => {
     if (!notesLoadedRef.current) return;
@@ -532,8 +627,81 @@ const MLSDescriptionTab = ({ leadId, initialDescription, initialClaude, initialF
               placeholder={suggestingPoints ? "Looking for points of interest..." : "e.g. New roof in 2023. Highlight the corner lot. Buyer agents love the school district."}
             />
           </div>
+
+          <div className="space-y-2 border-t pt-4">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <Label className="text-sm font-semibold">Comparable listing remarks</Label>
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => pullCompRemarks(compRemarks.length > 0)}
+                  disabled={pullingComps}
+                >
+                  {pullingComps ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileSearch className="w-4 h-4" />}
+                  {compRemarks.length > 0 ? "Re-pull from CMA" : "Pull remarks from CMA report"}
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={() => saveCompRemarks()}
+                  disabled={savingComps || pullingComps}
+                  className="bg-[#9B111E] hover:bg-[#7A0D17] text-white"
+                >
+                  {savingComps ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                  Save remarks
+                </Button>
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              The MLS descriptions written for the comparable listings in your CMA / Property Detail Report. Edit or delete anything that doesn't make sense, then save. Only what you save here is given to ChatGPT and Claude, and it is used for tone and phrasing ideas only, never as facts about this home.
+            </p>
+
+            {!compLoaded && (
+              <p className="text-xs text-muted-foreground italic flex items-center gap-1">
+                <Loader2 className="w-3 h-3 animate-spin" /> Loading saved comp remarks...
+              </p>
+            )}
+
+            {compLoaded && compRemarks.length === 0 && (
+              <p className="text-sm text-muted-foreground italic">
+                No comp remarks yet. Pull them from the CMA / Property Detail Report to give the writer neighborhood language.
+              </p>
+            )}
+
+            {compRemarks.map((remark, i) => (
+              <div key={i} className="flex gap-2 items-start">
+                <span className="text-xs text-muted-foreground pt-2 w-5 shrink-0">{i + 1}.</span>
+                <Textarea
+                  value={remark}
+                  onChange={(e) => {
+                    const next = [...compRemarks];
+                    next[i] = e.target.value;
+                    setCompRemarks(next);
+                  }}
+                  rows={4}
+                  className="flex-1"
+                />
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="text-muted-foreground hover:text-destructive shrink-0"
+                  onClick={() => setCompRemarks(compRemarks.filter((_, idx) => idx !== i))}
+                  aria-label={`Delete comp remark ${i + 1}`}
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+            ))}
+
+            {compLoaded && (
+              <Button size="sm" variant="outline" onClick={() => setCompRemarks([...compRemarks, ""])}>
+                <Plus className="w-4 h-4" /> Add remark
+              </Button>
+            )}
+          </div>
         </CardContent>
       </Card>
+
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <ColumnPanel

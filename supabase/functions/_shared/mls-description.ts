@@ -162,7 +162,8 @@ export async function buildWorkSheetContext(supabase: any, user: any, leadId: st
   // Property Detail Report. Style inspiration only, never facts about the subject.
   let compRemarksBlock = "";
   try {
-    const remarks = await getCompRemarks(supabase, user, leadId);
+    // cacheOnly: only use remarks the agent has reviewed/edited and saved.
+    const remarks = await getCompRemarks(supabase, user, leadId, true);
     if (remarks.length) {
       const listed = remarks.map((r, i) => `${i + 1}. ${r}`).join("\n\n").slice(0, 8000);
       compRemarksBlock = `\n\nPUBLIC REMARKS FROM COMPARABLE LISTINGS (STYLE INSPIRATION ONLY):\nThese are the MLS descriptions written for OTHER nearby homes that recently sold or are listed. They are NOT descriptions of the subject property. Study them for tone, phrasing, sentence rhythm, neighborhood angles, and lifestyle hooks that resonate with buyers in this market, then write in that spirit. You may NOT borrow any feature, finish, material, appliance, upgrade, view, or condition from these remarks as a fact about the subject home. Never mention comps, other addresses, or pricing in the description.\n\n${listed}\n`;
@@ -198,7 +199,12 @@ Rules:
 - Skip listings with no remarks paragraph. Skip tables of numbers, tax data, and agent contact info.
 - If no remarks paragraphs exist anywhere, return [].`;
 
-export async function getCompRemarks(supabase: any, user: any, leadId: string): Promise<string[]> {
+export async function getCompRemarks(
+  supabase: any,
+  user: any,
+  leadId: string,
+  cacheOnly = false,
+): Promise<string[]> {
   // 1. Cached?
   const { data: cached } = await supabase
     .from("market_analysis_files")
@@ -209,6 +215,10 @@ export async function getCompRemarks(supabase: any, user: any, leadId: string): 
     .limit(1);
   const cachedList = (cached?.[0]?.analysis_json as any)?.compRemarks;
   if (Array.isArray(cachedList)) return cachedList.filter((r: any) => typeof r === "string" && r.trim());
+  if (cacheOnly) {
+    console.log("comp remarks: none saved for lead", leadId, "- skipping extraction (cacheOnly)");
+    return [];
+  }
 
   // 2. Find the CMA / Property Detail Report document.
   const { data: docs } = await supabase
@@ -223,7 +233,11 @@ export async function getCompRemarks(supabase: any, user: any, leadId: string): 
     `${d.document_label || ""} ${d.file_name || ""}`.toLowerCase().includes("cma") ||
     `${d.document_label || ""} ${d.file_name || ""}`.toLowerCase().includes("property detail");
   const doc = (docs || []).find(isCma) || (docs || []).find((d: any) => (d.mime_type || "").includes("pdf"));
-  if (!doc?.file_path) return [];
+  if (!doc?.file_path) {
+    console.log("comp remarks: no CMA/PDF document found for lead", leadId, "candidates:", (docs || []).length);
+    return [];
+  }
+  console.log("comp remarks: reading document", doc.document_label || doc.file_name, doc.file_path);
 
   const { data: signed } = await supabase.storage
     .from("market-analysis-docs")
@@ -266,6 +280,7 @@ export async function getCompRemarks(supabase: any, user: any, leadId: string): 
     const parsed = JSON.parse(match ? match[0] : text);
     if (Array.isArray(parsed)) remarks = parsed.filter((r: any) => typeof r === "string" && r.trim().length > 30);
   } catch (_) { /* leave empty */ }
+  console.log("comp remarks: parsed", remarks.length, "remark(s) for lead", leadId);
 
   // 3. Cache (even an empty result, to avoid re-reading the PDF every run).
   try {
