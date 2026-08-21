@@ -199,7 +199,12 @@ Rules:
 - Skip listings with no remarks paragraph. Skip tables of numbers, tax data, and agent contact info.
 - If no remarks paragraphs exist anywhere, return [].`;
 
-export async function getCompRemarks(supabase: any, user: any, leadId: string): Promise<string[]> {
+export async function getCompRemarks(
+  supabase: any,
+  user: any,
+  leadId: string,
+  cacheOnly = false,
+): Promise<string[]> {
   // 1. Cached?
   const { data: cached } = await supabase
     .from("market_analysis_files")
