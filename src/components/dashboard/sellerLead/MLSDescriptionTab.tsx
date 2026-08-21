@@ -627,8 +627,81 @@ const MLSDescriptionTab = ({ leadId, initialDescription, initialClaude, initialF
               placeholder={suggestingPoints ? "Looking for points of interest..." : "e.g. New roof in 2023. Highlight the corner lot. Buyer agents love the school district."}
             />
           </div>
+
+          <div className="space-y-2 border-t pt-4">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <Label className="text-sm font-semibold">Comparable listing remarks</Label>
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => pullCompRemarks(compRemarks.length > 0)}
+                  disabled={pullingComps}
+                >
+                  {pullingComps ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileSearch className="w-4 h-4" />}
+                  {compRemarks.length > 0 ? "Re-pull from CMA" : "Pull remarks from CMA report"}
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={() => saveCompRemarks()}
+                  disabled={savingComps || pullingComps}
+                  className="bg-[#9B111E] hover:bg-[#7A0D17] text-white"
+                >
+                  {savingComps ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                  Save remarks
+                </Button>
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              The MLS descriptions written for the comparable listings in your CMA / Property Detail Report. Edit or delete anything that doesn't make sense, then save. Only what you save here is given to ChatGPT and Claude, and it is used for tone and phrasing ideas only, never as facts about this home.
+            </p>
+
+            {!compLoaded && (
+              <p className="text-xs text-muted-foreground italic flex items-center gap-1">
+                <Loader2 className="w-3 h-3 animate-spin" /> Loading saved comp remarks...
+              </p>
+            )}
+
+            {compLoaded && compRemarks.length === 0 && (
+              <p className="text-sm text-muted-foreground italic">
+                No comp remarks yet. Pull them from the CMA / Property Detail Report to give the writer neighborhood language.
+              </p>
+            )}
+
+            {compRemarks.map((remark, i) => (
+              <div key={i} className="flex gap-2 items-start">
+                <span className="text-xs text-muted-foreground pt-2 w-5 shrink-0">{i + 1}.</span>
+                <Textarea
+                  value={remark}
+                  onChange={(e) => {
+                    const next = [...compRemarks];
+                    next[i] = e.target.value;
+                    setCompRemarks(next);
+                  }}
+                  rows={4}
+                  className="flex-1"
+                />
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="text-muted-foreground hover:text-destructive shrink-0"
+                  onClick={() => setCompRemarks(compRemarks.filter((_, idx) => idx !== i))}
+                  aria-label={`Delete comp remark ${i + 1}`}
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+            ))}
+
+            {compLoaded && (
+              <Button size="sm" variant="outline" onClick={() => setCompRemarks([...compRemarks, ""])}>
+                <Plus className="w-4 h-4" /> Add remark
+              </Button>
+            )}
+          </div>
         </CardContent>
       </Card>
+
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <ColumnPanel
