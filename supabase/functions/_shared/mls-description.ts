@@ -152,7 +152,7 @@ export async function buildWorkSheetContext(supabase: any, user: any, leadId: st
         .join("\n\n");
       if (narrative) parts.push(`NARRATIVE:\n${narrative}`);
       if (parts.length) {
-        cmaBlock = `\n\nCMA / PROPERTY DETAIL DATA (from the Market Analysis page. Use for concrete upgrades, build facts, and distinctive features the walk-through may have missed. Do not mention pricing, comps, or the CMA itself in the description):\n${parts.join("\n\n").slice(0, 6000)}\n`;
+        cmaBlock = `\n\nMARKET ANALYSIS / COMPARABLE LISTING MATERIAL (READ THE RULES BEFORE USING):\nMuch of this material describes OTHER nearby homes (comparable listings), NOT the subject property. Use it ONLY as INSPIRATION for tone, phrasing, and which neighborhood or lifestyle angles resonate with buyers in this market. You may NOT state, imply, or repeat any feature, finish, material, countertop, flooring, appliance, upgrade, or condition found here as a fact about the subject home. The ONLY authoritative sources for what this home actually has are the property facts, the Residential Work Sheet, the photos, the seller's own words, and the agent's notes above. If a detail is not documented in those sources, do not mention it. Never mention pricing, comps, or the analysis itself in the description.\n\n${parts.join("\n\n").slice(0, 6000)}\n`;
       }
     }
   } catch (_) { /* non-fatal */ }
