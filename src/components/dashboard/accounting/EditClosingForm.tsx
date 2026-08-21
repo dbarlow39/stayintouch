@@ -35,6 +35,8 @@ const EditClosingForm = ({ closingId, onBack }: EditClosingFormProps) => {
   const [builtBefore1978, setBuiltBefore1978] = useState(false);
   const [checklist, setChecklist] = useState<ChecklistState>({});
   const [naState, setNAState] = useState<ChecklistNAState>({});
+  const [unverified, setUnverified] = useState<Record<string, boolean>>({});
+  const [evidence, setEvidence] = useState<Record<string, number[]>>({});
   const initialReceivedRef = useRef<{ paperwork: boolean; check: boolean } | null>(null);
   const [notifyDialog, setNotifyDialog] = useState<{ open: boolean; paperwork: boolean; check: boolean; agentEmail: string; agentName: string; address: string }>({
     open: false, paperwork: false, check: false, agentEmail: "", agentName: "", address: "",
