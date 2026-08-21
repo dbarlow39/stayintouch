@@ -67,6 +67,7 @@ Repeat steps 1–6 for the evening run:
 |---|---|
 | Cached login token | `%APPDATA%\compiled-sync\token.json` |
 | Run log | `%APPDATA%\compiled-sync\sync.log` |
+| OCR cache (safe to delete) | `%APPDATA%\compiled-sync\ocr-cache\` |
 | Print queue list | `C:\Users\dbarl\Dropbox\0 Sell for 1 Percent\Closed Deals\to_print.txt` |
 | Downloaded PDFs | `…\Closed Deals\<property address>\<original filename>` |
 
