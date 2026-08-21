@@ -337,6 +337,7 @@ def process_email(access_token, agent_id, agent_name, email):
         local_path = target_dir / safe_name
         local_path.write_bytes(pdf_bytes)
         log(f"    Saved to {local_path} ({len(pdf_bytes)} bytes)")
+        local_paths.append(local_path)
 
         # Upload to Supabase storage
         storage_path = f"{folder_id}/{int(time.time() * 1000)}-{safe_name}"
