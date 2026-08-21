@@ -103,7 +103,7 @@ const MarketAnalysisTab = ({ lead }: MarketAnalysisTabProps) => {
         if (!error && data) {
           setSavedFiles(data);
           // Restore the most recent analysis JSON if available
-          const withAnalysis = data.find((f: any) => f.analysis_json);
+          const withAnalysis = data.find((f: any) => f.file_type === "analysis_json" && f.analysis_json);
           if (withAnalysis?.analysis_json) {
             setAnalysis(withAnalysis.analysis_json);
           }

@@ -132,6 +132,7 @@ export async function buildWorkSheetContext(supabase: any, user: any, leadId: st
       .select("analysis_json")
       .eq("lead_id", leadId)
       .eq("agent_id", user.id)
+      .eq("file_type", "analysis_json")
       .not("analysis_json", "is", null)
       .order("updated_at", { ascending: false })
       .limit(1);
@@ -157,7 +158,19 @@ export async function buildWorkSheetContext(supabase: any, user: any, leadId: st
     }
   } catch (_) { /* non-fatal */ }
 
-  const factsText = `PROPERTY FACTS:\n${JSON.stringify(facts, null, 2)}${loveBlock}${notesBlock}${cmaBlock}\n\nAI SUMMARY OF WORK SHEET:\n${summary || "(none)"}\n\nFULL TRANSCRIPTION:\n${transcription || "(none)"}\n\nINSPECTION SECTION NOTES:\n${JSON.stringify(inspection.inspection_data, null, 2).slice(0, 8000)}\n\nNow write the MLS description. Remember: under 1000 characters, no em dashes, evocative storytelling, end with an imagined call to action.`;
+  // Verbatim public remarks pulled from the comparable listings in the CMA /
+  // Property Detail Report. Style inspiration only, never facts about the subject.
+  let compRemarksBlock = "";
+  try {
+    const remarks = await getCompRemarks(supabase, user, leadId);
+    if (remarks.length) {
+      const listed = remarks.map((r, i) => `${i + 1}. ${r}`).join("\n\n").slice(0, 8000);
+      compRemarksBlock = `\n\nPUBLIC REMARKS FROM COMPARABLE LISTINGS (STYLE INSPIRATION ONLY):\nThese are the MLS descriptions written for OTHER nearby homes that recently sold or are listed. They are NOT descriptions of the subject property. Study them for tone, phrasing, sentence rhythm, neighborhood angles, and lifestyle hooks that resonate with buyers in this market, then write in that spirit. You may NOT borrow any feature, finish, material, appliance, upgrade, view, or condition from these remarks as a fact about the subject home. Never mention comps, other addresses, or pricing in the description.\n\n${listed}\n`;
+    }
+  } catch (_) { /* non-fatal */ }
+
+  const factsText = `PROPERTY FACTS:\n${JSON.stringify(facts, null, 2)}${loveBlock}${notesBlock}${cmaBlock}${compRemarksBlock}\n\nAI SUMMARY OF WORK SHEET:\n${summary || "(none)"}\n\nFULL TRANSCRIPTION:\n${transcription || "(none)"}\n\nINSPECTION SECTION NOTES:\n${JSON.stringify(inspection.inspection_data, null, 2).slice(0, 8000)}\n\nNow write the MLS description. Remember: under 1000 characters, no em dashes, evocative storytelling, end with an imagined call to action.`;
+
 
   return { factsText, allPhotos };
 }
@@ -166,4 +179,114 @@ export function aiGatewayErrorResponse(status: number) {
   if (status === 429) return new Response(JSON.stringify({ error: "Rate limit exceeded, try again shortly." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   if (status === 402) return new Response(JSON.stringify({ error: "AI credits exhausted. Add credits in Settings > Workspace > Usage." }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   return new Response(JSON.stringify({ error: "AI gateway error" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+}
+
+// ---------------------------------------------------------------------------
+// Comparable-listing public remarks
+// Opens the CMA / Property Detail Report PDF attached to the lead and extracts
+// the verbatim public remarks written for each comparable listing. Results are
+// cached on a `comp_remarks` row so the PDF is only read once per lead.
+// ---------------------------------------------------------------------------
+const COMP_REMARKS_PROMPT = `This document is a CMA / Property Detail Report containing several comparable listings.
+
+Extract the PUBLIC REMARKS / agent remarks / marketing description paragraph for each comparable listing in the document, verbatim.
+
+Rules:
+- Return ONLY a JSON array of strings, nothing else. Example: ["remark one", "remark two"]
+- One array entry per listing that has a remarks/description paragraph.
+- Copy the text exactly as written. Do not summarize, merge, or rewrite.
+- Skip listings with no remarks paragraph. Skip tables of numbers, tax data, and agent contact info.
+- If no remarks paragraphs exist anywhere, return [].`;
+
+export async function getCompRemarks(supabase: any, user: any, leadId: string): Promise<string[]> {
+  // 1. Cached?
+  const { data: cached } = await supabase
+    .from("market_analysis_files")
+    .select("id, analysis_json")
+    .eq("lead_id", leadId)
+    .eq("agent_id", user.id)
+    .eq("file_type", "comp_remarks")
+    .limit(1);
+  const cachedList = (cached?.[0]?.analysis_json as any)?.compRemarks;
+  if (Array.isArray(cachedList)) return cachedList.filter((r: any) => typeof r === "string" && r.trim());
+
+  // 2. Find the CMA / Property Detail Report document.
+  const { data: docs } = await supabase
+    .from("market_analysis_files")
+    .select("file_path, file_name, document_label, mime_type")
+    .eq("lead_id", leadId)
+    .eq("agent_id", user.id)
+    .not("file_path", "is", null)
+    .order("created_at", { ascending: false });
+
+  const isCma = (d: any) =>
+    `${d.document_label || ""} ${d.file_name || ""}`.toLowerCase().includes("cma") ||
+    `${d.document_label || ""} ${d.file_name || ""}`.toLowerCase().includes("property detail");
+  const doc = (docs || []).find(isCma) || (docs || []).find((d: any) => (d.mime_type || "").includes("pdf"));
+  if (!doc?.file_path) return [];
+
+  const { data: signed } = await supabase.storage
+    .from("market-analysis-docs")
+    .createSignedUrl(doc.file_path, 600);
+  if (!signed?.signedUrl) return [];
+
+  const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
+  if (!ANTHROPIC_API_KEY) return [];
+
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "x-api-key": ANTHROPIC_API_KEY,
+      "anthropic-version": "2023-06-01",
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "claude-sonnet-4-5",
+      max_tokens: 4096,
+      messages: [{
+        role: "user",
+        content: [
+          { type: "document", source: { type: "url", url: signed.signedUrl } },
+          { type: "text", text: COMP_REMARKS_PROMPT },
+        ],
+      }],
+    }),
+  });
+
+  if (!res.ok) {
+    console.error("comp remarks extraction failed:", res.status, (await res.text()).slice(0, 300));
+    return [];
+  }
+
+  const json = await res.json();
+  const text: string = (json.content || []).map((c: any) => c?.text || "").join("").trim();
+  const match = text.match(/\[[\s\S]*\]/);
+  let remarks: string[] = [];
+  try {
+    const parsed = JSON.parse(match ? match[0] : text);
+    if (Array.isArray(parsed)) remarks = parsed.filter((r: any) => typeof r === "string" && r.trim().length > 30);
+  } catch (_) { /* leave empty */ }
+
+  // 3. Cache (even an empty result, to avoid re-reading the PDF every run).
+  try {
+    if (cached?.[0]?.id) {
+      await supabase.from("market_analysis_files")
+        .update({ analysis_json: { compRemarks: remarks } })
+        .eq("id", cached[0].id);
+    } else {
+      await supabase.from("market_analysis_files").insert({
+        lead_id: leadId,
+        agent_id: user.id,
+        file_name: "Comparable Listing Remarks",
+        file_path: null,
+        file_type: "comp_remarks",
+        mime_type: "application/json",
+        document_label: "Comp Remarks Cache",
+        source_type: "storage",
+        analysis_json: { compRemarks: remarks },
+      });
+    }
+  } catch (e) { console.error("comp remarks cache failed:", e); }
+
+  return remarks;
 }
