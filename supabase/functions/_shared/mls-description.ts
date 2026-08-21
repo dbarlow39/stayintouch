@@ -233,7 +233,11 @@ export async function getCompRemarks(
     `${d.document_label || ""} ${d.file_name || ""}`.toLowerCase().includes("cma") ||
     `${d.document_label || ""} ${d.file_name || ""}`.toLowerCase().includes("property detail");
   const doc = (docs || []).find(isCma) || (docs || []).find((d: any) => (d.mime_type || "").includes("pdf"));
-  if (!doc?.file_path) return [];
+  if (!doc?.file_path) {
+    console.log("comp remarks: no CMA/PDF document found for lead", leadId, "candidates:", (docs || []).length);
+    return [];
+  }
+  console.log("comp remarks: reading document", doc.document_label || doc.file_name, doc.file_path);
 
   const { data: signed } = await supabase.storage
     .from("market-analysis-docs")
