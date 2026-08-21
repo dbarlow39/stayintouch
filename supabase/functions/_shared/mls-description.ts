@@ -191,15 +191,31 @@ export function aiGatewayErrorResponse(status: number) {
 // ---------------------------------------------------------------------------
 const COMP_REMARKS_PROMPT = `This document is a CMA / Property Detail Report containing several comparable listings.
 
-Read the PUBLIC REMARKS / marketing description paragraphs written for those comparable listings, then distill them into a short list of interesting selling angles, lifestyle hooks, neighborhood references, and vivid phrases that a listing agent could reuse when writing a new description.
+Read the PUBLIC REMARKS / marketing description paragraphs for those comparable listings and extract ONLY general AREA, LOCATION, and LIFESTYLE observations that would be true for almost any home in the same neighborhood.
+
+Good examples: "minutes from shopping and restaurants", "quick access to I-71", "quiet established neighborhood", "highly rated school district", "close to parks and bike trails", "easy commute downtown", "mature tree lined streets", "sidewalk community".
 
 Rules:
-- Return ONLY a JSON array of strings, nothing else. Example: ["walkable to Uptown shops and dining", "oversized covered patio built for entertaining"]
-- 8 to 12 items total, each one short (under 15 words). One idea per item.
-- Do NOT copy whole paragraphs and do NOT return one entry per listing. Merge repeated ideas into a single item.
-- Focus on angles and phrasing, not raw specs like bedroom counts, square footage, or prices.
-- Skip tables of numbers, tax data, and agent contact info.
-- If the document has no marketing description text anywhere, return [].`;
+- Return ONLY a JSON array of strings, nothing else.
+- 6 to 12 items total, each under 12 words, one idea per item, merge duplicates.
+- STRICTLY EXCLUDE anything specific to an individual house: interior finishes, appliances, countertops, flooring, roof, HVAC, windows, remodels, updates, room counts, square footage, basements, garages, pools, decks, lot features, condition, age, or price.
+- Only neighborhood, location, commute, amenity proximity, schools, and community character.
+- If nothing area related is present, return [].`;
+
+// Words that indicate a property-specific feature rather than an area angle.
+const PROPERTY_SPECIFIC_TERMS = [
+  "granite", "quartz", "stainless", "appliance", "countertop", "counter top", "cabinet",
+  "hardwood", "flooring", "floors", "carpet", "tile", "roof", "hvac", "furnace", "window",
+  "renovat", "remodel", "updated", "upgrade", "new ", "basement", "garage", "pool", "deck",
+  "patio", "porch", "fireplace", "master suite", "primary suite", "bedroom", "bathroom",
+  "kitchen", "square feet", "sq ft", "acre", "lot ", "fenced", "backyard", "ceiling",
+  "open floor", "finished", "move-in ready", "move in ready", "bonus room", "walk-in closet",
+];
+
+function isAreaIdea(s: string): boolean {
+  const t = s.toLowerCase();
+  return !PROPERTY_SPECIFIC_TERMS.some((w) => t.includes(w));
+}
 
 
 export async function getCompRemarks(
