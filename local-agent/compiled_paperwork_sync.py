@@ -34,6 +34,14 @@ from pathlib import Path
 
 import requests
 
+try:
+    from closing_audit import audit_packet
+except Exception as _audit_import_err:  # pragma: no cover
+    audit_packet = None
+    _AUDIT_IMPORT_ERROR = str(_audit_import_err)
+else:
+    _AUDIT_IMPORT_ERROR = ""
+
 # ---- Configuration ----
 SUPABASE_URL = "https://ujhohggsvijjqoatvwnl.supabase.co"
 SUPABASE_ANON_KEY = (
