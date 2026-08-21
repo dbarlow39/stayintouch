@@ -6,7 +6,7 @@
 //   - "backfill" (manual button): walks Gmail page-by-page via dropbox_sync_cursor,
 //     capped at 2500 messages total (BACKFILL_TOTAL_CAP). Processes up to `limit`
 //     messages per invocation (default 8) or until max_runtime_ms (default 120000).
-//   - "incremental" (default; cron 7am/7pm): no cursor; Gmail query restricted to
+//   - "incremental" (default; cron 6am/12pm/6pm/12am): no cursor; Gmail query restricted to
 //     newer_than:7d; limit default 100; intended to catch new emails.
 
 import { createClient } from "npm:@supabase/supabase-js@2";
