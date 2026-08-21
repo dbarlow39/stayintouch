@@ -314,6 +314,7 @@ def process_email(access_token, agent_id, agent_name, email):
     folder_id = str(uuid.uuid4())
     paperwork_files = []
     signed_urls = []
+    local_paths = []
 
     for att in email["attachments"]:
         log(f"  Downloading: {att['filename']}")
