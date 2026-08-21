@@ -286,6 +286,101 @@ const MLSDescriptionTab = ({ leadId, initialDescription, initialClaude, initialF
     return () => { cancelled = true; };
   }, [leadId]);
 
+  // ---- Comparable listing remarks (reviewed/edited before generating) ----
+  const [compRemarks, setCompRemarks] = useState<string[]>([]);
+  const [compRowId, setCompRowId] = useState<string | null>(null);
+  const [compLoaded, setCompLoaded] = useState(false);
+  const [pullingComps, setPullingComps] = useState(false);
+  const [savingComps, setSavingComps] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setCompLoaded(false);
+      const { data } = await supabase
+        .from("market_analysis_files")
+        .select("id, analysis_json")
+        .eq("lead_id", leadId)
+        .eq("file_type", "comp_remarks")
+        .limit(1)
+        .maybeSingle();
+      if (cancelled) return;
+      const list = (data as any)?.analysis_json?.compRemarks;
+      setCompRowId((data as any)?.id ?? null);
+      setCompRemarks(Array.isArray(list) ? list.filter((r: any) => typeof r === "string") : []);
+      setCompLoaded(true);
+    })();
+    return () => { cancelled = true; };
+  }, [leadId]);
+
+  const pullCompRemarks = async (force = false) => {
+    setPullingComps(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("extract-comp-remarks", {
+        body: { leadId, force },
+      });
+      if (error) throw error;
+      const list = Array.isArray((data as any)?.remarks) ? (data as any).remarks : [];
+      setCompRemarks(list);
+      const { data: row } = await supabase
+        .from("market_analysis_files")
+        .select("id")
+        .eq("lead_id", leadId)
+        .eq("file_type", "comp_remarks")
+        .limit(1)
+        .maybeSingle();
+      setCompRowId((row as any)?.id ?? null);
+      toast({
+        title: list.length ? `Pulled ${list.length} comp remark${list.length === 1 ? "" : "s"}` : "No comp remarks found",
+        description: list.length
+          ? "Review and edit them below. Only what you save is used when generating."
+          : "The CMA / Property Detail Report didn't contain any description paragraphs.",
+      });
+    } catch (e: any) {
+      toast({ title: "Couldn't pull comp remarks", description: e.message, variant: "destructive" });
+    } finally {
+      setPullingComps(false);
+    }
+  };
+
+  const saveCompRemarks = async (list?: string[]) => {
+    const clean = (list ?? compRemarks).map((r) => r.trim()).filter(Boolean);
+    setSavingComps(true);
+    try {
+      if (compRowId) {
+        const { error } = await supabase
+          .from("market_analysis_files")
+          .update({ analysis_json: { compRemarks: clean } as any })
+          .eq("id", compRowId);
+        if (error) throw error;
+      } else {
+        const { data: { user } } = await supabase.auth.getUser();
+        const { data, error } = await supabase
+          .from("market_analysis_files")
+          .insert({
+            lead_id: leadId,
+            agent_id: user?.id,
+            file_name: "Comparable Listing Remarks",
+            file_type: "comp_remarks",
+            mime_type: "application/json",
+            document_label: "Comp Remarks Cache",
+            source_type: "storage",
+            analysis_json: { compRemarks: clean } as any,
+          } as any)
+          .select("id")
+          .single();
+        if (error) throw error;
+        setCompRowId((data as any)?.id ?? null);
+      }
+      setCompRemarks(clean);
+      toast({ title: "Comp remarks saved", description: "These are what ChatGPT and Claude will see." });
+    } catch (e: any) {
+      toast({ title: "Save failed", description: e.message, variant: "destructive" });
+    } finally {
+      setSavingComps(false);
+    }
+  };
+
   // Debounced auto-save for the notes field
   useEffect(() => {
     if (!notesLoadedRef.current) return;
