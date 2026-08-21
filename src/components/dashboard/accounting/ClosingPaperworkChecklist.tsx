@@ -16,6 +16,10 @@ export type ChecklistKey =
 
 export type ChecklistState = Partial<Record<ChecklistKey, boolean>>;
 export type ChecklistNAState = Partial<Record<ChecklistKey, boolean>>;
+/** Documents the audit could not confirm because pages were unreadable scans. */
+export type ChecklistUnverifiedState = Partial<Record<ChecklistKey, boolean>>;
+/** Page numbers where each document was found, as proof for the checkmark. */
+export type ChecklistEvidence = Partial<Record<ChecklistKey, number[]>>;
 
 interface Props {
   representation: "seller" | "buyer" | null;
@@ -25,6 +29,8 @@ interface Props {
   onChange: (next: ChecklistState) => void;
   naState?: ChecklistNAState;
   onNAChange?: (next: ChecklistNAState) => void;
+  unverified?: ChecklistUnverifiedState;
+  evidence?: ChecklistEvidence;
 }
 
 interface Item {
