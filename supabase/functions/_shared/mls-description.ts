@@ -165,9 +165,10 @@ export async function buildWorkSheetContext(supabase: any, user: any, leadId: st
     // cacheOnly: only use remarks the agent has reviewed/edited and saved.
     const remarks = await getCompRemarks(supabase, user, leadId, true);
     if (remarks.length) {
-      const listed = remarks.map((r, i) => `${i + 1}. ${r}`).join("\n\n").slice(0, 8000);
-      compRemarksBlock = `\n\nPUBLIC REMARKS FROM COMPARABLE LISTINGS (STYLE INSPIRATION ONLY):\nThese are the MLS descriptions written for OTHER nearby homes that recently sold or are listed. They are NOT descriptions of the subject property. Study them for tone, phrasing, sentence rhythm, neighborhood angles, and lifestyle hooks that resonate with buyers in this market, then write in that spirit. You may NOT borrow any feature, finish, material, appliance, upgrade, view, or condition from these remarks as a fact about the subject home. Never mention comps, other addresses, or pricing in the description.\n\n${listed}\n`;
+      const listed = remarks.map((r, i) => `${i + 1}. ${r}`).join("\n").slice(0, 8000);
+      compRemarksBlock = `\n\nIDEAS AND ANGLES USED IN NEARBY LISTINGS (LANGUAGE INSPIRATION ONLY):\nThese are selling angles and phrases distilled from the MLS descriptions of OTHER nearby homes. They are NOT descriptions of the subject property. Use them for tone, phrasing, neighborhood angles, and lifestyle hooks only. You may NOT state any feature, finish, material, appliance, upgrade, view, or condition from this list as a fact about the subject home unless it also appears in the property facts. Never mention comps, other addresses, or pricing.\n\n${listed}\n`;
     }
+
   } catch (_) { /* non-fatal */ }
 
   const factsText = `PROPERTY FACTS:\n${JSON.stringify(facts, null, 2)}${loveBlock}${notesBlock}${cmaBlock}${compRemarksBlock}\n\nAI SUMMARY OF WORK SHEET:\n${summary || "(none)"}\n\nFULL TRANSCRIPTION:\n${transcription || "(none)"}\n\nINSPECTION SECTION NOTES:\n${JSON.stringify(inspection.inspection_data, null, 2).slice(0, 8000)}\n\nNow write the MLS description. Remember: under 1000 characters, no em dashes, evocative storytelling, end with an imagined call to action.`;
