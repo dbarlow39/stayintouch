@@ -215,6 +215,10 @@ export async function getCompRemarks(
     .limit(1);
   const cachedList = (cached?.[0]?.analysis_json as any)?.compRemarks;
   if (Array.isArray(cachedList)) return cachedList.filter((r: any) => typeof r === "string" && r.trim());
+  if (cacheOnly) {
+    console.log("comp remarks: none saved for lead", leadId, "- skipping extraction (cacheOnly)");
+    return [];
+  }
 
   // 2. Find the CMA / Property Detail Report document.
   const { data: docs } = await supabase
