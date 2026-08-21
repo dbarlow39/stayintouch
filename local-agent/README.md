@@ -39,27 +39,25 @@ row with **Paperwork Received** marked.
    ```
    Watch the output — every saved file and every created closing is logged.
 
-## Schedule for 7am and 7pm daily
+## Schedule for 6am, 12 noon, 6pm and midnight daily
 
 Open **Task Scheduler** (Win+R → `taskschd.msc`), then:
 
 1. **Action → Create Task…**
 2. **General** tab:
-   - Name: `Compiled Paperwork Sync - Morning`
+   - Name: `Compiled Paperwork Sync`
    - Check **Run whether user is logged on or not**
    - Check **Run with highest privileges**
 3. **Triggers** tab → **New…**
-   - Begin: **On a schedule**, Daily, Start time **7:00 AM**, Recur every 1 day.
+   - Begin: **On a schedule**, Daily, Start time **12:00 AM**, Recur every 1 day.
+   - Check **Repeat task every**, type `6 hours` in the box, for a duration of **1 day**.
+     That single trigger fires at 12am, 6am, 12pm and 6pm — no need for four tasks.
 4. **Actions** tab → **New…**
    - Program/script: `pythonw.exe`  *(use pythonw to run silently with no console window)*
    - Add arguments: `compiled_paperwork_sync.py`
    - Start in: `C:\Tools\compiled-sync`
 5. **Conditions** tab: uncheck **Start the task only if the computer is on AC power** if it's a laptop.
 6. Click **OK**, enter your Windows password.
-
-Repeat steps 1–6 for the evening run:
-- Name: `Compiled Paperwork Sync - Evening`
-- Trigger start time: **7:00 PM**
 
 ## Where things go
 

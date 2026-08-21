@@ -1,6 +1,6 @@
 """
 Compiled Paperwork Sync - Local Agent
-Runs twice daily via Windows Task Scheduler (7am, 7pm).
+Runs four times daily (6am, 12pm, 6pm, 12am).
 
 What it does:
   1. Calls sync-compiled-paperwork-local to list Gmail emails with subject
