@@ -165,9 +165,10 @@ export async function buildWorkSheetContext(supabase: any, user: any, leadId: st
     // cacheOnly: only use remarks the agent has reviewed/edited and saved.
     const remarks = await getCompRemarks(supabase, user, leadId, true);
     if (remarks.length) {
-      const listed = remarks.map((r, i) => `${i + 1}. ${r}`).join("\n\n").slice(0, 8000);
-      compRemarksBlock = `\n\nPUBLIC REMARKS FROM COMPARABLE LISTINGS (STYLE INSPIRATION ONLY):\nThese are the MLS descriptions written for OTHER nearby homes that recently sold or are listed. They are NOT descriptions of the subject property. Study them for tone, phrasing, sentence rhythm, neighborhood angles, and lifestyle hooks that resonate with buyers in this market, then write in that spirit. You may NOT borrow any feature, finish, material, appliance, upgrade, view, or condition from these remarks as a fact about the subject home. Never mention comps, other addresses, or pricing in the description.\n\n${listed}\n`;
+      const listed = remarks.map((r, i) => `${i + 1}. ${r}`).join("\n").slice(0, 8000);
+      compRemarksBlock = `\n\nIDEAS AND ANGLES USED IN NEARBY LISTINGS (LANGUAGE INSPIRATION ONLY):\nThese are selling angles and phrases distilled from the MLS descriptions of OTHER nearby homes. They are NOT descriptions of the subject property. Use them for tone, phrasing, neighborhood angles, and lifestyle hooks only. You may NOT state any feature, finish, material, appliance, upgrade, view, or condition from this list as a fact about the subject home unless it also appears in the property facts. Never mention comps, other addresses, or pricing.\n\n${listed}\n`;
     }
+
   } catch (_) { /* non-fatal */ }
 
   const factsText = `PROPERTY FACTS:\n${JSON.stringify(facts, null, 2)}${loveBlock}${notesBlock}${cmaBlock}${compRemarksBlock}\n\nAI SUMMARY OF WORK SHEET:\n${summary || "(none)"}\n\nFULL TRANSCRIPTION:\n${transcription || "(none)"}\n\nINSPECTION SECTION NOTES:\n${JSON.stringify(inspection.inspection_data, null, 2).slice(0, 8000)}\n\nNow write the MLS description. Remember: under 1000 characters, no em dashes, evocative storytelling, end with an imagined call to action.`;
@@ -190,14 +191,16 @@ export function aiGatewayErrorResponse(status: number) {
 // ---------------------------------------------------------------------------
 const COMP_REMARKS_PROMPT = `This document is a CMA / Property Detail Report containing several comparable listings.
 
-Extract the PUBLIC REMARKS / agent remarks / marketing description paragraph for each comparable listing in the document, verbatim.
+Read the PUBLIC REMARKS / marketing description paragraphs written for those comparable listings, then distill them into a short list of interesting selling angles, lifestyle hooks, neighborhood references, and vivid phrases that a listing agent could reuse when writing a new description.
 
 Rules:
-- Return ONLY a JSON array of strings, nothing else. Example: ["remark one", "remark two"]
-- One array entry per listing that has a remarks/description paragraph.
-- Copy the text exactly as written. Do not summarize, merge, or rewrite.
-- Skip listings with no remarks paragraph. Skip tables of numbers, tax data, and agent contact info.
-- If no remarks paragraphs exist anywhere, return [].`;
+- Return ONLY a JSON array of strings, nothing else. Example: ["walkable to Uptown shops and dining", "oversized covered patio built for entertaining"]
+- 8 to 12 items total, each one short (under 15 words). One idea per item.
+- Do NOT copy whole paragraphs and do NOT return one entry per listing. Merge repeated ideas into a single item.
+- Focus on angles and phrasing, not raw specs like bedroom counts, square footage, or prices.
+- Skip tables of numbers, tax data, and agent contact info.
+- If the document has no marketing description text anywhere, return [].`;
+
 
 export async function getCompRemarks(
   supabase: any,
@@ -278,7 +281,7 @@ export async function getCompRemarks(
   let remarks: string[] = [];
   try {
     const parsed = JSON.parse(match ? match[0] : text);
-    if (Array.isArray(parsed)) remarks = parsed.filter((r: any) => typeof r === "string" && r.trim().length > 30);
+    if (Array.isArray(parsed)) remarks = parsed.filter((r: any) => typeof r === "string" && r.trim().length > 8);
   } catch (_) { /* leave empty */ }
   console.log("comp remarks: parsed", remarks.length, "remark(s) for lead", leadId);
 
