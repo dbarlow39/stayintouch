@@ -111,6 +111,10 @@ const ClosingPaperworkChecklist = ({
   const completed = items.filter(i => checklist[i.key] || naState[i.key]).length;
   const total = items.length;
   const allDone = completed === total;
+  const unverifiedCount = items.filter(
+    i => unverified[i.key] && !checklist[i.key] && !naState[i.key],
+  ).length;
+
 
   return (
     <div className="space-y-3 border rounded-md p-4 bg-muted/20">
