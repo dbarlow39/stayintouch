@@ -336,9 +336,18 @@ const AccountingDashboard = ({ onNavigate }: AccountingDashboardProps) => {
                           : <XCircle className="h-4 w-4 text-muted-foreground/40" />}
                       </TableCell>
                       <TableCell onClick={() => onNavigate(`edit-closing:${closing.id}`)}>
-                        {hasPaperworkReceived(closing)
-                          ? <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                          : <XCircle className="h-4 w-4 text-muted-foreground/40" />}
+                        {(() => {
+                          const state = paperworkState(closing);
+                          if (state === "complete")
+                            return <CheckCircle2 className="h-4 w-4 text-emerald-600" />;
+                          if (state === "review")
+                            return (
+                              <span title={paperworkTooltip(closing)} className="inline-flex">
+                                <HelpCircle className="h-4 w-4 text-red-600" />
+                              </span>
+                            );
+                          return <XCircle className="h-4 w-4 text-muted-foreground/40" />;
+                        })()}
                       </TableCell>
                       <TableCell onClick={() => onNavigate(`edit-closing:${closing.id}`)}>
                         {closing.paid
