@@ -166,7 +166,7 @@ export async function buildWorkSheetContext(supabase: any, user: any, leadId: st
     const remarks = await getCompRemarks(supabase, user, leadId, true);
     if (remarks.length) {
       const listed = remarks.map((r, i) => `${i + 1}. ${r}`).join("\n").slice(0, 8000);
-      compRemarksBlock = `\n\nIDEAS AND ANGLES USED IN NEARBY LISTINGS (LANGUAGE INSPIRATION ONLY):\nThese are selling angles and phrases distilled from the MLS descriptions of OTHER nearby homes. They are NOT descriptions of the subject property. Use them for tone, phrasing, neighborhood angles, and lifestyle hooks only. You may NOT state any feature, finish, material, appliance, upgrade, view, or condition from this list as a fact about the subject home unless it also appears in the property facts. Never mention comps, other addresses, or pricing.\n\n${listed}\n`;
+      compRemarksBlock = `\n\nAREA AND NEIGHBORHOOD ANGLES (LOCATION ONLY):\nThese are general location, commute, amenity, and community observations that apply to this neighborhood, distilled from nearby listings. They describe the AREA, not this house. Use them only for location and lifestyle context. You may NOT state any feature, finish, material, appliance, upgrade, room, or condition as a fact about the subject home unless it appears in the property facts. Never mention comps, other addresses, or pricing.\n\n${listed}\n`;
     }
 
   } catch (_) { /* non-fatal */ }
@@ -297,7 +297,12 @@ export async function getCompRemarks(
   let remarks: string[] = [];
   try {
     const parsed = JSON.parse(match ? match[0] : text);
-    if (Array.isArray(parsed)) remarks = parsed.filter((r: any) => typeof r === "string" && r.trim().length > 8);
+    if (Array.isArray(parsed)) {
+      remarks = parsed
+        .filter((r: any) => typeof r === "string" && r.trim().length > 8)
+        .map((r: string) => r.trim())
+        .filter(isAreaIdea);
+    }
   } catch (_) { /* leave empty */ }
   console.log("comp remarks: parsed", remarks.length, "remark(s) for lead", leadId);
 
