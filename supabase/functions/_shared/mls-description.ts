@@ -162,7 +162,8 @@ export async function buildWorkSheetContext(supabase: any, user: any, leadId: st
   // Property Detail Report. Style inspiration only, never facts about the subject.
   let compRemarksBlock = "";
   try {
-    const remarks = await getCompRemarks(supabase, user, leadId);
+    // cacheOnly: only use remarks the agent has reviewed/edited and saved.
+    const remarks = await getCompRemarks(supabase, user, leadId, true);
     if (remarks.length) {
       const listed = remarks.map((r, i) => `${i + 1}. ${r}`).join("\n\n").slice(0, 8000);
       compRemarksBlock = `\n\nPUBLIC REMARKS FROM COMPARABLE LISTINGS (STYLE INSPIRATION ONLY):\nThese are the MLS descriptions written for OTHER nearby homes that recently sold or are listed. They are NOT descriptions of the subject property. Study them for tone, phrasing, sentence rhythm, neighborhood angles, and lifestyle hooks that resonate with buyers in this market, then write in that spirit. You may NOT borrow any feature, finish, material, appliance, upgrade, view, or condition from these remarks as a fact about the subject home. Never mention comps, other addresses, or pricing in the description.\n\n${listed}\n`;
