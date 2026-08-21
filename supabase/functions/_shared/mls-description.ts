@@ -132,6 +132,7 @@ export async function buildWorkSheetContext(supabase: any, user: any, leadId: st
       .select("analysis_json")
       .eq("lead_id", leadId)
       .eq("agent_id", user.id)
+      .eq("file_type", "analysis_json")
       .not("analysis_json", "is", null)
       .order("updated_at", { ascending: false })
       .limit(1);
