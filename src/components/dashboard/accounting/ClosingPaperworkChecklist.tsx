@@ -186,6 +186,17 @@ const ClosingPaperworkChecklist = ({
                   <span className={isChecked || isNA ? "line-through text-muted-foreground" : ""}>
                     {item.label}
                   </span>
+                  {isChecked && pages.length > 0 && (
+                    <span className="ml-2 text-xs text-muted-foreground">
+                      (p. {pages.slice(0, 6).join(", ")}{pages.length > 6 ? "…" : ""})
+                    </span>
+                  )}
+                  {isUnverified && (
+                    <span className="ml-2 inline-flex items-center gap-1 text-xs font-medium text-red-700">
+                      <HelpCircle className="w-3 h-3" />
+                      Can&apos;t verify — unreadable pages
+                    </span>
+                  )}
                   {item.hint && (
                     <span className="block text-xs text-muted-foreground mt-0.5">
                       {item.hint}
