@@ -343,6 +343,19 @@ const MLSDescriptionTab = ({ leadId, initialDescription, initialClaude, initialF
     }
   };
 
+  // Auto-pull comp remarks the first time this lead's tab is opened with none cached
+  const autoPulledRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!compLoaded) return;
+    if (compRemarks.length > 0) return;
+    if (autoPulledRef.current === leadId) return;
+    autoPulledRef.current = leadId;
+    pullCompRemarks(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [compLoaded, leadId]);
+
+
+
   const saveCompRemarks = async (list?: string[]) => {
     const clean = (list ?? compRemarks).map((r) => r.trim()).filter(Boolean);
     setSavingComps(true);
