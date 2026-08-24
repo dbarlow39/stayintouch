@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ArrowLeft, Calendar, Printer } from "lucide-react";
+import { ArrowLeft, Calendar, Check, Printer } from "lucide-react";
 import PhoneCallTextLink from "@/components/PhoneCallTextLink";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
@@ -108,6 +108,7 @@ interface ClosingData {
   buyer_agent_commission: number;
   buyer_name_1: string | null;
   buyer_name_2: string | null;
+  deal_status: string | null;
 }
 
 // Commission calculation:
@@ -164,7 +165,8 @@ const UpcomingClosingsView = ({ onBack }: UpcomingClosingsViewProps) => {
           representation_type,
           buyer_agent_commission,
           buyer_name_1,
-          buyer_name_2
+          buyer_name_2,
+          deal_status
         `)
         .eq("agent_id", user!.id)
         .not("closing_date", "is", null)
