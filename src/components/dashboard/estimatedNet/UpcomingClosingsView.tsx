@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ArrowLeft, Calendar, Printer } from "lucide-react";
+import { ArrowLeft, Calendar, Check, Printer } from "lucide-react";
 import PhoneCallTextLink from "@/components/PhoneCallTextLink";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
@@ -108,6 +108,7 @@ interface ClosingData {
   buyer_agent_commission: number;
   buyer_name_1: string | null;
   buyer_name_2: string | null;
+  deal_status: string | null;
 }
 
 // Commission calculation:
@@ -164,7 +165,8 @@ const UpcomingClosingsView = ({ onBack }: UpcomingClosingsViewProps) => {
           representation_type,
           buyer_agent_commission,
           buyer_name_1,
-          buyer_name_2
+          buyer_name_2,
+          deal_status
         `)
         .eq("agent_id", user!.id)
         .not("closing_date", "is", null)
@@ -315,10 +317,12 @@ const UpcomingClosingsView = ({ onBack }: UpcomingClosingsViewProps) => {
                       {monthClosings.map((closing) => {
                         const parsedDate = parseClosingDate(closing.closing_date);
                         const commission = calculateCommission(closing);
+                        const isClosed = closing.deal_status === "closed";
 
                         return (
-                          <TableRow key={closing.id}>
+                          <TableRow key={closing.id} className={isClosed ? "text-muted-foreground opacity-60" : undefined}>
                             <TableCell className="px-2 font-medium whitespace-nowrap">
+                              {isClosed && <Check className="h-4 w-4 inline mr-1" />}
                               {parsedDate ? format(parsedDate, "MMM d, yyyy") : closing.closing_date}
                             </TableCell>
                             <TableCell className="px-2 whitespace-nowrap">
@@ -338,7 +342,7 @@ const UpcomingClosingsView = ({ onBack }: UpcomingClosingsViewProps) => {
                             <TableCell className="px-2 text-right whitespace-nowrap">
                               {formatCurrency(closing.offer_price)}
                             </TableCell>
-                            <TableCell className="px-2 text-right whitespace-nowrap font-medium text-emerald-600 dark:text-emerald-400">
+                            <TableCell className={`px-2 text-right whitespace-nowrap font-medium ${isClosed ? "" : "text-emerald-600 dark:text-emerald-400"}`}>
                               {formatCurrency(commission)}
                             </TableCell>
                             <TableCell className="px-2 whitespace-nowrap">
