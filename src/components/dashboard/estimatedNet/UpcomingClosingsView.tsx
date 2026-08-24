@@ -317,10 +317,12 @@ const UpcomingClosingsView = ({ onBack }: UpcomingClosingsViewProps) => {
                       {monthClosings.map((closing) => {
                         const parsedDate = parseClosingDate(closing.closing_date);
                         const commission = calculateCommission(closing);
+                        const isClosed = closing.deal_status === "closed";
 
                         return (
-                          <TableRow key={closing.id}>
+                          <TableRow key={closing.id} className={isClosed ? "text-muted-foreground opacity-60" : undefined}>
                             <TableCell className="px-2 font-medium whitespace-nowrap">
+                              {isClosed && <Check className="h-4 w-4 inline mr-1" />}
                               {parsedDate ? format(parsedDate, "MMM d, yyyy") : closing.closing_date}
                             </TableCell>
                             <TableCell className="px-2 whitespace-nowrap">
