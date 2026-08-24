@@ -342,7 +342,7 @@ const UpcomingClosingsView = ({ onBack }: UpcomingClosingsViewProps) => {
                             <TableCell className="px-2 text-right whitespace-nowrap">
                               {formatCurrency(closing.offer_price)}
                             </TableCell>
-                            <TableCell className="px-2 text-right whitespace-nowrap font-medium text-emerald-600 dark:text-emerald-400">
+                            <TableCell className={`px-2 text-right whitespace-nowrap font-medium ${isClosed ? "" : "text-emerald-600 dark:text-emerald-400"}`}>
                               {formatCurrency(commission)}
                             </TableCell>
                             <TableCell className="px-2 whitespace-nowrap">
