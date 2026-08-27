@@ -112,16 +112,26 @@ serve(async (req) => {
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
     let emphasis = "";
+    let marketData: Record<string, unknown> | null = null;
     try {
       const body = await req.json();
       emphasis = typeof body?.emphasis === "string" ? body.emphasis.trim() : "";
+      if (body?.marketData && typeof body.marketData === "object") marketData = body.marketData;
     } catch {
       // no body is fine
     }
 
-    const finalPrompt = emphasis
-      ? `${PROMPT}\n\nIMPORTANT — weave this week's point of emphasis naturally into the article (do not quote it verbatim, integrate the idea): ${emphasis}`
-      : PROMPT;
+    const dataBlock = buildDataBlock(marketData);
+    const liveContext = await fetchLiveContext();
+
+    const finalPrompt =
+      PROMPT +
+      dataBlock +
+      liveContext +
+      (emphasis
+        ? `\n\nIMPORTANT — weave this week's point of emphasis naturally into the article (do not quote it verbatim, integrate the idea): ${emphasis}`
+        : "");
+
 
     const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
