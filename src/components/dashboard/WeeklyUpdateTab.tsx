@@ -1135,7 +1135,7 @@ const WeeklyUpdateTab = () => {
                   setIsGeneratingArticle(true);
                   try {
                     const { data, error } = await supabase.functions.invoke('generate-market-article', {
-                      body: { emphasis: emphasisText.trim() || undefined },
+                      body: { emphasis: emphasisText.trim() || undefined, marketData },
                     });
                     if (error) throw error;
                     if (data?.article) {

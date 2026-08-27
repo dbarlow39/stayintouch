@@ -29,9 +29,78 @@ const PROMPT = `I am a seasoned real estate agent crafting my upcoming weekly ne
 
 * Do not use en dashes or em dashes.
 
-* Write the article for human consumption at a 6th grade reading level. I need this content to be up-to-date and relevant to the most recent market data available (e.g., within the last 7 days). Please avoid generic statements and focus on providing specific, data-backed insights tailored to my selling clients. The final output should flow seamlessly and coherently.
+* Write the article for human consumption at a 6th grade reading level. Avoid generic statements and focus on insights tailored to my selling clients. The final output should flow seamlessly and coherently.
+
+* CRITICAL DATA RULE: Use ONLY the figures supplied to you below. Do not invent, estimate, or recall any other statistic. If a figure is not supplied, discuss that topic qualitatively with no numbers. Never say you lack current data and never refuse; simply write the article from what is supplied.
 
 Output only the paragraphs themselves. No headings, no preamble, no closing remarks, no quotes around the text.`;
+
+function buildDataBlock(m: Record<string, unknown> | null): string {
+  if (!m || typeof m !== "object") return "";
+  const label: Record<string, string> = {
+    week_of: "Week of",
+    active_homes: "Active homes on the market",
+    active_homes_last_week: "Active homes last week",
+    inventory_change: "Change in active listings vs last week",
+    market_avg_dom: "Average days on market",
+    price_trend: "Price trend",
+    price_reductions: "Homes with price reductions this week",
+    new_listings: "New listings this week",
+    closed_deals: "Homes closed this week",
+    in_contracts: "Homes that went under contract this week",
+    mortgage_rate_30yr: "30 year fixed mortgage rate (%)",
+    mortgage_rate_30yr_week_ago: "30 year fixed rate one week ago (%)",
+    mortgage_rate_30yr_year_ago: "30 year fixed rate one year ago (%)",
+    mortgage_rate_15yr: "15 year fixed mortgage rate (%)",
+    mortgage_rate_15yr_week_ago: "15 year fixed rate one week ago (%)",
+    mortgage_rate_15yr_year_ago: "15 year fixed rate one year ago (%)",
+    freddie_mac_summary: "Freddie Mac summary",
+  };
+  const lines: string[] = [];
+  for (const [key, name] of Object.entries(label)) {
+    const v = (m as Record<string, unknown>)[key];
+    if (v === null || v === undefined || v === "") continue;
+    lines.push(`- ${name}: ${v}`);
+  }
+  if (!lines.length) return "";
+  return `\n\nTHIS WEEK'S VERIFIED COLUMBUS, OHIO MARKET DATA (supplied by the agent, treat as accurate and current):\n${lines.join("\n")}`;
+}
+
+async function fetchLiveContext(): Promise<string> {
+  const key = Deno.env.get("PERPLEXITY_API_KEY");
+  if (!key) return "";
+  try {
+    const r = await fetch("https://api.perplexity.ai/chat/completions", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "sonar-pro",
+        search_recency_filter: "week",
+        messages: [
+          { role: "system", content: "Be factual and concise. No citations markup, plain sentences only." },
+          {
+            role: "user",
+            content:
+              "In 8 short bullet points, summarize this week's real estate and economic conditions affecting home sellers in the Columbus, Ohio metro: mortgage rate direction, inflation, local job market, buyer demand and sentiment, inventory, and any notable local housing news. Only include facts you can verify from recent sources.",
+          },
+        ],
+      }),
+    });
+    if (!r.ok) {
+      console.error("Perplexity error:", r.status, (await r.text()).slice(0, 300));
+      return "";
+    }
+    const j = await r.json();
+    const txt = j?.choices?.[0]?.message?.content?.trim() || "";
+    return txt
+      ? `\n\nCURRENT MARKET CONTEXT FROM LIVE WEB SEARCH (background only, use for narrative color; the agent's figures above win any conflict):\n${txt}`
+      : "";
+  } catch (e) {
+    console.error("Perplexity fetch failed:", e);
+    return "";
+  }
+}
+
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -43,16 +112,26 @@ serve(async (req) => {
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
     let emphasis = "";
+    let marketData: Record<string, unknown> | null = null;
     try {
       const body = await req.json();
       emphasis = typeof body?.emphasis === "string" ? body.emphasis.trim() : "";
+      if (body?.marketData && typeof body.marketData === "object") marketData = body.marketData;
     } catch {
       // no body is fine
     }
 
-    const finalPrompt = emphasis
-      ? `${PROMPT}\n\nIMPORTANT — weave this week's point of emphasis naturally into the article (do not quote it verbatim, integrate the idea): ${emphasis}`
-      : PROMPT;
+    const dataBlock = buildDataBlock(marketData);
+    const liveContext = await fetchLiveContext();
+
+    const finalPrompt =
+      PROMPT +
+      dataBlock +
+      liveContext +
+      (emphasis
+        ? `\n\nIMPORTANT — weave this week's point of emphasis naturally into the article (do not quote it verbatim, integrate the idea): ${emphasis}`
+        : "");
+
 
     const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
