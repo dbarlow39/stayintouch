@@ -692,6 +692,40 @@ Deno.serve(async (req) => {
         });
         console.log('Listings cache updated with', transformed.length, 'listings');
 
+        // ─── AUTO-ARCHIVE LISTING PHOTOS (non-blocking, batched) ───
+        try {
+          const withPhotos = transformed.filter((l: any) => Array.isArray(l.photos) && l.photos.length > 0);
+          if (withPhotos.length > 0) {
+            const archivedRes = await fetch(
+              `${supabaseUrl}/rest/v1/listing_photo_archive?select=mls_number`,
+              { headers: dbHeaders },
+            );
+            const archivedRows = archivedRes.ok ? await archivedRes.json() : [];
+            const archivedMls = new Set((archivedRows || []).map((r: any) => r.mls_number));
+            // New listings first; cap the batch so the sync can never stall.
+            const queue = withPhotos
+              .filter((l: any) => !archivedMls.has(String(l.mlsNumber || l.id)))
+              .slice(0, 5);
+            if (queue.length > 0) {
+              console.log(`[photo-archive] queueing ${queue.length} listing(s) for archival`);
+              // Fire and forget — never await, never block the sync response.
+              fetch(`${supabaseUrl}/functions/v1/archive-listing-photos`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${supabaseServiceKey}`,
+                  'apikey': supabaseServiceKey,
+                },
+                body: JSON.stringify({ listings: queue }),
+              }).catch((e) => console.log('[photo-archive] dispatch failed:', e?.message));
+            }
+          }
+        } catch (archiveErr) {
+          console.log('[photo-archive] skipped:', (archiveErr as Error).message);
+        }
+
+
+
 
         // ─── AUTO-POST TO FACEBOOK ───
         // Check if auto-posting is enabled and there are relevant changes
