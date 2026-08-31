@@ -21,15 +21,7 @@ Deno.serve(async (req) => {
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-
-  // Only the service role may archive (called internally by flexmls-sync).
-  const token = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "").trim();
-  if (token !== serviceKey) {
-    return new Response(JSON.stringify({ error: "Forbidden" }), {
-      status: 403,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
+  const anonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
 
   const supabase = createClient(supabaseUrl, serviceKey);
 
@@ -40,12 +32,51 @@ Deno.serve(async (req) => {
     body = {};
   }
 
-  const listings: any[] = Array.isArray(body.listings) ? body.listings : [];
-  if (listings.length === 0) {
-    return new Response(JSON.stringify({ success: true, archived: 0, note: "no listings" }), {
+  // Service role may archive anything (called internally by flexmls-sync).
+  // Backfill mode (reads listings from our own cache) also accepts the anon key.
+  const token = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "").trim();
+  const isService = token === serviceKey;
+  const isBackfill = body?.backfill === true;
+  if (!isService && !(isBackfill && anonKey && token === anonKey)) {
+    return new Response(JSON.stringify({ error: "Forbidden" }), {
+      status: 403,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
+
+  let listings: any[] = Array.isArray(body.listings) ? body.listings : [];
+
+  if (isBackfill) {
+    const limit = Number(body.limit) > 0 ? Number(body.limit) : 5;
+    const { data: cache } = await supabase
+      .from("listings_cache")
+      .select("listings")
+      .eq("id", "current")
+      .single();
+    const all: any[] = Array.isArray(cache?.listings) ? (cache!.listings as any[]) : [];
+    // Page through the archive — PostgREST caps a single select at 1000 rows.
+    const doneMls = new Set<string>();
+    for (let from = 0; ; from += 1000) {
+      const { data: page } = await supabase
+        .from("listing_photo_archive")
+        .select("mls_number")
+        .range(from, from + 999);
+      (page ?? []).forEach((r: any) => doneMls.add(r.mls_number));
+      if (!page || page.length < 1000) break;
+    }
+
+    listings = all
+      .filter((l: any) => Array.isArray(l?.photos) && l.photos.length > 0)
+      .filter((l: any) => !doneMls.has(String(l.mlsNumber || l.id)))
+      .slice(0, limit);
+  }
+
+  if (listings.length === 0) {
+    return new Response(JSON.stringify({ success: true, archived: 0, remaining: 0, note: "no listings" }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
 
   let archived = 0;
   let skipped = 0;
