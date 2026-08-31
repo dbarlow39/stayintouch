@@ -78,12 +78,29 @@ const ClientActivityLog = ({ clientId, clientEmail, propertyAddress }: ClientAct
       }
 
       // ---- Notices ----
-      const { data: props } = await supabase
+      // Match working deals by client link OR by street address, so notices
+      // still show when the deal was never linked to the client record.
+      const { data: propsByClient } = await supabase
         .from("estimated_net_properties")
         .select("id")
         .eq("client_id", clientId);
 
-      const propIds = (props || []).map((p) => p.id);
+      const propIdSet = new Set((propsByClient || []).map((p) => p.id));
+
+      if (addr && user) {
+        const street = addr.split(",")[0].trim();
+        if (street) {
+          const { data: propsByAddr } = await supabase
+            .from("estimated_net_properties")
+            .select("id")
+            .eq("agent_id", user.id)
+            .ilike("street_address", `%${escape(street)}%`);
+          for (const p of propsByAddr || []) propIdSet.add(p.id);
+        }
+      }
+
+      const propIds = Array.from(propIdSet);
+
       if (propIds.length > 0) {
         const { data: notices } = await supabase
           .from("property_notice_status")
