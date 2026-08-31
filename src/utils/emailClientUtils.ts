@@ -1,3 +1,5 @@
+import { logEmailActivity } from '@/utils/activityLog';
+
 export type EmailClient = 'gmail' | 'outlook' | 'yahoo' | 'default';
 
 export const EMAIL_CLIENT_OPTIONS = [
@@ -25,6 +27,11 @@ export const PINNED_GMAIL_ACCOUNT = 'dbarlow39@barlow.com';
 
 export const getEmailLink = (email: string, client?: EmailClient, subject?: string): string => {
   const emailClient = client || getEmailClientPreference();
+  // Any link built with a subject comes from an app action (letters, notices,
+  // reports) — log it so it appears in the client's Notes timeline.
+  if (subject) {
+    void logEmailActivity(email, subject);
+  }
   const encodedEmail = encodeURIComponent(email);
   const encodedSubject = subject ? encodeURIComponent(subject) : '';
 
@@ -45,6 +52,7 @@ export const getEmailLink = (email: string, client?: EmailClient, subject?: stri
 export const openEmailClient = (email: string, client?: EmailClient, subject?: string): void => {
   const emailClient = client || getEmailClientPreference();
   const link = getEmailLink(email, emailClient, subject);
+  void logEmailActivity(email, subject || 'Email opened from app');
 
   if (emailClient === 'default') {
     window.location.href = link;
