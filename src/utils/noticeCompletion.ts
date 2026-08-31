@@ -1,10 +1,15 @@
 import { supabase } from "@/integrations/supabase/client";
+import { logEmailActivity } from "@/utils/activityLog";
 
 /**
  * Marks a notice as completed for a property.
  * Fails silently so it never blocks the copy/email flow.
  */
-export const markNoticeComplete = async (propertyId: string, noticeType: string) => {
+export const markNoticeComplete = async (
+  propertyId: string,
+  noticeType: string,
+  logTo?: string
+) => {
   if (!propertyId || !noticeType) return;
   try {
     await supabase
@@ -18,6 +23,10 @@ export const markNoticeComplete = async (propertyId: string, noticeType: string)
         },
         { onConflict: "property_id,notice_type" }
       );
+
+    if (logTo) {
+      await logEmailActivity(logTo, `Notice sent: ${noticeType}`);
+    }
   } catch (err) {
     console.error("Failed to mark notice complete:", err);
   }

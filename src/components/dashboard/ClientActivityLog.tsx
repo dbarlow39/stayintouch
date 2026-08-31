@@ -102,6 +102,24 @@ const ClientActivityLog = ({ clientId, clientEmail, propertyAddress }: ClientAct
         }
       }
 
+      // ---- Weekly market updates ----
+      const { data: weekly } = await supabase
+        .from("weekly_email_logs")
+        .select("id, subject, sent_at")
+        .eq("client_id", clientId)
+        .order("sent_at", { ascending: false });
+
+      for (const w of weekly || []) {
+        results.push({
+          id: `weekly-${w.id}`,
+          kind: "email",
+          direction: "outgoing",
+          who: (clientEmail || "client") as string,
+          description: w.subject || "Weekly Market Update",
+          at: w.sent_at,
+        });
+      }
+
       return results.sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime());
     },
     enabled: !!user && !!clientId,
