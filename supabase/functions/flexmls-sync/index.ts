@@ -692,9 +692,12 @@ Deno.serve(async (req) => {
         });
         console.log('Listings cache updated with', transformed.length, 'listings');
 
-        // ─── AUTO-ARCHIVE LISTING PHOTOS (non-blocking, batched) ───
+        // ─── AUTO-ARCHIVE LISTING PHOTOS (disabled per user request) ───
+        const PHOTO_ARCHIVE_ENABLED = false;
         try {
-          const withPhotos = transformed.filter((l: any) => Array.isArray(l.photos) && l.photos.length > 0);
+          const withPhotos = PHOTO_ARCHIVE_ENABLED
+            ? transformed.filter((l: any) => Array.isArray(l.photos) && l.photos.length > 0)
+            : [];
           if (withPhotos.length > 0) {
             const archivedRes = await fetch(
               `${supabaseUrl}/rest/v1/listing_photo_archive?select=mls_number`,
