@@ -1764,6 +1764,42 @@ export type Database = {
         }
         Relationships: []
       }
+      listing_photo_archive: {
+        Row: {
+          address: string | null
+          archived_at: string
+          created_at: string
+          id: string
+          mls_number: string
+          photo_index: number
+          source_url: string | null
+          storage_path: string
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          archived_at?: string
+          created_at?: string
+          id?: string
+          mls_number: string
+          photo_index: number
+          source_url?: string | null
+          storage_path: string
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          archived_at?: string
+          created_at?: string
+          id?: string
+          mls_number?: string
+          photo_index?: number
+          source_url?: string | null
+          storage_path?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       listing_videos: {
         Row: {
           created_at: string
