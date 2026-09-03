@@ -296,8 +296,35 @@ const LeadClosingCostsView = ({ propertyData, propertyId, onBack, onEdit, onNavi
         }
       }
 
-      const htmlContent = clonedContent.innerHTML;
+      // Gmail strips flexbox and form controls: turn textareas into text and
+      // each cost row into a simple 2-column table.
+      clonedContent.querySelectorAll('textarea').forEach((ta) => {
+        const p = document.createElement('p');
+        p.setAttribute('style', 'margin:0 0 12px 0; white-space:pre-wrap; font-family:Arial,sans-serif; font-size:14px; color:#000;');
+        p.textContent = (ta as HTMLTextAreaElement).value;
+        ta.replaceWith(p);
+      });
+
+      clonedContent.querySelectorAll('.cost-row').forEach((row) => {
+        const cells = row.querySelectorAll('span');
+        const label = cells[0]?.textContent || '';
+        const amount = cells[1]?.textContent || '';
+        const isTotal = row.className.includes('font-bold');
+        const table = document.createElement('table');
+        table.setAttribute('width', '100%');
+        table.setAttribute('cellpadding', '0');
+        table.setAttribute('cellspacing', '0');
+        table.setAttribute('style', 'width:100%; border-collapse:collapse; font-family:Arial,sans-serif;');
+        table.innerHTML = `<tr>
+          <td style="padding:6px 0; text-align:left; font-size:${isTotal ? '16px' : '14px'}; font-weight:${isTotal ? 'bold' : 'normal'}; color:#000; border-${isTotal ? 'top:2px solid #9B111E' : 'bottom:1px solid #e5e7eb'};">${label}</td>
+          <td style="padding:6px 0; text-align:right; font-size:${isTotal ? '16px' : '14px'}; font-weight:${isTotal ? 'bold' : 'normal'}; color:${isTotal ? '#16a34a' : '#000'}; border-${isTotal ? 'top:2px solid #9B111E' : 'bottom:1px solid #e5e7eb'};">${amount}</td>
+        </tr>`;
+        row.replaceWith(table);
+      });
+
+      const htmlContent = `<div style="font-family:Arial,sans-serif; font-size:14px; color:#000; max-width:700px;">${clonedContent.innerHTML}</div>`;
       const plainText = content.innerText;
+
 
       await navigator.clipboard.write([
         new ClipboardItem({
@@ -391,7 +418,7 @@ const LeadClosingCostsView = ({ propertyData, propertyId, onBack, onEdit, onNavi
         <div className="flex justify-end gap-2 mb-4 print:hidden">
           <Button onClick={handleCopyToClipboard} variant="outline" className="gap-2 border-[#9B111E] text-[#9B111E] hover:bg-[#9B111E]/10">
             <Copy className="h-4 w-4" />
-            Copy &amp; Email
+            Copy and Paste
           </Button>
           <Button onClick={handleOpenEmailPreview} className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white">
 
