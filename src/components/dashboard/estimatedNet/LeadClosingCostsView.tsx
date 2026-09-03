@@ -389,7 +389,12 @@ const LeadClosingCostsView = ({ propertyData, propertyId, onBack, onEdit, onNavi
       <div className="flex-1 py-4 px-6 overflow-auto">
         {/* Action Buttons - Top Right */}
         <div className="flex justify-end gap-2 mb-4 print:hidden">
+          <Button onClick={handleCopyToClipboard} variant="outline" className="gap-2 border-[#9B111E] text-[#9B111E] hover:bg-[#9B111E]/10">
+            <Copy className="h-4 w-4" />
+            Copy &amp; Email
+          </Button>
           <Button onClick={handleOpenEmailPreview} className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white">
+
             <Mail className="h-4 w-4" />
             Email
           </Button>
