@@ -545,42 +545,53 @@ const ImportantDatesView = ({ propertyData, propertyId, onBack, onEdit, onNaviga
                 HOME INSPECTION:
               </h2>
               <p>
-                The next step will be the buyers scheduling their home inspection, this will be scheduled through our showing service and may look like a showing request, but you will notice the length of time for the request will be 2 to 3 hours long. We would recommend you treat the home inspection like you would a showing and vacate the home to allow the home inspector, agent and buyer to inspect your property. It is very likely the buyer and their agent will show up for the home inspection, we highly recommend to all buyers to go to the home inspection to be educated about the home, things like what light switches turn on what, how to operate the appliances, how to change the furnace filter and so forth. In addition if any issues come up the inspector can show and explain what is going on versus the buyer just reading a black and white version of the report, by being there it really does help the whole process.
+                {inspectionWaived
+                  ? 'Buyer has waived their right to a home inspection.'
+                  : "The next step will be the buyers scheduling their home inspection, this will be scheduled through our showing service and may look like a showing request, but you will notice the length of time for the request will be 2 to 3 hours long. We would recommend you treat the home inspection like you would a showing and vacate the home to allow the home inspector, agent and buyer to inspect your property. It is very likely the buyer and their agent will show up for the home inspection, we highly recommend to all buyers to go to the home inspection to be educated about the home, things like what light switches turn on what, how to operate the appliances, how to change the furnace filter and so forth. In addition if any issues come up the inspector can show and explain what is going on versus the buyer just reading a black and white version of the report, by being there it really does help the whole process."}
               </p>
             </div>
-            )}
 
-            {!remedyWaived && (
             <div className="space-y-3">
               <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
                 <Wrench className="h-6 w-6 text-primary" />
                 BUYERS REQUEST TO REMEDY
               </h2>
               <p>
-                Once the inspection is completed the buyer most likely will be sending over what is called the Buyer's request to remedy. These are items the buyer have identified as a result of the home inspection that they would like you to address. Every home inspector is different, every agent is different, and every buyer is different. I say this because what might be important to you may not be important to the buyer and vice versa, so don't worry about the home inspection or the remedy request until they send over their request. Once we come to terms on the request to remedy by either agreeing to make repairs as requested or I normally recommend offering some sort of cash compensation so you don't have to do any work at all prior to closing. If you do agree to make repairs they only need to be made prior to the buyers final walk through which happens anywhere from 1 to 3 days prior to the closing date.
+                {remedyWaived
+                  ? 'Buyer has waived their right to a request to remedy.'
+                  : "Once the inspection is completed the buyer most likely will be sending over what is called the Buyer's request to remedy. These are items the buyer have identified as a result of the home inspection that they would like you to address. Every home inspector is different, every agent is different, and every buyer is different. I say this because what might be important to you may not be important to the buyer and vice versa, so don't worry about the home inspection or the remedy request until they send over their request. Once we come to terms on the request to remedy by either agreeing to make repairs as requested or I normally recommend offering some sort of cash compensation so you don't have to do any work at all prior to closing. If you do agree to make repairs they only need to be made prior to the buyers final walk through which happens anywhere from 1 to 3 days prior to the closing date."}
               </p>
             </div>
-            )}
 
             <div className="space-y-3">
               <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
                 <DollarSign className="h-6 w-6 text-primary" />
                 BANKS APPRAISAL
               </h2>
-              <p>
-                An appraisal will be ordered by the buyer's lender, if the buyer is getting a loan, if the buyer is paying cash there will be no appraisal. The appraiser will need access to your home to inspect the property and take photos. This will be scheduled through our showing service and will look like a traditional showing. Keep in mind these could happen at any time after the home goes into contract. Please treat this like a traditional showing and just vacate the property during the appointment. I am occasionally asked if I will be attending the appraisal and in most cases I will not be going. The listing broker has no say in the appraisal, the lender and the appraiser are the two parties involved in the appraisal. My presence at the appointment serves no purpose unless the location needs me to provide access for some reason.
-              </p>
-              {!bothWaived && (
-              <p>
-                After we get through the home inspection and request to remedy process the buyer's lender will then order the appraisal of your home. Again this will be scheduled through our showing service but this time the appraiser will only be in your house for about 20 minutes and it is not necessary for you leave if you don't wish. Once the appraiser has completed the walk through of your house it normally takes anywhere from 5 to 7 days for the appraisal to be completed and returned to the bank. 90% of the time the appraisal comes back for the value of the purchase price but if it does come back for less then the lender will make contact with me, otherwise the lender will not make any contact and we will proceed to closing. BTW, normally the appraisal is not shared with either the buyer or seller unless it comes in for less.
-              </p>
+              {appraisalWaived ? (
+                <p>This contract is not contingent upon an appraisal.</p>
+              ) : (
+                <>
+                  <p>
+                    An appraisal will be ordered by the buyer's lender, if the buyer is getting a loan, if the buyer is paying cash there will be no appraisal. The appraiser will need access to your home to inspect the property and take photos. This will be scheduled through our showing service and will look like a traditional showing. Keep in mind these could happen at any time after the home goes into contract. Please treat this like a traditional showing and just vacate the property during the appointment. I am occasionally asked if I will be attending the appraisal and in most cases I will not be going. The listing broker has no say in the appraisal, the lender and the appraiser are the two parties involved in the appraisal. My presence at the appointment serves no purpose unless the location needs me to provide access for some reason.
+                  </p>
+                  {!bothWaived && (
+                  <p>
+                    After we get through the home inspection and request to remedy process the buyer's lender will then order the appraisal of your home. Again this will be scheduled through our showing service but this time the appraiser will only be in your house for about 20 minutes and it is not necessary for you leave if you don't wish. Once the appraiser has completed the walk through of your house it normally takes anywhere from 5 to 7 days for the appraisal to be completed and returned to the bank. 90% of the time the appraisal comes back for the value of the purchase price but if it does come back for less then the lender will make contact with me, otherwise the lender will not make any contact and we will proceed to closing. BTW, normally the appraisal is not shared with either the buyer or seller unless it comes in for less.
+                  </p>
+                  )}
+                </>
               )}
               <p>
-                {bothWaived
+                {appraisalWaived
+                  ? 'The next step will be for the lender to issue at least 3 days prior to closing what is known as the Closing Disclosure or "CD". By law the buyer has to take at least 3 days to review the closing documents, once this CD is issued we are 99.9% certain the closing will take place as scheduled, otherwise there may be a delay. But rest assured we will stay on top of this entire process.'
+                  : bothWaived
                   ? 'Once we get through the appraisal we are 95% of the way there, the next step will be for the lender to issue at least 3 days prior to closing what is known as the Closing Disclosure or "CD". By law the buyer has to take at least 3 days to review the closing documents, once this CD is issued we are 99.9% certain the closing will take place as scheduled, otherwise there may be a delay. But rest assured we will stay on top of this entire process.'
                   : 'Once we get through the home inspection, the request to remedy and the appraisal we are 95% of the way there, the next step will be for the lender to issue at least 3 days prior to closing what is known as the Closing Disclosure or "CD". By law the buyer has to take at least 3 days to review the closing documents, once this CD is issued we are 99.9% certain the closing will take place as scheduled, otherwise there may be a delay. But rest assured we will stay on top of this entire process.'}
               </p>
             </div>
+
+
 
             <div className="space-y-3">
               <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
