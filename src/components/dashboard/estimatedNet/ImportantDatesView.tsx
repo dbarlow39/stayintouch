@@ -128,6 +128,8 @@ const ImportantDatesView = ({ propertyData, propertyId, onBack, onEdit, onNaviga
   const remedyWaived = propertyData.remedyPeriodDays === 0;
   const bothWaived = inspectionWaived && remedyWaived;
   const appraisalWaived = propertyData.appraisalContingency === false;
+  const isCashDeal = (propertyData.typeOfLoan || '').trim().toLowerCase() === 'cash';
+
 
   const INSPECTION_WAIVED_TEXT = 'Buyer has waived their right to a home inspection';
   const REMEDY_WAIVED_TEXT = 'Buyer has waived their right to a request to remedy';
@@ -582,6 +584,7 @@ const ImportantDatesView = ({ propertyData, propertyId, onBack, onEdit, onNaviga
                   )}
                 </>
               )}
+              {!isCashDeal && (
               <p>
                 {appraisalWaived
                   ? 'The next step will be for the lender to issue at least 3 days prior to closing what is known as the Closing Disclosure or "CD". By law the buyer has to take at least 3 days to review the closing documents, once this CD is issued we are 99.9% certain the closing will take place as scheduled, otherwise there may be a delay. But rest assured we will stay on top of this entire process.'
@@ -589,6 +592,8 @@ const ImportantDatesView = ({ propertyData, propertyId, onBack, onEdit, onNaviga
                   ? 'Once we get through the appraisal we are 95% of the way there, the next step will be for the lender to issue at least 3 days prior to closing what is known as the Closing Disclosure or "CD". By law the buyer has to take at least 3 days to review the closing documents, once this CD is issued we are 99.9% certain the closing will take place as scheduled, otherwise there may be a delay. But rest assured we will stay on top of this entire process.'
                   : 'Once we get through the home inspection, the request to remedy and the appraisal we are 95% of the way there, the next step will be for the lender to issue at least 3 days prior to closing what is known as the Closing Disclosure or "CD". By law the buyer has to take at least 3 days to review the closing documents, once this CD is issued we are 99.9% certain the closing will take place as scheduled, otherwise there may be a delay. But rest assured we will stay on top of this entire process.'}
               </p>
+              )}
+
             </div>
 
 
