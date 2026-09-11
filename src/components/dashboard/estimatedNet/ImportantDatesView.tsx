@@ -127,6 +127,8 @@ const ImportantDatesView = ({ propertyData, propertyId, onBack, onEdit, onNaviga
   const inspectionWaived = propertyData.inspectionDays === 0;
   const remedyWaived = propertyData.remedyPeriodDays === 0;
   const bothWaived = inspectionWaived && remedyWaived;
+  const appraisalWaived = propertyData.appraisalContingency === false;
+
   const INSPECTION_WAIVED_TEXT = 'Buyer has waived their right to a home inspection';
   const REMEDY_WAIVED_TEXT = 'Buyer has waived their right to a request to remedy';
   const utilitiesBaseDate = propertyData.possession || propertyData.closingDate || '';
@@ -197,18 +199,14 @@ const ImportantDatesView = ({ propertyData, propertyId, onBack, onEdit, onNaviga
     const sections = [
       { title: '🏠 TITLE COMPANY', text: 'We can send your paperwork to any title company you prefer. If you do not have a preference, I will send your paperwork to Caliber Title can close your home anywhere you would prefer, even come to your home to do so. Title insurance is regulated by State Law and overseen by the State Insurance Board who regulates most of the fees any Title company can charge. Our company does have a business relationship with Caliber Title but the fees are the same as any other title company in the state of Ohio. Beyond that I know once I send the paperwork to Caliber Title we don\'t have to worry about things getting done, Caliber Title has a team dedicated to our closings so we know every T gets crossed and every I gets dotted. Let me know if you prefer another Title company and if not I will forward your paperwork to Caliber Title. You will next hear from either Kathy or Barb who will want to get your mortgage information to order a payoff for the closing.' },
       { title: '📞 Expect a Phone Call or Email from the Title Company', text: 'You will be contacted by someone from Caliber Title. Typically, it will be Kameron Faulkner or Kiyla Reed with Caliber Title/Title First via email or a phone call who will then begin the process of getting the deal closed. They will need to get your current mortgage company, account number and have you sign an authorization letter to request the info from your lender. Most likely you will be sent a secure email with a secure link that will take you to a secure portal to fill out the information. If you should have any questions please feel free to give me a call.' },
-      { title: '🔍 HOME INSPECTION', text: 'The next step will be the buyers scheduling their home inspection, this will be scheduled through our showing service and may look like a showing request, but you will notice the length of time for the request will be 2 to 3 hours long. We would recommend you treat the home inspection like you would a showing and vacate the home to allow the home inspector, agent and buyer to inspect your property. It is very likely the buyer and their agent will show up for the home inspection, we highly recommend to all buyers to go to the home inspection to be educated about the home, things like what light switches turn on what, how to operate the appliances, how to change the furnace filter and so forth. In addition if any issues come up the inspector can show and explain what is going on versus the buyer just reading a black and white version of the report, by being there it really does help the whole process.' },
-      { title: '🔧 BUYERS REQUEST TO REMEDY', text: 'Once the inspection is completed the buyer most likely will be sending over what is called the Buyer\'s request to remedy. These are items the buyer have identified as a result of the home inspection that they would like you to address. Every home inspector is different, every agent is different, and every buyer is different. I say this because what might be important to you may not be important to the buyer and vice versa, so don\'t worry about the home inspection or the remedy request until they send over their request. Once we come to terms on the request to remedy by either agreeing to make repairs as requested or I normally recommend offering some sort of cash compensation so you don\'t have to do any work at all prior to closing. If you do agree to make repairs they only need to be made prior to the buyers final walk through which happens anywhere from 1 to 3 days prior to the closing date.' },
-      { title: '💰 BANKS APPRAISAL', text: 'An appraisal will be ordered by the buyer\'s lender, if the buyer is getting a loan, if the buyer is paying cash there will be no appraisal. The appraiser will need access to your home to inspect the property and take photos. This will be scheduled through our showing service and will look like a traditional showing. Keep in mind these could happen at any time after the home goes into contract. Please treat this like a traditional showing and just vacate the property during the appointment.' },
+      { title: '🔍 HOME INSPECTION', text: inspectionWaived ? 'Buyer has waived their right to a home inspection.' : 'The next step will be the buyers scheduling their home inspection, this will be scheduled through our showing service and may look like a showing request, but you will notice the length of time for the request will be 2 to 3 hours long. We would recommend you treat the home inspection like you would a showing and vacate the home to allow the home inspector, agent and buyer to inspect your property. It is very likely the buyer and their agent will show up for the home inspection, we highly recommend to all buyers to go to the home inspection to be educated about the home, things like what light switches turn on what, how to operate the appliances, how to change the furnace filter and so forth. In addition if any issues come up the inspector can show and explain what is going on versus the buyer just reading a black and white version of the report, by being there it really does help the whole process.' },
+      { title: '🔧 BUYERS REQUEST TO REMEDY', text: remedyWaived ? 'Buyer has waived their right to a request to remedy.' : 'Once the inspection is completed the buyer most likely will be sending over what is called the Buyer\'s request to remedy. These are items the buyer have identified as a result of the home inspection that they would like you to address. Every home inspector is different, every agent is different, and every buyer is different. I say this because what might be important to you may not be important to the buyer and vice versa, so don\'t worry about the home inspection or the remedy request until they send over their request. Once we come to terms on the request to remedy by either agreeing to make repairs as requested or I normally recommend offering some sort of cash compensation so you don\'t have to do any work at all prior to closing. If you do agree to make repairs they only need to be made prior to the buyers final walk through which happens anywhere from 1 to 3 days prior to the closing date.' },
+      { title: '💰 BANKS APPRAISAL', text: appraisalWaived ? 'This contract is not contingent upon an appraisal.' : 'An appraisal will be ordered by the buyer\'s lender, if the buyer is getting a loan, if the buyer is paying cash there will be no appraisal. The appraiser will need access to your home to inspect the property and take photos. This will be scheduled through our showing service and will look like a traditional showing. Keep in mind these could happen at any time after the home goes into contract. Please treat this like a traditional showing and just vacate the property during the appointment.' },
       { title: '👁️ FINAL WALK THROUGH', text: 'The buyers will be coming to the home one final time, this is typically scheduled 24 to 48 hours prior to closing. This is the buyer\'s opportunity to ensure everything is just as it was when they submitted the offer, minus whatever repairs or improvements had been made. We ask that you leave the home vacant during this time but that the utilities all remain on so the buyer can make sure all the lights and switches work. This usually only lasts 30 minutes to an hour.' },
       { title: '🔑 CLOSING', text: 'Due to Covid-19 we are scheduling separate closings for the buyer and seller. You can sign anytime up to and including the day of closing. Ohio Real Title\'s main office is located near Polaris or they most often will come to you to make it convenient for you. They can come to your home, your office or we have been known to close them at the local Starbucks or Panera. Just let me know what day, time and location works best for you and we\'ll get it scheduled.' },
       { title: '💵 YOUR FUNDS', text: 'Once the closing has been completed, all sides have signed, the buyers lender will release the funds to the title company at which point your funds will become available. You can receive your funds in several different ways. First, you can wait at the title company for a check to be issued, normally available as soon as the lender makes the funds available. Second, you can have your funds overnighted to your address. The third way you can have your funds wired directly to your bank account. By wiring your funds they will be available immediately upon deposit.' },
       { title: '📍 Change of Address', text: 'About 1 week prior to closing be sure to go online and change your postal address. You can get started with this link; https://moversguide.usps.com Also, don\'t forget to change your address on Amazon, Walmart or any other service you use to buy product and have it delivered to your home.' },
-    ].filter(s => {
-      if (inspectionWaived && s.title === '🔍 HOME INSPECTION') return false;
-      if (remedyWaived && s.title === '🔧 BUYERS REQUEST TO REMEDY') return false;
-      return true;
-    });
+    ];
 
     let html = sections.map(s => `
       <h2 style="font-size: 16px; font-weight: 700; color: #1f2937; margin: 20px 0 8px;">${s.title}</h2>
@@ -540,49 +538,60 @@ const ImportantDatesView = ({ propertyData, propertyId, onBack, onEdit, onNaviga
               </p>
             </div>
 
-            {!inspectionWaived && (
+            
             <div className="space-y-3">
               <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
                 <Search className="h-6 w-6 text-primary" />
                 HOME INSPECTION:
               </h2>
               <p>
-                The next step will be the buyers scheduling their home inspection, this will be scheduled through our showing service and may look like a showing request, but you will notice the length of time for the request will be 2 to 3 hours long. We would recommend you treat the home inspection like you would a showing and vacate the home to allow the home inspector, agent and buyer to inspect your property. It is very likely the buyer and their agent will show up for the home inspection, we highly recommend to all buyers to go to the home inspection to be educated about the home, things like what light switches turn on what, how to operate the appliances, how to change the furnace filter and so forth. In addition if any issues come up the inspector can show and explain what is going on versus the buyer just reading a black and white version of the report, by being there it really does help the whole process.
+                {inspectionWaived
+                  ? 'Buyer has waived their right to a home inspection.'
+                  : "The next step will be the buyers scheduling their home inspection, this will be scheduled through our showing service and may look like a showing request, but you will notice the length of time for the request will be 2 to 3 hours long. We would recommend you treat the home inspection like you would a showing and vacate the home to allow the home inspector, agent and buyer to inspect your property. It is very likely the buyer and their agent will show up for the home inspection, we highly recommend to all buyers to go to the home inspection to be educated about the home, things like what light switches turn on what, how to operate the appliances, how to change the furnace filter and so forth. In addition if any issues come up the inspector can show and explain what is going on versus the buyer just reading a black and white version of the report, by being there it really does help the whole process."}
               </p>
             </div>
-            )}
 
-            {!remedyWaived && (
             <div className="space-y-3">
               <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
                 <Wrench className="h-6 w-6 text-primary" />
                 BUYERS REQUEST TO REMEDY
               </h2>
               <p>
-                Once the inspection is completed the buyer most likely will be sending over what is called the Buyer's request to remedy. These are items the buyer have identified as a result of the home inspection that they would like you to address. Every home inspector is different, every agent is different, and every buyer is different. I say this because what might be important to you may not be important to the buyer and vice versa, so don't worry about the home inspection or the remedy request until they send over their request. Once we come to terms on the request to remedy by either agreeing to make repairs as requested or I normally recommend offering some sort of cash compensation so you don't have to do any work at all prior to closing. If you do agree to make repairs they only need to be made prior to the buyers final walk through which happens anywhere from 1 to 3 days prior to the closing date.
+                {remedyWaived
+                  ? 'Buyer has waived their right to a request to remedy.'
+                  : "Once the inspection is completed the buyer most likely will be sending over what is called the Buyer's request to remedy. These are items the buyer have identified as a result of the home inspection that they would like you to address. Every home inspector is different, every agent is different, and every buyer is different. I say this because what might be important to you may not be important to the buyer and vice versa, so don't worry about the home inspection or the remedy request until they send over their request. Once we come to terms on the request to remedy by either agreeing to make repairs as requested or I normally recommend offering some sort of cash compensation so you don't have to do any work at all prior to closing. If you do agree to make repairs they only need to be made prior to the buyers final walk through which happens anywhere from 1 to 3 days prior to the closing date."}
               </p>
             </div>
-            )}
 
             <div className="space-y-3">
               <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
                 <DollarSign className="h-6 w-6 text-primary" />
                 BANKS APPRAISAL
               </h2>
-              <p>
-                An appraisal will be ordered by the buyer's lender, if the buyer is getting a loan, if the buyer is paying cash there will be no appraisal. The appraiser will need access to your home to inspect the property and take photos. This will be scheduled through our showing service and will look like a traditional showing. Keep in mind these could happen at any time after the home goes into contract. Please treat this like a traditional showing and just vacate the property during the appointment. I am occasionally asked if I will be attending the appraisal and in most cases I will not be going. The listing broker has no say in the appraisal, the lender and the appraiser are the two parties involved in the appraisal. My presence at the appointment serves no purpose unless the location needs me to provide access for some reason.
-              </p>
-              {!bothWaived && (
-              <p>
-                After we get through the home inspection and request to remedy process the buyer's lender will then order the appraisal of your home. Again this will be scheduled through our showing service but this time the appraiser will only be in your house for about 20 minutes and it is not necessary for you leave if you don't wish. Once the appraiser has completed the walk through of your house it normally takes anywhere from 5 to 7 days for the appraisal to be completed and returned to the bank. 90% of the time the appraisal comes back for the value of the purchase price but if it does come back for less then the lender will make contact with me, otherwise the lender will not make any contact and we will proceed to closing. BTW, normally the appraisal is not shared with either the buyer or seller unless it comes in for less.
-              </p>
+              {appraisalWaived ? (
+                <p>This contract is not contingent upon an appraisal.</p>
+              ) : (
+                <>
+                  <p>
+                    An appraisal will be ordered by the buyer's lender, if the buyer is getting a loan, if the buyer is paying cash there will be no appraisal. The appraiser will need access to your home to inspect the property and take photos. This will be scheduled through our showing service and will look like a traditional showing. Keep in mind these could happen at any time after the home goes into contract. Please treat this like a traditional showing and just vacate the property during the appointment. I am occasionally asked if I will be attending the appraisal and in most cases I will not be going. The listing broker has no say in the appraisal, the lender and the appraiser are the two parties involved in the appraisal. My presence at the appointment serves no purpose unless the location needs me to provide access for some reason.
+                  </p>
+                  {!bothWaived && (
+                  <p>
+                    After we get through the home inspection and request to remedy process the buyer's lender will then order the appraisal of your home. Again this will be scheduled through our showing service but this time the appraiser will only be in your house for about 20 minutes and it is not necessary for you leave if you don't wish. Once the appraiser has completed the walk through of your house it normally takes anywhere from 5 to 7 days for the appraisal to be completed and returned to the bank. 90% of the time the appraisal comes back for the value of the purchase price but if it does come back for less then the lender will make contact with me, otherwise the lender will not make any contact and we will proceed to closing. BTW, normally the appraisal is not shared with either the buyer or seller unless it comes in for less.
+                  </p>
+                  )}
+                </>
               )}
               <p>
-                {bothWaived
+                {appraisalWaived
+                  ? 'The next step will be for the lender to issue at least 3 days prior to closing what is known as the Closing Disclosure or "CD". By law the buyer has to take at least 3 days to review the closing documents, once this CD is issued we are 99.9% certain the closing will take place as scheduled, otherwise there may be a delay. But rest assured we will stay on top of this entire process.'
+                  : bothWaived
                   ? 'Once we get through the appraisal we are 95% of the way there, the next step will be for the lender to issue at least 3 days prior to closing what is known as the Closing Disclosure or "CD". By law the buyer has to take at least 3 days to review the closing documents, once this CD is issued we are 99.9% certain the closing will take place as scheduled, otherwise there may be a delay. But rest assured we will stay on top of this entire process.'
                   : 'Once we get through the home inspection, the request to remedy and the appraisal we are 95% of the way there, the next step will be for the lender to issue at least 3 days prior to closing what is known as the Closing Disclosure or "CD". By law the buyer has to take at least 3 days to review the closing documents, once this CD is issued we are 99.9% certain the closing will take place as scheduled, otherwise there may be a delay. But rest assured we will stay on top of this entire process.'}
               </p>
             </div>
+
+
 
             <div className="space-y-3">
               <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
