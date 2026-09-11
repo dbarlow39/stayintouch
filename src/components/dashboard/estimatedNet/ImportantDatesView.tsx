@@ -204,7 +204,11 @@ const ImportantDatesView = ({ propertyData, propertyId, onBack, onEdit, onNaviga
       { title: '🔑 CLOSING', text: 'Due to Covid-19 we are scheduling separate closings for the buyer and seller. You can sign anytime up to and including the day of closing. Ohio Real Title\'s main office is located near Polaris or they most often will come to you to make it convenient for you. They can come to your home, your office or we have been known to close them at the local Starbucks or Panera. Just let me know what day, time and location works best for you and we\'ll get it scheduled.' },
       { title: '💵 YOUR FUNDS', text: 'Once the closing has been completed, all sides have signed, the buyers lender will release the funds to the title company at which point your funds will become available. You can receive your funds in several different ways. First, you can wait at the title company for a check to be issued, normally available as soon as the lender makes the funds available. Second, you can have your funds overnighted to your address. The third way you can have your funds wired directly to your bank account. By wiring your funds they will be available immediately upon deposit.' },
       { title: '📍 Change of Address', text: 'About 1 week prior to closing be sure to go online and change your postal address. You can get started with this link; https://moversguide.usps.com Also, don\'t forget to change your address on Amazon, Walmart or any other service you use to buy product and have it delivered to your home.' },
-    ];
+    ].filter(s => {
+      if (inspectionWaived && s.title === '🔍 HOME INSPECTION') return false;
+      if (remedyWaived && s.title === '🔧 BUYERS REQUEST TO REMEDY') return false;
+      return true;
+    });
 
     let html = sections.map(s => `
       <h2 style="font-size: 16px; font-weight: 700; color: #1f2937; margin: 20px 0 8px;">${s.title}</h2>
