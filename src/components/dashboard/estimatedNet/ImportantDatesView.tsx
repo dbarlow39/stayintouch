@@ -127,6 +127,8 @@ const ImportantDatesView = ({ propertyData, propertyId, onBack, onEdit, onNaviga
   const inspectionWaived = propertyData.inspectionDays === 0;
   const remedyWaived = propertyData.remedyPeriodDays === 0;
   const bothWaived = inspectionWaived && remedyWaived;
+  const appraisalWaived = propertyData.appraisalContingency === false;
+
   const INSPECTION_WAIVED_TEXT = 'Buyer has waived their right to a home inspection';
   const REMEDY_WAIVED_TEXT = 'Buyer has waived their right to a request to remedy';
   const utilitiesBaseDate = propertyData.possession || propertyData.closingDate || '';
