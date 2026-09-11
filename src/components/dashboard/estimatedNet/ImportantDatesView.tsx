@@ -175,8 +175,8 @@ const ImportantDatesView = ({ propertyData, propertyId, onBack, onEdit, onNaviga
     const rows = [
       { label: 'Closing Date:', value: formatDate(propertyData.closingDate || '') },
       { label: 'Possession given to buyer:', value: propertyData.possession ? formatDate(propertyData.possession) : formatDate(propertyData.closingDate || '') },
-      { label: 'Home Inspection to be completed by:', value: propertyData.inspectionDays === 0 ? 'Buyer Waived' : inspectionDeadline },
-      { label: "Buyers Request to Remedy to be completed by:", value: propertyData.remedyPeriodDays === 0 ? 'Buyer Waived' : remedyDeadline },
+      { label: 'Home Inspection to be completed by:', value: inspectionWaived ? INSPECTION_WAIVED_TEXT : inspectionDeadline },
+      { label: "Buyers Request to Remedy to be completed by:", value: remedyWaived ? REMEDY_WAIVED_TEXT : remedyDeadline },
       { label: 'Call to schedule final readings for your utilities:', value: utilitiesCallDate },
       { label: 'Schedule utilities to be taken out of your name as of:', value: utilitiesShutoffDate },
       { label: 'Change of Address:', value: changeAddressDate },
