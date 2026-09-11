@@ -113,13 +113,15 @@ const AgentLetterView = ({ propertyData, propertyId, onBack, onEdit, onNavigate 
     : "";
 
   // Calculate home inspection due date
-  const inspectionDue = propertyData.inContract && propertyData.inspectionDays
+  const inspectionDue = propertyData.inspectionDays === 0
+    ? "Buyer has waived their right to a home inspection"
+    : propertyData.inContract && propertyData.inspectionDays
     ? safeDateAdd(propertyData.inContract, propertyData.inspectionDays)
     : "";
 
   // Calculate remedy period due date
   const remedyDue = propertyData.remedyPeriodDays === 0
-    ? "Buyer Waived"
+    ? "Buyer has waived their right to a request to remedy"
     : propertyData.inContract && propertyData.inspectionDays && propertyData.remedyPeriodDays
     ? safeDateAdd(propertyData.inContract, propertyData.inspectionDays + propertyData.remedyPeriodDays)
     : "";
