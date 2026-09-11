@@ -538,7 +538,7 @@ const ImportantDatesView = ({ propertyData, propertyId, onBack, onEdit, onNaviga
               </p>
             </div>
 
-            {!inspectionWaived && (
+            
             <div className="space-y-3">
               <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
                 <Search className="h-6 w-6 text-primary" />
