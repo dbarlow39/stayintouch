@@ -497,7 +497,7 @@ const ImportantDatesView = ({ propertyData, propertyId, onBack, onEdit, onNaviga
                     </tr>
                     <tr className="hover:bg-muted/50">
                       <td className="px-4 py-3 font-medium">Home Inspection to be completed by:</td>
-                      <td className="px-4 py-3">{propertyData.inspectionDays === 0 ? 'Buyer Waived' : inspectionDeadline}</td>
+                      <td className="px-4 py-3">{inspectionWaived ? INSPECTION_WAIVED_TEXT : inspectionDeadline}</td>
                     </tr>
                     <tr className="hover:bg-muted/50">
                       <td className="px-4 py-3 font-medium">Buyers Request to Remedy to be completed by:</td>
