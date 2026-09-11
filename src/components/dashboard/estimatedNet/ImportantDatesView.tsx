@@ -130,6 +130,13 @@ const ImportantDatesView = ({ propertyData, propertyId, onBack, onEdit, onNaviga
   const appraisalWaived = propertyData.appraisalContingency === false;
   const isCashDeal = (propertyData.typeOfLoan || '').trim().toLowerCase() === 'cash';
 
+  // Title company details (fall back to defaults when not entered on the working deal)
+  const titleCompanyName = propertyData.titleCompanyName || 'Caliber Title / Title First';
+  const titleProcessor = propertyData.titleProcessor || 'Kameron Faulkner or Shina Painter';
+  const titlePhone = propertyData.titlePhone || '614-854-0980';
+  const titleEmail = propertyData.titleEmail || 'polaris@titlefirst.com';
+  const titleContactSentence = `You will be contacted by someone from ${titleCompanyName}. Typically, it will be ${titleProcessor} via email ${titleEmail} or a phone call ${titlePhone} who will then begin the process of getting the deal closed.`;
+
 
   const INSPECTION_WAIVED_TEXT = 'Buyer has waived their right to a home inspection';
   const REMEDY_WAIVED_TEXT = 'Buyer has waived their right to a request to remedy';
