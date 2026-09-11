@@ -543,7 +543,7 @@ const ImportantDatesView = ({ propertyData, propertyId, onBack, onEdit, onNaviga
                 Expect a Phone Call or Email from the Title Company:
               </h2>
               <p>
-                You will be contacted by someone from Caliber Title. Typically, it will be Kameron Faulkner or Kiyla Reed with Caliber Title/Title First via email or a phone call who will then begin the process of getting the deal closed. They will need to get your current mortgage company, account number and have you sign an authorization letter to request the info from your lender. Most likely you will be sent a secure email with a secure link that will take you to a secure portal to fill out the information. If you should have any questions please feel free to give me a call.
+                {titleContactSentence} They will need to get your current mortgage company, account number and have you sign an authorization letter to request the info from your lender. Most likely you will be sent a secure email with a secure link that will take you to a secure portal to fill out the information. If you should have any questions please feel free to give me a call.
               </p>
             </div>
 
