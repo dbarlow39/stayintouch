@@ -540,6 +540,7 @@ const ImportantDatesView = ({ propertyData, propertyId, onBack, onEdit, onNaviga
               </p>
             </div>
 
+            {!inspectionWaived && (
             <div className="space-y-3">
               <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
                 <Search className="h-6 w-6 text-primary" />
@@ -549,7 +550,9 @@ const ImportantDatesView = ({ propertyData, propertyId, onBack, onEdit, onNaviga
                 The next step will be the buyers scheduling their home inspection, this will be scheduled through our showing service and may look like a showing request, but you will notice the length of time for the request will be 2 to 3 hours long. We would recommend you treat the home inspection like you would a showing and vacate the home to allow the home inspector, agent and buyer to inspect your property. It is very likely the buyer and their agent will show up for the home inspection, we highly recommend to all buyers to go to the home inspection to be educated about the home, things like what light switches turn on what, how to operate the appliances, how to change the furnace filter and so forth. In addition if any issues come up the inspector can show and explain what is going on versus the buyer just reading a black and white version of the report, by being there it really does help the whole process.
               </p>
             </div>
+            )}
 
+            {!remedyWaived && (
             <div className="space-y-3">
               <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
                 <Wrench className="h-6 w-6 text-primary" />
@@ -559,6 +562,7 @@ const ImportantDatesView = ({ propertyData, propertyId, onBack, onEdit, onNaviga
                 Once the inspection is completed the buyer most likely will be sending over what is called the Buyer's request to remedy. These are items the buyer have identified as a result of the home inspection that they would like you to address. Every home inspector is different, every agent is different, and every buyer is different. I say this because what might be important to you may not be important to the buyer and vice versa, so don't worry about the home inspection or the remedy request until they send over their request. Once we come to terms on the request to remedy by either agreeing to make repairs as requested or I normally recommend offering some sort of cash compensation so you don't have to do any work at all prior to closing. If you do agree to make repairs they only need to be made prior to the buyers final walk through which happens anywhere from 1 to 3 days prior to the closing date.
               </p>
             </div>
+            )}
 
             <div className="space-y-3">
               <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
