@@ -427,33 +427,24 @@ const AddClosingForm = ({ onBack }: AddClosingFormProps) => {
         <CardContent className="space-y-6">
           <div className="space-y-2">
             <Label>Representation</Label>
-            {representation ? (
-              <p className="text-sm flex items-center gap-3">
-                <span className="font-medium">
-                  {representation === "seller" ? "Representing Seller" : "Representing Buyer"}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setRepresentation(null)}
-                  className="text-xs underline text-muted-foreground hover:text-foreground"
-                >
-                  Change
-                </button>
-              </p>
-            ) : (
-              <div className="space-y-2">
-                <p className="text-sm text-muted-foreground">
-                  Not yet detected — choose one, or it will be set automatically from uploaded paperwork.
-                </p>
-                <div className="flex gap-2">
-                  <Button type="button" variant="outline" size="sm" onClick={() => setRepresentation("seller")}>
-                    Representing Seller
-                  </Button>
-                  <Button type="button" variant="outline" size="sm" onClick={() => setRepresentation("buyer")}>
-                    Representing Buyer
-                  </Button>
-                </div>
+            <RadioGroup
+              value={representation ?? ""}
+              onValueChange={(v) => setRepresentation(v as "seller" | "buyer")}
+              className="flex gap-6"
+            >
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="seller" id="rep-seller" />
+                <Label htmlFor="rep-seller" className="font-normal cursor-pointer">Representing Seller</Label>
               </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="buyer" id="rep-buyer" />
+                <Label htmlFor="rep-buyer" className="font-normal cursor-pointer">Representing Buyer</Label>
+              </div>
+            </RadioGroup>
+            {!representation && (
+              <p className="text-sm text-muted-foreground">
+                Not yet detected — choose one, or it will be set automatically from uploaded paperwork.
+              </p>
             )}
           </div>
 
