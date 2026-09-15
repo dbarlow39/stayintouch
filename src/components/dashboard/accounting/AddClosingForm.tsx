@@ -425,13 +425,36 @@ const AddClosingForm = ({ onBack }: AddClosingFormProps) => {
           <CardDescription>Enter the closing details. We'll calculate the split for you.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="space-y-1">
+          <div className="space-y-2">
             <Label>Representation</Label>
-            <p className="text-sm">
-              {representation === "seller" && <span className="font-medium">Representing Seller</span>}
-              {representation === "buyer" && <span className="font-medium">Representing Buyer</span>}
-              {!representation && <span className="text-muted-foreground">Not yet detected — auto-detected from uploaded paperwork.</span>}
-            </p>
+            {representation ? (
+              <p className="text-sm flex items-center gap-3">
+                <span className="font-medium">
+                  {representation === "seller" ? "Representing Seller" : "Representing Buyer"}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setRepresentation(null)}
+                  className="text-xs underline text-muted-foreground hover:text-foreground"
+                >
+                  Change
+                </button>
+              </p>
+            ) : (
+              <div className="space-y-2">
+                <p className="text-sm text-muted-foreground">
+                  Not yet detected — choose one, or it will be set automatically from uploaded paperwork.
+                </p>
+                <div className="flex gap-2">
+                  <Button type="button" variant="outline" size="sm" onClick={() => setRepresentation("seller")}>
+                    Representing Seller
+                  </Button>
+                  <Button type="button" variant="outline" size="sm" onClick={() => setRepresentation("buyer")}>
+                    Representing Buyer
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
 
 
