@@ -156,6 +156,78 @@ serve(async (req) => {
           }
         }
 
+        // Look up seller first names once for greeting matching
+        const { data: agentClients } = await supabase
+          .from('clients')
+          .select('first_name, street_number, street_name')
+          .eq('agent_id', agentId);
+
+        const findClientNames = (address: string) => {
+          const addr = (address || '').toLowerCase();
+          const match = (agentClients || []).find((c: any) => {
+            const key = `${c.street_number || ''} ${c.street_name || ''}`.trim().toLowerCase();
+            return key.length > 3 && addr.startsWith(key);
+          });
+          return match?.first_name || null;
+        };
+
+        // Build a PDF report per ended ad (best effort)
+        const attachments: { filename: string; content: string }[] = [];
+        const pdfFailures: string[] = [];
+        for (const p of posts) {
+          try {
+            const ins = insightsByPost[p.id];
+            const startRaw = p.boost_started_at || p.posted_at || p.created_at;
+            const startMs = startRaw ? new Date(startRaw).getTime() : NaN;
+            const fmtD = (ms: number) => isNaN(ms) ? '' : new Date(ms).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+            const startDate = fmtD(startMs);
+            const endDate = (p.duration_days > 0 && !isNaN(startMs)) ? fmtD(startMs + p.duration_days * 86400000) : '';
+            const spend = ins?.ad_insights?.spend;
+
+            const activity: { label: string; value: number }[] = [];
+            const acts = ins?.ad_insights?.actions;
+            if (Array.isArray(acts) && acts.length) {
+              for (const a of acts) {
+                const label = ACTION_LABELS[a.action_type];
+                const value = parseInt(a.value);
+                if (label && value > 0) activity.push({ label, value });
+              }
+            } else if (ins) {
+              if (ins.likes > 0) activity.push({ label: 'Reactions', value: ins.likes });
+              if (ins.comments > 0) activity.push({ label: 'Comments', value: ins.comments });
+              if (ins.shares > 0) activity.push({ label: 'Shares', value: ins.shares });
+            }
+            activity.sort((a, b) => b.value - a.value);
+
+            const bytes = await buildReportPdf({
+              listingAddress: p.listing_address || '',
+              clientFirstNames: findClientNames(p.listing_address || ''),
+              agentFirstName: profile?.first_name || null,
+              agentFullName: profile?.full_name || `${profile?.first_name || ''} ${profile?.last_name || ''}`.trim(),
+              agentPhone: profile?.cell_phone || null,
+              agentEmail: profile?.preferred_email || profile?.email || null,
+              runDates: startDate && endDate ? `${startDate} – ${endDate}` : (startDate || null),
+              totalSpend: (spend != null || (p.daily_budget && p.duration_days))
+                ? `$${Number(spend ?? (p.daily_budget * p.duration_days)).toFixed(0)} total spend`
+                : null,
+              engagements: ins?.engagements || 0,
+              impressions: ins?.impressions || 0,
+              reach: ins?.reach || 0,
+              activity,
+              adImageUrl: ins?.full_picture || null,
+              logoUrl: `${APP_URL}/logo.jpg`,
+            });
+
+            attachments.push({
+              filename: `${slugify(p.listing_address)}-Ad-Results.pdf`,
+              content: toBase64(bytes),
+            });
+          } catch (e) {
+            console.error(`[check-ad-expiry] PDF build failed for ${p.post_id}:`, e);
+            pdfFailures.push(p.post_id);
+          }
+        }
+
         const html = `
 <!DOCTYPE html>
 <html>
