@@ -313,6 +313,7 @@ serve(async (req) => {
             to: [toEmail],
             subject: `Facebook Ad${posts.length > 1 ? 's' : ''} Completed – ${posts.length > 1 ? `${posts.length} listings` : posts[0].listing_address}`,
             html,
+            ...(attachments.length > 0 ? { attachments } : {}),
           }),
         });
 
