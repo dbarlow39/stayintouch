@@ -18,39 +18,69 @@ serve(async (req) => {
     const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, serviceKey);
 
-    // Find ads that have ended (boost_started_at + duration_days < now) and are still 'active' or 'boosted'
-    const { data: activePosts, error } = await supabase
-      .from('facebook_ad_posts')
-      .select('*, agent_id')
-      .in('status', ['active', 'boosted'])
-      .gt('duration_days', 0);
-
-    if (error) {
-      console.error('[check-ad-expiry] DB error:', error);
-      throw error;
+    // Optional sample mode: build + email the completion report for one post
+    let samplePostId: string | null = null;
+    if (req.method === 'POST') {
+      try {
+        const body = await req.json();
+        samplePostId = body?.sample_post_id ?? null;
+      } catch {
+        samplePostId = null;
+      }
     }
 
-    const now = new Date();
-    const expiredPosts = (activePosts || []).filter(post => {
-      const start = new Date(post.boost_started_at);
-      const endDate = new Date(start.getTime() + post.duration_days * 86400000);
-      return now >= endDate;
-    });
+    let expiredPosts: any[] = [];
 
-    console.log(`[check-ad-expiry] Found ${expiredPosts.length} expired ads out of ${activePosts?.length || 0} active`);
+    if (samplePostId) {
+      const { data: sampleRows, error: sampleErr } = await supabase
+        .from('facebook_ad_posts')
+        .select('*, agent_id')
+        .eq('post_id', samplePostId)
+        .limit(1);
+      if (sampleErr) throw sampleErr;
+      if (!sampleRows || sampleRows.length === 0) {
+        return new Response(JSON.stringify({ error: 'sample_post_id not found' }), {
+          status: 404,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      expiredPosts = sampleRows;
+      console.log(`[check-ad-expiry] SAMPLE mode for post ${samplePostId} — no status changes`);
+    } else {
+      // Find ads that have ended (boost_started_at + duration_days < now) and are still 'active' or 'boosted'
+      const { data: activePosts, error } = await supabase
+        .from('facebook_ad_posts')
+        .select('*, agent_id')
+        .in('status', ['active', 'boosted'])
+        .gt('duration_days', 0);
 
-    if (expiredPosts.length === 0) {
-      return new Response(JSON.stringify({ expired: 0 }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      if (error) {
+        console.error('[check-ad-expiry] DB error:', error);
+        throw error;
+      }
+
+      const now = new Date();
+      expiredPosts = (activePosts || []).filter(post => {
+        const start = new Date(post.boost_started_at);
+        const endDate = new Date(start.getTime() + post.duration_days * 86400000);
+        return now >= endDate;
       });
-    }
 
-    // Mark them as 'ended'
-    const expiredIds = expiredPosts.map(p => p.id);
-    await supabase
-      .from('facebook_ad_posts')
-      .update({ status: 'ended' })
-      .in('id', expiredIds);
+      console.log(`[check-ad-expiry] Found ${expiredPosts.length} expired ads out of ${activePosts?.length || 0} active`);
+
+      if (expiredPosts.length === 0) {
+        return new Response(JSON.stringify({ expired: 0 }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      // Mark them as 'ended'
+      const expiredIds = expiredPosts.map(p => p.id);
+      await supabase
+        .from('facebook_ad_posts')
+        .update({ status: 'ended' })
+        .in('id', expiredIds);
+    }
 
     // Group by agent for email notifications
     const agentGroups: Record<string, typeof expiredPosts> = {};
@@ -119,8 +149,11 @@ serve(async (req) => {
             The following Facebook ad${posts.length > 1 ? 's have' : ' has'} finished running:
           </p>
           ${posts.map(p => {
-            const startDate = new Date(p.boost_started_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-            const endDate = new Date(new Date(p.boost_started_at).getTime() + p.duration_days * 86400000).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            const startRaw = p.boost_started_at || p.posted_at || p.created_at;
+            const startMs = startRaw ? new Date(startRaw).getTime() : NaN;
+            const fmt = (ms: number) => isNaN(ms) ? '' : new Date(ms).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            const startDate = fmt(startMs);
+            const endDate = (p.duration_days > 0 && !isNaN(startMs)) ? fmt(startMs + p.duration_days * 86400000) : '';
             const ins = insightsByPost[p.id];
             const spend = ins?.ad_insights?.spend;
             const reportUrl = `${APP_URL}/ad-results/${encodeURIComponent(ins?.post_id || p.post_id)}?address=${encodeURIComponent(p.listing_address || '')}`;
@@ -147,7 +180,11 @@ serve(async (req) => {
             return `
           <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:12px 16px;margin-bottom:12px;">
             <p style="margin:0;font-weight:600;color:#1f2937;font-size:14px;">${p.listing_address}</p>
-            <p style="margin:4px 0 0;color:#6b7280;font-size:13px;">${startDate} – ${endDate} · ${p.duration_days} days · $${(spend ?? (p.daily_budget * p.duration_days)).toFixed(0)} total spend</p>
+            <p style="margin:4px 0 0;color:#6b7280;font-size:13px;">${[
+              startDate && endDate ? `${startDate} – ${endDate}` : startDate,
+              p.duration_days > 0 ? `${p.duration_days} days` : '',
+              (spend != null || (p.daily_budget && p.duration_days)) ? `$${Number(spend ?? (p.daily_budget * p.duration_days)).toFixed(0)} total spend` : '',
+            ].filter(Boolean).join(' · ')}</p>
             ${statsRow}
             <p style="margin:12px 0 0;">
               <a href="${reportUrl}" style="display:inline-block;background:#9B111E;color:#ffffff;text-decoration:none;font-size:13px;font-weight:600;padding:9px 16px;border-radius:6px;">Open the report</a>
