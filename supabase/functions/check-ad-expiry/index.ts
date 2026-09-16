@@ -180,7 +180,11 @@ serve(async (req) => {
             return `
           <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:12px 16px;margin-bottom:12px;">
             <p style="margin:0;font-weight:600;color:#1f2937;font-size:14px;">${p.listing_address}</p>
-            <p style="margin:4px 0 0;color:#6b7280;font-size:13px;">${startDate} – ${endDate} · ${p.duration_days} days · $${(spend ?? (p.daily_budget * p.duration_days)).toFixed(0)} total spend</p>
+            <p style="margin:4px 0 0;color:#6b7280;font-size:13px;">${[
+              startDate && endDate ? `${startDate} – ${endDate}` : startDate,
+              p.duration_days > 0 ? `${p.duration_days} days` : '',
+              (spend != null || (p.daily_budget && p.duration_days)) ? `$${Number(spend ?? (p.daily_budget * p.duration_days)).toFixed(0)} total spend` : '',
+            ].filter(Boolean).join(' · ')}</p>
             ${statsRow}
             <p style="margin:12px 0 0;">
               <a href="${reportUrl}" style="display:inline-block;background:#9B111E;color:#ffffff;text-decoration:none;font-size:13px;font-weight:600;padding:9px 16px;border-radius:6px;">Open the report</a>
