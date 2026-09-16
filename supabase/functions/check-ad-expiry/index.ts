@@ -77,11 +77,30 @@ serve(async (req) => {
         }
 
         const agentName = profile?.first_name || profile?.full_name || 'there';
-        const listingList = posts
-          .map(p => `• ${p.listing_address} (ran ${p.duration_days} days, $${p.daily_budget}/day)`)
-          .join('\n');
 
-        const totalSpent = posts.reduce((sum, p) => sum + (p.daily_budget * p.duration_days), 0);
+        // Pull final Facebook numbers for each ended ad (best effort)
+        const insightsByPost: Record<string, any> = {};
+        for (const p of posts) {
+          try {
+            const r = await fetch(`${supabaseUrl}/functions/v1/facebook-ad-insights`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${serviceKey}`,
+              },
+              body: JSON.stringify({
+                agent_id: agentId,
+                post_id: p.post_id,
+                listing_address: p.listing_address,
+              }),
+            });
+            const j = await r.json();
+            if (r.ok && !j.error) insightsByPost[p.id] = j;
+            else console.error(`[check-ad-expiry] Insights failed for ${p.post_id}:`, j?.error);
+          } catch (e) {
+            console.error(`[check-ad-expiry] Insights error for ${p.post_id}:`, e);
+          }
+        }
 
         const html = `
 <!DOCTYPE html>
