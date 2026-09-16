@@ -29,39 +29,58 @@ serve(async (req) => {
       }
     }
 
-    // Find ads that have ended (boost_started_at + duration_days < now) and are still 'active' or 'boosted'
-    const { data: activePosts, error } = await supabase
-      .from('facebook_ad_posts')
-      .select('*, agent_id')
-      .in('status', ['active', 'boosted'])
-      .gt('duration_days', 0);
+    let expiredPosts: any[] = [];
 
-    if (error) {
-      console.error('[check-ad-expiry] DB error:', error);
-      throw error;
-    }
+    if (samplePostId) {
+      const { data: sampleRows, error: sampleErr } = await supabase
+        .from('facebook_ad_posts')
+        .select('*, agent_id')
+        .eq('post_id', samplePostId)
+        .limit(1);
+      if (sampleErr) throw sampleErr;
+      if (!sampleRows || sampleRows.length === 0) {
+        return new Response(JSON.stringify({ error: 'sample_post_id not found' }), {
+          status: 404,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      expiredPosts = sampleRows;
+      console.log(`[check-ad-expiry] SAMPLE mode for post ${samplePostId} — no status changes`);
+    } else {
+      // Find ads that have ended (boost_started_at + duration_days < now) and are still 'active' or 'boosted'
+      const { data: activePosts, error } = await supabase
+        .from('facebook_ad_posts')
+        .select('*, agent_id')
+        .in('status', ['active', 'boosted'])
+        .gt('duration_days', 0);
 
-    const now = new Date();
-    const expiredPosts = (activePosts || []).filter(post => {
-      const start = new Date(post.boost_started_at);
-      const endDate = new Date(start.getTime() + post.duration_days * 86400000);
-      return now >= endDate;
-    });
+      if (error) {
+        console.error('[check-ad-expiry] DB error:', error);
+        throw error;
+      }
 
-    console.log(`[check-ad-expiry] Found ${expiredPosts.length} expired ads out of ${activePosts?.length || 0} active`);
-
-    if (expiredPosts.length === 0) {
-      return new Response(JSON.stringify({ expired: 0 }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      const now = new Date();
+      expiredPosts = (activePosts || []).filter(post => {
+        const start = new Date(post.boost_started_at);
+        const endDate = new Date(start.getTime() + post.duration_days * 86400000);
+        return now >= endDate;
       });
-    }
 
-    // Mark them as 'ended'
-    const expiredIds = expiredPosts.map(p => p.id);
-    await supabase
-      .from('facebook_ad_posts')
-      .update({ status: 'ended' })
-      .in('id', expiredIds);
+      console.log(`[check-ad-expiry] Found ${expiredPosts.length} expired ads out of ${activePosts?.length || 0} active`);
+
+      if (expiredPosts.length === 0) {
+        return new Response(JSON.stringify({ expired: 0 }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      // Mark them as 'ended'
+      const expiredIds = expiredPosts.map(p => p.id);
+      await supabase
+        .from('facebook_ad_posts')
+        .update({ status: 'ended' })
+        .in('id', expiredIds);
+    }
 
     // Group by agent for email notifications
     const agentGroups: Record<string, typeof expiredPosts> = {};
