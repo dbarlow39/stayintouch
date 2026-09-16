@@ -120,7 +120,7 @@ serve(async (req) => {
         // Get agent profile for email
         const { data: profile } = await supabase
           .from('profiles')
-          .select('email, preferred_email, first_name, full_name')
+          .select('email, preferred_email, first_name, last_name, full_name, cell_phone')
           .eq('id', agentId)
           .maybeSingle();
 
