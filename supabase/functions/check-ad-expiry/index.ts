@@ -119,14 +119,41 @@ serve(async (req) => {
           ${posts.map(p => {
             const startDate = new Date(p.boost_started_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
             const endDate = new Date(new Date(p.boost_started_at).getTime() + p.duration_days * 86400000).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            const ins = insightsByPost[p.id];
+            const spend = ins?.ad_insights?.spend;
+            const reportUrl = `${APP_URL}/ad-results/${encodeURIComponent(ins?.post_id || p.post_id)}?address=${encodeURIComponent(p.listing_address || '')}`;
+            const statsRow = ins ? `
+            <table cellpadding="0" cellspacing="0" style="margin-top:10px;width:100%;">
+              <tr>
+                <td style="padding:6px 8px;background:#fff;border:1px solid #e5e7eb;border-radius:6px;text-align:center;">
+                  <span style="display:block;font-size:18px;font-weight:700;color:#1f2937;">${(ins.engagements || 0).toLocaleString()}</span>
+                  <span style="font-size:11px;color:#6b7280;">Engagements</span>
+                </td>
+                <td style="width:6px;"></td>
+                <td style="padding:6px 8px;background:#fff;border:1px solid #e5e7eb;border-radius:6px;text-align:center;">
+                  <span style="display:block;font-size:18px;font-weight:700;color:#1f2937;">${(ins.impressions || 0).toLocaleString()}</span>
+                  <span style="font-size:11px;color:#6b7280;">Views</span>
+                </td>
+                <td style="width:6px;"></td>
+                <td style="padding:6px 8px;background:#fff;border:1px solid #e5e7eb;border-radius:6px;text-align:center;">
+                  <span style="display:block;font-size:18px;font-weight:700;color:#1f2937;">${(ins.reach || 0).toLocaleString()}</span>
+                  <span style="font-size:11px;color:#6b7280;">People Reached</span>
+                </td>
+              </tr>
+            </table>` : `
+            <p style="margin:8px 0 0;color:#9ca3af;font-size:12px;">Facebook numbers weren't available yet — open the report to pull them.</p>`;
             return `
-          <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:12px 16px;margin-bottom:8px;">
+          <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:12px 16px;margin-bottom:12px;">
             <p style="margin:0;font-weight:600;color:#1f2937;font-size:14px;">${p.listing_address}</p>
-            <p style="margin:4px 0 0;color:#6b7280;font-size:13px;">${startDate} – ${endDate} · ${p.duration_days} days · $${(p.daily_budget * p.duration_days).toFixed(0)} total spend</p>
+            <p style="margin:4px 0 0;color:#6b7280;font-size:13px;">${startDate} – ${endDate} · ${p.duration_days} days · $${(spend ?? (p.daily_budget * p.duration_days)).toFixed(0)} total spend</p>
+            ${statsRow}
+            <p style="margin:12px 0 0;">
+              <a href="${reportUrl}" style="display:inline-block;background:#9B111E;color:#ffffff;text-decoration:none;font-size:13px;font-weight:600;padding:9px 16px;border-radius:6px;">Open the report</a>
+            </p>
           </div>`;
           }).join('')}
           <p style="margin:16px 0 0;color:#374151;font-size:15px;line-height:1.6;">
-            View the results for ${posts.length > 1 ? 'these ads' : 'this ad'} in your <strong>Ad Results</strong> dashboard.
+            Review the report, then send it to your seller when you're ready — nothing is sent to clients automatically.
           </p>
         </td></tr>
         <tr><td style="padding:16px 32px;border-top:1px solid #e5e7eb;text-align:center;">
