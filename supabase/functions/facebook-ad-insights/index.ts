@@ -13,7 +13,7 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  const __auth = await requireAgentOwner(req);
+  const __auth = await requireAgentOwner(req, { allowService: true });
   if (__auth instanceof Response) return __auth;
   req = __auth.req;
   const authUserId = __auth.userId;
