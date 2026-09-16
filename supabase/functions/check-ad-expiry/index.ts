@@ -280,13 +280,16 @@ serve(async (req) => {
               (spend != null || (p.daily_budget && p.duration_days)) ? `$${Number(spend ?? (p.daily_budget * p.duration_days)).toFixed(0)} total spend` : '',
             ].filter(Boolean).join(' · ')}</p>
             ${statsRow}
+            ${pdfFailures.includes(p.post_id) ? `
             <p style="margin:12px 0 0;">
               <a href="${reportUrl}" style="display:inline-block;background:#9B111E;color:#ffffff;text-decoration:none;font-size:13px;font-weight:600;padding:9px 16px;border-radius:6px;">Open the report</a>
-            </p>
+            </p>` : ''}
           </div>`;
           }).join('')}
           <p style="margin:16px 0 0;color:#374151;font-size:15px;line-height:1.6;">
-            Review the report, then send it to your seller when you're ready — nothing is sent to clients automatically.
+            ${attachments.length > 0
+              ? `The full report${attachments.length > 1 ? 's are' : ' is'} attached — review ${attachments.length > 1 ? 'them' : 'it'} and forward to your seller when you're ready. Nothing is sent to clients automatically.`
+              : `Open the report, review it, then send it to your seller when you're ready — nothing is sent to clients automatically.`}
           </p>
         </td></tr>
         <tr><td style="padding:16px 32px;border-top:1px solid #e5e7eb;text-align:center;">
