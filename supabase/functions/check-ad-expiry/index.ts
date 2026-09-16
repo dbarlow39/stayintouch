@@ -149,8 +149,11 @@ serve(async (req) => {
             The following Facebook ad${posts.length > 1 ? 's have' : ' has'} finished running:
           </p>
           ${posts.map(p => {
-            const startDate = new Date(p.boost_started_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-            const endDate = new Date(new Date(p.boost_started_at).getTime() + p.duration_days * 86400000).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            const startRaw = p.boost_started_at || p.posted_at || p.created_at;
+            const startMs = startRaw ? new Date(startRaw).getTime() : NaN;
+            const fmt = (ms: number) => isNaN(ms) ? '' : new Date(ms).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            const startDate = fmt(startMs);
+            const endDate = (p.duration_days > 0 && !isNaN(startMs)) ? fmt(startMs + p.duration_days * 86400000) : '';
             const ins = insightsByPost[p.id];
             const spend = ins?.ad_insights?.spend;
             const reportUrl = `${APP_URL}/ad-results/${encodeURIComponent(ins?.post_id || p.post_id)}?address=${encodeURIComponent(p.listing_address || '')}`;
