@@ -1,5 +1,27 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { buildReportPdf } from "./buildReportPdf.ts";
+
+const ACTION_LABELS: Record<string, string> = {
+  post_engagement: 'Post engagements',
+  link_click: 'Link clicks',
+  post_reaction: 'Post reactions',
+  post: 'Post shares',
+  like: 'Facebook likes',
+  'onsite_conversion.post_save': 'Post saves',
+};
+
+const toBase64 = (bytes: Uint8Array) => {
+  let binary = '';
+  const chunk = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunk) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
+  }
+  return btoa(binary);
+};
+
+const slugify = (s: string) =>
+  (s || 'listing').replace(/[^a-zA-Z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60);
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -98,7 +120,7 @@ serve(async (req) => {
         // Get agent profile for email
         const { data: profile } = await supabase
           .from('profiles')
-          .select('email, preferred_email, first_name, full_name')
+          .select('email, preferred_email, first_name, last_name, full_name, cell_phone')
           .eq('id', agentId)
           .maybeSingle();
 
@@ -131,6 +153,78 @@ serve(async (req) => {
             else console.error(`[check-ad-expiry] Insights failed for ${p.post_id}:`, j?.error);
           } catch (e) {
             console.error(`[check-ad-expiry] Insights error for ${p.post_id}:`, e);
+          }
+        }
+
+        // Look up seller first names once for greeting matching
+        const { data: agentClients } = await supabase
+          .from('clients')
+          .select('first_name, street_number, street_name')
+          .eq('agent_id', agentId);
+
+        const findClientNames = (address: string) => {
+          const addr = (address || '').toLowerCase();
+          const match = (agentClients || []).find((c: any) => {
+            const key = `${c.street_number || ''} ${c.street_name || ''}`.trim().toLowerCase();
+            return key.length > 3 && addr.startsWith(key);
+          });
+          return match?.first_name || null;
+        };
+
+        // Build a PDF report per ended ad (best effort)
+        const attachments: { filename: string; content: string }[] = [];
+        const pdfFailures: string[] = [];
+        for (const p of posts) {
+          try {
+            const ins = insightsByPost[p.id];
+            const startRaw = p.boost_started_at || p.posted_at || p.created_at;
+            const startMs = startRaw ? new Date(startRaw).getTime() : NaN;
+            const fmtD = (ms: number) => isNaN(ms) ? '' : new Date(ms).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+            const startDate = fmtD(startMs);
+            const endDate = (p.duration_days > 0 && !isNaN(startMs)) ? fmtD(startMs + p.duration_days * 86400000) : '';
+            const spend = ins?.ad_insights?.spend;
+
+            const activity: { label: string; value: number }[] = [];
+            const acts = ins?.ad_insights?.actions;
+            if (Array.isArray(acts) && acts.length) {
+              for (const a of acts) {
+                const label = ACTION_LABELS[a.action_type];
+                const value = parseInt(a.value);
+                if (label && value > 0) activity.push({ label, value });
+              }
+            } else if (ins) {
+              if (ins.likes > 0) activity.push({ label: 'Reactions', value: ins.likes });
+              if (ins.comments > 0) activity.push({ label: 'Comments', value: ins.comments });
+              if (ins.shares > 0) activity.push({ label: 'Shares', value: ins.shares });
+            }
+            activity.sort((a, b) => b.value - a.value);
+
+            const bytes = await buildReportPdf({
+              listingAddress: p.listing_address || '',
+              clientFirstNames: findClientNames(p.listing_address || ''),
+              agentFirstName: profile?.first_name || null,
+              agentFullName: profile?.full_name || `${profile?.first_name || ''} ${profile?.last_name || ''}`.trim(),
+              agentPhone: profile?.cell_phone || null,
+              agentEmail: profile?.preferred_email || profile?.email || null,
+              runDates: startDate && endDate ? `${startDate} – ${endDate}` : (startDate || null),
+              totalSpend: (spend != null || (p.daily_budget && p.duration_days))
+                ? `$${Number(spend ?? (p.daily_budget * p.duration_days)).toFixed(0)} total spend`
+                : null,
+              engagements: ins?.engagements || 0,
+              impressions: ins?.impressions || 0,
+              reach: ins?.reach || 0,
+              activity,
+              adImageUrl: ins?.full_picture || null,
+              logoUrl: `${APP_URL}/logo.jpg`,
+            });
+
+            attachments.push({
+              filename: `${slugify(p.listing_address)}-Ad-Results.pdf`,
+              content: toBase64(bytes),
+            });
+          } catch (e) {
+            console.error(`[check-ad-expiry] PDF build failed for ${p.post_id}:`, e);
+            pdfFailures.push(p.post_id);
           }
         }
 
@@ -186,13 +280,16 @@ serve(async (req) => {
               (spend != null || (p.daily_budget && p.duration_days)) ? `$${Number(spend ?? (p.daily_budget * p.duration_days)).toFixed(0)} total spend` : '',
             ].filter(Boolean).join(' · ')}</p>
             ${statsRow}
+            ${pdfFailures.includes(p.post_id) ? `
             <p style="margin:12px 0 0;">
               <a href="${reportUrl}" style="display:inline-block;background:#9B111E;color:#ffffff;text-decoration:none;font-size:13px;font-weight:600;padding:9px 16px;border-radius:6px;">Open the report</a>
-            </p>
+            </p>` : ''}
           </div>`;
           }).join('')}
           <p style="margin:16px 0 0;color:#374151;font-size:15px;line-height:1.6;">
-            Review the report, then send it to your seller when you're ready — nothing is sent to clients automatically.
+            ${attachments.length > 0
+              ? `The full report${attachments.length > 1 ? 's are' : ' is'} attached — review ${attachments.length > 1 ? 'them' : 'it'} and forward to your seller when you're ready. Nothing is sent to clients automatically.`
+              : `Open the report, review it, then send it to your seller when you're ready — nothing is sent to clients automatically.`}
           </p>
         </td></tr>
         <tr><td style="padding:16px 32px;border-top:1px solid #e5e7eb;text-align:center;">
@@ -216,6 +313,7 @@ serve(async (req) => {
             to: [toEmail],
             subject: `Facebook Ad${posts.length > 1 ? 's' : ''} Completed – ${posts.length > 1 ? `${posts.length} listings` : posts[0].listing_address}`,
             html,
+            ...(attachments.length > 0 ? { attachments } : {}),
           }),
         });
 
