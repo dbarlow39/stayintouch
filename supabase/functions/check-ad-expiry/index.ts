@@ -18,6 +18,17 @@ serve(async (req) => {
     const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, serviceKey);
 
+    // Optional sample mode: build + email the completion report for one post
+    let samplePostId: string | null = null;
+    if (req.method === 'POST') {
+      try {
+        const body = await req.json();
+        samplePostId = body?.sample_post_id ?? null;
+      } catch {
+        samplePostId = null;
+      }
+    }
+
     // Find ads that have ended (boost_started_at + duration_days < now) and are still 'active' or 'boosted'
     const { data: activePosts, error } = await supabase
       .from('facebook_ad_posts')
