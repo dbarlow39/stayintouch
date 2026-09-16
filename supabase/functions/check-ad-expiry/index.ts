@@ -1,5 +1,27 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { buildReportPdf } from "./buildReportPdf.ts";
+
+const ACTION_LABELS: Record<string, string> = {
+  post_engagement: 'Post engagements',
+  link_click: 'Link clicks',
+  post_reaction: 'Post reactions',
+  post: 'Post shares',
+  like: 'Facebook likes',
+  'onsite_conversion.post_save': 'Post saves',
+};
+
+const toBase64 = (bytes: Uint8Array) => {
+  let binary = '';
+  const chunk = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunk) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
+  }
+  return btoa(binary);
+};
+
+const slugify = (s: string) =>
+  (s || 'listing').replace(/[^a-zA-Z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60);
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
