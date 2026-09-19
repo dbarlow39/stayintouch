@@ -19,6 +19,7 @@ import DailyCallSheet from "./pages/DailyCallSheet";
 import AddLead from "./pages/AddLead";
 import ClientDetail from "./pages/ClientDetail";
 import LoveQuestionnaire from "./pages/LoveQuestionnaire";
+import SellerWorkSheet from "./pages/SellerWorkSheet";
 
 
 const queryClient = new QueryClient({
@@ -81,6 +82,8 @@ const App = () => (
             <Route path="/leads/new" element={<AddLead />} />
             <Route path="/clients/:id" element={<ClientDetail />} />
             <Route path="/love/:token" element={<LoveQuestionnaire />} />
+            <Route path="/worksheet" element={<SellerWorkSheet />} />
+            <Route path="/worksheet/:code" element={<SellerWorkSheet />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
