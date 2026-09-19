@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { generateInspectionPDF } from "@/utils/inspectionPdfGenerator";
 import PriceConditionAdjustment from "./residential/PriceConditionAdjustment";
+import { SellerShareCard } from "./residential/SellerShareCard";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
@@ -551,6 +552,15 @@ const ResidentialWorkSheetTab = ({ lead, client }: ResidentialWorkSheetTabProps)
           <FolderOpen className="mr-2 h-4 w-4" />My Work Sheets
         </Button>
       </div>
+
+      {user && (
+        <SellerShareCard
+          inspectionId={currentInspectionId}
+          agentId={user.id}
+          propertyAddress={inspectionData["property-info"]?.address || ""}
+          sellerEmail={inspectionData["property-info"]?.email || lead?.email || ""}
+        />
+      )}
 
       <div className="rounded-lg border bg-card p-4 shadow-sm">
         <div className="mb-2 flex items-center justify-between">
