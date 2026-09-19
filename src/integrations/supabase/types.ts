@@ -3086,6 +3086,53 @@ export type Database = {
         }
         Relationships: []
       }
+      worksheet_access_codes: {
+        Row: {
+          agent_id: string
+          code: string
+          created_at: string
+          expires_at: string
+          id: string
+          inspection_id: string
+          last_opened_at: string | null
+          property_address: string | null
+          revoked: boolean
+          submitted_at: string | null
+        }
+        Insert: {
+          agent_id: string
+          code: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          inspection_id: string
+          last_opened_at?: string | null
+          property_address?: string | null
+          revoked?: boolean
+          submitted_at?: string | null
+        }
+        Update: {
+          agent_id?: string
+          code?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          inspection_id?: string
+          last_opened_at?: string | null
+          property_address?: string | null
+          revoked?: boolean
+          submitted_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "worksheet_access_codes_inspection_id_fkey"
+            columns: ["inspection_id"]
+            isOneToOne: false
+            referencedRelation: "inspections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
