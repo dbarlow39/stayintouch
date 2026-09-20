@@ -88,8 +88,9 @@ export const SellerShareCard = ({ inspectionId, agentId, propertyAddress, seller
 
   const handleCopy = async (code: string) => {
     const text =
-      `Here's the link to fill in the details about your home:\n\n${shareUrl(code)}\n\n` +
-      `If it asks for a code, use: ${code}\n\n` +
+      `Here's the link to fill in the details about your home:\n\n${shareUrl()}\n\n` +
+      `Your access code is: ${code}\n\n` +
+      `Enter that code on the page to open your home information sheet.\n\n` +
       `Fill in whatever you know, add a few photos of each area, and click "Send to My Agent" when you're done. ` +
       `You can stop and come back any time with the same code.`;
     await navigator.clipboard.writeText(text);
