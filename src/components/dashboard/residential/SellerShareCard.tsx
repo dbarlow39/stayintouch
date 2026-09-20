@@ -36,7 +36,7 @@ export const SellerShareCard = ({ inspectionId, agentId, propertyAddress, seller
   const [codes, setCodes] = useState<AccessCode[]>([]);
   const [busy, setBusy] = useState(false);
 
-  const shareUrl = (code: string) => `${window.location.origin}/worksheet/${code.replace(/-/g, "")}`;
+  const shareUrl = (code: string) => `https://myhome.sellfor1percent.com/${code.replace(/-/g, "")}`;
 
   const load = async () => {
     if (!inspectionId) { setCodes([]); return; }
