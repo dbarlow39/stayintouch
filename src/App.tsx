@@ -43,6 +43,14 @@ const isLoveSubdomain = () => {
   return host.startsWith('10thingsilove.');
 };
 
+const isMyHomeSubdomain = () => {
+  const host = window.location.hostname;
+  return host.startsWith('myhome.');
+};
+
+// On myhome.sellfor1percent.com a bare code in the path opens the work sheet
+const CodeOrNotFound = () => (isMyHomeSubdomain() ? <SellerWorkSheet /> : <NotFound />);
+
 const LoveLandingPlaceholder = () => (
   <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px', background: '#f8fafc', fontFamily: 'Arial, sans-serif' }}>
     <div style={{ maxWidth: 520, textAlign: 'center', background: '#fff', padding: '40px 32px', borderRadius: 12, boxShadow: '0 4px 24px rgba(0,0,0,0.06)' }}>
@@ -57,6 +65,7 @@ const LoveLandingPlaceholder = () => (
 
 const IndexOrListings = () => {
   if (isLoveSubdomain()) return <LoveLandingPlaceholder />;
+  if (isMyHomeSubdomain()) return <SellerWorkSheet />;
   return isListingsSubdomain() ? <PublicListings /> : <Index />;
 };
 
@@ -84,6 +93,7 @@ const App = () => (
             <Route path="/love/:token" element={<LoveQuestionnaire />} />
             <Route path="/worksheet" element={<SellerWorkSheet />} />
             <Route path="/worksheet/:code" element={<SellerWorkSheet />} />
+            <Route path="/:code" element={<CodeOrNotFound />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
