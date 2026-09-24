@@ -41,15 +41,35 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, serviceKey);
 
     // Optional sample mode: build + email the completion report for one post
+    // agent_copy_test: send the listing-agent version to you instead of the agent
+    // agent_copy_only: send only the listing-agent version (skip your internal email)
     let samplePostId: string | null = null;
+    let agentCopyTest = false;
+    let agentCopyOnly = false;
     if (req.method === 'POST') {
       try {
         const body = await req.json();
         samplePostId = body?.sample_post_id ?? null;
+        agentCopyTest = body?.agent_copy_test === true;
+        agentCopyOnly = body?.agent_copy_only === true;
       } catch {
         samplePostId = null;
       }
     }
+
+    // Listing agent lookup from cached MLS listings
+    const { data: cacheRows } = await supabase.from('listings_cache').select('listings');
+    const cachedListings: any[] = (cacheRows || []).flatMap((r: any) => Array.isArray(r.listings) ? r.listings : []);
+    const findListingAgent = (p: any): { name: string; email: string; phone: string } | null => {
+      let l = cachedListings.find((x) => x?.id && p.listing_id && String(x.id) === String(p.listing_id));
+      if (!l) {
+        const addr = (p.listing_address || '').toLowerCase();
+        l = cachedListings.find((x) => x?.address && addr.startsWith(String(x.address).toLowerCase()));
+      }
+      const a = l?.agent;
+      if (!a?.email) return null;
+      return { name: a.name || '', email: a.email, phone: a.phone || '' };
+    };
 
     let expiredPosts: any[] = [];
     const discoveryErrors: { agentId: string; message: string }[] = [];
@@ -282,6 +302,7 @@ serve(async (req) => {
         // Build a PDF report per ended ad (best effort)
         const attachments: { filename: string; content: string }[] = [];
         const pdfFailures: string[] = [];
+        const pdfInputs: Record<string, any> = {};
         for (const p of posts) {
           try {
             const ins = insightsByPost[p.id];
@@ -307,7 +328,7 @@ serve(async (req) => {
             }
             activity.sort((a, b) => b.value - a.value);
 
-            const bytes = await buildReportPdf({
+            const pdfInput = {
               listingAddress: p.listing_address || '',
               clientFirstNames: findClientNames(p.listing_address || ''),
               agentFirstName: profile?.first_name || null,
@@ -322,7 +343,9 @@ serve(async (req) => {
               activity,
               adImageUrl: ins?.full_picture || null,
               logoUrl: `${APP_URL}/logo.jpg`,
-            });
+            };
+            pdfInputs[p.id] = pdfInput;
+            const bytes = await buildReportPdf(pdfInput);
 
             attachments.push({
               filename: `${slugify(p.listing_address)}-Ad-Results.pdf`,
@@ -407,33 +430,100 @@ serve(async (req) => {
 </body>
 </html>`;
 
-        const res = await fetch('https://api.resend.com/emails', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${RESEND_API_KEY}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            from: 'Sellfor1Percent.com <updates@resend.sellfor1percent.com>',
-            to: [toEmail],
-            subject: `Facebook Ad${posts.length > 1 ? 's' : ''} Completed – ${posts.length > 1 ? `${posts.length} listings` : posts[0].listing_address}`,
-            html,
-            ...(attachments.length > 0 ? { attachments } : {}),
-          }),
-        });
+        let internalOk = true;
+        if (!agentCopyOnly) {
+          const res = await fetch('https://api.resend.com/emails', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${RESEND_API_KEY}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              from: 'Sellfor1Percent.com <updates@resend.sellfor1percent.com>',
+              to: [toEmail],
+              subject: `Facebook Ad${posts.length > 1 ? 's' : ''} Completed – ${posts.length > 1 ? `${posts.length} listings` : posts[0].listing_address}`,
+              html,
+              ...(attachments.length > 0 ? { attachments } : {}),
+            }),
+          });
+          internalOk = res.ok;
+          if (res.ok) {
+            emailsSent++;
+            console.log(`[check-ad-expiry] Email sent to ${toEmail} for ${posts.length} ended ads`);
+          } else {
+            const err = await res.text();
+            console.error(`[check-ad-expiry] Email failed for ${toEmail}:`, err);
+          }
+        }
 
-        if (res.ok) {
-          emailsSent++;
+        if (internalOk) {
           for (const p of posts) {
             if (pendingUpdates[p.id]) {
               const { error: upErr } = await supabase.from('facebook_ad_posts').update(pendingUpdates[p.id]).eq('id', p.id);
               if (upErr) console.error(`[check-ad-expiry] Update failed for ${p.id}:`, upErr);
             }
           }
-          console.log(`[check-ad-expiry] Email sent to ${toEmail} for ${posts.length} ended ads`);
-        } else {
-          const err = await res.text();
-          console.error(`[check-ad-expiry] Email failed for ${toEmail}:`, err);
+        }
+
+        // ---- Forwardable copy for the listing agent (Option A) ----
+        const esc = (s: string) => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        for (const p of posts) {
+          const la = findListingAgent(p);
+          const isSelf = la && la.email.toLowerCase() === String(toEmail).toLowerCase();
+          if (!agentCopyTest && (!la || isSelf)) continue;
+          const ins = insightsByPost[p.id];
+          const baseInput = pdfInputs[p.id];
+          const sellerFirst = findClientNames(p.listing_address || '');
+          const sigName = la?.name || baseInput?.agentFullName || '';
+          const sigPhone = la?.phone || baseInput?.agentPhone || '';
+          const sigEmail = la?.email || baseInput?.agentEmail || '';
+          const days = p.duration_days > 0 ? p.duration_days : null;
+          const views = (ins?.impressions || 0).toLocaleString();
+          const reach = (ins?.reach || 0).toLocaleString();
+          const eng = (ins?.engagements || 0).toLocaleString();
+
+          let agentAttach: { filename: string; content: string }[] = [];
+          if (baseInput) {
+            try {
+              const bytes = await buildReportPdf({
+                ...baseInput,
+                agentFirstName: sigName.split(' ')[0] || baseInput.agentFirstName,
+                agentFullName: sigName,
+                agentPhone: sigPhone || null,
+                agentEmail: sigEmail || null,
+              });
+              agentAttach = [{ filename: `${slugify(p.listing_address)}-Ad-Results.pdf`, content: toBase64(bytes) }];
+            } catch (e) {
+              console.error(`[check-ad-expiry] Agent PDF failed for ${p.post_id}:`, e);
+            }
+          }
+
+          const para = 'margin:0 0 16px;color:#1f2937;font-size:15px;line-height:1.6;';
+          const agentHtml = `<!DOCTYPE html><html><head><meta charset="utf-8"></head>
+<body style="margin:0;padding:24px;background:#ffffff;font-family:Arial,Helvetica,sans-serif;">
+  <div style="max-width:600px;">
+    ${agentCopyTest ? `<p style="margin:0 0 20px;padding:10px 12px;background:#fef3c7;border:1px solid #f59e0b;border-radius:6px;font-size:13px;color:#78350f;">TEST — ${la ? `this would go to ${esc(la.name)} &lt;${esc(la.email)}&gt;` : 'no listing agent was found for this listing, so no agent copy would be sent'}.</p>` : ''}
+    <p style="${para}">Hi ${esc(sellerFirst || '')}${sellerFirst ? '' : 'there'},</p>
+    <p style="${para}">Good news. The Facebook ad for your home at ${esc(p.listing_address)} just finished its run, and I wanted you to see how it did. ${days ? `In just ${days} days, your` : 'Your'} home was seen ${views} times by ${reach} people in the area, and ${eng} of them took action by liking, commenting, sharing or clicking to see more.</p>
+    <p style="${para}">The full report is attached. Every one of those views is a potential buyer, or someone who knows one. I'll keep watching the activity closely and let you know about any showings or interest it brings in.</p>
+    <p style="margin:0;color:#1f2937;font-size:15px;line-height:1.6;">Talk soon,<br>${esc(sigName)}${sigPhone ? `<br>${esc(sigPhone)}` : ''}${sigEmail ? `<br>${esc(sigEmail)}` : ''}</p>
+  </div>
+</body></html>`;
+
+          const r2 = await fetch('https://api.resend.com/emails', {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              from: 'Sellfor1Percent.com <updates@resend.sellfor1percent.com>',
+              to: [agentCopyTest ? toEmail : la!.email],
+              reply_to: toEmail,
+              subject: `${agentCopyTest ? '[TEST] ' : ''}Your Facebook ad results – ${p.listing_address}`,
+              html: agentHtml,
+              ...(agentAttach.length ? { attachments: agentAttach } : {}),
+            }),
+          });
+          if (r2.ok) { emailsSent++; console.log(`[check-ad-expiry] Agent copy sent for ${p.post_id} to ${agentCopyTest ? toEmail : la!.email}`); }
+          else console.error(`[check-ad-expiry] Agent copy failed for ${p.post_id}:`, await r2.text());
         }
       }
     } else {
