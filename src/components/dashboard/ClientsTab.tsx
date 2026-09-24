@@ -1249,7 +1249,27 @@ const ClientsTab = ({ onSelectClientForEstimate }: ClientsTabProps) => {
                   <TableCell>{client.first_name || "—"}</TableCell>
                   <TableCell>{client.last_name || "—"}</TableCell>
                   <TableCell>{client.street_number || "—"}</TableCell>
-                  <TableCell>{client.street_name || "—"}</TableCell>
+                  <TableCell>
+                    {client.street_name ? (
+                      <a
+                        href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(
+                          [
+                            `${client.street_number || ""} ${client.street_name}`.trim(),
+                            client.city,
+                            client.state,
+                            client.zip,
+                          ].filter(Boolean).join(", ")
+                        )}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        className="text-primary hover:underline"
+                        title="Get directions in Google Maps"
+                      >
+                        {client.street_name}
+                      </a>
+                    ) : "—"}
+                  </TableCell>
                   <TableCell>{client.price ? `$${client.price}` : "—"}</TableCell>
                   <TableCell>
                     {client.cell_phone ? (
