@@ -53,6 +53,8 @@ serve(async (req) => {
 
     let expiredPosts: any[] = [];
     const discoveryErrors: { agentId: string; message: string }[] = [];
+    const pendingUpdates: Record<string, Record<string, unknown>> = {};
+    const MAX_PER_RUN = 5;
 
     if (samplePostId) {
       const { data: sampleRows, error: sampleErr } = await supabase
@@ -144,8 +146,8 @@ serve(async (req) => {
             boost_started_at: isNaN(startMs) ? row.boost_started_at : info.start,
             duration_days: duration,
           };
-          const { error: upErr } = await supabase.from('facebook_ad_posts').update(updates).eq('id', row.id);
-          if (upErr) { console.error(`[check-ad-expiry] Update failed for ${row.id}:`, upErr); continue; }
+          // Saved only after the report email is accepted, so a failed run retries next time
+          pendingUpdates[row.id] = updates;
           expiredPosts.push({ ...row, ...updates });
         }
       }
@@ -198,6 +200,11 @@ serve(async (req) => {
         }).catch((e) => console.error('[check-ad-expiry] Alert email failed:', e));
       }
 
+      if (expiredPosts.length > MAX_PER_RUN) {
+        console.log(`[check-ad-expiry] Capping to ${MAX_PER_RUN}; ${expiredPosts.length - MAX_PER_RUN} left for next run`);
+        expiredPosts = expiredPosts.slice(0, MAX_PER_RUN);
+      }
+
       if (expiredPosts.length === 0) {
         return new Response(JSON.stringify({ expired: 0, ad_account_errors: discoveryErrors }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -205,11 +212,10 @@ serve(async (req) => {
       }
     }
 
-    // Group by agent for email notifications
+    // One email per ended ad (keeps each run fast and each report forwardable)
     const agentGroups: Record<string, typeof expiredPosts> = {};
     for (const post of expiredPosts) {
-      if (!agentGroups[post.agent_id]) agentGroups[post.agent_id] = [];
-      agentGroups[post.agent_id].push(post);
+      agentGroups[`${post.agent_id}|${post.id}`] = [post];
     }
 
     // Send email notifications per agent
@@ -217,7 +223,8 @@ serve(async (req) => {
     let emailsSent = 0;
 
     if (RESEND_API_KEY) {
-      for (const [agentId, posts] of Object.entries(agentGroups)) {
+      for (const [groupKey, posts] of Object.entries(agentGroups)) {
+        const agentId = groupKey.split('|')[0];
         // Get agent profile for email
         const { data: profile } = await supabase
           .from('profiles')
@@ -420,6 +427,12 @@ serve(async (req) => {
 
         if (res.ok) {
           emailsSent++;
+          for (const p of posts) {
+            if (pendingUpdates[p.id]) {
+              const { error: upErr } = await supabase.from('facebook_ad_posts').update(pendingUpdates[p.id]).eq('id', p.id);
+              if (upErr) console.error(`[check-ad-expiry] Update failed for ${p.id}:`, upErr);
+            }
+          }
           console.log(`[check-ad-expiry] Email sent to ${toEmail} for ${posts.length} ended ads`);
         } else {
           const err = await res.text();
