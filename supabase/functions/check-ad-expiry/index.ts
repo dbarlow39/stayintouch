@@ -470,7 +470,7 @@ serve(async (req) => {
         for (const p of posts) {
           const la = findListingAgent(p);
           const isSelf = la && la.email.toLowerCase() === String(toEmail).toLowerCase();
-          if (!agentCopyTest && (!la || isSelf)) continue;
+          if (!agentCopyTest && !la) continue;
           const ins = insightsByPost[p.id];
           const baseInput = pdfInputs[p.id];
           const sellerFirst = findClientNames(p.listing_address || '');
