@@ -41,15 +41,35 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, serviceKey);
 
     // Optional sample mode: build + email the completion report for one post
+    // agent_copy_test: send the listing-agent version to you instead of the agent
+    // agent_copy_only: send only the listing-agent version (skip your internal email)
     let samplePostId: string | null = null;
+    let agentCopyTest = false;
+    let agentCopyOnly = false;
     if (req.method === 'POST') {
       try {
         const body = await req.json();
         samplePostId = body?.sample_post_id ?? null;
+        agentCopyTest = body?.agent_copy_test === true;
+        agentCopyOnly = body?.agent_copy_only === true;
       } catch {
         samplePostId = null;
       }
     }
+
+    // Listing agent lookup from cached MLS listings
+    const { data: cacheRows } = await supabase.from('listings_cache').select('listings');
+    const cachedListings: any[] = (cacheRows || []).flatMap((r: any) => Array.isArray(r.listings) ? r.listings : []);
+    const findListingAgent = (p: any): { name: string; email: string; phone: string } | null => {
+      let l = cachedListings.find((x) => x?.id && p.listing_id && String(x.id) === String(p.listing_id));
+      if (!l) {
+        const addr = (p.listing_address || '').toLowerCase();
+        l = cachedListings.find((x) => x?.address && addr.startsWith(String(x.address).toLowerCase()));
+      }
+      const a = l?.agent;
+      if (!a?.email) return null;
+      return { name: a.name || '', email: a.email, phone: a.phone || '' };
+    };
 
     let expiredPosts: any[] = [];
     const discoveryErrors: { agentId: string; message: string }[] = [];
