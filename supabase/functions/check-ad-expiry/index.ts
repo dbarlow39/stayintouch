@@ -52,6 +52,7 @@ serve(async (req) => {
     }
 
     let expiredPosts: any[] = [];
+    const discoveryErrors: { agentId: string; message: string }[] = [];
 
     if (samplePostId) {
       const { data: sampleRows, error: sampleErr } = await supabase
