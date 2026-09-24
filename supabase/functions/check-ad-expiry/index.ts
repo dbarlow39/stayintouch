@@ -52,6 +52,9 @@ serve(async (req) => {
     }
 
     let expiredPosts: any[] = [];
+    const discoveryErrors: { agentId: string; message: string }[] = [];
+    const pendingUpdates: Record<string, Record<string, unknown>> = {};
+    const MAX_PER_RUN = 5;
 
     if (samplePostId) {
       const { data: sampleRows, error: sampleErr } = await supabase
@@ -69,7 +72,87 @@ serve(async (req) => {
       expiredPosts = sampleRows;
       console.log(`[check-ad-expiry] SAMPLE mode for post ${samplePostId} — no status changes`);
     } else {
-      // Find ads that have ended (boost_started_at + duration_days < now) and are still 'active' or 'boosted'
+      // ---- Part A: discover boosts made directly in Facebook (Meta Ads) ----
+      const lookbackDays = 7;
+      const nowMs = Date.now();
+      const sinceMs = nowMs - lookbackDays * 86400000;
+      const { data: tokenRows } = await supabase
+        .from('facebook_oauth_tokens')
+        .select('agent_id, access_token, page_access_token, ad_account_id');
+
+      for (const t of tokenRows || []) {
+        const acct = t.ad_account_id;
+        if (!acct) { discoveryErrors.push({ agentId: t.agent_id, message: 'No Facebook ad account is saved for your connection.' }); continue; }
+        let ads: any[] | null = null;
+        let lastErr = '';
+        for (const token of [t.access_token, t.page_access_token].filter(Boolean)) {
+          try {
+            const collected: any[] = [];
+            let url: string | null = `https://graph.facebook.com/v25.0/act_${acct}/ads?fields=id,campaign_id,creative{effective_object_story_id},adset{start_time,end_time}&limit=200&access_token=${token}`;
+            let pages = 0;
+            while (url && pages < 10) {
+              const r = await fetch(url);
+              const j = await r.json();
+              if (!r.ok || j.error) throw new Error(j?.error?.message || `HTTP ${r.status}`);
+              collected.push(...(j.data || []));
+              url = j.paging?.next || null;
+              pages++;
+            }
+            ads = collected;
+            break;
+          } catch (e) {
+            lastErr = e instanceof Error ? e.message : String(e);
+          }
+        }
+        if (!ads) {
+          console.error(`[check-ad-expiry] Ad account read failed for ${t.agent_id}: ${lastErr}`);
+          discoveryErrors.push({ agentId: t.agent_id, message: `Facebook refused access to your ad account: ${lastErr}` });
+          continue;
+        }
+
+        // Latest end per boosted post, only boosts that ended within the lookback window
+        const endedByStory: Record<string, { ad: any; start: string; end: string }> = {};
+        for (const ad of ads) {
+          const story = ad.creative?.effective_object_story_id;
+          const end = ad.adset?.end_time;
+          if (!story || !end) continue;
+          const endMs = new Date(end).getTime();
+          if (isNaN(endMs) || endMs > nowMs || endMs < sinceMs) continue;
+          const prev = endedByStory[story];
+          if (!prev || new Date(prev.end).getTime() < endMs) {
+            endedByStory[story] = { ad, start: ad.adset?.start_time, end };
+          }
+        }
+        console.log(`[check-ad-expiry] Agent ${t.agent_id}: ${ads.length} ads read, ${Object.keys(endedByStory).length} boosts ended in last ${lookbackDays} days`);
+
+        for (const [story, info] of Object.entries(endedByStory)) {
+          const { data: rows } = await supabase
+            .from('facebook_ad_posts')
+            .select('*')
+            .eq('agent_id', t.agent_id)
+            .eq('post_id', story)
+            .order('created_at', { ascending: false })
+            .limit(1);
+          const row = rows?.[0];
+          if (!row) { console.log(`[check-ad-expiry] No listing post matches ${story}, skipping`); continue; }
+          // Already reported for this boost?
+          if (row.status === 'ended' && row.ad_id === info.ad.id) continue;
+          const startMs = new Date(info.start).getTime();
+          const duration = isNaN(startMs) ? 0 : Math.max(1, Math.round((new Date(info.end).getTime() - startMs) / 86400000));
+          const updates = {
+            status: 'ended',
+            ad_id: info.ad.id,
+            campaign_id: info.ad.campaign_id || row.campaign_id,
+            boost_started_at: isNaN(startMs) ? row.boost_started_at : info.start,
+            duration_days: duration,
+          };
+          // Saved only after the report email is accepted, so a failed run retries next time
+          pendingUpdates[row.id] = updates;
+          expiredPosts.push({ ...row, ...updates });
+        }
+      }
+
+      // ---- Part B: boosts made through this app ----
       const { data: activePosts, error } = await supabase
         .from('facebook_ad_posts')
         .select('*, agent_id')
@@ -82,33 +165,57 @@ serve(async (req) => {
       }
 
       const now = new Date();
-      expiredPosts = (activePosts || []).filter(post => {
+      const appExpired = (activePosts || []).filter(post => {
         const start = new Date(post.boost_started_at);
         const endDate = new Date(start.getTime() + post.duration_days * 86400000);
         return now >= endDate;
       });
 
-      console.log(`[check-ad-expiry] Found ${expiredPosts.length} expired ads out of ${activePosts?.length || 0} active`);
+      if (appExpired.length > 0) {
+        await supabase
+          .from('facebook_ad_posts')
+          .update({ status: 'ended' })
+          .in('id', appExpired.map(p => p.id));
+        expiredPosts.push(...appExpired);
+      }
+
+      console.log(`[check-ad-expiry] Found ${expiredPosts.length} ended ads, ${discoveryErrors.length} ad-account errors`);
+
+      // Alert the agent if we couldn't read their ad account
+      const RESEND = Deno.env.get('RESEND_API_KEY');
+      for (const de of discoveryErrors) {
+        if (!RESEND) break;
+        const { data: prof } = await supabase.from('profiles').select('email, preferred_email, first_name').eq('id', de.agentId).maybeSingle();
+        const to = prof?.preferred_email || prof?.email;
+        if (!to) continue;
+        await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${RESEND}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            from: 'Sellfor1Percent.com <updates@resend.sellfor1percent.com>',
+            to: [to],
+            subject: "Couldn't check your Facebook ads today",
+            html: `<p>Hi ${prof?.first_name || 'there'},</p><p>This morning's ad check couldn't read your Facebook ad account, so finished-ad reports may be missing.</p><p><b>Reason from Facebook:</b> ${de.message.replace(/</g, '&lt;')}</p><p>Reconnecting Facebook in the Marketing tab usually fixes this.</p>`,
+          }),
+        }).catch((e) => console.error('[check-ad-expiry] Alert email failed:', e));
+      }
+
+      if (expiredPosts.length > MAX_PER_RUN) {
+        console.log(`[check-ad-expiry] Capping to ${MAX_PER_RUN}; ${expiredPosts.length - MAX_PER_RUN} left for next run`);
+        expiredPosts = expiredPosts.slice(0, MAX_PER_RUN);
+      }
 
       if (expiredPosts.length === 0) {
-        return new Response(JSON.stringify({ expired: 0 }), {
+        return new Response(JSON.stringify({ expired: 0, ad_account_errors: discoveryErrors }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
-
-      // Mark them as 'ended'
-      const expiredIds = expiredPosts.map(p => p.id);
-      await supabase
-        .from('facebook_ad_posts')
-        .update({ status: 'ended' })
-        .in('id', expiredIds);
     }
 
-    // Group by agent for email notifications
+    // One email per ended ad (keeps each run fast and each report forwardable)
     const agentGroups: Record<string, typeof expiredPosts> = {};
     for (const post of expiredPosts) {
-      if (!agentGroups[post.agent_id]) agentGroups[post.agent_id] = [];
-      agentGroups[post.agent_id].push(post);
+      agentGroups[`${post.agent_id}|${post.id}`] = [post];
     }
 
     // Send email notifications per agent
@@ -116,7 +223,8 @@ serve(async (req) => {
     let emailsSent = 0;
 
     if (RESEND_API_KEY) {
-      for (const [agentId, posts] of Object.entries(agentGroups)) {
+      for (const [groupKey, posts] of Object.entries(agentGroups)) {
+        const agentId = groupKey.split('|')[0];
         // Get agent profile for email
         const { data: profile } = await supabase
           .from('profiles')
@@ -319,6 +427,12 @@ serve(async (req) => {
 
         if (res.ok) {
           emailsSent++;
+          for (const p of posts) {
+            if (pendingUpdates[p.id]) {
+              const { error: upErr } = await supabase.from('facebook_ad_posts').update(pendingUpdates[p.id]).eq('id', p.id);
+              if (upErr) console.error(`[check-ad-expiry] Update failed for ${p.id}:`, upErr);
+            }
+          }
           console.log(`[check-ad-expiry] Email sent to ${toEmail} for ${posts.length} ended ads`);
         } else {
           const err = await res.text();
