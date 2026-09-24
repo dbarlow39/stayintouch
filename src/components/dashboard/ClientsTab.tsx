@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import CopyButton from "@/components/CopyButton";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -1299,12 +1300,13 @@ const ClientsTab = ({ onSelectClientForEstimate }: ClientsTabProps) => {
                             );
                           }
                         }
-                        return <span>{client.cell_phone}</span>;
+                        return <span className="inline-flex items-center gap-1">{client.cell_phone}<CopyButton value={client.cell_phone} label="Phone copied" /></span>;
                       })()
                     ) : "—"}
                   </TableCell>
                   <TableCell className="max-w-[180px] truncate">
                     {client.email ? (
+                      <span className="flex items-center gap-1 min-w-0">
                       <a 
                         href={getEmailLink(client.email)}
                         onClick={(e) => e.stopPropagation()}
@@ -1315,6 +1317,8 @@ const ClientsTab = ({ onSelectClientForEstimate }: ClientsTabProps) => {
                       >
                         {client.email}
                       </a>
+                      <CopyButton value={client.email} label="Email copied" />
+                      </span>
                     ) : "—"}
                   </TableCell>
                   <TableCell>

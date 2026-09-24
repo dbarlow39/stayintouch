@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import CopyButton from "@/components/CopyButton";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -388,12 +389,14 @@ const LeadsTab = () => {
                         <div className="flex items-center gap-1 text-muted-foreground">
                           <Mail className="w-3 h-3" />
                           {lead.email}
+                          <CopyButton value={lead.email} label="Email copied" />
                         </div>
                       )}
                       {lead.phone && (
                         <div className="flex items-center gap-1 text-muted-foreground">
                           <Phone className="w-3 h-3" />
                           {lead.phone}
+                          <CopyButton value={lead.phone} label="Phone copied" />
                         </div>
                       )}
                     </div>

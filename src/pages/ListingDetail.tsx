@@ -1,4 +1,5 @@
 import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom';
+import CopyButton from "@/components/CopyButton";
 import { accessToken } from '@/utils/authToken';
 import { useState, useEffect } from 'react';
 import { mockMarketingListings, formatListingPrice, MarketingListing } from '@/data/marketingListings';
@@ -925,9 +926,12 @@ const ListingDetail = () => {
                 ) : null;
               })()}
               {listing.agent.email && (
-                <a href={`mailto:${listing.agent.email}`} className="text-sm text-primary hover:underline block mt-1">
-                  {listing.agent.email}
-                </a>
+                <span className="flex items-center gap-1 mt-1">
+                  <a href={`mailto:${listing.agent.email}`} className="text-sm text-primary hover:underline">
+                    {listing.agent.email}
+                  </a>
+                  <CopyButton value={listing.agent.email} label="Email copied" />
+                </span>
               )}
               <Separator className="my-4" />
               <ContactForm

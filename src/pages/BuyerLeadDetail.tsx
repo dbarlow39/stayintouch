@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import CopyButton from "@/components/CopyButton";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -406,14 +407,17 @@ const BuyerLeadDetail = () => {
                           className="pr-10"
                         />
                         {formData.email && (
+                          <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center">
+                          <CopyButton value={formData.email} label="Email copied" />
                           <button
                             type="button"
                             onClick={() => openEmailClient(formData.email.split(",")[0].trim())}
-                            className="absolute right-2 top-1/2 -translate-y-1/2 inline-flex items-center justify-center h-6 w-6 rounded-md text-primary hover:bg-accent transition-colors"
+                            className="inline-flex items-center justify-center h-6 w-6 rounded-md text-primary hover:bg-accent transition-colors"
                             title="Send email"
                           >
                             <Mail className="h-3.5 w-3.5" />
                           </button>
+                          </div>
                         )}
                       </div>
                     </div>

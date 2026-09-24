@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import CopyButton from "@/components/CopyButton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Inbox, Loader2, RefreshCw } from 'lucide-react';
@@ -109,6 +110,7 @@ const InquiriesDialog = ({ open, onOpenChange }: InquiriesDialogProps) => {
                         <a href={`mailto:${inq.inquirer_email}`} className="text-primary hover:underline">
                           {inq.inquirer_email}
                         </a>
+                        <CopyButton value={inq.inquirer_email} label="Email copied" className="ml-1 align-middle" />
                       ) : '—'}
                     </td>
                     <td className="px-3 py-2 text-muted-foreground">{inq.requested_date || '—'}</td>

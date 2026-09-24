@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import CopyButton from "@/components/CopyButton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2, BookOpen } from 'lucide-react';
@@ -74,9 +75,11 @@ export default function BuyersGuideLeadsDialog({ open, onOpenChange }: Props) {
                     <td className="py-2 px-2 font-medium">{l.name}</td>
                     <td className="py-2 px-2">
                       <a href={`mailto:${l.email}`} className="text-primary hover:underline">{l.email}</a>
+                      <CopyButton value={l.email} label="Email copied" className="ml-1 align-middle" />
                     </td>
                     <td className="py-2 px-2">
                       {l.phone && <a href={`tel:${l.phone}`} className="text-primary hover:underline">{l.phone}</a>}
+                      <CopyButton value={l.phone} label="Phone copied" className="ml-1 align-middle" />
                     </td>
                     <td className="py-2 px-2 text-xs">{l.buying_timeframe || '—'}</td>
                     <td className="py-2 px-2 text-xs text-muted-foreground">

@@ -1,4 +1,5 @@
 import { Phone, MessageSquare } from "lucide-react";
+import CopyButton from "@/components/CopyButton";
 
 interface PhoneCallTextLinkProps {
   phone: string;
@@ -19,15 +20,16 @@ const PhoneCallTextLink = ({ phone, className = "", children, inline = false }: 
       <span className={inline ? "text-foreground" : ""}>{children ?? phone}</span>
       <button
         type="button"
-        onClick={() => window.open(`tel:${digits}`, "_self")}
+        onClick={(e) => { e.stopPropagation(); window.open(`tel:${digits}`, "_self"); }}
         className="inline-flex items-center justify-center h-6 w-6 rounded-md text-primary hover:bg-accent transition-colors"
         title="Call"
       >
         <Phone className="h-3.5 w-3.5" />
       </button>
+      <CopyButton value={phone} label="Phone copied" />
       <button
         type="button"
-        onClick={() => window.open(`sms:${digits}`, "_self")}
+        onClick={(e) => { e.stopPropagation(); window.open(`sms:${digits}`, "_self"); }}
         className="inline-flex items-center justify-center h-6 w-6 rounded-md text-primary hover:bg-accent transition-colors"
         title="Text"
       >
