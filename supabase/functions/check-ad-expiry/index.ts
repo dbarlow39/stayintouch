@@ -315,9 +315,7 @@ serve(async (req) => {
               agentPhone: profile?.cell_phone || null,
               agentEmail: profile?.preferred_email || profile?.email || null,
               runDates: startDate && endDate ? `${startDate} – ${endDate}` : (startDate || null),
-              totalSpend: (spend != null || (p.daily_budget && p.duration_days))
-                ? `$${Number(spend ?? (p.daily_budget * p.duration_days)).toFixed(0)} total spend`
-                : null,
+              totalSpend: null,
               engagements: ins?.engagements || 0,
               impressions: ins?.impressions || 0,
               reach: ins?.reach || 0,
@@ -385,7 +383,6 @@ serve(async (req) => {
             <p style="margin:4px 0 0;color:#6b7280;font-size:13px;">${[
               startDate && endDate ? `${startDate} – ${endDate}` : startDate,
               p.duration_days > 0 ? `${p.duration_days} days` : '',
-              (spend != null || (p.daily_budget && p.duration_days)) ? `$${Number(spend ?? (p.daily_budget * p.duration_days)).toFixed(0)} total spend` : '',
             ].filter(Boolean).join(' · ')}</p>
             ${statsRow}
             ${pdfFailures.includes(p.post_id) ? `
