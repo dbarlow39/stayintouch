@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from "react";
+import CopyButton from "@/components/CopyButton";
 import { useNavigate, useParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -457,6 +458,7 @@ const ClientDetail = () => {
                       <div>
                         <Label className="text-sm font-semibold text-muted-foreground">Email</Label>
                         {client.email ? (
+                          <div className="flex items-center gap-1">
                           <button
                             type="button"
                             onClick={() => openEmailClient(client.email!)}
@@ -464,6 +466,8 @@ const ClientDetail = () => {
                           >
                             {client.email}
                           </button>
+                          <CopyButton value={client.email} label="Email copied" />
+                          </div>
                         ) : (
                           <p className="text-base">—</p>
                         )}
