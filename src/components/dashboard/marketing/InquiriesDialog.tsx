@@ -107,10 +107,10 @@ const InquiriesDialog = ({ open, onOpenChange }: InquiriesDialogProps) => {
                     </td>
                     <td className="px-3 py-2">
                       {inq.inquirer_email ? (
-                        <a href={`mailto:${inq.inquirer_email}`} className="text-primary hover:underline">
+                        <><a href={`mailto:${inq.inquirer_email}`} className="text-primary hover:underline">
                           {inq.inquirer_email}
                         </a>
-                        <CopyButton value={inq.inquirer_email} label="Email copied" className="ml-1 align-middle" />
+                        <CopyButton value={inq.inquirer_email} label="Email copied" className="ml-1 align-middle" /></>
                       ) : '—'}
                     </td>
                     <td className="px-3 py-2 text-muted-foreground">{inq.requested_date || '—'}</td>
