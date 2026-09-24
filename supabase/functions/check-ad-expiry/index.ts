@@ -302,6 +302,7 @@ serve(async (req) => {
         // Build a PDF report per ended ad (best effort)
         const attachments: { filename: string; content: string }[] = [];
         const pdfFailures: string[] = [];
+        const pdfInputs: Record<string, any> = {};
         for (const p of posts) {
           try {
             const ins = insightsByPost[p.id];
@@ -327,7 +328,7 @@ serve(async (req) => {
             }
             activity.sort((a, b) => b.value - a.value);
 
-            const bytes = await buildReportPdf({
+            const pdfInput = {
               listingAddress: p.listing_address || '',
               clientFirstNames: findClientNames(p.listing_address || ''),
               agentFirstName: profile?.first_name || null,
@@ -342,7 +343,9 @@ serve(async (req) => {
               activity,
               adImageUrl: ins?.full_picture || null,
               logoUrl: `${APP_URL}/logo.jpg`,
-            });
+            };
+            pdfInputs[p.id] = pdfInput;
+            const bytes = await buildReportPdf(pdfInput);
 
             attachments.push({
               filename: `${slugify(p.listing_address)}-Ad-Results.pdf`,
