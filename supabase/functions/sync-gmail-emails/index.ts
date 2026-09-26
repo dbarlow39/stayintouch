@@ -222,6 +222,28 @@ async function syncAgentEmails(
     }
   });
 
+  // Normalize addresses so "249 E Kossuth Street" == "249 East Kossuth St"
+  const ADDR_WORDS: Record<string, string> = {
+    east: "e", west: "w", north: "n", south: "s",
+    northeast: "ne", northwest: "nw", southeast: "se", southwest: "sw",
+    street: "st", avenue: "ave", av: "ave", road: "rd", drive: "dr", lane: "ln",
+    court: "ct", boulevard: "blvd", place: "pl", circle: "cir", way: "way",
+    terrace: "ter", parkway: "pkwy", highway: "hwy", trail: "trl",
+  };
+  // deno-lint-ignore no-inner-declarations
+  function normalizeAddress(s: string): string {
+    return String(s || "")
+      .toLowerCase()
+      .replace(/\b(unit|apt|apartment|suite|ste)\s*[\w-]+/g, " ")
+      .replace(/#\s*[\w-]+/g, " ")
+      .replace(/[.,]/g, " ")
+      .replace(/\s+/g, " ")
+      .trim()
+      .split(" ")
+      .map((w) => ADDR_WORDS[w] ?? w)
+      .join(" ");
+  }
+
   // Create address-to-client mapping for ShowingTime matching
   const clientAddresses = new Map<string, any>();
   const clientMlsIds = new Map<string, any>();
@@ -706,22 +728,22 @@ async function syncAgentEmails(
           }
         }
         
-        // Try address match
+        // Try address match (normalized: E/East, St/Street, unit numbers, punctuation)
         if (!matchedClient && parsedEmail.address) {
           const normalizedAddr = parsedEmail.address.toLowerCase().trim();
-          console.log(`Trying to match ShowingTime address: "${normalizedAddr}"`);
-          console.log(`First 3 words: "${normalizedAddr.split(' ').slice(0, 3).join(' ')}"`);
-          
+          const normEmail = normalizeAddress(parsedEmail.address);
+          const first3Norm = normEmail.split(' ').slice(0, 3).join(' ');
+          console.log(`Trying to match ShowingTime address: "${normalizedAddr}" (normalized "${normEmail}")`);
+
           for (const [addr, client] of clientAddresses.entries()) {
+            const normClient = normalizeAddress(addr);
             const first3Match = normalizedAddr.split(' ').slice(0, 3).join(' ');
-            const includesCheck = normalizedAddr.includes(addr);
-            const substringCheck = addr.includes(first3Match);
-            
-            if (addr.includes('little bear')) {
-              console.log(`Testing "${addr}": includes="${includesCheck}", substring="${substringCheck}"`);
-            }
-            
-            if (includesCheck || substringCheck) {
+            const rawMatch = normalizedAddr.includes(addr) || addr.includes(first3Match);
+            const normMatch = !!normClient && (
+              (' ' + normEmail + ' ').includes(' ' + normClient + ' ') ||
+              (first3Norm.split(' ').length === 3 && (' ' + normClient + ' ').includes(' ' + first3Norm + ' '))
+            );
+            if (rawMatch || normMatch) {
               matchedClient = client;
               console.log(`Matched by address: "${parsedEmail.address}" -> "${addr}"`);
               break;
