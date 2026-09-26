@@ -669,6 +669,44 @@ const WeeklyUpdateTab = () => {
     return await response.json();
   };
 
+  const [viewingClientId, setViewingClientId] = useState<string | null>(null);
+
+  // Mirrors the HTML built by send-weekly-email so the preview matches what the client receives
+  const buildEmailHtml = (body: string) => {
+    const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const htmlBody = (body || '')
+      .split('\n\n')
+      .map((p) => `<p style="margin-bottom: 16px; line-height: 1.6;">${esc(p).replace(/\n/g, '<br>')}</p>`)
+      .join('');
+    let signatureHtml = '';
+    const bio = agentProfile?.bio;
+    if (bio) {
+      const isHtml = /<[a-z][\s\S]*>/i.test(bio);
+      signatureHtml = `<div style="margin-top: 32px; padding-top: 16px; border-top: 1px solid #e5e5e5;">${isHtml ? bio : esc(bio).replace(/\n/g, '<br>')}</div>`;
+    }
+    return `<!DOCTYPE html><html><head><meta charset="utf-8"></head><body style="font-family: Georgia, 'Times New Roman', serif; font-size: 16px; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">${htmlBody}${signatureHtml}</body></html>`;
+  };
+
+  const handleViewUpdate = async (client: Client) => {
+    const existing = generatedEmails.get(client.id);
+    if (existing) {
+      setPreviewEmail(existing);
+      return;
+    }
+    setViewingClientId(client.id);
+    try {
+      const zillowStats = await fetchZillowStats(client);
+      const result = await generateEmailForClient(client, zillowStats);
+      setPreviewEmail({ clientId: client.id, subject: result.subject, body: result.body, zillowStats });
+    } catch (error) {
+      toast({ title: "Couldn't write this update", description: error instanceof Error ? error.message : 'Unknown error', variant: "destructive" });
+    } finally {
+      setViewingClientId(null);
+    }
+  };
+
+
+
   const handleSendEmails = async () => {
     if (selectedClients.size === 0) {
       toast({ title: "No clients selected", description: "Please select at least one client", variant: "destructive" });
@@ -1413,14 +1451,29 @@ const WeeklyUpdateTab = () => {
                           )}
                         </TableCell>
                         <TableCell onClick={(e) => e.stopPropagation()}>
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
-                            onClick={() => setSelectedClientForStats(client)}
-                          >
-                            <BarChart3 className="w-4 h-4 mr-1" />
-                            Analyze
-                          </Button>
+                          <div className="flex items-center gap-1">
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => setSelectedClientForStats(client)}
+                            >
+                              <BarChart3 className="w-4 h-4 mr-1" />
+                              Analyze
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              disabled={viewingClientId === client.id}
+                              onClick={() => handleViewUpdate(client)}
+                            >
+                              {viewingClientId === client.id ? (
+                                <RefreshCw className="w-4 h-4 mr-1 animate-spin" />
+                              ) : (
+                                <Eye className="w-4 h-4 mr-1" />
+                              )}
+                              View Update
+                            </Button>
+                          </div>
                         </TableCell>
                         {generatedEmails.size > 0 && (
                           <TableCell onClick={(e) => e.stopPropagation()}>
@@ -1471,39 +1524,25 @@ const WeeklyUpdateTab = () => {
         </Button>
       </div>
 
-      {/* Email Preview Dialog */}
+      {/* Email Preview Dialog — rendered exactly like the sent email */}
       <Dialog open={!!previewEmail} onOpenChange={() => setPreviewEmail(null)}>
-        <DialogContent className="max-w-3xl max-h-[80vh]">
+        <DialogContent className="max-w-3xl max-h-[90vh]">
           <DialogHeader>
-            <DialogTitle>Email Preview</DialogTitle>
+            <DialogTitle>Weekly Update</DialogTitle>
           </DialogHeader>
           {previewEmail && (
-            <div className="space-y-4">
-              <div className="space-y-2">
+            <div className="space-y-3">
+              <div className="space-y-1">
                 <Label className="text-muted-foreground">Subject</Label>
                 <div className="p-3 bg-muted rounded-md font-medium">
                   {previewEmail.subject}
                 </div>
               </div>
-              <div className="flex gap-4 text-sm">
-                <div className="px-3 py-1 bg-primary/10 rounded-full">
-                  Views: {previewEmail.zillowStats.views ?? 'N/A'}
-                </div>
-                <div className="px-3 py-1 bg-primary/10 rounded-full">
-                  Saves: {previewEmail.zillowStats.saves ?? 'N/A'}
-                </div>
-                <div className="px-3 py-1 bg-primary/10 rounded-full">
-                  Days: {previewEmail.zillowStats.days ?? 'N/A'}
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label className="text-muted-foreground">Body</Label>
-                <ScrollArea className="h-[400px] border rounded-md p-4">
-                  <div className="whitespace-pre-wrap font-serif text-sm leading-relaxed">
-                    {previewEmail.body}
-                  </div>
-                </ScrollArea>
-              </div>
+              <iframe
+                title="Weekly update email"
+                className="w-full h-[60vh] border rounded-md bg-background"
+                srcDoc={buildEmailHtml(previewEmail.body)}
+              />
             </div>
           )}
         </DialogContent>
