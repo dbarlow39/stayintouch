@@ -977,6 +977,52 @@ async function syncAgentEmails(
     }
   }
 
+  // RELINK: previously saved ShowingTime emails that were never attached to a client
+  // are skipped by the "already stored" check, so retry matching them on every run.
+  let relinkedEmails = 0;
+  try {
+    const { data: unlinkedST } = await supabase
+      .from("client_email_logs")
+      .select("id, subject, body_preview")
+      .eq("agent_id", agent_id)
+      .is("client_id", null)
+      .or("subject.ilike.FEEDBACK RECEIVED%,subject.ilike.SHOWING CONFIRMED%,subject.ilike.SHOWING CANCEL%")
+      .order("received_at", { ascending: false })
+      .limit(1000);
+
+    for (const row of unlinkedST || []) {
+      const parsed = parseShowingTimeEmail(row.subject || "", row.body_preview || "");
+      let match: any = null;
+      if (parsed.mlsId) match = clientMlsIds.get(parsed.mlsId.toLowerCase().trim()) || null;
+      if (!match && parsed.address) {
+        const normalizedAddr = parsed.address.toLowerCase().trim();
+        const normEmail = normalizeAddress(parsed.address);
+        const first3Norm = normEmail.split(" ").slice(0, 3).join(" ");
+        const first3Raw = normalizedAddr.split(" ").slice(0, 3).join(" ");
+        for (const [addr, client] of clientAddresses.entries()) {
+          const normClient = normalizeAddress(addr);
+          const rawMatch = normalizedAddr.includes(addr) || addr.includes(first3Raw);
+          const normMatch = !!normClient && (
+            (" " + normEmail + " ").includes(" " + normClient + " ") ||
+            (first3Norm.split(" ").length === 3 && (" " + normClient + " ").includes(" " + first3Norm + " "))
+          );
+          if (rawMatch || normMatch) { match = client; break; }
+        }
+      }
+      if (!match) continue;
+      const { error: relinkErr } = await supabase
+        .from("client_email_logs")
+        .update({ client_id: (match as any).id })
+        .eq("id", row.id)
+        .eq("agent_id", agent_id);
+      if (relinkErr) console.error(`[relink] Failed for email ${row.id}:`, JSON.stringify(relinkErr));
+      else relinkedEmails++;
+    }
+    console.log(`[relink] Attached ${relinkedEmails} previously unlinked ShowingTime emails`);
+  } catch (relinkError) {
+    console.error("[relink] Error:", relinkError);
+  }
+
   // BACKFILL: Create feedback records for linked emails that don't have feedback yet
   let backfilledFeedback = 0;
   const { data: orphanedFeedbackEmails } = await supabase
@@ -989,7 +1035,7 @@ async function syncAgentEmails(
     .not("subject", "ilike", "fw:%")
     .not("subject", "ilike", "fwd:%")
     .order("received_at", { ascending: false })
-    .limit(100);
+    .limit(500);
 
   if (orphanedFeedbackEmails && orphanedFeedbackEmails.length > 0) {
     console.log(`Checking ${orphanedFeedbackEmails.length} linked feedback emails for missing feedback records`);
