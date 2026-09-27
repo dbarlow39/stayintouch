@@ -630,6 +630,20 @@ const WeeklyUpdateTab = () => {
 
   const generateEmailForClient = async (client: Client, zillowStats: ZillowStats) => {
     const { data: session } = await supabase.auth.getSession();
+
+    // Showing feedback from the last 7 days (agent names/contacts intentionally excluded)
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    const { data: feedbackRows } = await supabase
+      .from("showing_feedback")
+      .select("showing_date, created_at, buyer_interest_level, feedback")
+      .eq("client_id", client.id)
+      .gte("created_at", sevenDaysAgo)
+      .order("showing_date", { ascending: true });
+    const showingFeedback = (feedbackRows || []).map((f) => ({
+      date: f.showing_date || f.created_at,
+      interest: f.buyer_interest_level || null,
+      comments: f.feedback || "",
+    }));
     
     const response = await fetch(
       `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-weekly-email`,
@@ -644,6 +658,7 @@ const WeeklyUpdateTab = () => {
           template: emailTemplate,
           market_data: marketData,
           agent_profile: agentProfile || null,
+          showing_feedback: showingFeedback,
           client_data: {
             first_name: client.first_name || '',
             last_name: client.last_name || '',

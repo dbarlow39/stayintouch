@@ -137,6 +137,34 @@ serve(async (req) => {
         .replace(/\{expected_showings_max\}/g, String(expectedShowingsMax))
         .replace(/\{expected_offers\}/g, String(expectedOffers))
         .replace(/\{performance_analysis\}/g, performanceAnalysis);
+
+      // Showing feedback section (last 7 days). Omitted entirely when there is none.
+      const feedbackItems: Array<{ date?: string; interest?: string | null; comments?: string }> =
+        Array.isArray(requestBody.showing_feedback) ? requestBody.showing_feedback.slice(0, 25) : [];
+      let feedbackSection = '';
+      if (feedbackItems.length > 0) {
+        const lines = feedbackItems.map((f) => {
+          let dateStr = '';
+          if (f.date) {
+            const d = new Date(f.date);
+            if (!isNaN(d.getTime())) dateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'America/New_York' });
+          }
+          const parts = [dateStr, f.interest ? `Buyer interest: ${f.interest}` : ''].filter(Boolean).join(' – ');
+          const comments = String(f.comments || '').replace(/\s+/g, ' ').trim().slice(0, 600);
+          return `• ${parts}${comments ? `${parts ? ': ' : ''}${comments}` : ''}`;
+        });
+        feedbackSection = `💬 Showing Feedback This Week\n${lines.join('\n')}`;
+      }
+      if (/\{showing_feedback\}/.test(processedTemplate)) {
+        processedTemplate = processedTemplate.replace(/\{showing_feedback\}/g, feedbackSection);
+      } else if (feedbackSection) {
+        const sigMatch = processedTemplate.match(/\n[^\n]*(Please do not hesitate|Warm regards|Best regards|Sincerely)/i);
+        if (sigMatch && sigMatch.index !== undefined) {
+          processedTemplate = processedTemplate.slice(0, sigMatch.index) + `\n\n${feedbackSection}\n` + processedTemplate.slice(sigMatch.index);
+        } else {
+          processedTemplate = `${processedTemplate}\n\n${feedbackSection}`;
+        }
+      }
       
       // Clean up any double blank lines left after section removal
       processedTemplate = processedTemplate.replace(/\n{3,}/g, '\n\n');

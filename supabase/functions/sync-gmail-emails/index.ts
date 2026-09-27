@@ -892,7 +892,9 @@ async function syncAgentEmails(
 
         // Only store feedback for "FEEDBACK RECEIVED" emails, not "SHOWING CONFIRMED"
         // SHOWING CONFIRMED emails are still used to extract showing counts
-        const isFeedbackEmail = subject.toUpperCase().includes('FEEDBACK RECEIVED');
+        // Replies/forwards ("Re:", "Fwd:") are not feedback — only the original ShowingTime email
+        const isReplyOrForward = /^\s*(re|fw|fwd)\s*:/i.test(subject);
+        const isFeedbackEmail = subject.toUpperCase().includes('FEEDBACK RECEIVED') && !isReplyOrForward;
         
         if (isShowingTime && clientId && parsedEmail && isFeedbackEmail) {
           console.log(`Processing feedback for client ${clientId}, email ID: ${insertedEmail.id}`);
@@ -983,6 +985,9 @@ async function syncAgentEmails(
     .eq("agent_id", agent_id)
     .not("client_id", "is", null)
     .ilike("subject", "%FEEDBACK RECEIVED%")
+    .not("subject", "ilike", "re:%")
+    .not("subject", "ilike", "fw:%")
+    .not("subject", "ilike", "fwd:%")
     .order("received_at", { ascending: false })
     .limit(100);
 
