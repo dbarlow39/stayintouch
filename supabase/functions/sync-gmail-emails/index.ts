@@ -1014,7 +1014,12 @@ async function syncAgentEmails(
             showing_agent_name: parsedFeedback.agentName,
             showing_agent_email: parsedFeedback.agentEmail,
             showing_agent_phone: parsedFeedback.agentPhone,
-            showing_date: parsedFeedback.showingDate ? new Date(parsedFeedback.showingDate).toISOString() : email.received_at,
+            showing_date: (() => {
+              if (!parsedFeedback.showingDate) return email.received_at;
+              const d = new Date(parsedFeedback.showingDate);
+              const y = d.getFullYear();
+              return !isNaN(d.getTime()) && y > 2000 && y < 2100 ? d.toISOString() : email.received_at;
+            })(),
             feedback: parsedFeedback.feedbackText || bodyText.substring(0, 1000),
             buyer_interest_level: parsedFeedback.interestLevel,
             source_email_id: email.id,
