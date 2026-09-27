@@ -1,0 +1,1 @@
+- Scheduled jobs authenticate to edge functions with the x-cron-secret header (MLS_CRON_TOKEN/CRON_SECRET), never the anon key — the anon key is refused by verifyAuth.
