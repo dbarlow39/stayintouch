@@ -568,7 +568,7 @@ const WeeklyUpdateTab = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("clients")
-        .select("id, first_name, last_name, email, street_number, street_name, city, state, zip, zillow_link, status, showings_to_date, mls_id, days_on_market, price")
+        .select("id, first_name, last_name, email, cell_phone, phone, home_phone, street_number, street_name, city, state, zip, zillow_link, status, showings_to_date, mls_id, days_on_market, price")
         .eq("agent_id", user!.id)
         .ilike("status", "A")
         .order("street_name", { ascending: true });

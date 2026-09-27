@@ -4,15 +4,20 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, Eye, Heart, Calendar, Home, TrendingUp, Users, MessageSquare, RefreshCw, ExternalLink } from "lucide-react";
+import { ArrowLeft, Eye, Heart, Calendar, Home, TrendingUp, Users, MessageSquare, RefreshCw, ExternalLink, Phone, Mail } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
+import PhoneCallTextLink from "@/components/PhoneCallTextLink";
+import CopyButton from "@/components/CopyButton";
 
 interface Client {
   id: string;
   first_name: string | null;
   last_name: string | null;
   email: string | null;
+  cell_phone?: string | null;
+  phone?: string | null;
+  home_phone?: string | null;
   street_number: string | null;
   street_name: string | null;
   city: string | null;
@@ -141,6 +146,10 @@ const ClientStatsView = ({ client, onBack }: ClientStatsViewProps) => {
 
   const propertyAddress = [client.street_number, client.street_name].filter(Boolean).join(' ');
   const fullAddress = [propertyAddress, client.city, client.state, client.zip].filter(Boolean).join(', ');
+  const displayPhone = [client.cell_phone, client.phone, client.home_phone].find((p) => p && p.trim()) || null;
+  const emailList = Array.from(new Set(
+    String(client.email || "").split(/[,;\s]+/).map((e) => e.trim()).filter((e) => e.includes("@"))
+  ));
 
   return (
     <div className="space-y-6">
@@ -157,6 +166,23 @@ const ClientStatsView = ({ client, onBack }: ClientStatsViewProps) => {
             <Home className="h-4 w-4" />
             {fullAddress || 'No address on file'}
           </p>
+          {displayPhone && (
+            <div className="text-muted-foreground flex items-center gap-2 mt-1">
+              <Phone className="h-4 w-4" />
+              <PhoneCallTextLink phone={displayPhone} inline />
+            </div>
+          )}
+          {emailList.length > 0 && (
+            <div className="text-muted-foreground flex flex-wrap items-center gap-2 mt-1">
+              <Mail className="h-4 w-4" />
+              {emailList.map((em) => (
+                <span key={em} className="inline-flex items-center gap-1">
+                  <a href={`mailto:${em}`} className="text-foreground hover:underline">{em}</a>
+                  <CopyButton value={em} label="Email copied" />
+                </span>
+              ))}
+            </div>
+          )}
         </div>
         {client.price && (
           <Badge variant="outline" className="text-lg px-4 py-2">
