@@ -39,6 +39,13 @@ export async function requireUser(
 export async function requireUserOrServiceRole(
   req: Request,
 ): Promise<{ userId: string | null; isService: boolean } | Response> {
+  // Scheduled jobs: private cron password in x-cron-secret header.
+  const cronHeader = req.headers.get("x-cron-secret") ?? "";
+  if (cronHeader) {
+    const cronTokens = [Deno.env.get("MLS_CRON_TOKEN"), Deno.env.get("CRON_SECRET")]
+      .filter((t): t is string => !!t);
+    if (cronTokens.includes(cronHeader)) return { userId: null, isService: true };
+  }
   const authHeader = req.headers.get("Authorization") ?? "";
   const token = authHeader.replace(/^Bearer\s+/i, "").trim();
   if (!token) return unauthorized();
