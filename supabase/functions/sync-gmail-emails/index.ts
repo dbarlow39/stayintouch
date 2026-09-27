@@ -328,6 +328,19 @@ async function syncAgentEmails(
     console.log(`Query "${name}" returned ${total} message ids`);
   }
 
+  // Skip emails already stored so large catch-ups only fetch new ones.
+  if (idsToFetch.length > 0) {
+    const stored = new Set<string>();
+    for (let i = 0; i < idsToFetch.length; i += 300) {
+      const chunk = idsToFetch.slice(i, i + 300).map((m) => m.id);
+      const { data } = await supabase.from("client_email_logs").select("gmail_message_id").in("gmail_message_id", chunk);
+      (data || []).forEach((r: any) => stored.add(r.gmail_message_id));
+    }
+    const before = idsToFetch.length;
+    for (let i = idsToFetch.length - 1; i >= 0; i--) if (stored.has(idsToFetch[i].id)) idsToFetch.splice(i, 1);
+    console.log(`Skipping ${before - idsToFetch.length} already-stored emails; fetching ${idsToFetch.length}`);
+  }
+
   // Simple concurrency limiter to keep runtime down
   const mapLimit = async <T, R>(items: T[], limit: number, fn: (item: T) => Promise<R>): Promise<R[]> => {
     const results: R[] = [];
