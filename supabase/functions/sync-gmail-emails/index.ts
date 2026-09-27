@@ -296,28 +296,49 @@ async function syncAgentEmails(
 
   const idsToFetch: Array<{ id: string; isShowingTime: boolean }> = [];
 
+  // Page through Gmail results when a date range is given (catch-up), capped at 2000 per query.
+  const PAGE_CAP = 2000;
   for (const { name, q, isShowingTime, limit } of listQueries) {
-    const listUrl = `https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=${limit}&q=${encodeURIComponent(q)}`;
+    let pageToken: string | undefined;
+    let total = 0;
+    do {
+      const listUrl = `https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=${limit}&q=${encodeURIComponent(q)}${pageToken ? `&pageToken=${pageToken}` : ""}`;
 
-    const listResponse = await fetch(listUrl, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    });
+      const listResponse = await fetch(listUrl, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
 
-    if (!listResponse.ok) {
-      const errorText = await listResponse.text();
-      console.error(`Gmail list error (${name}):`, errorText);
-      continue;
+      if (!listResponse.ok) {
+        const errorText = await listResponse.text();
+        console.error(`Gmail list error (${name}):`, errorText);
+        break;
+      }
+
+      const listData = await listResponse.json();
+      const messageIds = (listData.messages || []) as Array<{ id: string }>;
+      total += messageIds.length;
+
+      for (const msg of messageIds) {
+        if (seenMessageIds.has(msg.id)) continue;
+        seenMessageIds.add(msg.id);
+        idsToFetch.push({ id: msg.id, isShowingTime });
+      }
+      pageToken = afterDate ? listData.nextPageToken : undefined;
+    } while (pageToken && total < PAGE_CAP);
+    console.log(`Query "${name}" returned ${total} message ids`);
+  }
+
+  // Skip emails already stored so large catch-ups only fetch new ones.
+  if (idsToFetch.length > 0) {
+    const stored = new Set<string>();
+    for (let i = 0; i < idsToFetch.length; i += 300) {
+      const chunk = idsToFetch.slice(i, i + 300).map((m) => m.id);
+      const { data } = await supabase.from("client_email_logs").select("gmail_message_id").in("gmail_message_id", chunk);
+      (data || []).forEach((r: any) => stored.add(r.gmail_message_id));
     }
-
-    const listData = await listResponse.json();
-    const messageIds = (listData.messages || []) as Array<{ id: string }>;
-    console.log(`Query "${name}" returned ${messageIds.length} message ids`);
-
-    for (const msg of messageIds) {
-      if (seenMessageIds.has(msg.id)) continue;
-      seenMessageIds.add(msg.id);
-      idsToFetch.push({ id: msg.id, isShowingTime });
-    }
+    const before = idsToFetch.length;
+    for (let i = idsToFetch.length - 1; i >= 0; i--) if (stored.has(idsToFetch[i].id)) idsToFetch.splice(i, 1);
+    console.log(`Skipping ${before - idsToFetch.length} already-stored emails; fetching ${idsToFetch.length}`);
   }
 
   // Simple concurrency limiter to keep runtime down
