@@ -805,7 +805,7 @@ async function syncAgentEmails(
 
     // CRITICAL FIX: Use the client's agent_id if we matched a client, otherwise use the syncing agent's id
     // This ensures emails are attributed to the agent who owns the client, not who triggered the sync
-    const effectiveAgentId = matchedClient ? (matchedClient as any).agent_id : agent_id;
+    const effectiveAgentId = agent_id; // clients are loaded only for this agent, so the syncing agent is always the owner
     
     // Determine direction
     const agentEmail = tokenData.email_address.toLowerCase();
@@ -844,6 +844,10 @@ async function syncAgentEmails(
         .insert(emailLog)
         .select("id")
         .single();
+
+      if (insertError) {
+        console.error(`Failed to save email ${msg.id} ("${subject}"): ${insertError.message}`);
+      }
 
       if (!insertError && insertedEmail) {
         processedEmails.push(emailLog);
