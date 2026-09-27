@@ -234,7 +234,7 @@ async function syncAgentEmails(
   function normalizeAddress(s: string): string {
     return String(s || "")
       .toLowerCase()
-      .replace(/\b(unit|apt|apartment|suite|ste)\s*[\w-]+/g, " ")
+      .replace(/\b(unit|apt|apartment|suite|ste)\b[\s#]*[\w-]*/g, " ")
       .replace(/#\s*[\w-]+/g, " ")
       .replace(/[.,]/g, " ")
       .replace(/\s+/g, " ")
@@ -500,11 +500,20 @@ async function syncAgentEmails(
       /(\d+\s+[A-Za-z0-9\s]+(?:St|Street|Ave|Avenue|Rd|Road|Dr|Drive|Blvd|Boulevard|Ln|Lane|Ct|Court|Way|Pl|Place))\s*,/i,
     ];
     
-    for (const pattern of addressPatterns) {
-      const match = combined.match(pattern);
-      if (match) {
-        result.address = match[1].trim();
-        break;
+    // Primary: ShowingTime subjects always carry the address after "|",
+    // e.g. "FEEDBACK RECEIVED | 249 E Kossuth Street Unit# #C, Columbus, OH"
+    const subjectAddr = subject.match(/\|\s*(\d+[^,|]*?)\s*(?:,|$)/);
+    if (subjectAddr) {
+      result.address = subjectAddr[1].trim();
+    }
+
+    if (!result.address) {
+      for (const pattern of addressPatterns) {
+        const match = combined.match(pattern);
+        if (match) {
+          result.address = match[1].trim();
+          break;
+        }
       }
     }
 
