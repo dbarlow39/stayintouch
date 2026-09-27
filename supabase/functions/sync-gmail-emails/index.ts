@@ -296,28 +296,36 @@ async function syncAgentEmails(
 
   const idsToFetch: Array<{ id: string; isShowingTime: boolean }> = [];
 
+  // Page through Gmail results when a date range is given (catch-up), capped at 2000 per query.
+  const PAGE_CAP = 2000;
   for (const { name, q, isShowingTime, limit } of listQueries) {
-    const listUrl = `https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=${limit}&q=${encodeURIComponent(q)}`;
+    let pageToken: string | undefined;
+    let total = 0;
+    do {
+      const listUrl = `https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=${limit}&q=${encodeURIComponent(q)}${pageToken ? `&pageToken=${pageToken}` : ""}`;
 
-    const listResponse = await fetch(listUrl, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    });
+      const listResponse = await fetch(listUrl, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
 
-    if (!listResponse.ok) {
-      const errorText = await listResponse.text();
-      console.error(`Gmail list error (${name}):`, errorText);
-      continue;
-    }
+      if (!listResponse.ok) {
+        const errorText = await listResponse.text();
+        console.error(`Gmail list error (${name}):`, errorText);
+        break;
+      }
 
-    const listData = await listResponse.json();
-    const messageIds = (listData.messages || []) as Array<{ id: string }>;
-    console.log(`Query "${name}" returned ${messageIds.length} message ids`);
+      const listData = await listResponse.json();
+      const messageIds = (listData.messages || []) as Array<{ id: string }>;
+      total += messageIds.length;
 
-    for (const msg of messageIds) {
-      if (seenMessageIds.has(msg.id)) continue;
-      seenMessageIds.add(msg.id);
-      idsToFetch.push({ id: msg.id, isShowingTime });
-    }
+      for (const msg of messageIds) {
+        if (seenMessageIds.has(msg.id)) continue;
+        seenMessageIds.add(msg.id);
+        idsToFetch.push({ id: msg.id, isShowingTime });
+      }
+      pageToken = afterDate ? listData.nextPageToken : undefined;
+    } while (pageToken && total < PAGE_CAP);
+    console.log(`Query "${name}" returned ${total} message ids`);
   }
 
   // Simple concurrency limiter to keep runtime down
