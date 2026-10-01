@@ -360,7 +360,7 @@ const LeadsTab = () => {
               }
             }}
           >
-            Download Excel
+            Export Excel
           </Button>
           <Button onClick={() => navigate("/leads/new")}>
             <UserPlus className="w-4 h-4 mr-2" />
