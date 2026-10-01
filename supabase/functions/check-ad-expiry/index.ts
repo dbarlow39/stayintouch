@@ -530,14 +530,14 @@ serve(async (req) => {
             headers: { Authorization: `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },
             body: JSON.stringify({
               from: 'Sellfor1Percent.com <updates@resend.sellfor1percent.com>',
-              to: [agentCopyTest ? toEmail : la!.email],
+              to: [(agentCopyTest || isSelf) ? toEmail : la!.email],
               reply_to: toEmail,
               subject: `${agentCopyTest ? '[TEST] ' : ''}Your Facebook ad results – ${p.listing_address}`,
               html: agentHtml,
               ...(agentAttach.length ? { attachments: agentAttach } : {}),
             }),
           });
-          if (r2.ok) { emailsSent++; console.log(`[check-ad-expiry] Agent copy sent for ${p.post_id} to ${agentCopyTest ? toEmail : la!.email}`); }
+          if (r2.ok) { emailsSent++; console.log(`[check-ad-expiry] Agent copy sent for ${p.post_id} to ${(agentCopyTest || isSelf) ? toEmail : la!.email}`); }
           else console.error(`[check-ad-expiry] Agent copy failed for ${p.post_id}:`, await r2.text());
         }
       }
