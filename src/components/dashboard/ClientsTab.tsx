@@ -765,7 +765,7 @@ const ClientsTab = ({ onSelectClientForEstimate }: ClientsTabProps) => {
             }}
           >
             <Upload className="w-4 h-4 mr-2 rotate-180" />
-            Download Excel
+            Export Excel
           </Button>
           <Button 
             variant="outline" 
