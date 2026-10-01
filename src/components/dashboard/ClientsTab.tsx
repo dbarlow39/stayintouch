@@ -751,6 +751,22 @@ const ClientsTab = ({ onSelectClientForEstimate }: ClientsTabProps) => {
             onChange={handleCSVImport}
             className="hidden"
           />
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={async () => {
+              try {
+                const { downloadTableAsExcel } = await import("@/utils/excelExport");
+                const n = await downloadTableAsExcel("clients", "Clients", "Clients", (q) => q.order("street_name"));
+                toast.success(`Downloaded ${n} clients`);
+              } catch (e: any) {
+                toast.error(`Download failed: ${e.message}`);
+              }
+            }}
+          >
+            <Upload className="w-4 h-4 mr-2 rotate-180" />
+            Download Excel
+          </Button>
           <Button 
             variant="outline" 
             size="sm"
