@@ -301,6 +301,7 @@ serve(async (req) => {
 
         // Build a PDF report per ended ad (best effort)
         const attachments: { filename: string; content: string }[] = [];
+        const attachmentPostIds: string[] = [];
         const pdfFailures: string[] = [];
         const pdfInputs: Record<string, any> = {};
         for (const p of posts) {
@@ -351,13 +352,27 @@ serve(async (req) => {
               filename: `${slugify(p.listing_address)}-Ad-Results.pdf`,
               content: toBase64(bytes),
             });
+            attachmentPostIds.push(p.id);
           } catch (e) {
             console.error(`[check-ad-expiry] PDF build failed for ${p.post_id}:`, e);
             pdfFailures.push(p.post_id);
           }
         }
 
-        const html = `
+        // Own listings get the complete seller-written email instead of the internal notice
+        const myEmails = [profile?.email, profile?.preferred_email].filter(Boolean).map((e: string) => e.toLowerCase());
+        const myName = String(profile?.full_name || `${profile?.first_name || ''} ${profile?.last_name || ''}`).trim().toLowerCase();
+        const isOwnListing = (p: any) => {
+          const la = findListingAgent(p);
+          if (!la) return false;
+          return myEmails.includes(la.email.toLowerCase()) || (!!myName && la.name.trim().toLowerCase() === myName);
+        };
+        const ownIds = new Set(posts.filter(isOwnListing).map((p: any) => p.id));
+        const allPosts = posts;
+        const internalPosts = posts.filter((p: any) => !ownIds.has(p.id));
+        const internalAttachments = attachments.filter((_a, i) => !ownIds.has(attachmentPostIds[i]));
+
+        const html = ((posts: any[], attachments: any[]) => `
 <!DOCTYPE html>
 <html>
 <head><meta charset="utf-8"></head>
@@ -428,10 +443,10 @@ serve(async (req) => {
     </td></tr>
   </table>
 </body>
-</html>`;
+</html>`)(internalPosts, internalAttachments);
 
         let internalOk = true;
-        if (!agentCopyOnly) {
+        if (!agentCopyOnly && internalPosts.length > 0) {
           const res = await fetch('https://api.resend.com/emails', {
             method: 'POST',
             headers: {
@@ -441,15 +456,15 @@ serve(async (req) => {
             body: JSON.stringify({
               from: 'Sellfor1Percent.com <updates@resend.sellfor1percent.com>',
               to: [toEmail],
-              subject: `Facebook Ad${posts.length > 1 ? 's' : ''} Completed – ${posts.length > 1 ? `${posts.length} listings` : posts[0].listing_address}`,
+              subject: `Facebook Ad${internalPosts.length > 1 ? 's' : ''} Completed – ${internalPosts.length > 1 ? `${internalPosts.length} listings` : internalPosts[0].listing_address}`,
               html,
-              ...(attachments.length > 0 ? { attachments } : {}),
+              ...(internalAttachments.length > 0 ? { attachments: internalAttachments } : {}),
             }),
           });
           internalOk = res.ok;
           if (res.ok) {
             emailsSent++;
-            console.log(`[check-ad-expiry] Email sent to ${toEmail} for ${posts.length} ended ads`);
+            console.log(`[check-ad-expiry] Email sent to ${toEmail} for ${internalPosts.length} ended ads`);
           } else {
             const err = await res.text();
             console.error(`[check-ad-expiry] Email failed for ${toEmail}:`, err);
@@ -457,7 +472,7 @@ serve(async (req) => {
         }
 
         if (internalOk) {
-          for (const p of posts) {
+          for (const p of allPosts) {
             if (pendingUpdates[p.id]) {
               const { error: upErr } = await supabase.from('facebook_ad_posts').update(pendingUpdates[p.id]).eq('id', p.id);
               if (upErr) console.error(`[check-ad-expiry] Update failed for ${p.id}:`, upErr);
@@ -465,11 +480,11 @@ serve(async (req) => {
           }
         }
 
-        // ---- Forwardable copy for the listing agent (Option A) ----
+        // ---- Forwardable copy: to the listing agent, or to you for your own listings ----
         const esc = (s: string) => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-        for (const p of posts) {
+        for (const p of allPosts) {
           const la = findListingAgent(p);
-          const isSelf = la && la.email.toLowerCase() === String(toEmail).toLowerCase();
+          const isSelf = ownIds.has(p.id);
           if (!agentCopyTest && !la) continue;
           const ins = insightsByPost[p.id];
           const baseInput = pdfInputs[p.id];
@@ -515,14 +530,14 @@ serve(async (req) => {
             headers: { Authorization: `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },
             body: JSON.stringify({
               from: 'Sellfor1Percent.com <updates@resend.sellfor1percent.com>',
-              to: [agentCopyTest ? toEmail : la!.email],
+              to: [(agentCopyTest || isSelf) ? toEmail : la!.email],
               reply_to: toEmail,
               subject: `${agentCopyTest ? '[TEST] ' : ''}Your Facebook ad results – ${p.listing_address}`,
               html: agentHtml,
               ...(agentAttach.length ? { attachments: agentAttach } : {}),
             }),
           });
-          if (r2.ok) { emailsSent++; console.log(`[check-ad-expiry] Agent copy sent for ${p.post_id} to ${agentCopyTest ? toEmail : la!.email}`); }
+          if (r2.ok) { emailsSent++; console.log(`[check-ad-expiry] Agent copy sent for ${p.post_id} to ${(agentCopyTest || isSelf) ? toEmail : la!.email}`); }
           else console.error(`[check-ad-expiry] Agent copy failed for ${p.post_id}:`, await r2.text());
         }
       }
