@@ -345,7 +345,23 @@ const LeadsTab = () => {
       </div>
 
       <TabsContent value="lead-list" className="space-y-4">
-        <div className="flex justify-end">
+        <div className="flex justify-end gap-2">
+          <Button
+            variant="outline"
+            onClick={async () => {
+              try {
+                const { downloadTableAsExcel } = await import("@/utils/excelExport");
+                const n = await downloadTableAsExcel("leads", "Seller-Leads", "Seller Leads", (q) =>
+                  q.eq("lead_type", "seller").order("created_at", { ascending: false }),
+                );
+                toast({ title: `Downloaded ${n} seller leads` });
+              } catch (e: any) {
+                toast({ title: "Download failed", description: e.message, variant: "destructive" });
+              }
+            }}
+          >
+            Download Excel
+          </Button>
           <Button onClick={() => navigate("/leads/new")}>
             <UserPlus className="w-4 h-4 mr-2" />
             Add Lead
